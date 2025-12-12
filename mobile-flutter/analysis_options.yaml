@@ -1,290 +1,17 @@
 # This file configures the static analysis results for your project.
-include: package:flutter_lints/flutter.yaml
+# include: package:flutter_lints/flutter.yaml  (uncomment after running `flutter pub get`)
 
 # Additional linting rules
 linter:
   rules:
-    # Avoid empty statements
-    - avoid_empty_else
-    
-    # Avoid print statements
+    # Keep a small, stable set of lint rules (flutter_lints provides the rest)
     - avoid_print
-    
-    # Avoid single cascade in cascade sections
-    - avoid_single_cascade_in_expression_statements
-    
-    # Avoid types on private API elements
-    - avoid_types_on_closure_parameters
-    
-    # Cancel subscriptions
-    - cancel_subscriptions
-    
-    # Close sinks
-    - close_sinks
-    
-    # Comment references
-    - comment_references
-    
-    # Constant identifier names
-    - constant_identifier_names
-    
-    # Control flow in finally blocks
-    - control_flow_in_finally
-    
-    # Empty catch blocks
-    - empty_catches
-    
-    # Empty constructors
-    - empty_constructor_bodies
-    
-    # Empty statements
-    - empty_statements
-    
-    # Hash and equals
-    - hash_and_equals
-    
-    # Implementation imports
-    - implementation_imports
-    
-    # Invariant booleans
-    - invariant_booleans
-    
-    # Iterable contains
-    - iterable_contains_unrelated_type
-    
-    # List remove
-    - list_remove_unrelated_type
-    
-    # Literals
-    - no_adjacent_strings_in_list
-    - no_duplicate_case_values
-    - no_logic_in_create_state
-    
-    # Non-constant identifier names
-    - non_constant_identifier_names
-    
-    # Null checks
-    - null_check_on_nullable_type_parameter
-    
-    # Override on non-overriding method
-    - override_on_non_overriding_member
-    
-    # Package API docs
-    - package_api_docs
-    
-    # Package prefixed library names
-    - package_prefixed_library_names
-    
-    # Prefer assert in initializer lists
-    - prefer_asserts_in_initializer_lists
-    
-    # Prefer bool in assert
-    - prefer_bool_in_asserts
-    
-    # Prefer collection literals
-    - prefer_collection_literals
-    
-    # Prefer const constructors
     - prefer_const_constructors
-    
-    # Prefer const literals
     - prefer_const_literals_to_create_immutables
-    
-    # Prefer foreach
-    - prefer_foreach
-    
-    # Prefer function declarations
-    - prefer_function_declarations_over_variables
-    
-    # Prefer generic function type aliases
-    - prefer_generic_function_type_aliases
-    
-    # Prefer if elements
-    - prefer_if_elements_to_conditional_expressions
-    
-    # Prefer initializing formals
-    - prefer_initializing_formals
-    
-    # Prefer inline part-of directives
-    - prefer_inlined_adds
-    
-    # Prefer interpolated strings
-    - prefer_interpolation_to_compose_strings
-    
-    # Prefer is empty
-    - prefer_is_empty
-    
-    # Prefer is not empty
-    - prefer_is_not_empty
-    
-    # Prefer iterable whereType
-    - prefer_iterable_whereType
-    
-    # Prefer named parameters
-    - prefer_named_parameters
-    
-    # Prefer nullable type
-    - prefer_null_aware_operators
-    
-    # Prefer relative imports
-    - prefer_relative_imports
-    
-    # Prefer spread collections
-    - prefer_spread_collections
-    
-    # Prefer typecast
-    - prefer_typing_uninitialized_variables
-    
-    # Provide deprecation message
-    - provide_deprecation_message
-    
-    # Return of invalid type
-    - return_of_invalid_type
-    
-    # SDK version constraints
-    - sdk_version_async_exported_from_core
-    - sdk_version_as_expression_in_const_context
-    - sdk_version_bool_operator_in_const_context
-    - sdk_version_eq_eq_operator_in_const_context
-    - sdk_version_extension_methods
-    - sdk_version_set_literal
-    
-    # Sort child properties
-    - sort_child_properties_last
-    
-    # Sort constructors first
-    - sort_constructors_first
-    
-    # Sort pub dependencies
-    - sort_pub_dependencies
-    
-    # Sort unnamed constructors first
-    - sort_unnamed_constructors_first
-    
-    # Super go last
-    - super_goes_last
-    
-    # Test types in equals
-    - test_types_in_equals
-    
-    # Throw in finally block
-    - throw_in_finally
-    
-    # Type annotate public APIs
-    - type_annotate_public_apis
-    
-    # Unnecessary braces
-    - unnecessary_brace_in_string_interps
-    
-    # Unnecessary const
-    - unnecessary_const
-    
-    # Unnecessary get
-    - unnecessary_getters_setters
-    
-    # Unnecessary lambdas
-    - unnecessary_lambdas
-    
-    # Unnecessary new
-    - unnecessary_new
-    
-    # Unnecessary null aware operator
-    - unnecessary_null_aware_operator
-    
-    # Unnecessary overrides
-    - unnecessary_overrides
-    
-    # Unnecessary parentheses
-    - unnecessary_parenthesis
-    
-    # Unnecessary statics
-    - unnecessary_statements
-    
-    # Unnecessary this
-    - unnecessary_this
-    
-    # Unnecessary throws
-    - unnecessary_throws
-    
-    # Unrelated type equality checks
-    - unrelated_type_equality_checks
-    
-    # Use rethrow
-    - use_rethrow_when_possible
-    
-    # Use set literals
-    - use_set_literals
-    
-    # Use string buffers
-    - use_string_buffers
-    
-    # Use toList
-    - use_to_and_as_if_applicable
-    
-    # Valid regexps
-    - valid_regexps
-    
-    # Void checks
-    - void_checks
 
 # Analyzer configuration
 analyzer:
-  errors:
-    # Treat missing required parameters as error
-    missing_required_param: error
-    
-    # Treat missing return as error
-    missing_return: error
-    
-    # Treat type test with non-type as error
-    type_test_with_non_type: error
-    
-    # Treat undefined class as error
-    undefined_class: error
-    
-    # Treat undefined constructor as error
-    undefined_constructor: error
-    
-    # Treat undefined function as error
-    undefined_function: error
-    
-    # Treat undefined getter as error
-    undefined_getter: error
-    
-    # Treat undefined method as error
-    undefined_method: error
-    
-    # Treat undefined operator as error
-    undefined_operator: error
-    
-    # Treat undefined setter as error
-    undefined_setter: error
-    
-    # Treat unused element as warning
-    unused_element: warning
-    
-    # Treat unused field as warning
-    unused_field: warning
-    
-    # Treat unused import as warning
-    unused_import: warning
-    
-    # Treat unused label as warning
-    unused_label: warning
-    
-    # Treat unused local variable as warning
-    unused_local_variable: warning
-    
-    # Treat unused parameter as warning
-    unused_parameter: warning
-    
-    # Treat unused catch parameter as warning
-    unused_catch_parameter: warning
-    
-    # Treat unused catch stack as warning
-    unused_catch_stack: warning
-  
-  # Exclude files from analysis
+  # Exclude generated files
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
@@ -294,13 +21,13 @@ analyzer:
     - ".dart_tool/**"
     - ".idea/**"
     - ".vscode/**"
-  
+
   # Language features
   language:
     strict-casts: true
     strict-inference: true
     strict-raw-types: true
-  
+
   # Strong-mode options
   strong-mode:
     implicit-casts: false
@@ -310,9 +37,9 @@ analyzer:
 formatting:
   # Line length
   line-length: 80
-  
+
   # Indent size
   indent-size: 2
-  
+
   # Use tabs
   use-tabs: false

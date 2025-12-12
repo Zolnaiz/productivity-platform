@@ -1,48 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-// Providers
-import 'providers/auth_provider.dart';
-import 'providers/theme_provider.dart';
-import 'providers/questionnaire_provider.dart';
-import 'providers/expense_provider.dart';
-
-// Services
-import 'services/api_service.dart';
-import 'services/storage_service.dart';
-import 'services/notification_service.dart';
-
-// Screens
-import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/dashboard_screen.dart';
+import 'package:provider/provider.dart';
 
 // Routes
 import 'app_router.dart';
+// Providers
+import 'providers/auth_provider.dart';
+import 'providers/expense_provider.dart';
+import 'providers/questionnaire_provider.dart';
+import 'providers/theme_provider.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/login_screen.dart';
+// Screens
+import 'screens/splash_screen.dart';
+// Services
+import 'services/api_service.dart';
+import 'services/notification_service.dart';
+import 'services/storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   // Load environment variables
   await dotenv.load(fileName: '.env');
-  
+
   // Initialize services
   await StorageService().init();
   await ApiService().initialize();
   await NotificationService().initialize();
-  
-  // Load Google Fonts
-  await GoogleFonts.pendingFonts([GoogleFonts.inter()]);
-  
+
+  // No pending font initialization required; fonts loaded when used.
+
   runApp(const ProductivityApp());
 }
 
@@ -55,28 +51,31 @@ class ProductivityApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => QuestionnaireProvider()),
-        ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+        ChangeNotifierProvider(
+          create: (_) => QuestionnaireProvider(ApiService()),
+        ),
+        ChangeNotifierProvider(create: (_) => ExpenseProvider(ApiService())),
       ],
       child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
-          return MaterialApp.router(
-            title: 'Productivity Platform',
-            debugShowCheckedModeBanner: false,
-            theme: _buildLightTheme(),
-            darkTheme: _buildDarkTheme(),
-            themeMode: themeProvider.themeMode,
-            routerConfig: AppRouter.router,
-            builder: (context, child) {
-              return MediaQuery(
-                data: MediaQuery.of(context).copyWith(
-                  textScaler: TextScaler.linear(1.0),
+        builder:
+            (BuildContext context, ThemeProvider themeProvider, Widget? child) {
+              return MaterialApp.router(
+                title: 'Productivity Platform',
+                debugShowCheckedModeBanner: false,
+                theme: _buildLightTheme(),
+                darkTheme: _buildDarkTheme(),
+                themeMode: themeProvider.themeMode,
+                routerConfig: AppRouter.createRouter(
+                  Provider.of<AuthProvider>(context, listen: false),
                 ),
-                child: child!,
+                builder: (BuildContext context, Widget? child) {
+                  return MediaQuery(
+                    data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+                    child: child!,
+                  );
+                },
               );
             },
-          );
-        },
       ),
     );
   }
@@ -105,47 +104,30 @@ class ProductivityApp extends StatelessWidget {
       ),
       cardTheme: CardTheme(
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         color: Colors.white,
         surfaceTintColor: Colors.transparent,
       ),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.grey.shade300,
-            width: 1,
-          ),
+          borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.grey.shade300,
-            width: 1,
-          ),
+          borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF4361EE),
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF4361EE), width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFE63946),
-            width: 1,
-          ),
+          borderSide: const BorderSide(color: Color(0xFFE63946), width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFE63946),
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Color(0xFFE63946), width: 2),
         ),
         filled: true,
         fillColor: Colors.grey.shade50,
@@ -157,10 +139,7 @@ class ProductivityApp extends StatelessWidget {
           color: Colors.grey.shade600,
           fontSize: 14,
         ),
-        hintStyle: GoogleFonts.inter(
-          color: Colors.grey.shade400,
-          fontSize: 14,
-        ),
+        hintStyle: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 14),
         errorStyle: GoogleFonts.inter(
           color: const Color(0xFFE63946),
           fontSize: 12,
@@ -184,10 +163,7 @@ class ProductivityApp extends StatelessWidget {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          side: BorderSide(
-            color: const Color(0xFF4361EE),
-            width: 1,
-          ),
+          side: BorderSide(color: const Color(0xFF4361EE), width: 1),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -202,9 +178,7 @@ class ProductivityApp extends StatelessWidget {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           textStyle: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -280,9 +254,7 @@ class ProductivityApp extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       dividerTheme: DividerThemeData(
         color: Colors.grey.shade200,
@@ -291,14 +263,9 @@ class ProductivityApp extends StatelessWidget {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: Colors.black87,
-        contentTextStyle: GoogleFonts.inter(
-          color: Colors.white,
-          fontSize: 14,
-        ),
+        contentTextStyle: GoogleFonts.inter(color: Colors.white, fontSize: 14),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: Color(0xFF4361EE),
@@ -327,33 +294,22 @@ class ProductivityApp extends StatelessWidget {
       ),
       cardTheme: CardTheme(
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         color: const Color(0xFF1E1E2E),
         surfaceTintColor: Colors.transparent,
       ),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.grey.shade700,
-            width: 1,
-          ),
+          borderSide: BorderSide(color: Colors.grey.shade700, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.grey.shade700,
-            width: 1,
-          ),
+          borderSide: BorderSide(color: Colors.grey.shade700, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF7209B7),
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF7209B7), width: 2),
         ),
         filled: true,
         fillColor: Colors.grey.shade900,
