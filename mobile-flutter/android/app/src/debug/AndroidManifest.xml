@@ -1,0 +1,4 @@
+<!-- Debug Application class -->
+<application
+    android:name=".DebugApplication"
+    ...>

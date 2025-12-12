@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: productivity-postgres
+    environment:
+      POSTGRES_USER: productivity
+      POSTGRES_PASSWORD: productivity123
+      POSTGRES_DB: productivity_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - productivity-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U productivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: productivity-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - productivity-network
+    command: redis-server --appendonly yes
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: productivity-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://productivity:productivity123@postgres:5432/productivity_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - productivity-network
+    command: npm run start:dev
+
+  # Admin Web
+  admin-web:
+    build:
+      context: ./admin-web
+      dockerfile: Dockerfile
+      target: development
+    container_name: productivity-admin-web
+    ports:
+      - "3001:3001"
+    environment:
+      - VITE_API_URL=http://localhost:3000/api
+    volumes:
+      - ./admin-web:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - productivity-network
+    command: npm run dev
+
+  # Flutter Web
+  flutter-web:
+    build:
+      context: ./mobile-flutter
+      dockerfile: Dockerfile.web
+    container_name: productivity-flutter-web
+    ports:
+      - "8080:8080"
+    networks:
+      - productivity-network
+
+  # PGAdmin (Database Management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: productivity-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@productivity.local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - productivity-network
+
+  # Mailhog (Email Testing)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: productivity-mailhog
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+    networks:
+      - productivity-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+
+networks:
+  productivity-network:
+    driver: bridge

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Debug specific strings -->
+    <string name="app_name_debug">Productivity (Debug)</string>
+    <string name="version_name_debug">1.0.0-debug</string>
+    
+    <!-- Facebook debug credentials -->
+    <string name="facebook_app_id">123456789012345</string>
+    <string name="facebook_client_token">abc123def456ghi789</string>
+    
+    <!-- Debug API endpoints -->
+    <string name="api_base_url">http://10.0.2.2:3000/api</string>
+    <string name="api_timeout">30000</string>
+    
+    <!-- Debug feature flags -->
+    <string name="debug_features_enabled">true</string>
+    <string name="analytics_enabled">false</string>
+    <string name="crash_reporting_enabled">true</string>
+    
+    <!-- Debug messages -->
+    <string name="debug_welcome_message">Welcome to Productivity Platform DEBUG version</string>
+    <string name="debug_notice">This is a debug build. Data may not be persistent.</string>
+    
+    <!-- Debug URLs -->
+    <string name="privacy_policy_url">https://debug.productivity.com/privacy</string>
+    <string name="terms_of_service_url">https://debug.productivity.com/terms</string>
+    <string name="support_email">debug-support@productivity.com</string>
+    
+    <!-- Debug configuration -->
+    <string name="build_type">debug</string>
+    <string name="build_flavor">development</string>
+    <string name="build_timestamp">2024-12-14T10:30:00Z</string>
+    
+    <!-- Debug keys (for testing only, replace in production) -->
+    <string name="google_maps_api_key_debug">AIzaSyD_DEBUG_KEY_REPLACE_ME</string>
+    <string name="google_places_api_key_debug">AIzaSyD_DEBUG_PLACES_KEY</string>
+    <string name="firebase_web_api_key_debug">AIzaSyD_DEBUG_FIREBASE_KEY</string>
+    
+    <!-- Social media debug keys -->
+    <string name="twitter_api_key_debug">debug_twitter_key</string>
+    <string name="twitter_api_secret_debug">debug_twitter_secret</string>
+    <string name="linkedin_client_id_debug">debug_linkedin_id</string>
+    <string name="linkedin_client_secret_debug">debug_linkedin_secret</string>
+    
+    <!-- Payment gateway debug keys -->
+    <string name="stripe_publishable_key_debug">pk_test_XXXXXXXXXXXXXXXXXXXXXXXX</string>
+    <string name="stripe_secret_key_debug">sk_test_XXXXXXXXXXXXXXXXXXXXXXXX</string>
+    <string name="paypal_client_id_debug">debug_paypal_client_id</string>
+    <string name="paypal_secret_debug">debug_paypal_secret</string>
+</resources>

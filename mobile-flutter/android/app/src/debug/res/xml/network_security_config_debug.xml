@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Debug configuration allows cleartext traffic and user certificates -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">192.168.1</domain>
+        <domain includeSubdomains="true">192.168.0</domain>
+        <domain includeSubdomains="true">192.168.86</domain>
+        <domain includeSubdomains="true">api.localhost</domain>
+        <domain includeSubdomains="true">*.ngrok.io</domain>
+        <domain includeSubdomains="true">*.localtunnel.me</domain>
+        <domain includeSubdomains="true">*.loca.lt</domain>
+        <domain includeSubdomains="true">*.githubpreview.dev</domain>
+    </domain-config>
+    
+    <!-- Allow debug certificates -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

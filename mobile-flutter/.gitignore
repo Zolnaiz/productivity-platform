@@ -1,0 +1,146 @@
+# Files and directories created by pub
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Conventional directory for build outputs
+build/
+
+# Directory created by dartdoc
+doc/api/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+.flutter/
+.flutter/
+
+# Android related
+**/android/**/gradle-wrapper.jar
+**/android/.gradle
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/key.properties
+*.jks
+
+# iOS related
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.moved-aside
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/*sync/
+**/ios/.sconsign.dblite
+**/ios/.tags*
+**/ios/.vagrant/
+**/ios/DerivedData/
+**/ios/Icon?
+**/ios/Podfile.lock
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/ profile
+**/ios/*.xcworkspace
+**/ios/xcuserdata
+
+# macOS
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/.defaults
+**/macos/Podfile.lock
+**/macos/Pods/
+
+# Web
+**/web/
+
+# Coverage
+coverage/
+
+# VS Code
+.vscode/
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+
+# Windows
+Thumbs.db
+.DS_Store
+
+# Linux
+*~
+
+# Logs
+*.log
+
+# Test
+/test-results/
+/test-reports/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+
+# Firebase
+**/android/app/google-services.json
+**/ios/Runner/GoogleService-Info.plist
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Miscellaneous
+*.class
+*.lock
+*.swp
+*.swo
+*~
+.project
+*.pyc
+.nuke
+*.bak
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE specific
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# Project specific
+secrets/
+keys/
+certificates/

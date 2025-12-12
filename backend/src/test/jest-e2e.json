@@ -1,0 +1,48 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "collectCoverageFrom": [
+    "src/**/*.(t|j)s"
+  ],
+  "coverageDirectory": "../coverage-e2e",
+  "coveragePathIgnorePatterns": [
+    "/node_modules/",
+    "/test/",
+    ".entity.ts$",
+    ".dto.ts$",
+    ".module.ts$",
+    ".config.ts$"
+  ],
+  "coverageThreshold": {
+    "global": {
+      "branches": 70,
+      "functions": 70,
+      "lines": 70,
+      "statements": 70
+    }
+  },
+  "setupFilesAfterEnv": ["<rootDir>/src/test/setup.ts"],
+  "moduleNameMapper": {
+    "^@app/(.*)$": "<rootDir>/src/$1",
+    "^@shared/(.*)$": "<rootDir>/src/shared/$1",
+    "^@auth/(.*)$": "<rootDir>/src/auth/$1",
+    "^@users/(.*)$": "<rootDir>/src/users/$1",
+    "^@organizations/(.*)$": "<rootDir>/src/organizations/$1",
+    "^@questionnaires/(.*)$": "<rootDir>/src/questionnaires/$1",
+    "^@responses/(.*)$": "<rootDir>/src/responses/$1",
+    "^@expenses/(.*)$": "<rootDir>/src/expenses/$1",
+    "^@reports/(.*)$": "<rootDir>/src/reports/$1"
+  },
+  "testTimeout": 30000,
+  "verbose": true,
+  "forceExit": true,
+  "clearMocks": true,
+  "resetMocks": true,
+  "restoreMocks": true,
+  "detectOpenHandles": true
+}

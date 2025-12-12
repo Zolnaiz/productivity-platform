@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Debug theme colors -->
+    <color name="colorPrimary">#FF6B6B</color>
+    <color name="colorPrimaryDark">#FF5252</color>
+    <color name="colorAccent">#4ECDC4</color>
+    
+    <!-- Debug background colors -->
+    <color name="debug_background">#FFF9E6</color>
+    <color name="debug_surface">#FFFFFF</color>
+    <color name="debug_error">#FF5252</color>
+    <color name="debug_warning">#FFB74D</color>
+    <color name="debug_success">#4CAF50</color>
+    <color name="debug_info">#2196F3</color>
+    
+    <!-- Debug status bar colors -->
+    <color name="debug_status_bar">#FF6B6B</color>
+    <color name="debug_navigation_bar">#000000</color>
+    
+    <!-- Debug text colors -->
+    <color name="debug_text_primary">#212121</color>
+    <color name="debug_text_secondary">#757575</color>
+    <color name="debug_text_hint">#BDBDBD</color>
+    <color name="debug_text_disabled">#E0E0E0</color>
+    
+    <!-- Debug border colors -->
+    <color name="debug_border">#FF6B6B</color>
+    <color name="debug_border_light">#FFCDD2</color>
+    
+    <!-- Debug shadow colors -->
+    <color name="debug_shadow">#1A000000</color>
+    <color name="debug_shadow_light">#0A000000</color>
+    
+    <!-- Debug overlay colors -->
+    <color name="debug_overlay">#80FF6B6B</color>
+    <color name="debug_overlay_dark">#80000000</color>
+    <color name="debug_overlay_light">#80FFFFFF</color>
+</resources>

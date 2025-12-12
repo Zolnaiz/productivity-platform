@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: productivity_dev
+
+  backend:
+    build:
+      target: development
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://dev_user:dev_password@postgres:5432/productivity_dev
+      - LOG_LEVEL=debug
+      - CORS_ORIGIN=http://localhost:3001,http://localhost:8080
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run start:dev
+
+  admin-web:
+    build:
+      target: development
+    environment:
+      - VITE_API_URL=http://localhost:3000/api
+      - VITE_ENVIRONMENT=development
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./admin-web:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # Hot reload for Flutter development
+  flutter-dev:
+    build:
+      context: ./mobile-flutter
+      dockerfile: Dockerfile.dev
+    container_name: productivity-flutter-dev
+    ports:
+      - "3002:3002" # For web debugging
+    volumes:
+      - ./mobile-flutter:/app
+    stdin_open: true
+    tty: true
+    command: flutter run -d web-server --web-port 3002 --web-hostname 0.0.0.0 --web-renderer html --profile
+
+  # Database migrations
+  migrations:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: productivity-migrations
+    environment:
+      - DATABASE_URL=postgresql://dev_user:dev_password@postgres:5432/productivity_dev
+    depends_on:
+      - postgres
+    command: npm run migration:run
+
+  # Database seed
+  seed:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: productivity-seed
+    environment:
+      - DATABASE_URL=postgresql://dev_user:dev_password@postgres:5432/productivity_dev
+    depends_on:
+      - migrations
+    command: npm run seed
+
+  # API Documentation
+  swagger:
+    image: swaggerapi/swagger-ui:latest
+    container_name: productivity-swagger
+    ports:
+      - "8081:8080"
+    environment:
+      API_URL: http://localhost:3000/api-json
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: productivity-network
+    external: true

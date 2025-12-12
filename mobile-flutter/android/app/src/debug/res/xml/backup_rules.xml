@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Include app data for backup -->
+    <include domain="file" path="." />
+    <include domain="database" path="." />
+    <include domain="sharedpref" path="." />
+    <include domain="external" path="." />
+    
+    <!-- Exclude sensitive debug data -->
+    <exclude domain="sharedpref" path="debug_preferences.xml" />
+    <exclude domain="database" path="debug.db" />
+    <exclude domain="file" path="no_backup/" />
+    <exclude domain="file" path="cache/" />
+    <exclude domain="file" path="tmp/" />
+    
+    <!-- Exclude large files -->
+    <exclude domain="file" path="large_files/" />
+    <exclude domain="external" path="Pictures/" />
+    <exclude domain="external" path="Movies/" />
+    <exclude domain="external" path="Music/" />
+    <exclude domain="external" path="Podcasts/" />
+    <exclude domain="external" path="Ringtones/" />
+    <exclude domain="external" path="Alarms/" />
+    <exclude domain="external" path="Notifications/" />
+    <exclude domain="external" path="Downloads/" />
+    <exclude domain="external" path="DCIM/" />
+</full-backup-content>
