@@ -1,43 +1,46 @@
-import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-import '../services/api_service.dart';
-import '../models/user_model.dart';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/organization_model.dart';
+import '../models/user_model.dart';
+import '../services/api_service.dart';
 
 class AuthProvider with ChangeNotifier {
+  AuthProvider() {
+    _prefsFuture.then(_loadUserFromStorage);
+  }
   final ApiService _apiService = ApiService();
-  final SharedPreferences _prefs;
-  
+  final Future<SharedPreferences> _prefsFuture =
+      SharedPreferences.getInstance();
+
   User? _user;
   Organization? _organization;
   bool _isLoading = true;
   bool _isAuthenticated = false;
   String? _error;
-  
+
   User? get user => _user;
   Organization? get organization => _organization;
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _isAuthenticated;
   String? get error => _error;
-  
-  AuthProvider() : _prefs = SharedPreferences.getInstance() as SharedPreferences {
-    _loadUserFromStorage();
-  }
-  
-  Future<void> _loadUserFromStorage() async {
+
+  Future<void> _loadUserFromStorage(SharedPreferences prefs) async {
     try {
-      final userString = _prefs.getString('user');
-      
+      final userString = prefs.getString('user');
+
       if (userString != null) {
-        final userData = json.decode(userString);
+        final userData = json.decode(userString) as Map<String, dynamic>;
         _user = User.fromJson(userData);
-        
+
         if (userData['organization'] != null) {
-          _organization = Organization.fromJson(userData['organization']);
+          _organization = Organization.fromJson(
+            userData['organization'] as Map<String, dynamic>,
+          );
         }
-        
+
         _isAuthenticated = true;
         print('User loaded from storage: ${_user?.email}');
       }
@@ -50,25 +53,28 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   Future<bool> login(String email, String password) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       print('Attempting login for: $email');
       final result = await _apiService.login(email, password);
-      
-      _user = User.fromJson(result['user']);
+
+      _user = User.fromJson(result['user'] as Map<String, dynamic>);
       _organization = result['user']['organization'] != null
-          ? Organization.fromJson(result['user']['organization'])
+          ? Organization.fromJson(
+              result['user']['organization'] as Map<String, dynamic>,
+            )
           : null;
       _isAuthenticated = true;
-      
-      await _prefs.setString('user', json.encode(result['user']));
+
+      final prefs = await _prefsFuture;
+      await prefs.setString('user', json.encode(result['user']));
       print('Login successful for: ${_user?.email}');
-      
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -80,7 +86,7 @@ class AuthProvider with ChangeNotifier {
       return false;
     }
   }
-  
+
   Future<bool> register({
     required String email,
     required String password,
@@ -91,7 +97,7 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       print('Attempting registration for: $email');
       final result = await _apiService.register(
@@ -100,16 +106,19 @@ class AuthProvider with ChangeNotifier {
         fullName,
         organizationCode,
       );
-      
-      _user = User.fromJson(result['user']);
+
+      _user = User.fromJson(result['user'] as Map<String, dynamic>);
       _organization = result['user']['organization'] != null
-          ? Organization.fromJson(result['user']['organization'])
+          ? Organization.fromJson(
+              result['user']['organization'] as Map<String, dynamic>,
+            )
           : null;
       _isAuthenticated = true;
-      
-      await _prefs.setString('user', json.encode(result['user']));
+
+      final prefs = await _prefsFuture;
+      await prefs.setString('user', json.encode(result['user']));
       print('Registration successful for: ${_user?.email}');
-      
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -121,7 +130,7 @@ class AuthProvider with ChangeNotifier {
       return false;
     }
   }
-  
+
   Future<void> logout() async {
     try {
       print('Logging out user: ${_user?.email}');
@@ -133,27 +142,31 @@ class AuthProvider with ChangeNotifier {
       _organization = null;
       _isAuthenticated = false;
       _error = null;
-      
-      await _prefs.remove('user');
+
+      final prefs = await _prefsFuture;
+      await prefs.remove('user');
       print('User logged out successfully');
-      
+
       notifyListeners();
     }
   }
-  
+
   Future<void> refreshUser() async {
     try {
       print('Refreshing user data');
       final userData = await _apiService.getCurrentUser();
       _user = User.fromJson(userData);
-      
+
       if (userData['organization'] != null) {
-        _organization = Organization.fromJson(userData['organization']);
+        _organization = Organization.fromJson(
+          userData['organization'] as Map<String, dynamic>,
+        );
       }
-      
-      await _prefs.setString('user', json.encode(userData));
+
+      final prefs = await _prefsFuture;
+      await prefs.setString('user', json.encode(userData));
       print('User data refreshed: ${_user?.email}');
-      
+
       notifyListeners();
     } catch (e) {
       print('Error refreshing user: $e');
@@ -161,28 +174,29 @@ class AuthProvider with ChangeNotifier {
       await logout();
     }
   }
-  
+
   Future<void> updateProfile(Map<String, dynamic> data) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       print('Updating profile for: ${_user?.email}');
       // TODO: Implement profile update API call
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       if (data.containsKey('fullName')) {
         _user = _user?.copyWith(fullName: data['fullName']);
       }
-      
+
       if (data.containsKey('phoneNumber')) {
         _user = _user?.copyWith(phoneNumber: data['phoneNumber']);
       }
-      
-      await _prefs.setString('user', json.encode(_user?.toJson()));
+
+      final prefs = await _prefsFuture;
+      await prefs.setString('user', json.encode(_user?.toJson()));
       print('Profile updated successfully');
-      
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -192,7 +206,7 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -200,14 +214,14 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       print('Changing password for: ${_user?.email}');
       // TODO: Implement password change API call
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       print('Password changed successfully');
-      
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -217,12 +231,12 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   void clearError() {
     _error = null;
     notifyListeners();
   }
-  
+
   Map<String, dynamic> toJson() {
     return {
       'user': _user?.toJson(),
@@ -230,21 +244,24 @@ class AuthProvider with ChangeNotifier {
       'isAuthenticated': _isAuthenticated,
     };
   }
-  
+
   Future<void> fromJson(Map<String, dynamic> json) async {
     try {
       if (json['user'] != null) {
-        _user = User.fromJson(json['user']);
+        _user = User.fromJson(json['user'] as Map<String, dynamic>);
       }
-      
+
       if (json['organization'] != null) {
-        _organization = Organization.fromJson(json['organization']);
+        _organization = Organization.fromJson(
+          json['organization'] as Map<String, dynamic>,
+        );
       }
-      
+
       _isAuthenticated = json['isAuthenticated'] ?? false;
-      
-      await _prefs.setString('user', json.encode(json['user']));
-      
+
+      final prefs = await _prefsFuture;
+      await prefs.setString('user', json.encode(json['user']));
+
       notifyListeners();
     } catch (e) {
       print('Error restoring auth state: $e');

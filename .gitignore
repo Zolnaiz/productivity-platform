@@ -106,6 +106,10 @@ cypress/screenshots/
 
 # NestJS
 ormconfig.json
+ 
+# Ignore compiled JS in backend src (avoid committing build artifacts)
+backend/src/**/*.js
+backend/src/**/*.js.map
 
 # Mobile
 mobile-flutter/android/app/src/main/res/raw/*

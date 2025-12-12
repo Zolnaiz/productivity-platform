@@ -17,13 +17,7 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-	"compilerOptions": {
     "strict": false,
-    "noImplicitAny": false,
-    "skipLibCheck": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
-  }
     "paths": {
       "@app/*": ["src/*"],
       "@shared/*": ["src/shared/*"],

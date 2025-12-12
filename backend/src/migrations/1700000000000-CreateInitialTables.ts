@@ -1,11 +1,11 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateInitialTables1700000000000 implements MigrationInterface {
-    name = 'CreateInitialTables1700000000000'
+  name = 'CreateInitialTables1700000000000';
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        // Organizations table
-        await queryRunner.query(`
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    // Organizations table
+    await queryRunner.query(`
             CREATE TABLE organizations (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 name VARCHAR(255) NOT NULL,
@@ -28,8 +28,8 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
             );
         `);
 
-        // Users table
-        await queryRunner.query(`
+    // Users table
+    await queryRunner.query(`
             CREATE TABLE users (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 email VARCHAR(255) UNIQUE NOT NULL,
@@ -53,8 +53,8 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
             );
         `);
 
-        // Questionnaires table
-        await queryRunner.query(`
+    // Questionnaires table
+    await queryRunner.query(`
             CREATE TABLE questionnaires (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 title VARCHAR(255) NOT NULL,
@@ -78,8 +78,8 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
             );
         `);
 
-        // Responses table
-        await queryRunner.query(`
+    // Responses table
+    await queryRunner.query(`
             CREATE TABLE responses (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -102,8 +102,8 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
             );
         `);
 
-        // Expenses table
-        await queryRunner.query(`
+    // Expenses table
+    await queryRunner.query(`
             CREATE TABLE expenses (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 name VARCHAR(255) NOT NULL,
@@ -127,8 +127,8 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
             );
         `);
 
-        // Reports table
-        await queryRunner.query(`
+    // Reports table
+    await queryRunner.query(`
             CREATE TABLE reports (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 type VARCHAR(50) NOT NULL,
@@ -145,13 +145,13 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
                 generated_by_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 error_message TEXT,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                updated_at TIMestAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 deleted_at TIMESTAMPTZ
             );
         `);
 
-        // Indexes
-        await queryRunner.query(`
+    // Indexes
+    await queryRunner.query(`
             CREATE INDEX idx_users_email ON users(email);
             CREATE INDEX idx_users_organization_role ON users(organization_id, role);
             CREATE INDEX idx_users_status_last_login ON users(status, last_login_at);
@@ -177,8 +177,8 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
             CREATE INDEX idx_reports_status_exported ON reports(status, exported_at);
         `);
 
-        // Triggers for updated_at
-        await queryRunner.query(`
+    // Triggers for updated_at
+    await queryRunner.query(`
             CREATE OR REPLACE FUNCTION update_updated_at_column()
             RETURNS TRIGGER AS $$
             BEGIN
@@ -205,11 +205,11 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
             CREATE TRIGGER update_reports_updated_at BEFORE UPDATE ON reports
                 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
         `);
-    }
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        // Drop triggers
-        await queryRunner.query(`
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    // Drop triggers
+    await queryRunner.query(`
             DROP TRIGGER IF EXISTS update_users_updated_at ON users;
             DROP TRIGGER IF EXISTS update_organizations_updated_at ON organizations;
             DROP TRIGGER IF EXISTS update_questionnaires_updated_at ON questionnaires;
@@ -219,12 +219,12 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
             DROP FUNCTION IF EXISTS update_updated_at_column;
         `);
 
-        // Drop tables in reverse order
-        await queryRunner.query(`DROP TABLE IF EXISTS reports CASCADE`);
-        await queryRunner.query(`DROP TABLE IF EXISTS expenses CASCADE`);
-        await queryRunner.query(`DROP TABLE IF EXISTS responses CASCADE`);
-        await queryRunner.query(`DROP TABLE IF EXISTS questionnaires CASCADE`);
-        await queryRunner.query(`DROP TABLE IF EXISTS users CASCADE`);
-        await queryRunner.query(`DROP TABLE IF EXISTS organizations CASCADE`);
-    }
+    // Drop tables in reverse order
+    await queryRunner.query(`DROP TABLE IF EXISTS reports CASCADE`);
+    await queryRunner.query(`DROP TABLE IF EXISTS expenses CASCADE`);
+    await queryRunner.query(`DROP TABLE IF EXISTS responses CASCADE`);
+    await queryRunner.query(`DROP TABLE IF EXISTS questionnaires CASCADE`);
+    await queryRunner.query(`DROP TABLE IF EXISTS users CASCADE`);
+    await queryRunner.query(`DROP TABLE IF EXISTS organizations CASCADE`);
+  }
 }
