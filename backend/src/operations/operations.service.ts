@@ -1,0 +1,366 @@
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Project } from './entities/project.entity';
+import { WorkTask } from './entities/task.entity';
+import { WorkLog } from './entities/work-log.entity';
+import { TimeEntry } from './entities/time-entry.entity';
+import { AuditTemplate } from './entities/audit-template.entity';
+import { AuditRun } from './entities/audit-run.entity';
+import { AssessmentTemplate } from './entities/assessment-template.entity';
+import { AssessmentResponse } from './entities/assessment-response.entity';
+import { ExpenseItem } from './entities/expense.entity';
+
+type CurrentUser = {
+  id?: string;
+  organizationId?: string;
+};
+
+@Injectable()
+export class OperationsService {
+  constructor(
+    private readonly configService: ConfigService,
+    @InjectRepository(Project) private projects: Repository<Project>,
+    @InjectRepository(WorkTask) private tasks: Repository<WorkTask>,
+    @InjectRepository(WorkLog) private workLogs: Repository<WorkLog>,
+    @InjectRepository(TimeEntry) private timeEntries: Repository<TimeEntry>,
+    @InjectRepository(AuditTemplate) private auditTemplates: Repository<AuditTemplate>,
+    @InjectRepository(AuditRun) private auditRuns: Repository<AuditRun>,
+    @InjectRepository(AssessmentTemplate) private assessmentTemplates: Repository<AssessmentTemplate>,
+    @InjectRepository(AssessmentResponse) private assessmentResponses: Repository<AssessmentResponse>,
+    @InjectRepository(ExpenseItem) private expenses: Repository<ExpenseItem>,
+  ) {}
+
+  findProjects(user: CurrentUser) {
+    return this.projects.find({
+      where: this.organizationWhere(user),
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  createProject(payload: Partial<Project>, user: CurrentUser) {
+    const project = this.projects.create({
+      ...payload,
+      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      ownerId: payload.ownerId || user?.id,
+    });
+    return this.projects.save(project);
+  }
+
+  async updateProject(id: string, payload: Partial<Project>, user: CurrentUser) {
+    const project = await this.findOneScoped(this.projects, id, user, 'Project');
+    Object.assign(project, payload);
+    return this.projects.save(project);
+  }
+
+  findTasks(user: CurrentUser, projectId?: string) {
+    return this.tasks.find({
+      where: {
+        ...this.organizationWhere(user),
+        ...(projectId ? { projectId } : {}),
+      },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  createTask(payload: Partial<WorkTask>, user: CurrentUser) {
+    const task = this.tasks.create({
+      ...payload,
+      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      reporterId: payload.reporterId || user?.id,
+    });
+    return this.tasks.save(task);
+  }
+
+  async updateTask(id: string, payload: Partial<WorkTask>, user: CurrentUser) {
+    const task = await this.findOneScoped(this.tasks, id, user, 'Task');
+    Object.assign(task, payload);
+    return this.tasks.save(task);
+  }
+
+  findWorkLogs(user: CurrentUser) {
+    return this.workLogs.find({
+      where: this.organizationWhere(user),
+      order: { logDate: 'DESC', createdAt: 'DESC' },
+    });
+  }
+
+  createWorkLog(payload: Partial<WorkLog>, user: CurrentUser) {
+    const log = this.workLogs.create({
+      ...payload,
+      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      userId: payload.userId || user?.id,
+      logDate: payload.logDate || new Date().toISOString().slice(0, 10),
+    });
+    return this.workLogs.save(log);
+  }
+
+  findTimeEntries(user: CurrentUser) {
+    return this.timeEntries.find({
+      where: this.organizationWhere(user),
+      order: { workDate: 'DESC', createdAt: 'DESC' },
+    });
+  }
+
+  createTimeEntry(payload: Partial<TimeEntry>, user: CurrentUser) {
+    const entry = this.timeEntries.create({
+      ...payload,
+      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      userId: payload.userId || user?.id,
+      workDate: payload.workDate || new Date().toISOString().slice(0, 10),
+    });
+    return this.timeEntries.save(entry);
+  }
+
+  findAuditTemplates(user: CurrentUser) {
+    return this.auditTemplates.find({
+      where: this.organizationWhere(user),
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  createAuditTemplate(payload: Partial<AuditTemplate>, user: CurrentUser) {
+    const template = this.auditTemplates.create({
+      ...payload,
+      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      questions: payload.questions || [],
+    });
+    return this.auditTemplates.save(template);
+  }
+
+  findAuditRuns(user: CurrentUser) {
+    return this.auditRuns.find({
+      where: this.organizationWhere(user),
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  createAuditRun(payload: Partial<AuditRun>, user: CurrentUser) {
+    const run = this.auditRuns.create({
+      ...payload,
+      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      auditorId: payload.auditorId || user?.id,
+      answers: payload.answers || [],
+    });
+    return this.auditRuns.save(run);
+  }
+
+  findAssessmentTemplates(user: CurrentUser) {
+    return this.assessmentTemplates.find({
+      where: this.organizationWhere(user),
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  createAssessmentTemplate(payload: Partial<AssessmentTemplate>, user: CurrentUser) {
+    const template = this.assessmentTemplates.create({
+      ...payload,
+      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      questions: payload.questions || [],
+    });
+    return this.assessmentTemplates.save(template);
+  }
+
+  async updateAssessmentTemplate(id: string, payload: Partial<AssessmentTemplate>, user: CurrentUser) {
+    const template = await this.findOneScoped(this.assessmentTemplates, id, user, 'Assessment template');
+    Object.assign(template, payload);
+    return this.assessmentTemplates.save(template);
+  }
+
+  findAssessmentResponses(user: CurrentUser) {
+    return this.assessmentResponses.find({
+      where: this.organizationWhere(user),
+      order: { submittedAt: 'DESC', createdAt: 'DESC' },
+    });
+  }
+
+  createAssessmentResponse(payload: Partial<AssessmentResponse>, user: CurrentUser) {
+    const response = this.assessmentResponses.create({
+      ...payload,
+      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      respondentId: payload.respondentId || user?.id,
+      answers: payload.answers || [],
+      submittedAt: payload.submittedAt || new Date(),
+    });
+    return this.assessmentResponses.save(response);
+  }
+
+  async updateAssessmentResponse(id: string, payload: Partial<AssessmentResponse>, user: CurrentUser) {
+    const response = await this.findOneScoped(this.assessmentResponses, id, user, 'Assessment response');
+    Object.assign(response, payload);
+    return this.assessmentResponses.save(response);
+  }
+
+  findExpenses(user: CurrentUser) {
+    return this.expenses.find({
+      where: this.organizationWhere(user),
+      order: { expenseDate: 'DESC', createdAt: 'DESC' },
+    });
+  }
+
+  createExpense(payload: Partial<ExpenseItem>, user: CurrentUser) {
+    const expense = this.expenses.create({
+      ...payload,
+      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      expenseDate: payload.expenseDate || new Date().toISOString().slice(0, 10),
+    });
+    return this.expenses.save(expense);
+  }
+
+  async updateExpense(id: string, payload: Partial<ExpenseItem>, user: CurrentUser) {
+    const expense = await this.findOneScoped(this.expenses, id, user, 'Expense');
+    Object.assign(expense, payload);
+    return this.expenses.save(expense);
+  }
+
+  async dashboardSummary(user: CurrentUser) {
+    const organization = this.organizationWhere(user);
+    const [projects, tasks, workLogs, timeEntries, auditRuns, assessmentResponses, expenses] = await Promise.all([
+      this.projects.find({ where: organization }),
+      this.tasks.find({ where: organization }),
+      this.workLogs.find({ where: organization }),
+      this.timeEntries.find({ where: organization }),
+      this.auditRuns.find({ where: organization }),
+      this.assessmentResponses.find({ where: organization }),
+      this.expenses.find({ where: organization }),
+    ]);
+
+    const completedTasks = tasks.filter((task) => task.status === 'done').length;
+    const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
+    const averageProjectProgress = projects.length
+      ? Math.round(projects.reduce((sum, project) => sum + Number(project.progress || 0), 0) / projects.length)
+      : 0;
+    const averageAuditScore = auditRuns.length
+      ? Math.round(auditRuns.reduce((sum, run) => sum + Number(run.score || 0), 0) / auditRuns.length)
+      : 0;
+    const averageAssessmentScore = assessmentResponses.length
+      ? Math.round(
+          assessmentResponses.reduce((sum, response) => sum + Number(response.score || 0), 0) /
+            assessmentResponses.length,
+        )
+      : 0;
+    const approvedExpenseTotal = expenses
+      .filter((expense) => expense.status === 'approved')
+      .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+
+    return {
+      totals: {
+        projects: projects.length,
+        tasks: tasks.length,
+        completedTasks,
+        workLogs: workLogs.length,
+        totalHours,
+        auditRuns: auditRuns.length,
+        assessmentResponses: assessmentResponses.length,
+        approvedExpenseTotal,
+      },
+      kpis: {
+        taskCompletionRate: tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0,
+        averageProjectProgress,
+        averageAuditScore,
+        averageAssessmentScore,
+      },
+      recent: {
+        projects: projects.slice(0, 5),
+        tasks: tasks.slice(0, 5),
+        workLogs: workLogs.slice(0, 5),
+      },
+    };
+  }
+
+  async monthlyReport(user: CurrentUser) {
+    const organization = this.organizationWhere(user);
+    const [projects, tasks, workLogs, timeEntries, auditRuns, assessmentResponses, expenses] = await Promise.all([
+      this.projects.find({ where: organization }),
+      this.tasks.find({ where: organization }),
+      this.workLogs.find({ where: organization }),
+      this.timeEntries.find({ where: organization }),
+      this.auditRuns.find({ where: organization }),
+      this.assessmentResponses.find({ where: organization }),
+      this.expenses.find({ where: organization }),
+    ]);
+
+    const completedTasks = tasks.filter((task) => task.status === 'done');
+    const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
+    const completionRate = tasks.length ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
+    const averageProjectProgress = projects.length
+      ? Math.round(projects.reduce((sum, project) => sum + Number(project.progress || 0), 0) / projects.length)
+      : 0;
+    const averageAssessmentScore = assessmentResponses.length
+      ? Math.round(
+          assessmentResponses.reduce((sum, response) => sum + Number(response.score || 0), 0) /
+            assessmentResponses.length,
+        )
+      : 0;
+    const approvedExpenseTotal = expenses
+      .filter((expense) => expense.status === 'approved')
+      .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+    const pendingExpenseTotal = expenses
+      .filter((expense) => expense.status === 'submitted')
+      .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+
+    return {
+      period: new Date().toISOString().slice(0, 7),
+      totals: {
+        projects: projects.length,
+        tasks: tasks.length,
+        completedTasks: completedTasks.length,
+        workLogs: workLogs.length,
+        totalHours,
+        auditRuns: auditRuns.length,
+        assessmentResponses: assessmentResponses.length,
+        expenses: expenses.length,
+        approvedExpenseTotal,
+        pendingExpenseTotal,
+      },
+      kpis: {
+        completionRate,
+        averageProjectProgress,
+        averageAssessmentScore,
+      },
+      completedTasks,
+      workLogs,
+      timeEntries,
+      projects,
+      assessmentResponses,
+      expenses,
+    };
+  }
+
+  private organizationWhere(user: CurrentUser) {
+    const organizationId = this.resolveOrganizationId(user);
+    return organizationId ? { organizationId } : {};
+  }
+
+  private resolveOrganizationId(user?: CurrentUser, payloadOrganizationId?: string) {
+    const organizationId = user?.organizationId || payloadOrganizationId;
+    const allowPublicOperations = this.configService.get('ALLOW_PUBLIC_OPERATIONS') === true;
+
+    if (!organizationId && !allowPublicOperations) {
+      throw new UnauthorizedException('Organization context is required');
+    }
+
+    return organizationId;
+  }
+
+  private async findOneScoped<T extends { id: string; organizationId?: string }>(
+    repository: Repository<T>,
+    id: string,
+    user: CurrentUser,
+    label: string,
+  ) {
+    const entity = await repository.findOne({
+      where: {
+        id,
+        ...this.organizationWhere(user),
+      } as any,
+    });
+
+    if (!entity) {
+      throw new NotFoundException(`${label} not found`);
+    }
+
+    return entity;
+  }
+}

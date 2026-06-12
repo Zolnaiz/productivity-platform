@@ -30,6 +30,18 @@
       "@reports/*": ["src/reports/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/main.ts",
+    "src/app.module.ts",
+    "src/app.controller.ts",
+    "src/app.service.ts",
+    "src/operations/**/*.ts",
+    "src/migrations/*Operations*.ts",
+    "src/shared/database/**/*.ts",
+    "src/shared/entities/base.entity.ts",
+    "src/shared/filters/**/*.ts",
+    "src/shared/interceptors/**/*.ts",
+    "src/shared/pipes/**/*.ts"
+  ],
   "exclude": ["node_modules", "dist", "test", "**/*.spec.ts", "**/*.test.ts"]
 }

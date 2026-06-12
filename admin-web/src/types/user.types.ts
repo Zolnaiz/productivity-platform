@@ -1,4 +1,5 @@
 import { USER_ROLES, USER_PERMISSIONS } from '../utils/constants';
+import { Organization } from './organization.types';
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 export type UserPermission = typeof USER_PERMISSIONS[keyof typeof USER_PERMISSIONS];

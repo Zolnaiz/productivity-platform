@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { User, LoginCredentials, AuthResponse } from '../types/user.types';
+import { User, LoginCredentials } from '../types/user.types';
 import { authService } from '../services/auth.service';
 import { useNotification } from './NotificationContext';
 
@@ -9,6 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
+  loginDemo: () => void;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
@@ -41,6 +42,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (savedToken && savedUser) {
           setToken(savedToken);
           setUser(JSON.parse(savedUser));
+
+          if (savedToken === 'demo-token') {
+            setIsLoading(false);
+            return;
+          }
           
           // Token баталгаажуулах
           try {
@@ -99,6 +105,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [addNotification]);
 
+  const loginDemo = useCallback(() => {
+    const demoUser: User = {
+      id: 'demo-owner',
+      email: 'owner@example.com',
+      name: 'Demo Owner',
+      roles: ['admin'],
+      permissions: [],
+      organization: {
+        id: 'demo-org',
+        name: 'Demo Organization',
+        code: 'DEMO',
+        industry: 'operations',
+        size: '25 employees',
+        settings: {
+          language: 'mn',
+          currency: 'MNT',
+        },
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const demoToken = 'demo-token';
+
+    setToken(demoToken);
+    setUser(demoUser);
+    localStorage.setItem('token', demoToken);
+    localStorage.setItem('user', JSON.stringify(demoUser));
+
+    addNotification({
+      type: 'success',
+      title: 'Demo mode',
+      message: 'Demo workspace нээгдлээ.',
+    });
+  }, [addNotification]);
+
   // Гарах функц
   const logout = useCallback(async () => {
     try {
@@ -135,13 +180,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Эрх шалгах
   const hasPermission = useCallback((permission: string): boolean => {
     if (!user || !user.permissions) return false;
-    return user.permissions.includes(permission);
+    return user.permissions.some((userPermission) => userPermission === permission);
   }, [user]);
 
   // Үүрэг шалгах
   const hasRole = useCallback((role: string): boolean => {
     if (!user || !user.roles) return false;
-    return user.roles.includes(role);
+    return user.roles.some((userRole) => userRole === role);
   }, [user]);
 
   const value: AuthContextType = {
@@ -150,6 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!token && !!user,
     isLoading,
     login,
+    loginDemo,
     logout,
     refreshUser,
     hasPermission,

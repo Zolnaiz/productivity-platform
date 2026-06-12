@@ -3,6 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseService } from './database.service';
 
+const toBoolean = (value: unknown, defaultValue = false) => {
+  if (value === undefined || value === null || value === '') return defaultValue;
+  if (typeof value === 'boolean') return value;
+  return String(value).toLowerCase() === 'true';
+};
+
 @Global()
 @Module({
   imports: [
@@ -17,12 +23,12 @@ import { DatabaseService } from './database.service';
         password: config.get('DB_PASSWORD', 'postgres'),
         database: config.get('DB_DATABASE', 'questionnaire_db'),
         entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-        synchronize: config.get('DB_SYNCHRONIZE', false),
-        logging: config.get('DB_LOGGING', false),
+        synchronize: toBoolean(config.get('DB_SYNCHRONIZE'), false),
+        logging: toBoolean(config.get('DB_LOGGING'), false),
         migrations: [__dirname + '/../../migrations/**/*{.ts,.js}'],
-        migrationsRun: config.get('DB_MIGRATIONS_RUN', false),
-        ssl: config.get('DB_SSL', false),
-        extra: config.get('DB_SSL', false)
+        migrationsRun: toBoolean(config.get('DB_MIGRATIONS_RUN'), false),
+        ssl: toBoolean(config.get('DB_SSL'), false),
+        extra: toBoolean(config.get('DB_SSL'), false)
           ? {
               ssl: {
                 rejectUnauthorized: false,

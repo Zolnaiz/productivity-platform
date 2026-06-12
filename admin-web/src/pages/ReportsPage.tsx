@@ -11,7 +11,7 @@ import Modal from '../components/common/Modal';
 import Table from '../components/common/Table';
 import Card from '../components/common/Card';
 import Loading from '../components/common/Loading';
-import { formatDate, formatCurrency } from '../utils/formatters';
+import { formatDate } from '../utils/formatters';
 
 const generateReportSchema = z.object({
   type: z.enum(['questionnaire', 'expense', 'combined', 'custom']),

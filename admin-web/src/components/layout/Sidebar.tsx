@@ -1,120 +1,130 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  Home,
-  Users,
-  Building,
-  FileText,
-  DollarSign,
   BarChart3,
-  Settings,
+  Bell,
+  Briefcase,
+  Building,
+  CalendarDays,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
+  Clock,
+  Columns3,
+  Download,
+  FileCheck2,
+  FileText,
+  Home,
+  Landmark,
+  LayoutDashboard,
+  LineChart,
+  Settings,
+  ShieldCheck,
+  StickyNote,
+  Target,
+  Trophy,
+  Users,
 } from 'lucide-react';
 
 interface MenuItem {
   icon: React.ReactNode;
   label: string;
   path: string;
-  submenu?: MenuItem[];
+  group: 'Work' | 'Quality' | 'People' | 'Reports' | 'Personal' | 'Admin';
 }
+
+const menuItems: MenuItem[] = [
+  { icon: <Home className="h-5 w-5" />, label: 'Dashboard', path: '/dashboard', group: 'Work' },
+  { icon: <Briefcase className="h-5 w-5" />, label: 'Projects', path: '/projects', group: 'Work' },
+  { icon: <CheckSquare className="h-5 w-5" />, label: 'Tasks', path: '/tasks', group: 'Work' },
+  { icon: <Columns3 className="h-5 w-5" />, label: 'Kanban', path: '/kanban', group: 'Work' },
+  { icon: <CalendarDays className="h-5 w-5" />, label: 'Calendar', path: '/calendar', group: 'Work' },
+  { icon: <Clock className="h-5 w-5" />, label: 'Work Logs', path: '/work-logs', group: 'Work' },
+  { icon: <ClipboardCheck className="h-5 w-5" />, label: '5S / Audits', path: '/fives', group: 'Quality' },
+  { icon: <FileText className="h-5 w-5" />, label: 'Questionnaires', path: '/questionnaires', group: 'Quality' },
+  { icon: <FileCheck2 className="h-5 w-5" />, label: 'Responses', path: '/responses', group: 'Quality' },
+  { icon: <Users className="h-5 w-5" />, label: 'Users', path: '/users', group: 'People' },
+  { icon: <Building className="h-5 w-5" />, label: 'Departments', path: '/departments', group: 'People' },
+  { icon: <BarChart3 className="h-5 w-5" />, label: 'Reports', path: '/reports', group: 'Reports' },
+  { icon: <LineChart className="h-5 w-5" />, label: 'Analytics', path: '/analytics', group: 'Reports' },
+  { icon: <Landmark className="h-5 w-5" />, label: 'Expenses', path: '/expenses', group: 'Reports' },
+  { icon: <Bell className="h-5 w-5" />, label: 'Notifications', path: '/notifications', group: 'Reports' },
+  { icon: <Download className="h-5 w-5" />, label: 'Export', path: '/export', group: 'Reports' },
+  { icon: <Target className="h-5 w-5" />, label: 'Goals', path: '/goals', group: 'Personal' },
+  { icon: <StickyNote className="h-5 w-5" />, label: 'Notes', path: '/notes', group: 'Personal' },
+  { icon: <Trophy className="h-5 w-5" />, label: 'Badges', path: '/badges', group: 'Personal' },
+  { icon: <LayoutDashboard className="h-5 w-5" />, label: 'Admin', path: '/admin', group: 'Admin' },
+  { icon: <Building className="h-5 w-5" />, label: 'Organizations', path: '/organizations', group: 'Admin' },
+  { icon: <ShieldCheck className="h-5 w-5" />, label: 'Audit Log', path: '/audit', group: 'Admin' },
+  { icon: <Settings className="h-5 w-5" />, label: 'Settings', path: '/settings', group: 'Admin' },
+];
+
+const groups: MenuItem['group'][] = ['Work', 'Quality', 'People', 'Reports', 'Personal', 'Admin'];
 
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = React.useState(false);
-  const [activeMenu, setActiveMenu] = React.useState<string>('');
-
-  const menuItems: MenuItem[] = [
-    {
-      icon: <Home className="w-5 h-5" />,
-      label: 'Хянах самбар',
-      path: '/dashboard',
-    },
-    {
-      icon: <Building className="w-5 h-5" />,
-      label: 'Байгууллагууд',
-      path: '/organizations',
-    },
-    {
-      icon: <Users className="w-5 h-5" />,
-      label: 'Хэрэглэгчид',
-      path: '/users',
-    },
-    {
-      icon: <FileText className="w-5 h-5" />,
-      label: 'Судалгаа',
-      path: '/questionnaires',
-    },
-    {
-      icon: <DollarSign className="w-5 h-5" />,
-      label: 'Зардал',
-      path: '/expenses',
-    },
-    {
-      icon: <BarChart3 className="w-5 h-5" />,
-      label: 'Тайлангууд',
-      path: '/reports',
-    },
-    {
-      icon: <Settings className="w-5 h-5" />,
-      label: 'Тохиргоо',
-      path: '/settings',
-    },
-  ];
 
   return (
     <aside
-      className={`bg-gray-900 text-white transition-all duration-300 ${
+      className={`flex min-h-screen flex-col bg-gray-900 text-white transition-all duration-300 ${
         collapsed ? 'w-16' : 'w-64'
       }`}
     >
-      <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-        {!collapsed && (
-          <h2 className="text-lg font-bold">Продактивити Платформ</h2>
-        )}
+      <div className="flex items-center justify-between border-b border-gray-800 p-4">
+        {!collapsed && <h2 className="text-lg font-bold">Productivity Platform</h2>}
         <button
+          type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded-lg hover:bg-gray-800"
+          className="rounded-lg p-2 hover:bg-gray-800"
         >
-          {collapsed ? (
-            <ChevronRight className="w-5 h-5" />
-          ) : (
-            <ChevronLeft className="w-5 h-5" />
-          )}
+          {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
         </button>
       </div>
 
-      <nav className="p-4">
-        <ul className="space-y-2">
-          {menuItems.map((item) => (
-            <li key={item.path}>
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center p-3 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'hover:bg-gray-800 text-gray-300'
-                  } ${collapsed ? 'justify-center' : 'space-x-3'}`
-                }
-                onClick={() => setActiveMenu(item.path)}
-              >
-                <span className="flex-shrink-0">{item.icon}</span>
-                {!collapsed && <span className="flex-1">{item.label}</span>}
-              </NavLink>
-            </li>
+      <nav className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-5">
+          {groups.map((group) => (
+            <div key={group}>
+              {!collapsed && (
+                <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                  {group}
+                </div>
+              )}
+              <ul className="space-y-1">
+                {menuItems
+                  .filter((item) => item.group === group)
+                  .map((item) => (
+                    <li key={item.path}>
+                      <NavLink
+                        to={item.path}
+                        className={({ isActive }) =>
+                          `flex items-center rounded-lg p-3 transition-colors ${
+                            isActive ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800'
+                          } ${collapsed ? 'justify-center' : 'space-x-3'}`
+                        }
+                        title={collapsed ? item.label : undefined}
+                      >
+                        <span className="flex-shrink-0">{item.icon}</span>
+                        {!collapsed && <span className="flex-1">{item.label}</span>}
+                      </NavLink>
+                    </li>
+                  ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       </nav>
 
       {!collapsed && (
-        <div className="absolute bottom-0 w-full p-4 border-t border-gray-800">
+        <div className="border-t border-gray-800 p-4">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500">
               <span className="text-sm font-bold">A</span>
             </div>
             <div>
-              <p className="text-sm font-medium">Админ</p>
-              <p className="text-xs text-gray-400">Супер админ</p>
+              <p className="text-sm font-medium">Admin</p>
+              <p className="text-xs text-gray-400">Workspace owner</p>
             </div>
           </div>
         </div>

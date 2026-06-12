@@ -1,76 +1,44 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-
+import * as Joi from 'joi';
 import { AppController } from './app.controller';
-import { configuration } from './shared/config/configuration';
-
-// Modules
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { OrganizationsModule } from './organizations/organizations.module';
-import { QuestionnairesModule } from './questionnaires/questionnaires.module';
-import { ResponsesModule } from './responses/responses.module';
-import { ExpensesModule } from './expenses/expenses.module';
-import { ReportsModule } from './reports/reports.module';
+import { AppService } from './app.service';
 import { DatabaseModule } from './shared/database/database.module';
-import { SeedModule } from './shared/seed/seed.module';
+import { OperationsModule } from './operations/operations.module';
 
 @Module({
   imports: [
-    // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [configuration],
       envFilePath: ['.env', '.env.development', '.env.production'],
-    }),
-
-    // Rate limiting
-    ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => [
-        {
-          ttl: config.get('THROTTLE_TTL', 60),
-          limit: config.get('THROTTLE_LIMIT', 100),
-        },
-      ],
-    }),
-
-    // Database
-    DatabaseModule,
-
-    // JWT
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get('JWT_SECRET'),
-        signOptions: {
-          expiresIn: config.get('JWT_EXPIRATION', '7d'),
-          issuer: 'productivity-platform',
-          audience: 'productivity-users',
-        },
+      validationSchema: Joi.object({
+        NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
+        PORT: Joi.number().default(3000),
+        CORS_ORIGINS: Joi.string().allow('').default(''),
+        DB_HOST: Joi.string().default('localhost'),
+        DB_PORT: Joi.number().default(5432),
+        DB_USERNAME: Joi.string().default('postgres'),
+        DB_PASSWORD: Joi.string().allow('').default('postgres'),
+        DB_DATABASE: Joi.string().default('questionnaire_db'),
+        DB_SYNCHRONIZE: Joi.boolean().truthy('true').falsy('false').default(false),
+        DB_LOGGING: Joi.boolean().truthy('true').falsy('false').default(false),
+        DB_MIGRATIONS_RUN: Joi.boolean().truthy('true').falsy('false').default(false),
+        DB_SSL: Joi.boolean().truthy('true').falsy('false').default(false),
+        JWT_SECRET: Joi.string().when('NODE_ENV', {
+          is: 'production',
+          then: Joi.required(),
+          otherwise: Joi.string().default('dev-secret-change-me'),
+        }),
+        ENABLE_SWAGGER: Joi.boolean().truthy('true').falsy('false').default(false),
+        ALLOW_PUBLIC_OPERATIONS: Joi.boolean().truthy('true').falsy('false').default(false),
       }),
-      inject: [ConfigService],
     }),
-
-    // Scheduled tasks
     ScheduleModule.forRoot(),
-
-    // Feature modules
-    AuthModule,
-    UsersModule,
-    OrganizationsModule,
-    QuestionnairesModule,
-    ResponsesModule,
-    ExpensesModule,
-    ReportsModule,
-    SeedModule,
+    DatabaseModule,
+    OperationsModule,
   ],
   controllers: [AppController],
-  providers: [],
+  providers: [AppService],
 })
 export class AppModule {}

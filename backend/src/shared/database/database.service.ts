@@ -71,7 +71,7 @@ export class DatabaseService implements OnApplicationShutdown {
         status: 'healthy',
         latency,
       };
-    } catch (error) {
+    } catch {
       return {
         status: 'unhealthy',
         latency: Date.now() - startTime,

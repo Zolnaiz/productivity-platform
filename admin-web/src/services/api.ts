@@ -3,6 +3,10 @@ import axios from 'axios';
 // API суурь URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+export const isDemoMode = () => localStorage.getItem('token') === 'demo-token';
+
+export const shouldUseDemoFallback = () => isDemoMode() || import.meta.env.DEV;
+
 // Axios instance үүсгэх
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -34,6 +38,10 @@ api.interceptors.response.use(
 
     // Token хүчингүй болвол шинээр авах
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isDemoMode()) {
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
       
       try {
@@ -94,4 +102,5 @@ export const del = async <T>(url: string): Promise<T> => {
   return response.data;
 };
 
+export { api };
 export default api;

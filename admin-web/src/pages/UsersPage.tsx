@@ -114,7 +114,6 @@ const UsersPage: React.FC = () => {
     formState: { errors },
     reset,
     setValue,
-    watch,
   } = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
     defaultValues: {

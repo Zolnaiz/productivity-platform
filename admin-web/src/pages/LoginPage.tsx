@@ -1,172 +1,89 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useAuth } from '../hooks/useAuth';
-import { useNotification } from '../hooks/useNotification';
-import Button from '../components/common/Button';
-import Input from '../components/common/Input';
-import Card from '../components/common/Card';
-import Loading from '../components/common/Loading';
-
-const loginSchema = z.object({
-  email: z.string().email('И-мэйл хаяг буруу байна'),
-  password: z.string().min(6, 'Нууц үг дор хаяж 6 тэмдэгт байх ёстой'),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const { showNotification } = useNotification();
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, loginDemo } = useAuth();
+  const [email, setEmail] = useState('admin@example.com');
+  const [password, setPassword] = useState('password');
+  const [error, setError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  });
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
 
-  const onSubmit = async (data: LoginFormData) => {
     try {
-      setIsLoading(true);
-      await login(data.email, data.password);
-      showNotification('Амжилттай нэвтэрлээ', 'success');
+      await login({ email, password });
       navigate('/dashboard');
-    } catch (error: any) {
-      showNotification(error.message || 'Нэвтрэхэд алдаа гарлаа', 'error');
-    } finally {
-      setIsLoading(false);
+    } catch {
+      setError('Нэвтрэхэд алдаа гарлаа. Backend API бэлэн эсэхийг шалгана уу.');
     }
   };
 
+  const handleDemoLogin = () => {
+    loginDemo();
+    navigate('/dashboard');
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="max-w-md w-full space-y-8">
-        <div>
-          <div className="flex justify-center">
-            <img
-              className="h-12 w-auto"
-              src="/logo.svg"
-              alt="Questionnaire System"
-            />
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Системд нэвтрэх
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Өөрийн бүртгэлээр нэвтрэнэ үү
-          </p>
+    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-900">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-800"
+      >
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Нэвтрэх</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          Productivity platform workspace руу нэвтрэх.
+        </p>
+
+        <label className="mt-6 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Email
+          <input
+            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </label>
+
+        <label className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Password
+          <input
+            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </label>
+
+        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+
+        <button
+          type="submit"
+          className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-500"
+        >
+          Нэвтрэх
+        </button>
+
+        <button
+          type="button"
+          onClick={handleDemoLogin}
+          className="mt-3 w-full rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
+        >
+          Demo workspace нээх
+        </button>
+
+        <div className="mt-4 flex justify-between text-sm">
+          <Link className="text-blue-600 hover:text-blue-500" to="/forgot-password">
+            Нууц үг мартсан
+          </Link>
+          <Link className="text-blue-600 hover:text-blue-500" to="/register">
+            Бүртгүүлэх
+          </Link>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-4">
-            <Input
-              label="И-мэйл хаяг"
-              type="email"
-              {...register('email')}
-              error={errors.email?.message}
-              placeholder="name@example.com"
-              required
-              autoComplete="email"
-            />
-            <Input
-              label="Нууц үг"
-              type="password"
-              {...register('password')}
-              error={errors.password?.message}
-              placeholder="••••••••"
-              required
-              autoComplete="current-password"
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-              />
-              <label
-                htmlFor="remember-me"
-                className="ml-2 block text-sm text-gray-900 dark:text-gray-300"
-              >
-                Намайг сана
-              </label>
-            </div>
-
-            <div className="text-sm">
-              <Link
-                to="/forgot-password"
-                className="font-medium text-primary hover:text-primary-dark"
-              >
-                Нууц үгээ мартсан уу?
-              </Link>
-            </div>
-          </div>
-
-          <div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-              size="lg"
-            >
-              {isLoading ? <Loading size="sm" /> : 'Нэвтрэх'}
-            </Button>
-          </div>
-        </form>
-
-        <div className="text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Бүртгэлгүй юу?{' '}
-            <Link
-              to="/register"
-              className="font-medium text-primary hover:text-primary-dark"
-            >
-              Бүртгүүлэх
-            </Link>
-          </p>
-        </div>
-
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-gray-600" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">
-                Эсвэл үргэлжлүүлэх
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => showNotification('Уучлаарай, энэ функц хөгжүүлэгдэж байна', 'info')}
-            >
-              Google
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => showNotification('Уучлаарай, энэ функц хөгжүүлэгдэж байна', 'info')}
-            >
-              Facebook
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </div>
+      </form>
+    </main>
   );
 };
 

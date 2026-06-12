@@ -83,13 +83,14 @@ export const formatDate = (
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     case 'HH:mm':
       return `${hours}:${minutes}`;
-    case 'MMMM DD, YYYY':
+    case 'MMMM DD, YYYY': {
       const monthNames = [
         'Нэгдүгээр сар', 'Хоёрдугаар сар', 'Гуравдугаар сар', 'Дөрөвдүгээр сар',
         'Тавдугаар сар', 'Зургаадугаар сар', 'Долоодугаар сар', 'Наймдугаар сар',
         'Есдүгээр сар', 'Аравдугаар сар', 'Арваннэгдүгээр сар', 'Арванхоёрдугаар сар'
       ];
       return `${monthNames[d.getMonth()]} ${day}, ${year}`;
+    }
     case 'relative':
       return formatRelativeTime(d);
     default:

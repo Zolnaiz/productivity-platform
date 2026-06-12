@@ -1,746 +1,214 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { api } from '../services/api';
-import { useNotification } from '../hooks/useNotification';
-import Button from '../components/common/Button';
-import Input from '../components/common/Input';
-import Modal from '../components/common/Modal';
-import Table from '../components/common/Table';
+import React, { useEffect, useMemo, useState } from 'react';
 import Card from '../components/common/Card';
-import Loading from '../components/common/Loading';
-import { formatDate, formatCurrency } from '../utils/formatters';
+import { financeService } from '../services/finance.service';
+import { operationsService } from '../services/operations.service';
+import { ExpenseItem } from '../types/finance.types';
+import { Project } from '../types/operations.types';
 
-const expenseSchema = z.object({
-  name: z.string().min(1, 'Нэр шаардлагатай'),
-  description: z.string().optional(),
-  amount: z.number().min(1, 'Дүн шаардлагатай'),
-  category: z.enum([
-    'salary',
-    'utility',
-    'rent',
-    'office_supplies',
-    'marketing',
-    'travel',
-    'equipment',
-    'software',
-    'training',
-    'other',
-  ]),
-  expenseDate: z.string().min(1, 'Зардлын огноо шаардлагатай'),
-  recipientName: z.string().min(1, 'Хүлээн авагчийн нэр шаардлагатай'),
-  recipientAccount: z.string().optional(),
-  invoiceNumber: z.string().optional(),
-  questionnaireId: z.string().optional(),
-});
+const formatMnt = (value: number) =>
+  new Intl.NumberFormat('mn-MN', {
+    style: 'currency',
+    currency: 'MNT',
+    maximumFractionDigits: 0,
+  }).format(value);
 
-type ExpenseFormData = z.infer<typeof expenseSchema>;
-
-interface Expense {
-  id: string;
-  name: string;
-  description?: string;
-  amount: number;
-  category: string;
-  status: string;
-  expenseDate: string;
-  paidDate?: string;
-  recipientName: string;
-  recipientAccount?: string;
-  invoiceNumber?: string;
-  attachments?: string[];
-  questionnaire?: {
-    id: string;
-    title: string;
-  };
-  creator: {
-    id: string;
-    firstName: string;
-    lastName: string;
-  };
-  approver?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
+const statusClasses = {
+  draft: 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300',
+  submitted: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+  approved: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  rejected: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+};
 
 const ExpensesPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
-  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('');
-  const [dateRange, setDateRange] = useState<string>('month');
-  const { showNotification } = useNotification();
-  const queryClient = useQueryClient();
-
-  const { data: expensesData, isLoading } = useQuery({
-    queryKey: ['expenses', currentPage, statusFilter, categoryFilter, dateRange],
-    queryFn: () => api.get('/expenses', {
-      params: {
-        page: currentPage,
-        limit: 10,
-        status: statusFilter,
-        category: categoryFilter,
-        dateRange,
-      },
-    }),
+  const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [draft, setDraft] = useState({
+    title: '',
+    projectId: '',
+    amount: '0',
+    category: 'other' as ExpenseItem['category'],
+    expenseDate: new Date().toISOString().slice(0, 10),
+    note: '',
   });
 
-  const { data: questionnaires } = useQuery({
-    queryKey: ['questionnaires', 'select'],
-    queryFn: () => api.get('/questionnaires/select'),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (data: ExpenseFormData) => api.post('/expenses', data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      showNotification('Зардал амжилттай үүсгэгдлээ', 'success');
-      setIsModalOpen(false);
-      reset();
-    },
-    onError: (error: any) => {
-      showNotification(error.message || 'Үүсгэхэд алдаа гарлаа', 'error');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<ExpenseFormData> }) =>
-      api.put(`/expenses/${id}`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      showNotification('Зардал амжилттай шинэчлэгдлээ', 'success');
-      setIsModalOpen(false);
-      reset();
-    },
-    onError: (error: any) => {
-      showNotification(error.message || 'Шинэчлэхэд алдаа гарлаа', 'error');
-    },
-  });
-
-  const approveMutation = useMutation({
-    mutationFn: (id: string) => api.post(`/expenses/${id}/approve`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      showNotification('Зардал амжилттай баталгаажлаа', 'success');
-      setIsApproveModalOpen(false);
-    },
-    onError: (error: any) => {
-      showNotification(error.message || 'Баталгаажуулахад алдаа гарлаа', 'error');
-    },
-  });
-
-  const rejectMutation = useMutation({
-    mutationFn: (id: string) => api.post(`/expenses/${id}/reject`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      showNotification('Зардал амжилттай татгалзлаа', 'success');
-      setIsRejectModalOpen(false);
-    },
-    onError: (error: any) => {
-      showNotification(error.message || 'Татгалзахад алдаа гарлаа', 'error');
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/expenses/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      showNotification('Зардал амжилттай устгагдлаа', 'success');
-    },
-    onError: (error: any) => {
-      showNotification(error.message || 'Устгахад алдаа гарлаа', 'error');
-    },
-  });
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-  } = useForm<ExpenseFormData>({
-    resolver: zodResolver(expenseSchema),
-  });
-
-  const handleEdit = (expense: Expense) => {
-    setSelectedExpense(expense);
-    Object.entries(expense).forEach(([key, value]) => {
-      if (key in expenseSchema.shape) {
-        setValue(key as any, value);
-      }
+  useEffect(() => {
+    financeService.getExpenses().then(setExpenses);
+    operationsService.getProjects().then((items) => {
+      setProjects(items);
+      setDraft((current) => ({ ...current, projectId: items[0]?.id || '' }));
     });
-    setIsModalOpen(true);
+  }, []);
+
+  const projectById = useMemo(() => Object.fromEntries(projects.map((project) => [project.id, project])), [projects]);
+  const totalSubmitted = expenses
+    .filter((expense) => expense.status === 'submitted')
+    .reduce((sum, expense) => sum + expense.amount, 0);
+  const totalApproved = expenses
+    .filter((expense) => expense.status === 'approved')
+    .reduce((sum, expense) => sum + expense.amount, 0);
+  const totalAll = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  const createExpense = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!draft.title.trim()) return;
+    const expense = await financeService.createExpense({
+      title: draft.title,
+      projectId: draft.projectId,
+      amount: Number(draft.amount || 0),
+      category: draft.category,
+      expenseDate: draft.expenseDate,
+      submittedBy: 'Demo Owner',
+      status: 'submitted',
+      note: draft.note,
+    });
+    setExpenses((current) => [expense, ...current]);
+    setDraft({
+      title: '',
+      projectId: projects[0]?.id || '',
+      amount: '0',
+      category: 'other',
+      expenseDate: new Date().toISOString().slice(0, 10),
+      note: '',
+    });
   };
 
-  const handleApprove = (expense: Expense) => {
-    setSelectedExpense(expense);
-    setIsApproveModalOpen(true);
+  const updateStatus = async (expense: ExpenseItem, status: ExpenseItem['status']) => {
+    const updated = await financeService.updateExpense(expense.id, { status });
+    setExpenses((current) => current.map((item) => (item.id === expense.id ? updated : item)));
   };
-
-  const handleReject = (expense: Expense) => {
-    setSelectedExpense(expense);
-    setIsRejectModalOpen(true);
-  };
-
-  const handleDelete = (id: string) => {
-    if (window.confirm('Та энэ зардлыг устгахдаа итгэлтэй байна уу?')) {
-      deleteMutation.mutate(id);
-    }
-  };
-
-  const onSubmit = (data: ExpenseFormData) => {
-    if (selectedExpense) {
-      updateMutation.mutate({ id: selectedExpense.id, data });
-    } else {
-      createMutation.mutate(data);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'paid':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'rejected':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return 'Баталгаажсан';
-      case 'paid':
-        return 'Төлбөр төлсөн';
-      case 'pending':
-        return 'Хүлээгдэж байна';
-      case 'rejected':
-        return 'Татгалзсан';
-      default:
-        return status;
-    }
-  };
-
-  const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case 'salary':
-        return 'Цалин';
-      case 'utility':
-        return 'Хэрэглээ';
-      case 'rent':
-        return 'Түрээс';
-      case 'office_supplies':
-        return 'Оффисын материал';
-      case 'marketing':
-        return 'Маркетинг';
-      case 'travel':
-        return 'Аялал';
-      case 'equipment':
-        return 'Тоног төхөөрөмж';
-      case 'software':
-        return 'Програм хангамж';
-      case 'training':
-        return 'Сургалт';
-      case 'other':
-        return 'Бусад';
-      default:
-        return category;
-    }
-  };
-
-  const columns = [
-    {
-      header: 'Зардал',
-      accessor: 'name',
-      cell: (value: string, row: Expense) => (
-        <div>
-          <div className="font-medium">{value}</div>
-          {row.description && (
-            <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
-              {row.description}
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      header: 'Дүн',
-      accessor: 'amount',
-      cell: (value: number) => (
-        <div className="font-bold">
-          {formatCurrency(value)}
-        </div>
-      ),
-    },
-    {
-      header: 'Ангилал',
-      accessor: 'category',
-      cell: (value: string) => getCategoryLabel(value),
-    },
-    {
-      header: 'Статус',
-      accessor: 'status',
-      cell: (value: string) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(value)}`}>
-          {getStatusLabel(value)}
-        </span>
-      ),
-    },
-    {
-      header: 'Огноо',
-      accessor: 'expenseDate',
-      cell: (value: string) => formatDate(value, 'YYYY-MM-DD'),
-    },
-    {
-      header: 'Хүлээн авагч',
-      accessor: 'recipientName',
-      cell: (value: string, row: Expense) => (
-        <div>
-          <div>{value}</div>
-          {row.invoiceNumber && (
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              {row.invoiceNumber}
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      header: 'Үйлдэл',
-      accessor: 'id',
-      cell: (value: string, row: Expense) => (
-        <div className="flex space-x-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleEdit(row)}
-          >
-            Дэлгэрэнгүй
-          </Button>
-          {row.status === 'pending' && (
-            <>
-              <Button
-                size="sm"
-                variant="success"
-                onClick={() => handleApprove(row)}
-                disabled={approveMutation.isLoading}
-              >
-                Баталгаажуулах
-              </Button>
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => handleReject(row)}
-                disabled={rejectMutation.isLoading}
-              >
-                Татгалзах
-              </Button>
-            </>
-          )}
-          <Button
-            size="sm"
-            variant="danger"
-            onClick={() => handleDelete(value)}
-          >
-            Устгах
-          </Button>
-        </div>
-      ),
-    },
-  ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Зардлууд</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Бүртгэлтэй зардлын жагсаалт
-          </p>
-        </div>
-        <Button onClick={() => {
-          setSelectedExpense(null);
-          reset();
-          setIsModalOpen(true);
-        }}>
-          Шинэ зардал
-        </Button>
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Expenses</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          Track project expenses, approval status, and budget impact for monthly reporting.
+        </p>
       </div>
 
-      {/* Filters */}
-      <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Статус
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-            >
-              <option value="">Бүх статус</option>
-              <option value="pending">Хүлээгдэж байна</option>
-              <option value="approved">Баталгаажсан</option>
-              <option value="paid">Төлбөр төлсөн</option>
-              <option value="rejected">Татгалзсан</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Ангилал
-            </label>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-            >
-              <option value="">Бүх ангилал</option>
-              <option value="salary">Цалин</option>
-              <option value="utility">Хэрэглээ</option>
-              <option value="rent">Түрээс</option>
-              <option value="office_supplies">Оффисын материал</option>
-              <option value="marketing">Маркетинг</option>
-              <option value="travel">Аялал</option>
-              <option value="equipment">Тоног төхөөрөмж</option>
-              <option value="software">Програм хангамж</option>
-              <option value="training">Сургалт</option>
-              <option value="other">Бусад</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Хугацаа
-            </label>
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-            >
-              <option value="today">Өнөөдөр</option>
-              <option value="week">Энэ долоо хоног</option>
-              <option value="month">Энэ сар</option>
-              <option value="quarter">Энэ улирал</option>
-              <option value="year">Энэ жил</option>
-              <option value="all">Бүх цаг үе</option>
-            </select>
-          </div>
-          <div className="flex items-end">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setStatusFilter('');
-                setCategoryFilter('');
-                setDateRange('month');
-                setCurrentPage(1);
-              }}
-              className="w-full"
-            >
-              Цэвэрлэх
-            </Button>
-          </div>
-        </div>
-      </Card>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <div className="text-sm text-gray-500 dark:text-gray-400">Нийт зардал</div>
-          <div className="text-2xl font-bold">
-            {expensesData?.data?.data?.total || 0}
-          </div>
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <div className="text-sm text-gray-500">Total expenses</div>
+          <div className="mt-2 text-xl font-semibold text-gray-900 dark:text-white">{formatMnt(totalAll)}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-sm text-gray-500 dark:text-gray-400">Нийт дүн</div>
-          <div className="text-2xl font-bold">
-            {formatCurrency(expensesData?.data?.data?.totalAmount || 0)}
-          </div>
+        <Card>
+          <div className="text-sm text-gray-500">Approved</div>
+          <div className="mt-2 text-xl font-semibold text-green-600">{formatMnt(totalApproved)}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-sm text-gray-500 dark:text-gray-400">Хүлээгдэж байна</div>
-          <div className="text-2xl font-bold text-yellow-600">
-            {expensesData?.data?.data?.pendingCount || 0}
-          </div>
+        <Card>
+          <div className="text-sm text-gray-500">Waiting approval</div>
+          <div className="mt-2 text-xl font-semibold text-yellow-600">{formatMnt(totalSubmitted)}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-sm text-gray-500 dark:text-gray-400">Баталгаажсан</div>
-          <div className="text-2xl font-bold text-green-600">
-            {expensesData?.data?.data?.approvedCount || 0}
-          </div>
+        <Card>
+          <div className="text-sm text-gray-500">Records</div>
+          <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{expenses.length}</div>
         </Card>
       </div>
 
-      {/* Table */}
-      <Card className="p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loading size="lg" />
-          </div>
-        ) : (
-          <Table
-            columns={columns}
-            data={expensesData?.data?.data?.expenses || []}
-            pagination
-            currentPage={currentPage}
-            totalPages={expensesData?.data?.data?.totalPages || 1}
-            onPageChange={setCurrentPage}
+      <Card title="New expense">
+        <form onSubmit={createExpense} className="grid gap-3 lg:grid-cols-6">
+          <input
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 lg:col-span-2"
+            placeholder="Expense title"
+            value={draft.title}
+            onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
           />
-        )}
-      </Card>
-
-      {/* Category Breakdown */}
-      {expensesData?.data?.data?.categoryBreakdown && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Ангилалаар нь хуваарилалт</h3>
-          <div className="space-y-3">
-            {Object.entries(expensesData.data.data.categoryBreakdown).map(([category, data]: [string, any]) => (
-              <div key={category} className="flex items-center">
-                <div className="w-32">
-                  <span className="text-sm font-medium">{getCategoryLabel(category)}</span>
-                </div>
-                <div className="flex-1 mx-4">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary"
-                      style={{
-                        width: `${data.percentage}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="w-24 text-right">
-                  <span className="font-medium">{formatCurrency(data.amount)}</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
-                    ({data.percentage?.toFixed(1)}%)
-                  </span>
-                </div>
-              </div>
+          <select
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+            value={draft.projectId}
+            onChange={(event) => setDraft((current) => ({ ...current, projectId: event.target.value }))}
+          >
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
             ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Create/Edit Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={selectedExpense ? 'Зардал засах' : 'Шинэ зардал'}
-        size="lg"
-      >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Зардлын нэр"
-              {...register('name')}
-              error={errors.name?.message}
-              required
-            />
-            <Input
-              label="Дүн"
-              type="number"
-              step="0.01"
-              {...register('amount', { valueAsNumber: true })}
-              error={errors.amount?.message}
-              required
-            />
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Ангилал
-              </label>
-              <select
-                {...register('category')}
-                className="w-full border rounded-lg px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-              >
-                <option value="">Ангилал сонгох</option>
-                <option value="salary">Цалин</option>
-                <option value="utility">Хэрэглээ</option>
-                <option value="rent">Түрээс</option>
-                <option value="office_supplies">Оффисын материал</option>
-                <option value="marketing">Маркетинг</option>
-                <option value="travel">Аялал</option>
-                <option value="equipment">Тоног төхөөрөмж</option>
-                <option value="software">Програм хангамж</option>
-                <option value="training">Сургалт</option>
-                <option value="other">Бусад</option>
-              </select>
-              {errors.category && (
-                <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
-              )}
-            </div>
-            <Input
-              label="Зардлын огноо"
-              type="date"
-              {...register('expenseDate')}
-              error={errors.expenseDate?.message}
-              required
-            />
-            <Input
-              label="Хүлээн авагчийн нэр"
-              {...register('recipientName')}
-              error={errors.recipientName?.message}
-              required
-            />
-            <Input
-              label="Хүлээн авагчийн данс"
-              {...register('recipientAccount')}
-              error={errors.recipientAccount?.message}
-            />
-            <Input
-              label="Нэхэмжлэхийн дугаар"
-              {...register('invoiceNumber')}
-              error={errors.invoiceNumber?.message}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Холбогдох асуулга
-            </label>
-            <select
-              {...register('questionnaireId')}
-              className="w-full border rounded-lg px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-            >
-              <option value="">Асуулга сонгох (сонголттой)</option>
-              {questionnaires?.data?.data?.map((q: any) => (
-                <option key={q.id} value={q.id}>
-                  {q.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Input
-            label="Тайлбар"
-            {...register('description')}
-            error={errors.description?.message}
-            multiline
-            rows={3}
+          </select>
+          <select
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+            value={draft.category}
+            onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value as ExpenseItem['category'] }))}
+          >
+            <option value="tools">Tools</option>
+            <option value="travel">Travel</option>
+            <option value="materials">Materials</option>
+            <option value="software">Software</option>
+            <option value="other">Other</option>
+          </select>
+          <input
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+            min="0"
+            step="1000"
+            type="number"
+            value={draft.amount}
+            onChange={(event) => setDraft((current) => ({ ...current, amount: event.target.value }))}
           />
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsModalOpen(false)}
-            >
-              Цуцлах
-            </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isLoading || updateMutation.isLoading}
-            >
-              {(createMutation.isLoading || updateMutation.isLoading) ? (
-                <Loading size="sm" />
-              ) : selectedExpense ? (
-                'Шинэчлэх'
-              ) : (
-                'Үүсгэх'
-              )}
-            </Button>
-          </div>
+          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
+            Submit
+          </button>
+          <input
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+            type="date"
+            value={draft.expenseDate}
+            onChange={(event) => setDraft((current) => ({ ...current, expenseDate: event.target.value }))}
+          />
+          <input
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 lg:col-span-5"
+            placeholder="Note"
+            value={draft.note}
+            onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))}
+          />
         </form>
-      </Modal>
+      </Card>
 
-      {/* Approve Confirmation Modal */}
-      <Modal
-        isOpen={isApproveModalOpen}
-        onClose={() => setIsApproveModalOpen(false)}
-        title="Зардал баталгаажуулах"
-        size="md"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-700 dark:text-gray-300">
-            Та "{selectedExpense?.name}" зардлыг баталгаажуулахдаа итгэлтэй байна уу?
-          </p>
-          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-            <div className="flex justify-between mb-2">
-              <span className="text-gray-600 dark:text-gray-400">Дүн:</span>
-              <span className="font-bold">{formatCurrency(selectedExpense?.amount || 0)}</span>
-            </div>
-            <div className="flex justify-between mb-2">
-              <span className="text-gray-600 dark:text-gray-400">Ангилал:</span>
-              <span>{getCategoryLabel(selectedExpense?.category || '')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Хүлээн авагч:</span>
-              <span>{selectedExpense?.recipientName}</span>
-            </div>
-          </div>
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setIsApproveModalOpen(false)}
-            >
-              Цуцлах
-            </Button>
-            <Button
-              variant="success"
-              onClick={() => {
-                if (selectedExpense) {
-                  approveMutation.mutate(selectedExpense.id);
-                }
-              }}
-              disabled={approveMutation.isLoading}
-            >
-              {approveMutation.isLoading ? <Loading size="sm" /> : 'Баталгаажуулах'}
-            </Button>
-          </div>
+      <Card title="Expense approvals">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b text-gray-500 dark:border-gray-700">
+              <tr>
+                <th className="py-3">Expense</th>
+                <th className="py-3">Project</th>
+                <th className="py-3">Category</th>
+                <th className="py-3">Amount</th>
+                <th className="py-3">Status</th>
+                <th className="py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {expenses.map((expense) => (
+                <tr key={expense.id} className="border-b dark:border-gray-700">
+                  <td className="py-3">
+                    <div className="font-medium text-gray-900 dark:text-white">{expense.title}</div>
+                    <div className="text-xs text-gray-500">{expense.expenseDate} - {expense.submittedBy}</div>
+                  </td>
+                  <td className="py-3">{expense.projectId ? projectById[expense.projectId]?.name || '-' : '-'}</td>
+                  <td className="py-3 capitalize">{expense.category}</td>
+                  <td className="py-3 font-medium">{formatMnt(expense.amount)}</td>
+                  <td className="py-3">
+                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClasses[expense.status]}`}>
+                      {expense.status}
+                    </span>
+                  </td>
+                  <td className="py-3">
+                    <div className="flex gap-2">
+                      {expense.status !== 'approved' && (
+                        <button className="text-xs font-medium text-green-600" onClick={() => updateStatus(expense, 'approved')} type="button">
+                          Approve
+                        </button>
+                      )}
+                      {expense.status !== 'rejected' && (
+                        <button className="text-xs font-medium text-red-600" onClick={() => updateStatus(expense, 'rejected')} type="button">
+                          Reject
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </Modal>
-
-      {/* Reject Confirmation Modal */}
-      <Modal
-        isOpen={isRejectModalOpen}
-        onClose={() => setIsRejectModalOpen(false)}
-        title="Зардал татгалзах"
-        size="md"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-700 dark:text-gray-300">
-            Та "{selectedExpense?.name}" зардлыг татгалзахдаа итгэлтэй байна уу?
-          </p>
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
-            <p className="text-yellow-700 dark:text-yellow-300 text-sm">
-              Тэмдэглэл: Татгалзсан зардлыг дахин сэргээх боломжгүй.
-              Шаардлагатай бол засварлаад дахин илгээнэ үү.
-            </p>
-          </div>
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setIsRejectModalOpen(false)}
-            >
-              Цуцлах
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                if (selectedExpense) {
-                  rejectMutation.mutate(selectedExpense.id);
-                }
-              }}
-              disabled={rejectMutation.isLoading}
-            >
-              {rejectMutation.isLoading ? <Loading size="sm" /> : 'Татгалзах'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      </Card>
     </div>
   );
 };
