@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { isDemoEnabled } from '../services/api';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -22,6 +23,8 @@ const LoginPage: React.FC = () => {
   };
 
   const handleDemoLogin = () => {
+    if (!isDemoEnabled()) return;
+
     loginDemo();
     navigate('/dashboard');
   };
@@ -66,13 +69,15 @@ const LoginPage: React.FC = () => {
           Нэвтрэх
         </button>
 
-        <button
-          type="button"
-          onClick={handleDemoLogin}
-          className="mt-3 w-full rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
-        >
-          Demo workspace нээх
-        </button>
+        {isDemoEnabled() && (
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            className="mt-3 w-full rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
+          >
+            Demo workspace нээх
+          </button>
+        )}
 
         <div className="mt-4 flex justify-between text-sm">
           <Link className="text-blue-600 hover:text-blue-500" to="/forgot-password">

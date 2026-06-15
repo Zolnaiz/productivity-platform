@@ -26,13 +26,18 @@ import {
   Trophy,
   Users,
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface MenuItem {
   icon: React.ReactNode;
   label: string;
   path: string;
   group: 'Work' | 'Quality' | 'People' | 'Reports' | 'Personal' | 'Admin';
+  roles?: string[];
 }
+
+const adminRoles = ['admin', 'super_admin'];
+const ownerRoles = ['super_admin'];
 
 const menuItems: MenuItem[] = [
   { icon: <Home className="h-5 w-5" />, label: 'Dashboard', path: '/dashboard', group: 'Work' },
@@ -44,8 +49,8 @@ const menuItems: MenuItem[] = [
   { icon: <ClipboardCheck className="h-5 w-5" />, label: '5S / Audits', path: '/fives', group: 'Quality' },
   { icon: <FileText className="h-5 w-5" />, label: 'Questionnaires', path: '/questionnaires', group: 'Quality' },
   { icon: <FileCheck2 className="h-5 w-5" />, label: 'Responses', path: '/responses', group: 'Quality' },
-  { icon: <Users className="h-5 w-5" />, label: 'Users', path: '/users', group: 'People' },
-  { icon: <Building className="h-5 w-5" />, label: 'Departments', path: '/departments', group: 'People' },
+  { icon: <Users className="h-5 w-5" />, label: 'Users', path: '/users', group: 'People', roles: adminRoles },
+  { icon: <Building className="h-5 w-5" />, label: 'Departments', path: '/departments', group: 'People', roles: adminRoles },
   { icon: <BarChart3 className="h-5 w-5" />, label: 'Reports', path: '/reports', group: 'Reports' },
   { icon: <LineChart className="h-5 w-5" />, label: 'Analytics', path: '/analytics', group: 'Reports' },
   { icon: <Landmark className="h-5 w-5" />, label: 'Expenses', path: '/expenses', group: 'Reports' },
@@ -54,16 +59,22 @@ const menuItems: MenuItem[] = [
   { icon: <Target className="h-5 w-5" />, label: 'Goals', path: '/goals', group: 'Personal' },
   { icon: <StickyNote className="h-5 w-5" />, label: 'Notes', path: '/notes', group: 'Personal' },
   { icon: <Trophy className="h-5 w-5" />, label: 'Badges', path: '/badges', group: 'Personal' },
-  { icon: <LayoutDashboard className="h-5 w-5" />, label: 'Admin', path: '/admin', group: 'Admin' },
-  { icon: <Building className="h-5 w-5" />, label: 'Organizations', path: '/organizations', group: 'Admin' },
-  { icon: <ShieldCheck className="h-5 w-5" />, label: 'Audit Log', path: '/audit', group: 'Admin' },
-  { icon: <Settings className="h-5 w-5" />, label: 'Settings', path: '/settings', group: 'Admin' },
+  { icon: <LayoutDashboard className="h-5 w-5" />, label: 'Admin', path: '/admin', group: 'Admin', roles: adminRoles },
+  { icon: <Building className="h-5 w-5" />, label: 'Organizations', path: '/organizations', group: 'Admin', roles: adminRoles },
+  { icon: <ShieldCheck className="h-5 w-5" />, label: 'Audit Log', path: '/audit', group: 'Admin', roles: ownerRoles },
+  { icon: <Settings className="h-5 w-5" />, label: 'Settings', path: '/settings', group: 'Admin', roles: adminRoles },
 ];
 
 const groups: MenuItem['group'][] = ['Work', 'Quality', 'People', 'Reports', 'Personal', 'Admin'];
 
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = React.useState(false);
+  const { user } = useAuth();
+  const userRoles = user?.roles || [];
+  const visibleItems = menuItems.filter(
+    (item) => !item.roles?.length || item.roles.some((role) => userRoles.includes(role as any)),
+  );
+  const visibleGroups = groups.filter((group) => visibleItems.some((item) => item.group === group));
 
   return (
     <aside
@@ -76,6 +87,7 @@ const Sidebar: React.FC = () => {
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className="rounded-lg p-2 hover:bg-gray-800"
         >
           {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
@@ -84,7 +96,7 @@ const Sidebar: React.FC = () => {
 
       <nav className="flex-1 overflow-y-auto p-4">
         <div className="space-y-5">
-          {groups.map((group) => (
+          {visibleGroups.map((group) => (
             <div key={group}>
               {!collapsed && (
                 <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
@@ -92,7 +104,7 @@ const Sidebar: React.FC = () => {
                 </div>
               )}
               <ul className="space-y-1">
-                {menuItems
+                {visibleItems
                   .filter((item) => item.group === group)
                   .map((item) => (
                     <li key={item.path}>

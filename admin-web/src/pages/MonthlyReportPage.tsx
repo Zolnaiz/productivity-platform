@@ -1,11 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Card from '../components/common/Card';
-import { assessmentService } from '../services/assessment.service';
-import { financeService } from '../services/finance.service';
 import { operationsService } from '../services/operations.service';
-import { AssessmentResponse } from '../types/assessment.types';
-import { ExpenseItem } from '../types/finance.types';
-import { AuditRun, Project, TimeEntry, WorkLog, WorkTask } from '../types/operations.types';
+import { OperationsMonthlyReport } from '../types/operations.types';
 
 const formatMnt = (value: number) =>
   new Intl.NumberFormat('mn-MN', {
@@ -14,97 +10,82 @@ const formatMnt = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value);
 
+const currentMonth = () => new Date().toISOString().slice(0, 7);
+
 const MonthlyReportPage: React.FC = () => {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [tasks, setTasks] = useState<WorkTask[]>([]);
-  const [logs, setLogs] = useState<WorkLog[]>([]);
-  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
-  const [auditRuns, setAuditRuns] = useState<AuditRun[]>([]);
-  const [assessmentResponses, setAssessmentResponses] = useState<AssessmentResponse[]>([]);
-  const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth());
+  const [report, setReport] = useState<OperationsMonthlyReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    operationsService.getProjects().then(setProjects);
-    operationsService.getTasks().then(setTasks);
-    operationsService.getWorkLogs().then(setLogs);
-    operationsService.getTimeEntries().then(setTimeEntries);
-    operationsService.getAuditRuns().then(setAuditRuns);
-    assessmentService.getResponses().then(setAssessmentResponses);
-    financeService.getExpenses().then(setExpenses);
-  }, []);
+    let active = true;
 
-  const report = useMemo(() => {
-    const completedTasks = tasks.filter((task) => task.status === 'done');
-    const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
-    const completionRate = tasks.length ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
-    const averageProjectProgress = projects.length
-      ? Math.round(projects.reduce((sum, project) => sum + project.progress, 0) / projects.length)
-      : 0;
-    const averageAuditScore = auditRuns.length
-      ? Math.round(auditRuns.reduce((sum, run) => sum + run.score, 0) / auditRuns.length)
-      : 0;
-    const averageAssessmentScore = assessmentResponses.length
-      ? Math.round(assessmentResponses.reduce((sum, response) => sum + response.score, 0) / assessmentResponses.length)
-      : 0;
-    const approvedExpenses = expenses.filter((expense) => expense.status === 'approved');
-    const submittedExpenses = expenses.filter((expense) => expense.status === 'submitted');
-    const totalApprovedExpense = approvedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const totalPendingExpense = submittedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const improvementActions = [
-      ...auditRuns.filter((run) => run.score < 85),
-      ...assessmentResponses.filter((response) => response.score < 85),
-    ].length;
+    const loadReport = async () => {
+      setLoading(true);
+      setError(null);
 
-    return {
-      completedTasks,
-      totalHours,
-      completionRate,
-      averageProjectProgress,
-      averageAuditScore,
-      averageAssessmentScore,
-      approvedExpenses,
-      submittedExpenses,
-      totalApprovedExpense,
-      totalPendingExpense,
-      improvementActions,
+      try {
+        const reportData = await operationsService.getMonthlyReport(selectedMonth);
+        if (active) setReport(reportData);
+      } catch {
+        if (active) setError('Сарын тайлангийн өгөгдөл ачаалж чадсангүй.');
+      } finally {
+        if (active) setLoading(false);
+      }
     };
-  }, [assessmentResponses, auditRuns, expenses, projects, tasks, timeEntries]);
+
+    loadReport();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedMonth]);
+
+  const improvementActions = report
+    ? report.assessmentResponses.filter((response) => response.score < 85).length
+    : 0;
+  const pendingExpenses = report ? report.expenses.filter((expense) => expense.status === 'submitted') : [];
+
+  const executiveSummary = report
+    ? [
+        `Monthly productivity report (${report.period}): ${report.totals.projects} projects, ${report.totals.tasks} tasks, ${report.kpis.completionRate}% task completion.`,
+        `Tracked work: ${report.totals.totalHours} hours and ${report.totals.workLogs} work logs.`,
+        `Quality and compliance: ${report.totals.auditRuns} audit runs; ${report.totals.assessmentResponses} assessment responses with ${report.kpis.averageAssessmentScore}% average score.`,
+        `Finance: ${formatMnt(report.totals.approvedExpenseTotal)} approved expenses and ${formatMnt(report.totals.pendingExpenseTotal)} waiting approval.`,
+        `Management attention: ${improvementActions} improvement actions need follow-up.`,
+      ].join('\n')
+    : 'Monthly productivity report is loading.';
 
   const exportCsv = () => {
+    if (!report) return;
+
     const rows = [
       ['Metric', 'Value'],
-      ['Projects', projects.length],
-      ['Tasks', tasks.length],
-      ['Completed tasks', report.completedTasks.length],
-      ['Task completion rate', `${report.completionRate}%`],
-      ['Tracked hours', report.totalHours],
-      ['Work logs', logs.length],
-      ['Audit runs', auditRuns.length],
-      ['Average audit score', `${report.averageAuditScore}%`],
-      ['Assessment responses', assessmentResponses.length],
-      ['Average assessment score', `${report.averageAssessmentScore}%`],
-      ['Approved expenses', report.totalApprovedExpense],
-      ['Pending expenses', report.totalPendingExpense],
-      ['Improvement actions needed', report.improvementActions],
-      ['Average project progress', `${report.averageProjectProgress}%`],
+      ['Period', report.period],
+      ['Projects', report.totals.projects],
+      ['Tasks', report.totals.tasks],
+      ['Completed tasks', report.totals.completedTasks],
+      ['Task completion rate', `${report.kpis.completionRate}%`],
+      ['Tracked hours', report.totals.totalHours],
+      ['Work logs', report.totals.workLogs],
+      ['Audit runs', report.totals.auditRuns],
+      ['Assessment responses', report.totals.assessmentResponses],
+      ['Average assessment score', `${report.kpis.averageAssessmentScore}%`],
+      ['Approved expenses', report.totals.approvedExpenseTotal],
+      ['Pending expenses', report.totals.pendingExpenseTotal],
+      ['Improvement actions needed', improvementActions],
+      ['Average project progress', `${report.kpis.averageProjectProgress}%`],
     ];
     const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'monthly-productivity-report.csv';
+    link.download = `monthly-productivity-report-${report.period}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
-
-  const executiveSummary = [
-    `Monthly productivity report: ${projects.length} projects, ${tasks.length} tasks, ${report.completionRate}% task completion.`,
-    `Tracked work: ${report.totalHours} hours and ${logs.length} work logs.`,
-    `Quality and compliance: ${auditRuns.length} audit runs with ${report.averageAuditScore}% average audit score; ${assessmentResponses.length} assessment responses with ${report.averageAssessmentScore}% average score.`,
-    `Finance: ${formatMnt(report.totalApprovedExpense)} approved expenses and ${formatMnt(report.totalPendingExpense)} waiting approval.`,
-    `Management attention: ${report.improvementActions} improvement actions need follow-up.`,
-  ].join('\n');
 
   const copySummary = async () => {
     await navigator.clipboard.writeText(executiveSummary);
@@ -116,164 +97,202 @@ const MonthlyReportPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Monthly Report</h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Ажилтан, төсөл, task, work log, time entry, audit дээрээс сарын тайлангийн preview үүсгэнэ.
+            Төсөл, task, work log, time entry, audit, assessment, expense өгөгдлөөс сарын нэгдсэн тайлан гаргана.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={exportCsv}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white"
-        >
-          Export CSV
-        </button>
-        <button
-          type="button"
-          onClick={copySummary}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-        >
-          Copy summary
-        </button>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-        >
-          Print
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(event) => setSelectedMonth(event.target.value || currentMonth())}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+            aria-label="Report month"
+          />
+          <button
+            type="button"
+            onClick={exportCsv}
+            disabled={loading || !report}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          >
+            Export CSV
+          </button>
+          <button
+            type="button"
+            onClick={copySummary}
+            disabled={loading || !report}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            Copy summary
+          </button>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            disabled={loading || !report}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            Print
+          </button>
+        </div>
       </div>
 
-      <Card title="Executive summary">
-        <pre className="whitespace-pre-wrap text-sm leading-6 text-gray-700 dark:text-gray-300">
-          {executiveSummary}
-        </pre>
-      </Card>
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+          {error}
+        </div>
+      )}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
-        <Card>
-          <div className="text-sm text-gray-500">Projects</div>
-          <div className="mt-2 text-3xl font-semibold">{projects.length}</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-gray-500">Completion</div>
-          <div className="mt-2 text-3xl font-semibold">{report.completionRate}%</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-gray-500">Tracked hours</div>
-          <div className="mt-2 text-3xl font-semibold">{report.totalHours}</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-gray-500">Work logs</div>
-          <div className="mt-2 text-3xl font-semibold">{logs.length}</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-gray-500">Audit score</div>
-          <div className="mt-2 text-3xl font-semibold">{report.averageAuditScore}%</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-gray-500">Assessment</div>
-          <div className="mt-2 text-3xl font-semibold">{report.averageAssessmentScore}%</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-gray-500">Approved cost</div>
-          <div className="mt-2 text-xl font-semibold">{formatMnt(report.totalApprovedExpense)}</div>
-        </Card>
-      </div>
+      {loading && <Card>Сарын тайлангийн өгөгдөл ачаалж байна...</Card>}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card title="Completed tasks">
-          <div className="space-y-3">
-            {report.completedTasks.map((task) => (
-              <div key={task.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                <div className="font-medium text-gray-900 dark:text-white">{task.title}</div>
-                <div className="mt-1 text-sm text-gray-500">{task.actualHours || 0} actual hours</div>
-              </div>
-            ))}
+      {!loading && !report && !error && <Card>Энэ сард тайлангийн өгөгдөл олдсонгүй.</Card>}
+
+      {report && (
+        <>
+          <Card title="Executive summary">
+            <pre className="whitespace-pre-wrap text-sm leading-6 text-gray-700 dark:text-gray-300">
+              {executiveSummary}
+            </pre>
+          </Card>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+            <Card>
+              <div className="text-sm text-gray-500">Projects</div>
+              <div className="mt-2 text-3xl font-semibold">{report.totals.projects}</div>
+            </Card>
+            <Card>
+              <div className="text-sm text-gray-500">Completion</div>
+              <div className="mt-2 text-3xl font-semibold">{report.kpis.completionRate}%</div>
+            </Card>
+            <Card>
+              <div className="text-sm text-gray-500">Tracked hours</div>
+              <div className="mt-2 text-3xl font-semibold">{report.totals.totalHours}</div>
+            </Card>
+            <Card>
+              <div className="text-sm text-gray-500">Work logs</div>
+              <div className="mt-2 text-3xl font-semibold">{report.totals.workLogs}</div>
+            </Card>
+            <Card>
+              <div className="text-sm text-gray-500">Audit runs</div>
+              <div className="mt-2 text-3xl font-semibold">{report.totals.auditRuns}</div>
+            </Card>
+            <Card>
+              <div className="text-sm text-gray-500">Assessment</div>
+              <div className="mt-2 text-3xl font-semibold">{report.kpis.averageAssessmentScore}%</div>
+            </Card>
+            <Card>
+              <div className="text-sm text-gray-500">Approved cost</div>
+              <div className="mt-2 text-xl font-semibold">{formatMnt(report.totals.approvedExpenseTotal)}</div>
+            </Card>
           </div>
-        </Card>
 
-        <Card title="Work log highlights">
-          <div className="space-y-3">
-            {logs.map((log) => (
-              <div key={log.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-gray-900 dark:text-white">{log.logDate}</span>
-                  <span className="text-gray-500">{log.hours}h</span>
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card title="Completed tasks">
+              <div className="space-y-3">
+                {report.completedTasks.length === 0 && <p className="text-sm text-gray-500">Completed task алга.</p>}
+                {report.completedTasks.map((task) => (
+                  <div key={task.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                    <div className="font-medium text-gray-900 dark:text-white">{task.title}</div>
+                    <div className="mt-1 text-sm text-gray-500">{task.actualHours || 0} actual hours</div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card title="Work log highlights">
+              <div className="space-y-3">
+                {report.workLogs.length === 0 && <p className="text-sm text-gray-500">Work log алга.</p>}
+                {report.workLogs.map((log) => (
+                  <div key={log.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-gray-900 dark:text-white">{log.logDate}</span>
+                      <span className="text-gray-500">{log.hours}h</span>
+                    </div>
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{log.summary}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card title="Time entries">
+              <div className="space-y-3">
+                {report.timeEntries.length === 0 && <p className="text-sm text-gray-500">Time entry алга.</p>}
+                {report.timeEntries.map((entry) => (
+                  <div key={entry.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-gray-900 dark:text-white">{entry.workDate}</span>
+                      <span className="text-blue-600">{entry.hours}h</span>
+                    </div>
+                    {entry.note && <p className="mt-2 text-sm text-gray-500">{entry.note}</p>}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card title="Assessment responses">
+              <div className="space-y-3">
+                {report.assessmentResponses.length === 0 && (
+                  <p className="text-sm text-gray-500">Assessment response алга.</p>
+                )}
+                {report.assessmentResponses.map((response) => (
+                  <div key={response.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-gray-900 dark:text-white">{response.respondent}</span>
+                      <span className={response.score < 85 ? 'text-yellow-600' : 'text-green-600'}>
+                        {response.score}%
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-gray-500">
+                      {response.department} - {response.status}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card title="Expense summary">
+              <div className="space-y-3">
+                <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <div className="text-sm text-gray-500">Approved</div>
+                  <div className="mt-1 text-xl font-semibold text-green-600">
+                    {formatMnt(report.totals.approvedExpenseTotal)}
+                  </div>
                 </div>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{log.summary}</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card title="Audit results">
-          <div className="space-y-3">
-            {auditRuns.map((run) => (
-              <div key={run.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-gray-900 dark:text-white">{run.location || 'Audit run'}</span>
-                  <span className="text-blue-600">{run.score}%</span>
+                <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <div className="text-sm text-gray-500">Pending approval</div>
+                  <div className="mt-1 text-xl font-semibold text-yellow-600">
+                    {formatMnt(report.totals.pendingExpenseTotal)}
+                  </div>
                 </div>
-                <p className="mt-2 text-sm text-gray-500">{run.status}</p>
+                {report.expenses.map((expense) => (
+                  <div key={expense.id} className="rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-gray-900 dark:text-white">{expense.title}</span>
+                      <span>{formatMnt(expense.amount)}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500">{expense.status}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+            </Card>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card title="Assessment responses">
-          <div className="space-y-3">
-            {assessmentResponses.map((response) => (
-              <div key={response.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-gray-900 dark:text-white">{response.respondent}</span>
-                  <span className={response.score < 85 ? 'text-yellow-600' : 'text-green-600'}>{response.score}%</span>
+            <Card title="Management actions">
+              <div className="space-y-3 text-sm">
+                <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <div className="font-medium text-gray-900 dark:text-white">Improvement actions</div>
+                  <div className="mt-1 text-2xl font-semibold text-blue-600">{improvementActions}</div>
+                  <p className="mt-1 text-gray-500">Assessment score 85%-аас доош байгаа зүйлс.</p>
                 </div>
-                <p className="mt-2 text-sm text-gray-500">
-                  {response.department} - {response.status}
-                </p>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card title="Expense summary">
-          <div className="space-y-3">
-            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              <div className="text-sm text-gray-500">Approved</div>
-              <div className="mt-1 text-xl font-semibold text-green-600">{formatMnt(report.totalApprovedExpense)}</div>
-            </div>
-            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              <div className="text-sm text-gray-500">Pending approval</div>
-              <div className="mt-1 text-xl font-semibold text-yellow-600">{formatMnt(report.totalPendingExpense)}</div>
-            </div>
-            {expenses.map((expense) => (
-              <div key={expense.id} className="rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-gray-900 dark:text-white">{expense.title}</span>
-                  <span>{formatMnt(expense.amount)}</span>
+                <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <div className="font-medium text-gray-900 dark:text-white">Pending approvals</div>
+                  <div className="mt-1 text-2xl font-semibold text-yellow-600">{pendingExpenses.length}</div>
+                  <p className="mt-1 text-gray-500">Submitted expenses waiting for owner/admin decision.</p>
                 </div>
-                <div className="mt-1 text-xs text-gray-500">{expense.status}</div>
               </div>
-            ))}
+            </Card>
           </div>
-        </Card>
-
-        <Card title="Management actions">
-          <div className="space-y-3 text-sm">
-            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              <div className="font-medium text-gray-900 dark:text-white">Improvement actions</div>
-              <div className="mt-1 text-2xl font-semibold text-blue-600">{report.improvementActions}</div>
-              <p className="mt-1 text-gray-500">Audit or assessment scores below 85%.</p>
-            </div>
-            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              <div className="font-medium text-gray-900 dark:text-white">Pending approvals</div>
-              <div className="mt-1 text-2xl font-semibold text-yellow-600">{report.submittedExpenses.length}</div>
-              <p className="mt-1 text-gray-500">Submitted expenses waiting for owner/admin decision.</p>
-            </div>
-          </div>
-        </Card>
-      </div>
+        </>
+      )}
     </div>
   );
 };

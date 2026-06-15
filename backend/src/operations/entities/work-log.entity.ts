@@ -12,10 +12,10 @@ export class WorkLog extends BaseEntity {
   @Column({ name: 'user_id', nullable: true })
   userId?: string;
 
-  @Column({ name: 'project_id', nullable: true })
+  @Column({ type: 'uuid', name: 'project_id', nullable: true })
   projectId?: string;
 
-  @Column({ name: 'task_id', nullable: true })
+  @Column({ type: 'uuid', name: 'task_id', nullable: true })
   taskId?: string;
 
   @Column({ type: 'date', name: 'log_date' })

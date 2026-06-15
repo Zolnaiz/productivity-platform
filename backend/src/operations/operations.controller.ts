@@ -2,6 +2,22 @@ import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } 
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { OperationsService } from './operations.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
+import {
+  CreateAssessmentResponseDto,
+  CreateAssessmentTemplateDto,
+  CreateAuditRunDto,
+  CreateAuditTemplateDto,
+  CreateExpenseDto,
+  CreateProjectDto,
+  CreateTaskDto,
+  CreateTimeEntryDto,
+  CreateWorkLogDto,
+  UpdateAssessmentResponseDto,
+  UpdateAssessmentTemplateDto,
+  UpdateExpenseDto,
+  UpdateProjectDto,
+  UpdateTaskDto,
+} from './dto/operations.dto';
 
 @ApiTags('operations')
 @ApiBearerAuth()
@@ -10,14 +26,29 @@ import { OperationsAuthGuard } from './guards/operations-auth.guard';
 export class OperationsController {
   constructor(private readonly operationsService: OperationsService) {}
 
+  private toTimeEntryPayload(body: CreateTimeEntryDto) {
+    return {
+      ...body,
+      startedAt: body.startedAt ? new Date(body.startedAt) : undefined,
+      endedAt: body.endedAt ? new Date(body.endedAt) : undefined,
+    };
+  }
+
+  private toAssessmentResponsePayload(body: CreateAssessmentResponseDto | UpdateAssessmentResponseDto) {
+    return {
+      ...body,
+      submittedAt: body.submittedAt ? new Date(body.submittedAt) : undefined,
+    };
+  }
+
   @Get('operations/summary')
   summary(@Request() req) {
     return this.operationsService.dashboardSummary(req.user);
   }
 
   @Get('operations/monthly-report')
-  monthlyReport(@Request() req) {
-    return this.operationsService.monthlyReport(req.user);
+  monthlyReport(@Request() req, @Query('month') month?: string) {
+    return this.operationsService.monthlyReport(req.user, month);
   }
 
   @Get('projects')
@@ -26,12 +57,12 @@ export class OperationsController {
   }
 
   @Post('projects')
-  createProject(@Body() body, @Request() req) {
+  createProject(@Body() body: CreateProjectDto, @Request() req) {
     return this.operationsService.createProject(body, req.user);
   }
 
   @Patch('projects/:id')
-  updateProject(@Param('id') id: string, @Body() body, @Request() req) {
+  updateProject(@Param('id') id: string, @Body() body: UpdateProjectDto, @Request() req) {
     return this.operationsService.updateProject(id, body, req.user);
   }
 
@@ -41,12 +72,12 @@ export class OperationsController {
   }
 
   @Post('tasks')
-  createTask(@Body() body, @Request() req) {
+  createTask(@Body() body: CreateTaskDto, @Request() req) {
     return this.operationsService.createTask(body, req.user);
   }
 
   @Patch('tasks/:id')
-  updateTask(@Param('id') id: string, @Body() body, @Request() req) {
+  updateTask(@Param('id') id: string, @Body() body: UpdateTaskDto, @Request() req) {
     return this.operationsService.updateTask(id, body, req.user);
   }
 
@@ -56,7 +87,7 @@ export class OperationsController {
   }
 
   @Post('work-logs')
-  createWorkLog(@Body() body, @Request() req) {
+  createWorkLog(@Body() body: CreateWorkLogDto, @Request() req) {
     return this.operationsService.createWorkLog(body, req.user);
   }
 
@@ -66,8 +97,8 @@ export class OperationsController {
   }
 
   @Post('time-entries')
-  createTimeEntry(@Body() body, @Request() req) {
-    return this.operationsService.createTimeEntry(body, req.user);
+  createTimeEntry(@Body() body: CreateTimeEntryDto, @Request() req) {
+    return this.operationsService.createTimeEntry(this.toTimeEntryPayload(body), req.user);
   }
 
   @Get('audit-templates')
@@ -76,7 +107,7 @@ export class OperationsController {
   }
 
   @Post('audit-templates')
-  createAuditTemplate(@Body() body, @Request() req) {
+  createAuditTemplate(@Body() body: CreateAuditTemplateDto, @Request() req) {
     return this.operationsService.createAuditTemplate(body, req.user);
   }
 
@@ -86,7 +117,7 @@ export class OperationsController {
   }
 
   @Post('audit-runs')
-  createAuditRun(@Body() body, @Request() req) {
+  createAuditRun(@Body() body: CreateAuditRunDto, @Request() req) {
     return this.operationsService.createAuditRun(body, req.user);
   }
 
@@ -96,12 +127,12 @@ export class OperationsController {
   }
 
   @Post('assessment-templates')
-  createAssessmentTemplate(@Body() body, @Request() req) {
+  createAssessmentTemplate(@Body() body: CreateAssessmentTemplateDto, @Request() req) {
     return this.operationsService.createAssessmentTemplate(body, req.user);
   }
 
   @Patch('assessment-templates/:id')
-  updateAssessmentTemplate(@Param('id') id: string, @Body() body, @Request() req) {
+  updateAssessmentTemplate(@Param('id') id: string, @Body() body: UpdateAssessmentTemplateDto, @Request() req) {
     return this.operationsService.updateAssessmentTemplate(id, body, req.user);
   }
 
@@ -111,13 +142,13 @@ export class OperationsController {
   }
 
   @Post('assessment-responses')
-  createAssessmentResponse(@Body() body, @Request() req) {
-    return this.operationsService.createAssessmentResponse(body, req.user);
+  createAssessmentResponse(@Body() body: CreateAssessmentResponseDto, @Request() req) {
+    return this.operationsService.createAssessmentResponse(this.toAssessmentResponsePayload(body), req.user);
   }
 
   @Patch('assessment-responses/:id')
-  updateAssessmentResponse(@Param('id') id: string, @Body() body, @Request() req) {
-    return this.operationsService.updateAssessmentResponse(id, body, req.user);
+  updateAssessmentResponse(@Param('id') id: string, @Body() body: UpdateAssessmentResponseDto, @Request() req) {
+    return this.operationsService.updateAssessmentResponse(id, this.toAssessmentResponsePayload(body), req.user);
   }
 
   @Get('expenses')
@@ -126,12 +157,12 @@ export class OperationsController {
   }
 
   @Post('expenses')
-  createExpense(@Body() body, @Request() req) {
+  createExpense(@Body() body: CreateExpenseDto, @Request() req) {
     return this.operationsService.createExpense(body, req.user);
   }
 
   @Patch('expenses/:id')
-  updateExpense(@Param('id') id: string, @Body() body, @Request() req) {
+  updateExpense(@Param('id') id: string, @Body() body: UpdateExpenseDto, @Request() req) {
     return this.operationsService.updateExpense(id, body, req.user);
   }
 }

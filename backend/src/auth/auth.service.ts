@@ -1,376 +1,173 @@
 import {
-  Injectable,
-  UnauthorizedException,
   ConflictException,
-  BadRequestException,
   ForbiddenException,
+  Injectable,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
-
-import { User } from '../shared/entities/user.entity';
-import { Organization } from '../shared/entities/organization.entity';
+import { UsersService } from '../users/users.service';
+import { OrganizationsService } from '../organizations/organizations.service';
+import { User } from '../users/entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UserRole } from '../shared/constants';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(Organization)
-    private organizationRepository: Repository<Organization>,
-    private jwtService: JwtService,
+    private readonly usersService: UsersService,
+    private readonly organizationsService: OrganizationsService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User> {
-    this.logger.debug(`Validating user: ${email}`);
-
-    const user = await this.userRepository.findOne({
-      where: { email },
-      relations: ['organization'],
-    });
+    const user = await this.usersService.validateUser(email, password);
 
     if (!user) {
-      this.logger.warn(`User not found: ${email}`);
-      return null;
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     if (!user.isActive) {
-      this.logger.warn(`User account inactive: ${email}`);
-      throw new ForbiddenException('Таны акаунт идэвхгүй байна');
+      throw new ForbiddenException('User account is inactive');
     }
 
-    if (user.status !== 'active') {
-      this.logger.warn(`User account not active: ${email}`);
-      throw new ForbiddenException('Таны акаунт идэвхтэй бус байна');
-    }
-
-    if (user.isLocked()) {
-      this.logger.warn(`User account locked: ${email}`);
-      throw new ForbiddenException('Таны акаунт түгжэгдсэн байна');
-    }
-
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      user.incrementLoginAttempts();
-      await this.userRepository.save(user);
-      
-      this.logger.warn(`Invalid password for user: ${email}`);
-      throw new UnauthorizedException('Имэйл эсвэл нууц үг буруу байна');
-    }
-
-    // Reset login attempts on successful login
-    user.resetLoginAttempts();
-    user.updateLastLogin();
-    await this.userRepository.save(user);
-
-    this.logger.log(`User validated successfully: ${email}`);
     return user;
   }
 
   async login(loginDto: LoginDto) {
     this.logger.log(`Login attempt: ${loginDto.email}`);
-
     const user = await this.validateUser(loginDto.email, loginDto.password);
-    if (!user) {
-      throw new UnauthorizedException('Имэйл эсвэл нууц үг буруу байна');
-    }
-
-    const tokens = await this.generateTokens(user);
-    
     this.logger.log(`Login successful for user: ${user.email}`);
-    
-    return {
-      ...tokens,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        fullName: user.fullName,
-        role: user.role,
-        organization: user.organization,
-        avatarUrl: user.avatarUrl,
-        preferences: user.preferences,
-      },
-    };
+    return this.buildAuthResponse(user);
   }
 
   async register(registerDto: RegisterDto) {
     this.logger.log(`Registration attempt: ${registerDto.email}`);
 
-    // Check if email already exists
-    const existingUser = await this.userRepository.findOne({
-      where: { email: registerDto.email },
-    });
-
+    const existingUser = await this.usersService.findByEmail(registerDto.email);
     if (existingUser) {
-      this.logger.warn(`Email already exists: ${registerDto.email}`);
-      throw new ConflictException('Энэ имэйл хаяг аль хэдийн бүртгэгдсэн байна');
+      throw new ConflictException('Email is already registered');
     }
 
-    // Check if username already exists
-    const existingUsername = await this.userRepository.findOne({
-      where: { username: registerDto.username },
-    });
-
-    if (existingUsername) {
-      this.logger.warn(`Username already exists: ${registerDto.username}`);
-      throw new ConflictException('Энэ хэрэглэгчийн нэр аль хэдийн бүртгэгдсэн байна');
-    }
-
-    // Find or create organization
-    let organization = await this.organizationRepository.findOne({
-      where: { code: registerDto.organizationCode },
-    });
-
-    if (!organization) {
-      this.logger.log(`Creating new organization: ${registerDto.organizationCode}`);
-      
-      organization = this.organizationRepository.create({
-        name: registerDto.organizationName || 'Шинэ байгууллага',
-        code: registerDto.organizationCode,
-        email: registerDto.email,
-        settings: {
-          language: 'mn',
-          timezone: 'Asia/Ulaanbaatar',
-          currency: 'MNT',
-          theme: 'light',
-        },
-      });
-      
-      organization = await this.organizationRepository.save(organization);
-      this.logger.log(`Organization created: ${organization.id}`);
-    }
-
-    // Check organization user limit
-    const userCount = await this.userRepository.count({
-      where: { organization: { id: organization.id } },
-    });
-
-    if (userCount >= organization.maxUsers) {
-      this.logger.warn(`Organization user limit reached: ${organization.id}`);
-      throw new ConflictException('Байгууллагын хэрэглэгчийн хязгаар хэтэрсэн байна');
-    }
-
-    // Create user
-    const user = this.userRepository.create({
-      email: registerDto.email,
-      username: registerDto.username,
-      password: registerDto.password,
-      fullName: registerDto.fullName,
-      role: registerDto.role || 'user',
-      organization: organization,
-      preferences: {
+    const organization = await this.organizationsService.create({
+      name: registerDto.organizationName,
+      contactEmail: registerDto.email,
+      phone: registerDto.phone,
+      settings: {
         language: 'mn',
+        timezone: 'Asia/Ulaanbaatar',
+        currency: 'MNT',
         theme: 'light',
-        notifications: true,
       },
+      isActive: true,
     });
 
-    const savedUser = await this.userRepository.save(user);
-    this.logger.log(`User created: ${savedUser.id}`);
-
-    const tokens = await this.generateTokens(savedUser);
-
-    return {
-      ...tokens,
-      user: {
-        id: savedUser.id,
-        email: savedUser.email,
-        username: savedUser.username,
-        fullName: savedUser.fullName,
-        role: savedUser.role,
-        organization: savedUser.organization,
+    const user = await this.usersService.create(
+      {
+        firstName: registerDto.firstName,
+        lastName: registerDto.lastName,
+        email: registerDto.email,
+        password: registerDto.password,
+        role: UserRole.ADMIN,
+        position: registerDto.position,
+        phone: registerDto.phone,
+        isActive: true,
       },
-    };
+      organization.id,
+    );
+
+    user.organization = organization;
+    this.logger.log(`User created: ${user.id}`);
+    return this.buildAuthResponse(user);
   }
 
-  async refreshToken(refreshTokenDto: RefreshTokenDto) {
-    this.logger.log('Refresh token attempt');
-
+  async refreshToken(refreshToken: string) {
     try {
-      const payload = this.jwtService.verify(refreshTokenDto.refresh_token, {
-        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET + '-refresh',
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: this.refreshSecret(),
       });
 
-      const user = await this.userRepository.findOne({
-        where: { id: payload.sub },
-        relations: ['organization'],
-      });
-
+      const user = await this.usersService.findById(payload.sub);
       if (!user || !user.isActive) {
-        throw new UnauthorizedException('Хэрэглэгч олдсонгүй эсвэл идэвхгүй байна');
+        throw new UnauthorizedException('User not found or inactive');
       }
 
-      const tokens = await this.generateTokens(user);
-      this.logger.log(`Token refreshed for user: ${user.email}`);
-
-      return tokens;
+      return this.generateTokens(user);
     } catch (error) {
       this.logger.error(`Token refresh failed: ${error.message}`);
-      throw new UnauthorizedException('Refresh token хүчингүй байна');
+      throw new UnauthorizedException('Refresh token is invalid');
     }
   }
 
   async logout(userId: string) {
     this.logger.log(`Logout for user: ${userId}`);
-    
-    // In a real application, you might want to:
-    // 1. Add token to blacklist
-    // 2. Clear refresh token from database
-    // 3. Log the logout event
-    
-    return { message: 'Амжилттай гарлаа' };
+    return { message: 'Logged out successfully' };
   }
 
-  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
-    this.logger.log(`Change password for user: ${userId}`);
-
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Хэрэглэгч олдсонгүй');
-    }
-
-    const isValidPassword = await bcrypt.compare(
-      changePasswordDto.currentPassword,
-      user.password,
-    );
-
-    if (!isValidPassword) {
-      throw new UnauthorizedException('Одоогийн нууц үг буруу байна');
-    }
-
-    user.password = changePasswordDto.newPassword;
-    await this.userRepository.save(user);
-
-    this.logger.log(`Password changed successfully for user: ${userId}`);
-    
-    return { message: 'Нууц үг амжилттай солигдлоо' };
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    await this.usersService.changePassword(userId, currentPassword, newPassword);
+    return { message: 'Password changed successfully' };
   }
 
-  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
-    this.logger.log(`Forgot password for email: ${forgotPasswordDto.email}`);
-
-    const user = await this.userRepository.findOne({
-      where: { email: forgotPasswordDto.email },
-    });
-
-    if (!user) {
-      // Don't reveal that the user doesn't exist
-      this.logger.warn(`User not found for forgot password: ${forgotPasswordDto.email}`);
-      return { message: 'Хэрэв энэ имэйл бүртгэлтэй бол нууц үг шинэчлэх заавар имэйлээр илгээгдэх болно' };
-    }
-
-    // Generate reset token
-    const resetToken = uuidv4();
-    const resetTokenExpires = new Date(Date.now() + 3600000); // 1 hour
-
-    // In a real application, you would:
-    // 1. Save reset token to database
-    // 2. Send email with reset link
-    
-    this.logger.log(`Reset token generated for user: ${user.email}`);
-    
-    return { message: 'Нууц үг шинэчлэх заавар имэйлээр илгээгдэх болно' };
-  }
-
-  async resetPassword(resetPasswordDto: ResetPasswordDto) {
-    this.logger.log('Reset password attempt');
-
-    // In a real application, you would:
-    // 1. Verify reset token from database
-    // 2. Check if token is expired
-    // 3. Update user's password
-    
-    // For now, we'll just return a success message
-    this.logger.log('Password reset successful');
-    
-    return { message: 'Нууц үг амжилттай шинэчлэгдлээ' };
-  }
-
-  async getProfile(userId: string) {
-    this.logger.log(`Get profile for user: ${userId}`);
-
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ['organization'],
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Хэрэглэгч олдсонгүй');
-    }
-
+  async forgotPassword(email: string) {
+    this.logger.log(`Forgot password for email: ${email}`);
     return {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      fullName: user.fullName,
-      role: user.role,
-      organization: user.organization,
-      avatarUrl: user.avatarUrl,
-      phoneNumber: user.phoneNumber,
-      preferences: user.preferences,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      message: 'If this email is registered, password reset instructions will be sent',
     };
   }
 
-  async updateProfile(userId: string, updateData: any) {
-    this.logger.log(`Update profile for user: ${userId}`);
-
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Хэрэглэгч олдсонгүй');
-    }
-
-    // Update allowed fields
-    if (updateData.fullName) user.fullName = updateData.fullName;
-    if (updateData.phoneNumber) user.phoneNumber = updateData.phoneNumber;
-    if (updateData.avatarUrl) user.avatarUrl = updateData.avatarUrl;
-    if (updateData.preferences) {
-      user.preferences = { ...user.preferences, ...updateData.preferences };
-    }
-
-    await this.userRepository.save(user);
-    this.logger.log(`Profile updated for user: ${userId}`);
-
-    return this.getProfile(userId);
+  async resetPassword(_token: string, _password: string) {
+    this.logger.log('Password reset requested');
+    return { message: 'Password reset request accepted' };
   }
 
-  private async generateTokens(user: User) {
+  async getProfile(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return this.toAuthUser(user);
+  }
+
+  async validateToken(token: string) {
+    try {
+      return this.jwtService.verify(token);
+    } catch (error) {
+      this.logger.error(`Token validation failed: ${error.message}`);
+      return null;
+    }
+  }
+
+  private buildAuthResponse(user: User) {
+    return {
+      ...this.generateTokens(user),
+      user: this.toAuthUser(user),
+    };
+  }
+
+  private generateTokens(user: User) {
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
-      organizationId: user.organization.id,
+      organizationId: user.organizationId || user.organization?.id,
     };
 
     const accessToken = this.jwtService.sign(payload, {
-      expiresIn: process.env.JWT_EXPIRATION || '7d',
+      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '1h') as any,
     });
 
     const refreshToken = this.jwtService.sign(
       { sub: user.id },
       {
-        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET + '-refresh',
-        expiresIn: process.env.JWT_REFRESH_EXPIRATION || '30d',
+        secret: this.refreshSecret(),
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
       },
     );
 
@@ -378,17 +175,32 @@ export class AuthService {
       access_token: accessToken,
       refresh_token: refreshToken,
       token_type: 'Bearer',
-      expires_in: 604800, // 7 days in seconds
+      expires_in: 604800,
     };
   }
 
-  async validateToken(token: string) {
-    try {
-      const payload = this.jwtService.verify(token);
-      return payload;
-    } catch (error) {
-      this.logger.error(`Token validation failed: ${error.message}`);
-      return null;
-    }
+  private toAuthUser(user: User) {
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      fullName: user.fullName,
+      role: user.role,
+      organizationId: user.organizationId || user.organization?.id,
+      organization: user.organization,
+      avatarUrl: user.profileImageUrl,
+      phoneNumber: user.phone,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
+  private refreshSecret() {
+    return (
+      this.configService.get<string>('JWT_REFRESH_SECRET') ||
+      `${this.configService.get<string>('JWT_SECRET', 'dev-secret-change-me')}-refresh`
+    );
   }
 }

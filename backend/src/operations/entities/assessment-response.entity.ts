@@ -13,7 +13,7 @@ export enum AssessmentResponseStatus {
 @Index(['templateId'])
 @Index(['status'])
 export class AssessmentResponse extends BaseEntity {
-  @Column({ name: 'template_id' })
+  @Column({ type: 'uuid', name: 'template_id' })
   templateId: string;
 
   @Column({ name: 'organization_id', nullable: true })

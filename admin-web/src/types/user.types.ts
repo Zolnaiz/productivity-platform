@@ -32,6 +32,7 @@ export interface RegisterData {
   name: string;
   phone?: string;
   organizationId?: string;
+  organizationName?: string;
 }
 
 export interface AuthResponse {

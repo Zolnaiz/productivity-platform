@@ -38,6 +38,7 @@
     "src/operations/**/*.ts",
     "src/migrations/*Operations*.ts",
     "src/shared/database/**/*.ts",
+    "src/shared/config/env.validation.ts",
     "src/shared/entities/base.entity.ts",
     "src/shared/filters/**/*.ts",
     "src/shared/interceptors/**/*.ts",

@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  postgres-test:
+  postgres:
     image: postgres:15-alpine
     container_name: productivity-postgres-test
     environment:
@@ -10,35 +8,8 @@ services:
       POSTGRES_DB: productivity_test
     ports:
       - "5433:5432"
-    networks:
-      - productivity-network-test
-
-  redis-test:
-    image: redis:7-alpine
-    container_name: productivity-redis-test
-    ports:
-      - "6380:6379"
-    networks:
-      - productivity-network-test
-
-  backend-test:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.test
-    container_name: productivity-backend-test
-    environment:
-      - NODE_ENV=test
-      - DATABASE_URL=postgresql://test_user:test_password@postgres-test:5432/productivity_test
-      - REDIS_URL=redis://redis-test:6379
-      - JWT_SECRET=test-secret-key
-      - JWT_REFRESH_SECRET=test-refresh-secret-key
-    depends_on:
-      - postgres-test
-      - redis-test
-    networks:
-      - productivity-network-test
-    command: npm run test:e2e
-
-networks:
-  productivity-network-test:
-    driver: bridge
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d productivity_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

@@ -4,6 +4,7 @@ import path from 'path';
 
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  cacheDir: '.vite-cache',
   define: {
     __BUNDLED_DEV__: false,
   },
@@ -40,5 +41,9 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
   },
 }));

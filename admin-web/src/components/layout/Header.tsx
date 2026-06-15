@@ -44,13 +44,26 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     let active = true;
 
     const loadSearchItems = async () => {
-      const [projects, tasks, auditTemplates, responses, expenses] = await Promise.all([
-        operationsService.getProjects(),
-        operationsService.getTasks(),
-        operationsService.getAuditTemplates(),
-        assessmentService.getResponses(),
-        financeService.getExpenses(),
-      ]);
+      let projects: Awaited<ReturnType<typeof operationsService.getProjects>> = [];
+      let tasks: Awaited<ReturnType<typeof operationsService.getTasks>> = [];
+      let auditTemplates: Awaited<ReturnType<typeof operationsService.getAuditTemplates>> = [];
+      let responses: Awaited<ReturnType<typeof assessmentService.getResponses>> = [];
+      let expenses: Awaited<ReturnType<typeof financeService.getExpenses>> = [];
+
+      try {
+        [projects, tasks, auditTemplates, responses, expenses] = await Promise.all([
+          operationsService.getProjects(),
+          operationsService.getTasks(),
+          operationsService.getAuditTemplates(),
+          assessmentService.getResponses(),
+          financeService.getExpenses(),
+        ]);
+      } catch {
+        if (active) {
+          setItems(pageItems);
+        }
+        return;
+      }
 
       if (!active) return;
 
@@ -128,6 +141,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
       <div className="flex min-w-0 flex-1 items-center gap-4">
         <button
           type="button"
+          aria-label="Open navigation menu"
           className="rounded-lg p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 lg:hidden"
           onClick={onMenuClick}
         >

@@ -269,7 +269,7 @@ export class OperationsService {
     };
   }
 
-  async monthlyReport(user: CurrentUser) {
+  async monthlyReport(user: CurrentUser, month?: string) {
     const organization = this.organizationWhere(user);
     const [projects, tasks, workLogs, timeEntries, auditRuns, assessmentResponses, expenses] = await Promise.all([
       this.projects.find({ where: organization }),
@@ -281,36 +281,46 @@ export class OperationsService {
       this.expenses.find({ where: organization }),
     ]);
 
-    const completedTasks = tasks.filter((task) => task.status === 'done');
-    const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
-    const completionRate = tasks.length ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
+    const reportMonth = this.resolveReportMonth(month);
+    const monthlyTasks = tasks.filter((task) => this.isInMonth(task.dueDate || task.createdAt, reportMonth));
+    const monthlyWorkLogs = workLogs.filter((log) => this.isInMonth(log.logDate || log.createdAt, reportMonth));
+    const monthlyTimeEntries = timeEntries.filter((entry) => this.isInMonth(entry.workDate || entry.createdAt, reportMonth));
+    const monthlyAuditRuns = auditRuns.filter((run) => this.isInMonth(run.createdAt, reportMonth));
+    const monthlyAssessmentResponses = assessmentResponses.filter((response) =>
+      this.isInMonth(response.submittedAt || response.createdAt, reportMonth),
+    );
+    const monthlyExpenses = expenses.filter((expense) => this.isInMonth(expense.expenseDate || expense.createdAt, reportMonth));
+
+    const completedTasks = monthlyTasks.filter((task) => task.status === 'done');
+    const totalHours = monthlyTimeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
+    const completionRate = monthlyTasks.length ? Math.round((completedTasks.length / monthlyTasks.length) * 100) : 0;
     const averageProjectProgress = projects.length
       ? Math.round(projects.reduce((sum, project) => sum + Number(project.progress || 0), 0) / projects.length)
       : 0;
-    const averageAssessmentScore = assessmentResponses.length
+    const averageAssessmentScore = monthlyAssessmentResponses.length
       ? Math.round(
-          assessmentResponses.reduce((sum, response) => sum + Number(response.score || 0), 0) /
-            assessmentResponses.length,
+          monthlyAssessmentResponses.reduce((sum, response) => sum + Number(response.score || 0), 0) /
+            monthlyAssessmentResponses.length,
         )
       : 0;
-    const approvedExpenseTotal = expenses
+    const approvedExpenseTotal = monthlyExpenses
       .filter((expense) => expense.status === 'approved')
       .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-    const pendingExpenseTotal = expenses
+    const pendingExpenseTotal = monthlyExpenses
       .filter((expense) => expense.status === 'submitted')
       .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
 
     return {
-      period: new Date().toISOString().slice(0, 7),
+      period: reportMonth,
       totals: {
         projects: projects.length,
-        tasks: tasks.length,
+        tasks: monthlyTasks.length,
         completedTasks: completedTasks.length,
-        workLogs: workLogs.length,
+        workLogs: monthlyWorkLogs.length,
         totalHours,
-        auditRuns: auditRuns.length,
-        assessmentResponses: assessmentResponses.length,
-        expenses: expenses.length,
+        auditRuns: monthlyAuditRuns.length,
+        assessmentResponses: monthlyAssessmentResponses.length,
+        expenses: monthlyExpenses.length,
         approvedExpenseTotal,
         pendingExpenseTotal,
       },
@@ -320,12 +330,26 @@ export class OperationsService {
         averageAssessmentScore,
       },
       completedTasks,
-      workLogs,
-      timeEntries,
+      workLogs: monthlyWorkLogs,
+      timeEntries: monthlyTimeEntries,
       projects,
-      assessmentResponses,
-      expenses,
+      assessmentResponses: monthlyAssessmentResponses,
+      expenses: monthlyExpenses,
     };
+  }
+
+  private resolveReportMonth(month?: string) {
+    return month && /^\d{4}-\d{2}$/.test(month) ? month : new Date().toISOString().slice(0, 7);
+  }
+
+  private isInMonth(value: Date | string | undefined, month: string) {
+    if (!value) return false;
+
+    if (value instanceof Date) {
+      return value.toISOString().slice(0, 7) === month;
+    }
+
+    return String(value).slice(0, 7) === month;
   }
 
   private organizationWhere(user: CurrentUser) {
@@ -334,14 +358,17 @@ export class OperationsService {
   }
 
   private resolveOrganizationId(user?: CurrentUser, payloadOrganizationId?: string) {
-    const organizationId = user?.organizationId || payloadOrganizationId;
     const allowPublicOperations = this.configService.get('ALLOW_PUBLIC_OPERATIONS') === true;
 
-    if (!organizationId && !allowPublicOperations) {
+    if (user?.organizationId) {
+      return user.organizationId;
+    }
+
+    if (!allowPublicOperations) {
       throw new UnauthorizedException('Organization context is required');
     }
 
-    return organizationId;
+    return payloadOrganizationId;
   }
 
   private async findOneScoped<T extends { id: string; organizationId?: string }>(

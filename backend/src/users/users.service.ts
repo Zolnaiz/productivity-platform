@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   ConflictException,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,14 +13,12 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole, PaginationParams } from '../shared/constants';
-import { OrganizationService } from '../organizations/organizations.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-    private organizationService: OrganizationService,
   ) {}
 
   async create(createUserDto: CreateUserDto, organizationId?: string) {
@@ -186,6 +185,22 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.findById(userId);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    return this.usersRepository.save(user);
+  }
+
   async remove(id: string, currentUser: any) {
     const user = await this.findOne(id, currentUser);
 
@@ -282,7 +297,7 @@ export class UsersService {
 
     // Organization admin can only access users in their organization
     if (
-      currentUser.role === UserRole.ORGANIZATION_ADMIN &&
+      (currentUser.role === UserRole.ORGANIZATION_ADMIN || currentUser.role === UserRole.ADMIN) &&
       user.organizationId === currentUser.organizationId
     ) {
       return;
@@ -346,6 +361,28 @@ export class UsersService {
         'reports:update',
         'reports:delete',
       ],
+      [UserRole.ADMIN]: [
+        'users:read',
+        'users:create',
+        'users:update',
+        'users:delete',
+        'questionnaires:read',
+        'questionnaires:create',
+        'questionnaires:update',
+        'questionnaires:delete',
+        'responses:read',
+        'responses:create',
+        'responses:update',
+        'responses:delete',
+        'expenses:read',
+        'expenses:create',
+        'expenses:update',
+        'expenses:delete',
+        'reports:read',
+        'reports:create',
+        'reports:update',
+        'reports:delete',
+      ],
       [UserRole.USER]: [
         'questionnaires:read',
         'questionnaires:create',
@@ -363,8 +400,9 @@ export class UsersService {
 
   private canAssignRole(currentUserRole: UserRole, targetRole: UserRole): boolean {
     const roleHierarchy = {
-      [UserRole.SUPER_ADMIN]: [UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.USER],
-      [UserRole.ORGANIZATION_ADMIN]: [UserRole.ORGANIZATION_ADMIN, UserRole.USER],
+      [UserRole.SUPER_ADMIN]: [UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.ADMIN, UserRole.USER],
+      [UserRole.ORGANIZATION_ADMIN]: [UserRole.ORGANIZATION_ADMIN, UserRole.ADMIN, UserRole.USER],
+      [UserRole.ADMIN]: [UserRole.ADMIN, UserRole.USER],
       [UserRole.USER]: [],
     };
 

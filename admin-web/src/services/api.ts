@@ -3,9 +3,16 @@ import axios from 'axios';
 // API суурь URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-export const isDemoMode = () => localStorage.getItem('token') === 'demo-token';
+export const isDemoEnabled = () => import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
+
+export const isDemoMode = () => isDemoEnabled() && localStorage.getItem('token') === 'demo-token';
 
 export const shouldUseDemoFallback = () => isDemoMode() || import.meta.env.DEV;
+
+export const normalizeTokenResponse = (data: any) => ({
+  token: data?.token || data?.access_token || '',
+  refreshToken: data?.refreshToken || data?.refresh_token || '',
+});
 
 // Axios instance үүсгэх
 const api = axios.create({
@@ -54,10 +61,16 @@ api.interceptors.response.use(
           refreshToken,
         });
 
-        const { token, refreshToken: newRefreshToken } = response.data;
+        const { token, refreshToken: newRefreshToken } = normalizeTokenResponse(response.data);
+
+        if (!token) {
+          throw new Error('Refresh response did not include an access token');
+        }
         
         localStorage.setItem('token', token);
-        localStorage.setItem('refreshToken', newRefreshToken);
+        if (newRefreshToken) {
+          localStorage.setItem('refreshToken', newRefreshToken);
+        }
         
         originalRequest.headers.Authorization = `Bearer ${token}`;
         return api(originalRequest);

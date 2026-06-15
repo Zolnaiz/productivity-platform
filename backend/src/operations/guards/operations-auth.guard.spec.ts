@@ -78,6 +78,12 @@ describe('OperationsAuthGuard', () => {
     expect(() => guard.canActivate(createContext('Token abc'))).toThrow(UnauthorizedException);
   });
 
+  it('rejects authorization headers with extra parts', () => {
+    const { guard } = createGuard({});
+
+    expect(() => guard.canActivate(createContext('Bearer token extra'))).toThrow(UnauthorizedException);
+  });
+
   it('attaches verified user payload to the request', () => {
     const { guard, jwtService } = createGuard({});
     const request = {

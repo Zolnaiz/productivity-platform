@@ -75,11 +75,13 @@ curl -H "Authorization: Bearer <TOKEN>" http://localhost:3000/api/operations/sum
 ## Verification
 
 ```bash
-npm run lint
+npm run lint:check
 npm test
 npm run build
 npm audit --audit-level=moderate
 ```
+
+Current backend tests cover the operations JWT guard and organization-scoped service behavior. Current frontend tests cover demo/real API fallback behavior for operations data and the production demo-mode guard.
 
 When PostgreSQL is running, start the API:
 
@@ -115,6 +117,7 @@ Run the frontend with:
 
 ```bash
 cd ../admin-web
+npm test -- run
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
@@ -141,3 +144,5 @@ location.href = '/dashboard';
 ```
 
 This uses the real backend token path instead of the local `demo-token` fallback.
+
+For production frontend builds, `demo-token` is ignored unless `VITE_ENABLE_DEMO_MODE=true` is explicitly set.

@@ -2,6 +2,7 @@ import { get, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
 import {
   AuditTemplate,
   AuditRun,
+  OperationsMonthlyReport,
   OperationsSummary,
   Project,
   TimeEntry,
@@ -23,6 +24,8 @@ const unwrap = <T>(response: ApiEnvelope<T>): T => {
 const demoProjects: Project[] = [
   {
     id: 'p1',
+    organizationId: 'demo-org',
+    ownerId: 'demo-owner',
     name: 'Operations productivity rollout',
     description: 'Task, time, work log, and monthly reporting MVP.',
     status: 'active',
@@ -33,6 +36,8 @@ const demoProjects: Project[] = [
   },
   {
     id: 'p2',
+    organizationId: 'demo-org',
+    ownerId: 'demo-owner',
     name: '5S audit implementation',
     description: 'Manufacturing checklist templates and audit scoring.',
     status: 'planned',
@@ -45,8 +50,11 @@ const demoProjects: Project[] = [
 const demoTasks: WorkTask[] = [
   {
     id: 't1',
+    organizationId: 'demo-org',
     title: 'Build project and task APIs',
     projectId: 'p1',
+    assigneeId: 'demo-owner',
+    reporterId: 'demo-owner',
     status: 'done',
     priority: 'high',
     dueDate: '2026-06-14',
@@ -55,8 +63,11 @@ const demoTasks: WorkTask[] = [
   },
   {
     id: 't2',
+    organizationId: 'demo-org',
     title: 'Connect work log dashboard',
     projectId: 'p1',
+    assigneeId: 'demo-owner',
+    reporterId: 'demo-owner',
     status: 'in_progress',
     priority: 'high',
     dueDate: '2026-06-18',
@@ -65,8 +76,11 @@ const demoTasks: WorkTask[] = [
   },
   {
     id: 't3',
+    organizationId: 'demo-org',
     title: 'Prepare 5S template library',
     projectId: 'p2',
+    assigneeId: 'demo-owner',
+    reporterId: 'demo-owner',
     status: 'todo',
     priority: 'medium',
     dueDate: '2026-06-25',
@@ -78,6 +92,8 @@ const demoTasks: WorkTask[] = [
 const demoWorkLogs: WorkLog[] = [
   {
     id: 'w1',
+    organizationId: 'demo-org',
+    userId: 'demo-owner',
     logDate: '2026-06-12',
     projectId: 'p1',
     taskId: 't1',
@@ -87,6 +103,8 @@ const demoWorkLogs: WorkLog[] = [
   },
   {
     id: 'w2',
+    organizationId: 'demo-org',
+    userId: 'demo-owner',
     logDate: '2026-06-11',
     projectId: 'p1',
     summary: 'Product blueprint and route structure were finalized.',
@@ -96,13 +114,31 @@ const demoWorkLogs: WorkLog[] = [
 ];
 
 const demoTimeEntries: TimeEntry[] = [
-  { id: 'te1', workDate: '2026-06-12', projectId: 'p1', taskId: 't1', hours: 6.5, note: 'API and shell work' },
-  { id: 'te2', workDate: '2026-06-11', projectId: 'p1', hours: 4, note: 'Planning and cleanup' },
+  {
+    id: 'te1',
+    organizationId: 'demo-org',
+    userId: 'demo-owner',
+    workDate: '2026-06-12',
+    projectId: 'p1',
+    taskId: 't1',
+    hours: 6.5,
+    note: 'API and shell work',
+  },
+  {
+    id: 'te2',
+    organizationId: 'demo-org',
+    userId: 'demo-owner',
+    workDate: '2026-06-11',
+    projectId: 'p1',
+    hours: 4,
+    note: 'Planning and cleanup',
+  },
 ];
 
 const demoAuditTemplates: AuditTemplate[] = [
   {
     id: 'a1',
+    organizationId: 'demo-org',
     title: '5S Workplace Audit',
     description: 'Sort, Set in order, Shine, Standardize, Sustain audit template.',
     category: '5s',
@@ -116,6 +152,7 @@ const demoAuditTemplates: AuditTemplate[] = [
   },
   {
     id: 'a2',
+    organizationId: 'demo-org',
     title: 'Fire Safety Inspection',
     description: 'Emergency exits, extinguisher access, and safety signage.',
     category: 'safety',
@@ -254,6 +291,7 @@ const demoAuditRuns: AuditRun[] = [
     location: 'Main production floor',
     status: 'submitted',
     score: 82,
+    createdAt: '2026-06-12T09:00:00.000Z',
     answers: [
       { questionId: 'q1', value: 4 },
       { questionId: 'q2', value: 4 },
@@ -273,11 +311,33 @@ const defaults = {
 
 const storageKey = (key: DemoKey) => `productivity-demo-${key}`;
 
+const withDemoScope = <T extends Record<string, any>>(key: DemoKey, item: T): T => {
+  const scoped: Record<string, any> = {
+    organizationId: 'demo-org',
+    ...item,
+  };
+
+  if ((key === 'workLogs' || key === 'timeEntries') && !scoped.userId) {
+    scoped.userId = 'demo-owner';
+  }
+
+  if (key === 'tasks') {
+    if (!scoped.assigneeId) scoped.assigneeId = 'demo-owner';
+    if (!scoped.reporterId) scoped.reporterId = 'demo-owner';
+  }
+
+  if (key === 'auditRuns' && !scoped.auditorId) {
+    scoped.auditorId = 'demo-owner';
+  }
+
+  return scoped as T;
+};
+
 const readDemo = <T>(key: DemoKey): T[] => {
   const stored = localStorage.getItem(storageKey(key));
   if (stored) {
-    const parsed = JSON.parse(stored) as T[];
-    const initial = defaults[key] as T[];
+    const parsed = (JSON.parse(stored) as T[]).map((item) => withDemoScope(key, item as Record<string, any>) as T);
+    const initial = (defaults[key] as T[]).map((item) => withDemoScope(key, item as Record<string, any>) as T);
     const merged = [
       ...parsed,
       ...initial.filter(
@@ -290,7 +350,7 @@ const readDemo = <T>(key: DemoKey): T[] => {
     return merged;
   }
 
-  const initial = defaults[key] as T[];
+  const initial = (defaults[key] as T[]).map((item) => withDemoScope(key, item as Record<string, any>) as T);
   localStorage.setItem(storageKey(key), JSON.stringify(initial));
   return initial;
 };
@@ -314,6 +374,12 @@ const updateDemo = <T extends { id: string }>(key: DemoKey, id: string, data: Pa
   return updated.find((item) => item.id === id) as T;
 };
 
+const withoutClientId = <T extends { id?: string }>(data: Partial<T>) => {
+  const payload = { ...data };
+  delete payload.id;
+  return payload;
+};
+
 const fallback = async <T>(request: () => Promise<ApiEnvelope<T>>, demoData: T): Promise<T> => {
   if (isDemoMode()) {
     return demoData;
@@ -328,6 +394,10 @@ const fallback = async <T>(request: () => Promise<ApiEnvelope<T>>, demoData: T):
     return demoData;
   }
 };
+
+const currentMonth = () => new Date().toISOString().slice(0, 7);
+
+const inMonth = (value: string | undefined, month: string) => Boolean(value && value.slice(0, 7) === month);
 
 const buildSummary = (): OperationsSummary => {
   const projects = readDemo<Project>('projects');
@@ -368,37 +438,83 @@ const buildSummary = (): OperationsSummary => {
   };
 };
 
+const buildMonthlyReport = (month = currentMonth()): OperationsMonthlyReport => {
+  const projects = readDemo<Project>('projects');
+  const tasks = readDemo<WorkTask>('tasks');
+  const workLogs = readDemo<WorkLog>('workLogs').filter((log) => inMonth(log.logDate, month));
+  const timeEntries = readDemo<TimeEntry>('timeEntries').filter((entry) => inMonth(entry.workDate, month));
+  const auditRuns = readDemo<AuditRun>('auditRuns').filter((run) => inMonth(run.createdAt, month));
+  const completedTasks = tasks.filter((task) => task.status === 'done' && inMonth(task.dueDate, month));
+  const monthlyTasks = tasks.filter((task) => inMonth(task.dueDate, month));
+  const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
+  const averageProjectProgress = projects.length
+    ? Math.round(projects.reduce((sum, project) => sum + Number(project.progress || 0), 0) / projects.length)
+    : 0;
+
+  return {
+    period: month,
+    totals: {
+      projects: projects.length,
+      tasks: monthlyTasks.length,
+      completedTasks: completedTasks.length,
+      workLogs: workLogs.length,
+      totalHours,
+      auditRuns: auditRuns.length,
+      assessmentResponses: 0,
+      expenses: 0,
+      approvedExpenseTotal: 0,
+      pendingExpenseTotal: 0,
+    },
+    kpis: {
+      completionRate: monthlyTasks.length ? Math.round((completedTasks.length / monthlyTasks.length) * 100) : 0,
+      averageProjectProgress,
+      averageAssessmentScore: 0,
+    },
+    completedTasks,
+    workLogs,
+    timeEntries,
+    projects,
+    assessmentResponses: [],
+    expenses: [],
+  };
+};
+
 export const operationsService = {
   getSummary: () => fallback<OperationsSummary>(() => get('/operations/summary'), buildSummary()),
+  getMonthlyReport: (month?: string) =>
+    fallback<OperationsMonthlyReport>(
+      () => get('/operations/monthly-report', month ? { month } : undefined),
+      buildMonthlyReport(month),
+    ),
   getProjects: () => fallback<Project[]>(() => get('/projects'), readDemo<Project>('projects')),
   createProject: (data: Partial<Project>) =>
-    isDemoMode() ? Promise.resolve(createDemo<Project>('projects', data)) : post<Project>('/projects', data),
+    isDemoMode() ? Promise.resolve(createDemo<Project>('projects', data)) : post<Project>('/projects', withoutClientId(data)),
   updateProject: (id: string, data: Partial<Project>) =>
     isDemoMode()
       ? Promise.resolve(updateDemo<Project>('projects', id, data))
       : patch<Project>(`/projects/${id}`, data),
   getTasks: () => fallback<WorkTask[]>(() => get('/tasks'), readDemo<WorkTask>('tasks')),
   createTask: (data: Partial<WorkTask>) =>
-    isDemoMode() ? Promise.resolve(createDemo<WorkTask>('tasks', data)) : post<WorkTask>('/tasks', data),
+    isDemoMode() ? Promise.resolve(createDemo<WorkTask>('tasks', data)) : post<WorkTask>('/tasks', withoutClientId(data)),
   updateTask: (id: string, data: Partial<WorkTask>) =>
     isDemoMode() ? Promise.resolve(updateDemo<WorkTask>('tasks', id, data)) : patch<WorkTask>(`/tasks/${id}`, data),
   getWorkLogs: () => fallback<WorkLog[]>(() => get('/work-logs'), readDemo<WorkLog>('workLogs')),
   createWorkLog: (data: Partial<WorkLog>) =>
-    isDemoMode() ? Promise.resolve(createDemo<WorkLog>('workLogs', data)) : post<WorkLog>('/work-logs', data),
+    isDemoMode() ? Promise.resolve(createDemo<WorkLog>('workLogs', data)) : post<WorkLog>('/work-logs', withoutClientId(data)),
   getTimeEntries: () => fallback<TimeEntry[]>(() => get('/time-entries'), readDemo<TimeEntry>('timeEntries')),
   createTimeEntry: (data: Partial<TimeEntry>) =>
     isDemoMode()
       ? Promise.resolve(createDemo<TimeEntry>('timeEntries', data))
-      : post<TimeEntry>('/time-entries', data),
+      : post<TimeEntry>('/time-entries', withoutClientId(data)),
   getAuditTemplates: () =>
     fallback<AuditTemplate[]>(() => get('/audit-templates'), readDemo<AuditTemplate>('auditTemplates')),
   createAuditTemplate: (data: Partial<AuditTemplate>) =>
     isDemoMode()
       ? Promise.resolve(createDemo<AuditTemplate>('auditTemplates', data))
-      : post<AuditTemplate>('/audit-templates', data),
+      : post<AuditTemplate>('/audit-templates', withoutClientId(data)),
   getAuditRuns: () => fallback<AuditRun[]>(() => get('/audit-runs'), readDemo<AuditRun>('auditRuns')),
   createAuditRun: (data: Partial<AuditRun>) =>
-    isDemoMode() ? Promise.resolve(createDemo<AuditRun>('auditRuns', data)) : post<AuditRun>('/audit-runs', data),
+    isDemoMode() ? Promise.resolve(createDemo<AuditRun>('auditRuns', data)) : post<AuditRun>('/audit-runs', withoutClientId(data)),
   getCalendarEvents: async () => {
     const [projects, tasks, auditRuns] = await Promise.all([
       operationsService.getProjects(),

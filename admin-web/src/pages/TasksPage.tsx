@@ -13,6 +13,8 @@ const columns: Array<{ key: WorkTask['status']; label: string }> = [
 
 const TasksPage: React.FC = () => {
   const [tasks, setTasks] = useState<WorkTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState({
     title: '',
     dueDate: '',
@@ -20,7 +22,24 @@ const TasksPage: React.FC = () => {
   });
 
   useEffect(() => {
-    operationsService.getTasks().then(setTasks);
+    let active = true;
+
+    const loadTasks = async () => {
+      try {
+        const data = await operationsService.getTasks();
+        if (active) setTasks(data);
+      } catch {
+        if (active) setError('Ажлын жагсаалт ачаалж чадсангүй.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadTasks();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const grouped = useMemo(
@@ -35,6 +54,7 @@ const TasksPage: React.FC = () => {
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!draft.title.trim()) return;
+    setError(null);
 
     const optimistic: WorkTask = {
       id: `local-${Date.now()}`,
@@ -48,12 +68,23 @@ const TasksPage: React.FC = () => {
 
     setTasks((current) => [optimistic, ...current]);
     setDraft({ title: '', dueDate: '', estimatedHours: '1' });
-    await operationsService.createTask(optimistic);
+
+    try {
+      await operationsService.createTask(optimistic);
+    } catch {
+      setError('Ажил хадгалах үед алдаа гарлаа.');
+    }
   };
 
   const updateStatus = async (task: WorkTask, status: WorkTask['status']) => {
+    setError(null);
     setTasks((current) => current.map((item) => (item.id === task.id ? { ...item, status } : item)));
-    await operationsService.updateTask(task.id, { status });
+
+    try {
+      await operationsService.updateTask(task.id, { status });
+    } catch {
+      setError('Ажлын төлөв шинэчлэх үед алдаа гарлаа.');
+    }
   };
 
   return (
@@ -61,9 +92,15 @@ const TasksPage: React.FC = () => {
       <div>
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Tasks / Kanban</h1>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Ирээдүйд хийх, шинээр гарсан, хийж байгаа, review, дууссан ажлууд.
+          Ирээдүйд хийх, шинээр гарсан, хийж байгаа, review, дууссан ажлуудыг нэг урсгалаар хянана.
         </p>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+          {error}
+        </div>
+      )}
 
       <Card title="New task">
         <form onSubmit={handleCreate} className="grid gap-3 lg:grid-cols-5">
@@ -92,6 +129,15 @@ const TasksPage: React.FC = () => {
           </button>
         </form>
       </Card>
+
+      {loading && <Card>Ажлуудыг ачаалж байна...</Card>}
+      {!loading && tasks.length === 0 && (
+        <Card>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Одоогоор ажил алга. Эхний ажлаа нэмээд kanban төлөвөөр хянаж эхэлнэ.
+          </div>
+        </Card>
+      )}
 
       <div className="grid gap-4 xl:grid-cols-5">
         {grouped.map((column) => (

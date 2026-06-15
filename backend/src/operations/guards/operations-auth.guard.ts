@@ -45,8 +45,9 @@ export class OperationsAuthGuard implements CanActivate {
       throw new UnauthorizedException('Bearer token is required');
     }
 
-    const [scheme, token] = authHeader.split(' ');
-    if (scheme !== 'Bearer' || !token) {
+    const parts = authHeader.split(' ');
+    const [scheme, token] = parts;
+    if (parts.length !== 2 || scheme !== 'Bearer' || !token) {
       throw new UnauthorizedException('Invalid authorization header');
     }
 

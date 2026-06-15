@@ -5,6 +5,8 @@ import { Project } from '../types/operations.types';
 
 const ProjectsPage: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState({
     name: '',
     description: '',
@@ -13,12 +15,30 @@ const ProjectsPage: React.FC = () => {
   });
 
   useEffect(() => {
-    operationsService.getProjects().then(setProjects);
+    let active = true;
+
+    const loadProjects = async () => {
+      try {
+        const data = await operationsService.getProjects();
+        if (active) setProjects(data);
+      } catch {
+        if (active) setError('Төслийн мэдээлэл ачаалж чадсангүй.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadProjects();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!draft.name.trim()) return;
+    setError(null);
 
     const optimistic: Project = {
       id: `local-${Date.now()}`,
@@ -32,22 +52,39 @@ const ProjectsPage: React.FC = () => {
 
     setProjects((current) => [optimistic, ...current]);
     setDraft({ name: '', description: '', dueDate: '', priority: 'medium' });
-    await operationsService.createProject(optimistic);
+
+    try {
+      await operationsService.createProject(optimistic);
+    } catch {
+      setError('Төсөл хадгалах үед алдаа гарлаа.');
+    }
   };
 
   const updateProgress = async (project: Project, progress: number) => {
     const nextProgress = Math.max(0, Math.min(100, progress));
+    setError(null);
     setProjects((current) =>
       current.map((item) => (item.id === project.id ? { ...item, progress: nextProgress } : item)),
     );
-    await operationsService.updateProject(project.id, { progress: nextProgress });
+
+    try {
+      await operationsService.updateProject(project.id, { progress: nextProgress });
+    } catch {
+      setError('Төслийн явц шинэчлэх үед алдаа гарлаа.');
+    }
   };
 
   const updateStatus = async (project: Project, status: Project['status']) => {
+    setError(null);
     setProjects((current) =>
       current.map((item) => (item.id === project.id ? { ...item, status } : item)),
     );
-    await operationsService.updateProject(project.id, { status });
+
+    try {
+      await operationsService.updateProject(project.id, { status });
+    } catch {
+      setError('Төслийн төлөв шинэчлэх үед алдаа гарлаа.');
+    }
   };
 
   return (
@@ -58,6 +95,12 @@ const ProjectsPage: React.FC = () => {
           Төсөл бүрийн явц, deadline, priority, budget-ийг хянана.
         </p>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+          {error}
+        </div>
+      )}
 
       <Card title="New project">
         <form onSubmit={handleCreate} className="grid gap-3 lg:grid-cols-4">
@@ -86,6 +129,14 @@ const ProjectsPage: React.FC = () => {
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        {loading && <Card>Төслүүдийг ачаалж байна...</Card>}
+        {!loading && projects.length === 0 && (
+          <Card>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Одоогоор төсөл алга. Эхний төслөө нэмээд явц, deadline, priority-г хянаж эхэлнэ.
+            </div>
+          </Card>
+        )}
         {projects.map((project) => (
           <Card key={project.id}>
             <div className="flex items-start justify-between gap-4">

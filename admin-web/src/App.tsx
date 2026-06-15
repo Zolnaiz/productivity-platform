@@ -7,6 +7,7 @@ import { LoadingProvider } from './contexts/LoadingContext';
 import Layout from './components/layout/Layout';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import PlatformModulePage from './pages/PlatformModulePage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import OperationsDashboardPage from './pages/OperationsDashboardPage';
@@ -198,6 +199,9 @@ const moduleRoutes = [
   },
 ];
 
+const adminRoles = ['admin', 'super_admin'];
+const ownerRoles = ['super_admin'];
+
 function App() {
   return (
     <ThemeProvider>
@@ -208,8 +212,9 @@ function App() {
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
               <Route
-                path="/register"
+                path="/register-placeholder"
                 element={
                   <PlatformModulePage
                     title="Бүртгүүлэх"
@@ -262,13 +267,55 @@ function App() {
                 <Route path="goals" element={<DailyGoalsPage />} />
                 <Route path="pomodoro" element={<PomodoroPage />} />
                 <Route path="badges" element={<BadgesPage />} />
-                <Route path="users" element={<TeamUsersPage />} />
-                <Route path="departments" element={<DepartmentsPage />} />
+                <Route
+                  path="users"
+                  element={
+                    <ProtectedRoute roles={adminRoles}>
+                      <TeamUsersPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="departments"
+                  element={
+                    <ProtectedRoute roles={adminRoles}>
+                      <DepartmentsPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="profile" element={<ProfilePage />} />
-                <Route path="organizations" element={<OrganizationsPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="audit" element={<AuditLogPage />} />
-                <Route path="admin" element={<AdminDashboardPage />} />
+                <Route
+                  path="organizations"
+                  element={
+                    <ProtectedRoute roles={adminRoles}>
+                      <OrganizationsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    <ProtectedRoute roles={adminRoles}>
+                      <SettingsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="audit"
+                  element={
+                    <ProtectedRoute roles={ownerRoles}>
+                      <AuditLogPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="admin"
+                  element={
+                    <ProtectedRoute roles={adminRoles}>
+                      <AdminDashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="questionnaires" element={<QuestionnairesPage />} />
                 <Route path="responses" element={<ResponsesPage />} />
                 <Route path="analytics" element={<AnalyticsPage />} />

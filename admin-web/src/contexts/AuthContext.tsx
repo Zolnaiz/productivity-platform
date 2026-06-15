@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, LoginCredentials } from '../types/user.types';
 import { authService } from '../services/auth.service';
+import { isDemoEnabled } from '../services/api';
 import { useNotification } from './NotificationContext';
 
 interface AuthContextType {
@@ -44,6 +45,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(JSON.parse(savedUser));
 
           if (savedToken === 'demo-token') {
+            if (!isDemoEnabled()) {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              setToken(null);
+              setUser(null);
+              setIsLoading(false);
+              return;
+            }
+
             setIsLoading(false);
             return;
           }
@@ -106,6 +116,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [addNotification]);
 
   const loginDemo = useCallback(() => {
+    if (!isDemoEnabled()) {
+      addNotification({
+        type: 'error',
+        title: 'Demo disabled',
+        message: 'Demo workspace is disabled for this build.',
+      });
+      return;
+    }
+
     const demoUser: User = {
       id: 'demo-owner',
       email: 'owner@example.com',

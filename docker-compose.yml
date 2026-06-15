@@ -1,128 +1,72 @@
-version: '3.8'
-
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: productivity-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: productivity
-      POSTGRES_PASSWORD: productivity123
-      POSTGRES_DB: productivity_db
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_DATABASE:-questionnaire_db}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - productivity-network
+      - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U productivity"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-questionnaire_db}"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: productivity-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - productivity-network
-    command: redis-server --appendonly yes
-
-  # Backend API
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: development
     container_name: productivity-backend
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://productivity:productivity123@postgres:5432/productivity_db
-      - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
-      - JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
-    networks:
-      - productivity-network
-    command: npm run start:dev
-
-  # Admin Web
-  admin-web:
-    build:
-      context: ./admin-web
-      dockerfile: Dockerfile
-      target: development
-    container_name: productivity-admin-web
     ports:
-      - "3001:3001"
+      - "${PORT:-3000}:3000"
     environment:
-      - VITE_API_URL=http://localhost:3000/api
-    volumes:
-      - ./admin-web:/app
-      - /app/node_modules
-    depends_on:
-      - backend
-    networks:
-      - productivity-network
-    command: npm run dev
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_DATABASE: ${DB_DATABASE:-questionnaire_db}
+      DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-false}
+      DB_MIGRATIONS_RUN: ${DB_MIGRATIONS_RUN:-true}
+      DB_LOGGING: ${DB_LOGGING:-false}
+      DB_SSL: "false"
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:3001}
+      ENABLE_SWAGGER: ${ENABLE_SWAGGER:-false}
+      ALLOW_PUBLIC_OPERATIONS: ${ALLOW_PUBLIC_OPERATIONS:-false}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => { if (r.statusCode !== 200) process.exit(1); process.exit(0); }).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
-  # Flutter Web
-  flutter-web:
-    build:
-      context: ./mobile-flutter
-      dockerfile: Dockerfile.web
-    container_name: productivity-flutter-web
-    ports:
-      - "8080:8080"
-    networks:
-      - productivity-network
-
-  # PGAdmin (Database Management)
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: productivity-pgadmin
+    restart: unless-stopped
+    profiles: ["tools"]
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@productivity.local
-      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@productivity.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
     ports:
-      - "5050:80"
+      - "${PGADMIN_PORT:-5050}:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     depends_on:
       - postgres
-    networks:
-      - productivity-network
-
-  # Mailhog (Email Testing)
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: productivity-mailhog
-    ports:
-      - "1025:1025" # SMTP
-      - "8025:8025" # Web UI
-    networks:
-      - productivity-network
 
 volumes:
   postgres_data:
-  redis_data:
   pgadmin_data:
-
-networks:
-  productivity-network:
-    driver: bridge

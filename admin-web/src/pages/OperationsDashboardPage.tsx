@@ -10,10 +10,34 @@ import { OperationsSummary } from '../types/operations.types';
 const OperationsDashboardPage: React.FC = () => {
   const [summary, setSummary] = useState<OperationsSummary | null>(null);
   const [actions, setActions] = useState<ActionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    operationsService.getSummary().then(setSummary);
-    actionService.getActionItems().then(setActions);
+    let active = true;
+
+    const loadDashboard = async () => {
+      try {
+        const [summaryData, actionItems] = await Promise.all([
+          operationsService.getSummary(),
+          actionService.getActionItems(),
+        ]);
+
+        if (!active) return;
+        setSummary(summaryData);
+        setActions(actionItems);
+      } catch {
+        if (active) setError('Dashboard мэдээлэл ачаалж чадсангүй.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadDashboard();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const highPriorityActions = actions.filter((item) => item.priority === 'high');
@@ -26,6 +50,14 @@ const OperationsDashboardPage: React.FC = () => {
           Unified view of projects, tasks, hours, work logs, audits, reports, and action items.
         </p>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+          {error}
+        </div>
+      )}
+
+      {loading && <Card>Dashboard мэдээлэл ачаалж байна...</Card>}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <KpiCard title="Projects" value={summary?.totals.projects || 0} description="Tracked projects" />
@@ -90,6 +122,9 @@ const OperationsDashboardPage: React.FC = () => {
                 </div>
               </div>
             ))}
+            {!summary?.recent.projects.length && (
+              <p className="text-sm text-gray-500">Одоогоор төсөл бүртгэгдээгүй байна.</p>
+            )}
           </div>
         </Card>
 
@@ -104,6 +139,9 @@ const OperationsDashboardPage: React.FC = () => {
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{log.summary}</p>
               </div>
             ))}
+            {!summary?.recent.workLogs.length && (
+              <p className="text-sm text-gray-500">Одоогоор өдрийн ажлын бүртгэл алга.</p>
+            )}
           </div>
         </Card>
 
@@ -120,6 +158,9 @@ const OperationsDashboardPage: React.FC = () => {
                 </div>
               </div>
             ))}
+            {!summary?.recent.auditRuns?.length && (
+              <p className="text-sm text-gray-500">Одоогоор audit run бүртгэгдээгүй байна.</p>
+            )}
           </div>
         </Card>
       </div>

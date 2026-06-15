@@ -3,7 +3,6 @@ node_modules/
 .pnp
 .pnp.js
 yarn.lock
-package-lock.json
 
 # Production
 dist/
@@ -82,9 +81,9 @@ ios/Runner/GeneratedPluginRegistrant.*
 
 # Backups
 *.backup
+backups/
 
 # Docker
-.dockerignore
 docker-compose.override.yml
 
 # Temporary files
@@ -120,6 +119,7 @@ mobile-flutter/ios/Runner/Assets.xcassets/LaunchImage.imageset/*.png
 # Custom
 .aws/
 .cache/
+.vite-cache/
 .dccache/
 .dependency-cruiser/
 .output/
@@ -167,3 +167,4 @@ bin/
 *.log.*
 *.sql
 *.sqlite
+!backend/init-db.sql

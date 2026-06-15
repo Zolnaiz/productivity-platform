@@ -24,7 +24,7 @@ export class WorkTask extends BaseEntity {
   @Column({ name: 'organization_id', nullable: true })
   organizationId?: string;
 
-  @Column({ name: 'project_id', nullable: true })
+  @Column({ type: 'uuid', name: 'project_id', nullable: true })
   projectId?: string;
 
   @Column({ name: 'assignee_id', nullable: true })

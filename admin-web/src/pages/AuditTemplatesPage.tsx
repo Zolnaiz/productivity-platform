@@ -12,15 +12,37 @@ const AuditTemplatesPage: React.FC = () => {
   const [location, setLocation] = useState('');
   const [answers, setAnswers] = useState<Answers>({});
   const [actionMessage, setActionMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [industryFilter, setIndustryFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
   useEffect(() => {
-    operationsService.getAuditTemplates().then((items) => {
-      setTemplates(items);
-      setSelectedTemplateId(items[0]?.id || '');
-    });
-    operationsService.getAuditRuns().then(setRuns);
+    let active = true;
+
+    const loadAudits = async () => {
+      try {
+        const [templateItems, runItems] = await Promise.all([
+          operationsService.getAuditTemplates(),
+          operationsService.getAuditRuns(),
+        ]);
+
+        if (!active) return;
+        setTemplates(templateItems);
+        setSelectedTemplateId(templateItems[0]?.id || '');
+        setRuns(runItems);
+      } catch {
+        if (active) setError('Audit загварууд ачаалж чадсангүй.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadAudits();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const selectedTemplate = templates.find((template) => template.id === selectedTemplateId);
@@ -118,6 +140,14 @@ const AuditTemplatesPage: React.FC = () => {
           5S, safety, quality, compliance, risk, and industry-specific inspection templates.
         </p>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+          {error}
+        </div>
+      )}
+
+      {loading && <Card>Audit загварууд ачаалж байна...</Card>}
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
@@ -224,7 +254,11 @@ const AuditTemplatesPage: React.FC = () => {
               ))}
             </div>
 
-            <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
+            <button
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              disabled={!selectedTemplate || loading}
+              type="submit"
+            >
               Submit audit
             </button>
             {actionMessage && <div className="text-sm text-green-600">{actionMessage}</div>}
@@ -261,6 +295,11 @@ const AuditTemplatesPage: React.FC = () => {
             </div>
 
             <div className="space-y-3">
+              {!loading && filteredTemplates.length === 0 && (
+                <div className="text-sm text-gray-500">
+                  Сонгосон filter-д тохирох audit template алга.
+                </div>
+              )}
               {filteredTemplates.map((template) => (
                 <button
                   key={template.id}
@@ -287,6 +326,11 @@ const AuditTemplatesPage: React.FC = () => {
 
           <Card title="Recent audit runs">
             <div className="space-y-3">
+              {!loading && runs.length === 0 && (
+                <div className="text-sm text-gray-500">
+                  Одоогоор audit run бүртгэгдээгүй байна.
+                </div>
+              )}
               {runs.map((run) => {
                 const template = templates.find((item) => item.id === run.templateId);
                 return (

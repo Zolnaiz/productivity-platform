@@ -1,5 +1,6 @@
 export interface Project {
   id: string;
+  organizationId?: string;
   name: string;
   description?: string;
   ownerId?: string;
@@ -13,10 +14,12 @@ export interface Project {
 
 export interface WorkTask {
   id: string;
+  organizationId?: string;
   title: string;
   description?: string;
   projectId?: string;
   assigneeId?: string;
+  reporterId?: string;
   status: 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
   priority: string;
   dueDate?: string;
@@ -26,6 +29,7 @@ export interface WorkTask {
 
 export interface WorkLog {
   id: string;
+  organizationId?: string;
   userId?: string;
   projectId?: string;
   taskId?: string;
@@ -38,6 +42,7 @@ export interface WorkLog {
 
 export interface TimeEntry {
   id: string;
+  organizationId?: string;
   userId?: string;
   projectId?: string;
   taskId?: string;
@@ -50,6 +55,7 @@ export interface TimeEntry {
 
 export interface AuditTemplate {
   id: string;
+  organizationId?: string;
   title: string;
   description?: string;
   category: '5s' | 'safety' | 'quality' | 'compliance' | 'risk' | 'operational_excellence';
@@ -65,6 +71,7 @@ export interface AuditTemplate {
 
 export interface AuditRun {
   id: string;
+  organizationId?: string;
   templateId: string;
   auditorId?: string;
   projectId?: string;
@@ -76,6 +83,7 @@ export interface AuditRun {
   }>;
   score: number;
   status: string;
+  createdAt?: string;
 }
 
 export interface OperationsSummary {
@@ -98,4 +106,57 @@ export interface OperationsSummary {
     workLogs: WorkLog[];
     auditRuns?: AuditRun[];
   };
+}
+
+export interface OperationsMonthlyReport {
+  period: string;
+  totals: {
+    projects: number;
+    tasks: number;
+    completedTasks: number;
+    workLogs: number;
+    totalHours: number;
+    auditRuns: number;
+    assessmentResponses: number;
+    expenses: number;
+    approvedExpenseTotal: number;
+    pendingExpenseTotal: number;
+  };
+  kpis: {
+    completionRate: number;
+    averageProjectProgress: number;
+    averageAssessmentScore: number;
+  };
+  completedTasks: WorkTask[];
+  workLogs: WorkLog[];
+  timeEntries: TimeEntry[];
+  projects: Project[];
+  assessmentResponses: Array<{
+    id: string;
+    organizationId?: string;
+    templateId: string;
+    respondentId?: string;
+    respondent: string;
+    department: string;
+    status: 'in_progress' | 'submitted' | 'reviewed' | 'rejected';
+    score: number;
+    answers: Array<{
+      questionId: string;
+      value: string | number | boolean;
+      note?: string;
+    }>;
+    submittedAt?: string;
+  }>;
+  expenses: Array<{
+    id: string;
+    organizationId?: string;
+    title: string;
+    projectId?: string;
+    category: 'tools' | 'travel' | 'materials' | 'software' | 'other';
+    amount: number;
+    status: 'draft' | 'submitted' | 'approved' | 'rejected';
+    expenseDate: string;
+    submittedBy?: string;
+    note?: string;
+  }>;
 }

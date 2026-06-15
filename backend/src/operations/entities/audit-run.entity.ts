@@ -9,13 +9,13 @@ export class AuditRun extends BaseEntity {
   @Column({ name: 'organization_id', nullable: true })
   organizationId?: string;
 
-  @Column({ name: 'template_id' })
+  @Column({ type: 'uuid', name: 'template_id' })
   templateId: string;
 
   @Column({ name: 'auditor_id', nullable: true })
   auditorId?: string;
 
-  @Column({ name: 'project_id', nullable: true })
+  @Column({ type: 'uuid', name: 'project_id', nullable: true })
   projectId?: string;
 
   @Column({ nullable: true })

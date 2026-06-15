@@ -1,0 +1,374 @@
+import { PartialType } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsDefined,
+  IsEnum,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+import { AssessmentResponseStatus } from '../entities/assessment-response.entity';
+import { AssessmentStatus, AssessmentType } from '../entities/assessment-template.entity';
+import { AuditCategory } from '../entities/audit-template.entity';
+import { ExpenseCategory, ExpenseStatus } from '../entities/expense.entity';
+import { ProjectStatus } from '../entities/project.entity';
+import { TaskStatus } from '../entities/task.entity';
+
+class ChecklistQuestionDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  text: string;
+
+  @IsIn(['score', 'yes_no', 'text'])
+  type: 'score' | 'yes_no' | 'text';
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maxScore?: number;
+}
+
+class ChecklistAnswerDto {
+  @IsString()
+  questionId: string;
+
+  @IsDefined()
+  value: string | number | boolean;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+class OrganizationScopedDto {
+  @IsOptional()
+  @IsString()
+  organizationId?: string;
+}
+
+export class CreateProjectDto extends OrganizationScopedDto {
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  ownerId?: string;
+
+  @IsOptional()
+  @IsEnum(ProjectStatus)
+  status?: ProjectStatus;
+
+  @IsOptional()
+  @IsString()
+  priority?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  progress?: number;
+
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dueDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  budget?: number;
+}
+
+export class UpdateProjectDto extends PartialType(CreateProjectDto) {}
+
+export class CreateTaskDto extends OrganizationScopedDto {
+  @IsString()
+  title: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
+
+  @IsOptional()
+  @IsString()
+  assigneeId?: string;
+
+  @IsOptional()
+  @IsString()
+  reporterId?: string;
+
+  @IsOptional()
+  @IsEnum(TaskStatus)
+  status?: TaskStatus;
+
+  @IsOptional()
+  @IsString()
+  priority?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dueDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  estimatedHours?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  actualHours?: number;
+}
+
+export class UpdateTaskDto extends PartialType(CreateTaskDto) {}
+
+export class CreateWorkLogDto extends OrganizationScopedDto {
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  taskId?: string;
+
+  @IsOptional()
+  @IsDateString()
+  logDate?: string;
+
+  @IsString()
+  summary: string;
+
+  @IsOptional()
+  @IsString()
+  blockers?: string;
+
+  @IsOptional()
+  @IsString()
+  nextSteps?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  hours?: number;
+}
+
+export class CreateTimeEntryDto extends OrganizationScopedDto {
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  taskId?: string;
+
+  @IsOptional()
+  @IsDateString()
+  workDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  startedAt?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endedAt?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  hours?: number;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+export class CreateAuditTemplateDto extends OrganizationScopedDto {
+  @IsString()
+  title: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsEnum(AuditCategory)
+  category?: AuditCategory;
+
+  @IsOptional()
+  @IsString()
+  industry?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChecklistQuestionDto)
+  questions?: ChecklistQuestionDto[];
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class CreateAuditRunDto extends OrganizationScopedDto {
+  @IsUUID()
+  templateId: string;
+
+  @IsOptional()
+  @IsString()
+  auditorId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChecklistAnswerDto)
+  answers?: ChecklistAnswerDto[];
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  score?: number;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+}
+
+export class CreateAssessmentTemplateDto extends OrganizationScopedDto {
+  @IsString()
+  title: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsEnum(AssessmentType)
+  type?: AssessmentType;
+
+  @IsOptional()
+  @IsEnum(AssessmentStatus)
+  status?: AssessmentStatus;
+
+  @IsOptional()
+  @IsString()
+  industry?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChecklistQuestionDto)
+  questions?: ChecklistQuestionDto[];
+}
+
+export class UpdateAssessmentTemplateDto extends PartialType(CreateAssessmentTemplateDto) {}
+
+export class CreateAssessmentResponseDto extends OrganizationScopedDto {
+  @IsUUID()
+  templateId: string;
+
+  @IsOptional()
+  @IsString()
+  respondentId?: string;
+
+  @IsOptional()
+  @IsString()
+  respondent?: string;
+
+  @IsOptional()
+  @IsString()
+  department?: string;
+
+  @IsOptional()
+  @IsEnum(AssessmentResponseStatus)
+  status?: AssessmentResponseStatus;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  score?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChecklistAnswerDto)
+  answers?: ChecklistAnswerDto[];
+
+  @IsOptional()
+  @IsDateString()
+  submittedAt?: string;
+}
+
+export class UpdateAssessmentResponseDto extends PartialType(CreateAssessmentResponseDto) {}
+
+export class CreateExpenseDto extends OrganizationScopedDto {
+  @IsString()
+  title: string;
+
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
+
+  @IsOptional()
+  @IsEnum(ExpenseCategory)
+  category?: ExpenseCategory;
+
+  @IsNumber()
+  @Min(0)
+  amount: number;
+
+  @IsOptional()
+  @IsEnum(ExpenseStatus)
+  status?: ExpenseStatus;
+
+  @IsOptional()
+  @IsDateString()
+  expenseDate?: string;
+
+  @IsOptional()
+  @IsString()
+  submittedBy?: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+export class UpdateExpenseDto extends PartialType(CreateExpenseDto) {}

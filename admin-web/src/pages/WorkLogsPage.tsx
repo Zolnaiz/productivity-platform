@@ -8,6 +8,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 const WorkLogsPage: React.FC = () => {
   const [logs, setLogs] = useState<WorkLog[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState({
     logDate: today(),
     summary: '',
@@ -17,8 +19,30 @@ const WorkLogsPage: React.FC = () => {
   });
 
   useEffect(() => {
-    operationsService.getWorkLogs().then(setLogs);
-    operationsService.getTimeEntries().then(setTimeEntries);
+    let active = true;
+
+    const loadWorkLogs = async () => {
+      try {
+        const [workLogs, entries] = await Promise.all([
+          operationsService.getWorkLogs(),
+          operationsService.getTimeEntries(),
+        ]);
+
+        if (!active) return;
+        setLogs(workLogs);
+        setTimeEntries(entries);
+      } catch {
+        if (active) setError('Өдрийн ажлын бүртгэл ачаалж чадсангүй.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadWorkLogs();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
@@ -26,6 +50,7 @@ const WorkLogsPage: React.FC = () => {
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!draft.summary.trim()) return;
+    setError(null);
 
     const optimisticLog: WorkLog = {
       id: `local-log-${Date.now()}`,
@@ -50,7 +75,7 @@ const WorkLogsPage: React.FC = () => {
       await operationsService.createWorkLog(optimisticLog);
       await operationsService.createTimeEntry(optimisticTime);
     } catch {
-      // Demo mode keeps the optimistic items locally.
+      setError('Өдрийн ажлын бүртгэл хадгалах үед алдаа гарлаа.');
     }
   };
 
@@ -59,9 +84,15 @@ const WorkLogsPage: React.FC = () => {
       <div>
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Work Logs & Time</h1>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Ажилтан бүрийн өдөр тутмын хийсэн ажил, blocker, дараагийн алхам, зарцуулсан цаг.
+          Ажилтан бүрийн өдөр тутмын хийсэн ажил, blocker, дараагийн алхам, зарцуулсан цагийг бүртгэнэ.
         </p>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+          {error}
+        </div>
+      )}
 
       <Card title="Add daily work log">
         <form onSubmit={handleCreate} className="grid gap-3 lg:grid-cols-6">
@@ -108,12 +139,18 @@ const WorkLogsPage: React.FC = () => {
         </Card>
         <Card>
           <div className="text-sm text-gray-500">Monthly report source</div>
-          <div className="mt-2 text-3xl font-semibold">Ready</div>
+          <div className="mt-2 text-3xl font-semibold">{loading ? 'Loading' : 'Ready'}</div>
         </Card>
       </div>
 
       <Card title="Daily work logs">
         <div className="space-y-4">
+          {loading && <div className="text-sm text-gray-600 dark:text-gray-400">Бүртгэл ачаалж байна...</div>}
+          {!loading && logs.length === 0 && (
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Одоогоор өдрийн ажлын бүртгэл алга. Эхний бүртгэлээ нэмээд сарын тайлангийн өгөгдлөө бүрдүүлнэ.
+            </div>
+          )}
           {logs.map((log) => (
             <div key={log.id} className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
               <div className="flex items-center justify-between">
