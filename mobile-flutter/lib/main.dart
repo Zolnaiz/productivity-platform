@@ -29,8 +29,12 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Load environment variables
-  await dotenv.load(fileName: '.env');
+  // Load local environment variables when available.
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {
+    await dotenv.load(fileName: '.env.example');
+  }
 
   // Initialize services
   await StorageService().init();

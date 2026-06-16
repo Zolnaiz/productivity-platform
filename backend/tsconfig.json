@@ -36,6 +36,7 @@
     "src/app.controller.ts",
     "src/app.service.ts",
     "src/operations/**/*.ts",
+    "src/migrations/*Runtime*.ts",
     "src/migrations/*Operations*.ts",
     "src/shared/database/**/*.ts",
     "src/shared/config/env.validation.ts",

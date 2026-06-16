@@ -83,6 +83,16 @@ const report = {
 describe('MonthlyReportPage', () => {
   beforeEach(() => {
     serviceMocks.getMonthlyReport.mockReset();
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:monthly-report'),
+      revokeObjectURL: vi.fn(),
+    });
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
   });
 
   it('loads the current month through the monthly report API', async () => {
@@ -115,5 +125,34 @@ describe('MonthlyReportPage', () => {
     fireEvent.change(monthInput, { target: { value: '2026-05' } });
 
     await waitFor(() => expect(serviceMocks.getMonthlyReport).toHaveBeenCalledWith('2026-05'));
+  });
+
+  it('exports the selected monthly report as a CSV file', async () => {
+    serviceMocks.getMonthlyReport.mockResolvedValue(report);
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+
+    render(<MonthlyReportPage />);
+
+    await screen.findByText('Build report endpoint');
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+
+    expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:monthly-report');
+  });
+
+  it('copies the executive summary to the clipboard', async () => {
+    serviceMocks.getMonthlyReport.mockResolvedValue(report);
+
+    render(<MonthlyReportPage />);
+
+    await screen.findByText('Build report endpoint');
+    fireEvent.click(screen.getByRole('button', { name: 'Copy summary' }));
+
+    await waitFor(() =>
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining('Monthly productivity report (2026-06)'),
+      ),
+    );
   });
 });

@@ -6,9 +6,10 @@ import { WorkspaceProfile } from '../types/admin.types';
 const OrganizationsPage: React.FC = () => {
   const [profile, setProfile] = useState<WorkspaceProfile | null>(null);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    adminService.getWorkspaceProfile().then(setProfile);
+    adminService.getWorkspaceProfile().then(setProfile).finally(() => setLoading(false));
   }, []);
 
   const updateField = (field: keyof WorkspaceProfile, value: string | number) => {
@@ -24,8 +25,6 @@ const OrganizationsPage: React.FC = () => {
     setSaved(true);
   };
 
-  if (!profile) return null;
-
   return (
     <div className="space-y-6">
       <div>
@@ -35,6 +34,12 @@ const OrganizationsPage: React.FC = () => {
         </p>
       </div>
 
+      {loading || !profile ? (
+        <Card loading title="Loading workspace profile">
+          <div />
+        </Card>
+      ) : (
+        <>
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <div className="text-sm text-gray-500">Plan</div>
@@ -113,14 +118,16 @@ const OrganizationsPage: React.FC = () => {
               onChange={(event) => updateField('address', event.target.value)}
             />
           </label>
-          <div className="md:col-span-2 flex items-center gap-3">
-            <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
+          <div className="flex flex-col gap-3 md:col-span-2 sm:flex-row sm:items-center">
+            <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
               Save workspace
             </button>
             {saved && <span className="text-sm text-green-600">Saved</span>}
           </div>
         </form>
       </Card>
+        </>
+      )}
     </div>
   );
 };

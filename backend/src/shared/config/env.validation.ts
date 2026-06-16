@@ -1,6 +1,10 @@
 import * as Joi from 'joi';
 
-const weakSecrets = ['dev-secret-change-me', 'your-super-secret-jwt-key-change-in-production'];
+const weakSecrets = [
+  'dev-secret-change-me',
+  'your-super-secret-jwt-key-change-in-production',
+  'your-refresh-secret-key-change-in-production',
+];
 
 export const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
@@ -33,9 +37,19 @@ export const envValidationSchema = Joi.object({
     otherwise: Joi.string().default('dev-secret-change-me'),
   }),
   JWT_EXPIRES_IN: Joi.string().default('1h'),
-  JWT_REFRESH_SECRET: Joi.string().allow('').default(''),
+  JWT_REFRESH_SECRET: Joi.string()
+    .allow('')
+    .default('')
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.string()
+        .allow('')
+        .min(32)
+        .invalid(...weakSecrets),
+    }),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
   ENABLE_SWAGGER: Joi.boolean().truthy('true').falsy('false').default(false),
+  ENABLE_METRICS: Joi.boolean().truthy('true').falsy('false').default(false),
   ALLOW_PUBLIC_OPERATIONS: Joi.boolean()
     .truthy('true')
     .falsy('false')

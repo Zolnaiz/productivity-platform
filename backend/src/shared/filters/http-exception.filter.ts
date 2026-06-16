@@ -9,6 +9,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    const requestIdHeader = request.headers?.['x-request-id'];
+    const requestId = Array.isArray(requestIdHeader) ? requestIdHeader[0] : requestIdHeader;
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
@@ -24,13 +26,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message = (responseData as any).message || message;
         errors = (responseData as any).errors;
       }
-    } else if (exception instanceof Error) {
-      message = exception.message;
     }
 
     // Log the error
     this.logger.error(
-      `HTTP ${status} - ${message} - ${request.method} ${request.url}`,
+      `HTTP ${status} - ${exception instanceof Error ? exception.message : message} - ${request.method} ${request.url}`,
       exception instanceof Error ? exception.stack : '',
     );
 
@@ -42,6 +42,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       method: request.method,
       message,
       errors,
+      requestId: typeof requestId === 'string' ? requestId : undefined,
     });
   }
 }

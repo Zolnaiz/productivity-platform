@@ -48,7 +48,13 @@ const storageKey = (key: ProductivityKey) => `productivity-demo-${key}`;
 
 const read = <T>(key: ProductivityKey): T[] => {
   const stored = localStorage.getItem(storageKey(key));
-  if (stored) return JSON.parse(stored) as T[];
+  if (stored) {
+    try {
+      return JSON.parse(stored) as T[];
+    } catch {
+      localStorage.removeItem(storageKey(key));
+    }
+  }
 
   const initial = defaults[key] as T[];
   localStorage.setItem(storageKey(key), JSON.stringify(initial));

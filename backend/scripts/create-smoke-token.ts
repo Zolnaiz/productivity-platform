@@ -25,10 +25,10 @@ const secret = process.env.JWT_SECRET || 'dev-secret-change-me';
 const now = Math.floor(Date.now() / 1000);
 const token = sign(
   {
-    sub: process.env.SMOKE_USER_ID || 'demo-owner',
+    sub: process.env.SMOKE_USER_ID || '22222222-2222-4222-8222-000000000001',
     email: process.env.SMOKE_USER_EMAIL || 'owner@example.com',
     role: process.env.SMOKE_USER_ROLE || 'admin',
-    organizationId: process.env.SMOKE_ORGANIZATION_ID || 'demo-org',
+    organizationId: process.env.SMOKE_ORGANIZATION_ID || '11111111-1111-4111-8111-000000000001',
     permissions: ['operations:read', 'operations:write'],
     iat: now,
     exp: now + 60 * 60 * 8,

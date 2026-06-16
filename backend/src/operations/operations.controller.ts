@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { OperationsService } from './operations.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
@@ -64,6 +64,11 @@ export class OperationsController {
   @Patch('projects/:id')
   updateProject(@Param('id') id: string, @Body() body: UpdateProjectDto, @Request() req) {
     return this.operationsService.updateProject(id, body, req.user);
+  }
+
+  @Delete('projects/:id')
+  removeProject(@Param('id') id: string, @Request() req) {
+    return this.operationsService.removeProject(id, req.user);
   }
 
   @Get('tasks')

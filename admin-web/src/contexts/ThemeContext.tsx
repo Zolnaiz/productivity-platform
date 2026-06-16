@@ -12,6 +12,12 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const validThemes: Theme[] = ['light', 'dark', 'system'];
+
+const readStoredTheme = (): Theme => {
+  const savedTheme = localStorage.getItem('theme') as Theme | null;
+  return savedTheme && validThemes.includes(savedTheme) ? savedTheme : 'system';
+};
 
 export const useTheme = () => {
   const context = useContext(ThemeContext);
@@ -22,10 +28,7 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    return savedTheme || 'system';
-  });
+  const [theme, setThemeState] = useState<Theme>(readStoredTheme);
 
   const [colorScheme, setColorScheme] = useState<ColorScheme>('light');
 
@@ -81,7 +84,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Theme тогтоох
   const setTheme = useCallback((newTheme: Theme) => {
-    setThemeState(newTheme);
+    setThemeState(validThemes.includes(newTheme) ? newTheme : 'system');
   }, []);
 
   const value: ThemeContextType = {

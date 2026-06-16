@@ -1,9 +1,15 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Header, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AppService } from './app.service';
+import { MetricsService } from './shared/metrics/metrics.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly metricsService: MetricsService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get()
   getHello(): string {
@@ -26,5 +32,15 @@ export class AppController {
       name: process.env.npm_package_name || 'productivity-platform',
       environment: process.env.NODE_ENV || 'development',
     };
+  }
+
+  @Get('metrics')
+  @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
+  getMetrics() {
+    if (this.configService.get('ENABLE_METRICS') !== true) {
+      throw new NotFoundException('Metrics endpoint is disabled');
+    }
+
+    return this.metricsService.renderPrometheusMetrics();
   }
 }

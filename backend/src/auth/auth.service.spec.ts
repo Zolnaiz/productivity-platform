@@ -154,12 +154,16 @@ describe('AuthService', () => {
     });
     expect(usersService.findById).toHaveBeenCalledWith('user-1');
     expect(response.access_token).toBe('access-token');
+    expect(response.user).toMatchObject({
+      id: 'user-1',
+      organizationId: 'org-1',
+    });
   });
 
   it('uses validated config values when signing access and refresh tokens', async () => {
     usersService.validateUser.mockResolvedValue(mockUser);
 
-    await service.login({
+    const response = await service.login({
       email: 'admin@example.com',
       password: 'Password123',
     });
@@ -174,6 +178,7 @@ describe('AuthService', () => {
       { sub: 'user-1' },
       expect.objectContaining({ secret: 'refresh-secret', expiresIn: '14d' }),
     );
+    expect(response.expires_in).toBe(900);
   });
 
   it('delegates password changes to UsersService changePassword', async () => {

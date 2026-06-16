@@ -64,9 +64,20 @@ describe('AuthController', () => {
     const request = { user: { id: 'user-1' } };
 
     await controller.logout(request);
-    await controller.changePassword(request, 'old-password', 'new-password');
+    await controller.changePassword(request, {
+      currentPassword: 'old-password',
+      newPassword: 'new-password',
+    });
 
     expect(authService.logout).toHaveBeenCalledWith('user-1');
     expect(authService.changePassword).toHaveBeenCalledWith('user-1', 'old-password', 'new-password');
+  });
+
+  it('passes forgot and reset password DTO values to AuthService', async () => {
+    await controller.forgotPassword({ email: 'admin@example.com' });
+    await controller.resetPassword({ token: 'reset-token', password: 'Password123' });
+
+    expect(authService.forgotPassword).toHaveBeenCalledWith('admin@example.com');
+    expect(authService.resetPassword).toHaveBeenCalledWith('reset-token', 'Password123');
   });
 });

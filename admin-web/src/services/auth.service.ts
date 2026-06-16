@@ -16,6 +16,16 @@ type BackendAuthResponse = Partial<AuthResponse> & {
   user: BackendUser;
 };
 
+type ApiEnvelope<T> = T | { data: T };
+
+const unwrapData = <T>(response: ApiEnvelope<T>): T => {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return response.data;
+  }
+
+  return response;
+};
+
 const normalizeRole = (role: string) => (role === 'organization_admin' ? 'admin' : role);
 
 const normalizeUser = (user: BackendUser): User => {
@@ -39,11 +49,15 @@ const normalizeUser = (user: BackendUser): User => {
   };
 };
 
-const normalizeAuthResponse = (response: BackendAuthResponse): AuthResponse => ({
-  token: response.token || response.access_token || '',
-  refreshToken: response.refreshToken || response.refresh_token || '',
-  user: normalizeUser(response.user),
-});
+const normalizeAuthResponse = (response: ApiEnvelope<BackendAuthResponse>): AuthResponse => {
+  const data = unwrapData(response);
+
+  return {
+    token: data.token || data.access_token || '',
+    refreshToken: data.refreshToken || data.refresh_token || '',
+    user: normalizeUser(data.user),
+  };
+};
 
 const toBackendRegisterPayload = (data: RegisterData) => {
   const [firstName, ...rest] = data.name.trim().split(/\s+/);
@@ -61,12 +75,14 @@ const toBackendRegisterPayload = (data: RegisterData) => {
 export const authService = {
   // Нэвтрэх
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    return normalizeAuthResponse(await post<BackendAuthResponse>('/auth/login', credentials));
+    return normalizeAuthResponse(await post<ApiEnvelope<BackendAuthResponse>>('/auth/login', credentials));
   },
 
   // Бүртгүүлэх
   register: async (data: RegisterData): Promise<AuthResponse> => {
-    return normalizeAuthResponse(await post<BackendAuthResponse>('/auth/register', toBackendRegisterPayload(data)));
+    return normalizeAuthResponse(
+      await post<ApiEnvelope<BackendAuthResponse>>('/auth/register', toBackendRegisterPayload(data)),
+    );
   },
 
   // Гарах
@@ -87,12 +103,12 @@ export const authService = {
 
   // Token шинэчлэх
   refreshToken: async (refreshToken: string): Promise<AuthResponse> => {
-    return normalizeAuthResponse(await post<BackendAuthResponse>('/auth/refresh', { refreshToken }));
+    return normalizeAuthResponse(await post<ApiEnvelope<BackendAuthResponse>>('/auth/refresh', { refreshToken }));
   },
 
   // Өөрийн мэдээлэл авах
   getMe: async (): Promise<User> => {
-    return normalizeUser(await get<BackendUser>('/auth/me'));
+    return normalizeUser(unwrapData(await get<ApiEnvelope<BackendUser>>('/auth/me')));
   },
 
   // Нууц үг солих
@@ -119,7 +135,7 @@ export const authService = {
   // Session шалгах
   validateSession: async (): Promise<boolean> => {
     try {
-      await get('/auth/validate');
+      await get('/auth/me');
       return true;
     } catch {
       return false;

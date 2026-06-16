@@ -6,6 +6,7 @@ const createRepository = () => ({
   findOne: jest.fn(),
   create: jest.fn((value) => value),
   save: jest.fn((value) => Promise.resolve(value)),
+  softRemove: jest.fn((value) => Promise.resolve(value)),
 });
 
 const createService = (allowPublicOperations = false) => {
@@ -145,6 +146,56 @@ describe('OperationsService organization scoping', () => {
         title: 'New title',
       }),
     );
+  });
+
+  it('does not allow update payloads to move entities between organizations', async () => {
+    const { service, repositories } = createService();
+    const existingProject = {
+      id: 'project-1',
+      organizationId: 'org-1',
+      name: 'Original project',
+    };
+    repositories.projects.findOne.mockResolvedValue(existingProject);
+
+    await service.updateProject(
+      'project-1',
+      {
+        name: 'Renamed project',
+        organizationId: 'org-2',
+      } as any,
+      { id: 'user-1', organizationId: 'org-1' },
+    );
+
+    expect(repositories.projects.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'project-1',
+        name: 'Renamed project',
+        organizationId: 'org-1',
+      }),
+    );
+  });
+
+  it('soft deletes scoped projects', async () => {
+    const { service, repositories } = createService();
+    const existingProject = {
+      id: 'project-1',
+      organizationId: 'org-1',
+      name: 'Project to delete',
+    };
+    repositories.projects.findOne.mockResolvedValue(existingProject);
+    const result = await service.removeProject('project-1', {
+      id: 'user-1',
+      organizationId: 'org-1',
+    });
+
+    expect(repositories.projects.findOne).toHaveBeenCalledWith({
+      where: {
+        id: 'project-1',
+        organizationId: 'org-1',
+      },
+    });
+    expect(repositories.projects.softRemove).toHaveBeenCalledWith(existingProject);
+    expect(result).toEqual({ id: 'project-1', deleted: true });
   });
 
   it('filters monthly report activity by requested month', async () => {

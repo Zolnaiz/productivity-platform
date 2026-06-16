@@ -214,16 +214,6 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route
-                path="/register-placeholder"
-                element={
-                  <PlatformModulePage
-                    title="Бүртгүүлэх"
-                    description="Шинэ байгууллага, owner, admin бүртгэлийн урсгал энд хөгжүүлэгдэнэ."
-                    items={['Organization signup', 'Owner account', 'Workspace setup']}
-                  />
-                }
-              />
-              <Route
                 path="/forgot-password"
                 element={
                   <PlatformModulePage

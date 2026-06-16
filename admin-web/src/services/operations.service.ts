@@ -1,4 +1,4 @@
-import { get, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
+import { del, get, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
 import {
   AuditTemplate,
   AuditRun,
@@ -336,7 +336,13 @@ const withDemoScope = <T extends Record<string, any>>(key: DemoKey, item: T): T 
 const readDemo = <T>(key: DemoKey): T[] => {
   const stored = localStorage.getItem(storageKey(key));
   if (stored) {
-    const parsed = (JSON.parse(stored) as T[]).map((item) => withDemoScope(key, item as Record<string, any>) as T);
+    let parsed: T[];
+    try {
+      parsed = (JSON.parse(stored) as T[]).map((item) => withDemoScope(key, item as Record<string, any>) as T);
+    } catch {
+      localStorage.removeItem(storageKey(key));
+      parsed = [];
+    }
     const initial = (defaults[key] as T[]).map((item) => withDemoScope(key, item as Record<string, any>) as T);
     const merged = [
       ...parsed,
@@ -374,9 +380,19 @@ const updateDemo = <T extends { id: string }>(key: DemoKey, id: string, data: Pa
   return updated.find((item) => item.id === id) as T;
 };
 
-const withoutClientId = <T extends { id?: string }>(data: Partial<T>) => {
+const deleteDemo = <T extends { id: string }>(key: DemoKey, id: string) => {
+  const items = readDemo<T>(key);
+  writeDemo(
+    key,
+    items.filter((item) => item.id !== id),
+  );
+  return { id, deleted: true };
+};
+
+const withoutClientScopedFields = <T extends { id?: string; organizationId?: string }>(data: Partial<T>) => {
   const payload = { ...data };
   delete payload.id;
+  delete payload.organizationId;
   return payload;
 };
 
@@ -488,33 +504,45 @@ export const operationsService = {
     ),
   getProjects: () => fallback<Project[]>(() => get('/projects'), readDemo<Project>('projects')),
   createProject: (data: Partial<Project>) =>
-    isDemoMode() ? Promise.resolve(createDemo<Project>('projects', data)) : post<Project>('/projects', withoutClientId(data)),
+    isDemoMode()
+      ? Promise.resolve(createDemo<Project>('projects', data))
+      : post<Project>('/projects', withoutClientScopedFields(data)),
   updateProject: (id: string, data: Partial<Project>) =>
     isDemoMode()
       ? Promise.resolve(updateDemo<Project>('projects', id, data))
-      : patch<Project>(`/projects/${id}`, data),
+      : patch<Project>(`/projects/${id}`, withoutClientScopedFields(data)),
+  deleteProject: (id: string) =>
+    isDemoMode() ? Promise.resolve(deleteDemo<Project>('projects', id)) : del<{ id: string; deleted: boolean }>(`/projects/${id}`),
   getTasks: () => fallback<WorkTask[]>(() => get('/tasks'), readDemo<WorkTask>('tasks')),
   createTask: (data: Partial<WorkTask>) =>
-    isDemoMode() ? Promise.resolve(createDemo<WorkTask>('tasks', data)) : post<WorkTask>('/tasks', withoutClientId(data)),
+    isDemoMode()
+      ? Promise.resolve(createDemo<WorkTask>('tasks', data))
+      : post<WorkTask>('/tasks', withoutClientScopedFields(data)),
   updateTask: (id: string, data: Partial<WorkTask>) =>
-    isDemoMode() ? Promise.resolve(updateDemo<WorkTask>('tasks', id, data)) : patch<WorkTask>(`/tasks/${id}`, data),
+    isDemoMode()
+      ? Promise.resolve(updateDemo<WorkTask>('tasks', id, data))
+      : patch<WorkTask>(`/tasks/${id}`, withoutClientScopedFields(data)),
   getWorkLogs: () => fallback<WorkLog[]>(() => get('/work-logs'), readDemo<WorkLog>('workLogs')),
   createWorkLog: (data: Partial<WorkLog>) =>
-    isDemoMode() ? Promise.resolve(createDemo<WorkLog>('workLogs', data)) : post<WorkLog>('/work-logs', withoutClientId(data)),
+    isDemoMode()
+      ? Promise.resolve(createDemo<WorkLog>('workLogs', data))
+      : post<WorkLog>('/work-logs', withoutClientScopedFields(data)),
   getTimeEntries: () => fallback<TimeEntry[]>(() => get('/time-entries'), readDemo<TimeEntry>('timeEntries')),
   createTimeEntry: (data: Partial<TimeEntry>) =>
     isDemoMode()
       ? Promise.resolve(createDemo<TimeEntry>('timeEntries', data))
-      : post<TimeEntry>('/time-entries', withoutClientId(data)),
+      : post<TimeEntry>('/time-entries', withoutClientScopedFields(data)),
   getAuditTemplates: () =>
     fallback<AuditTemplate[]>(() => get('/audit-templates'), readDemo<AuditTemplate>('auditTemplates')),
   createAuditTemplate: (data: Partial<AuditTemplate>) =>
     isDemoMode()
       ? Promise.resolve(createDemo<AuditTemplate>('auditTemplates', data))
-      : post<AuditTemplate>('/audit-templates', withoutClientId(data)),
+      : post<AuditTemplate>('/audit-templates', withoutClientScopedFields(data)),
   getAuditRuns: () => fallback<AuditRun[]>(() => get('/audit-runs'), readDemo<AuditRun>('auditRuns')),
   createAuditRun: (data: Partial<AuditRun>) =>
-    isDemoMode() ? Promise.resolve(createDemo<AuditRun>('auditRuns', data)) : post<AuditRun>('/audit-runs', withoutClientId(data)),
+    isDemoMode()
+      ? Promise.resolve(createDemo<AuditRun>('auditRuns', data))
+      : post<AuditRun>('/audit-runs', withoutClientScopedFields(data)),
   getCalendarEvents: async () => {
     const [projects, tasks, auditRuns] = await Promise.all([
       operationsService.getProjects(),

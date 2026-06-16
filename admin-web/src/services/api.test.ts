@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isDemoEnabled, isDemoMode, normalizeTokenResponse } from './api';
+import { createRequestId, getStoredAccessToken, isDemoEnabled, isDemoMode, normalizeTokenResponse } from './api';
 
 describe('api demo mode guard', () => {
   afterEach(() => {
@@ -31,6 +31,19 @@ describe('api demo mode guard', () => {
     expect(isDemoEnabled()).toBe(true);
     expect(isDemoMode()).toBe(true);
   });
+
+  it('clears and blocks stale demo tokens in production API calls', () => {
+    vi.stubEnv('DEV', false);
+    vi.stubEnv('VITE_ENABLE_DEMO_MODE', '');
+    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('refreshToken', 'refresh-token');
+    localStorage.setItem('user', '{"id":"demo"}');
+
+    expect(getStoredAccessToken()).toBeNull();
+    expect(localStorage.getItem('token')).toBeNull();
+    expect(localStorage.getItem('refreshToken')).toBeNull();
+    expect(localStorage.getItem('user')).toBeNull();
+  });
 });
 
 describe('normalizeTokenResponse', () => {
@@ -56,5 +69,12 @@ describe('normalizeTokenResponse', () => {
       token: 'access-token',
       refreshToken: 'refresh-token',
     });
+  });
+});
+
+describe('createRequestId', () => {
+  it('creates a non-empty request id for API correlation', () => {
+    expect(createRequestId()).toEqual(expect.any(String));
+    expect(createRequestId().length).toBeGreaterThan(0);
   });
 });

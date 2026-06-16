@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { StickyNote } from 'lucide-react';
 import Card from '../components/common/Card';
+import EmptyState from '../components/common/EmptyState';
 import { productivityService } from '../services/productivity.service';
 import { Note } from '../types/productivity.types';
 
@@ -45,26 +47,34 @@ const NotesPage: React.FC = () => {
             value={draft.content}
             onChange={(event) => setDraft((current) => ({ ...current, content: event.target.value }))}
           />
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
+          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
             Add note
           </button>
         </form>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {notes.map((note) => (
-          <Card key={note.id}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="font-semibold text-gray-900 dark:text-white">{note.title}</h2>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{note.content}</p>
+      {notes.length ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {notes.map((note) => (
+            <Card key={note.id}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="font-semibold text-gray-900 dark:text-white">{note.title}</h2>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{note.content}</p>
+                </div>
+                <span className="w-fit rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">{note.tag}</span>
               </div>
-              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">{note.tag}</span>
-            </div>
-            <div className="mt-3 text-xs text-gray-500">{note.createdAt}</div>
-          </Card>
-        ))}
-      </div>
+              <div className="mt-3 text-xs text-gray-500">{note.createdAt}</div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={StickyNote}
+          title="No notes yet"
+          description="Capture meeting notes, project context, blockers, and report ideas so they can feed future summaries."
+        />
+      )}
     </div>
   );
 };

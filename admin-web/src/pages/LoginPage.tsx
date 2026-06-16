@@ -6,8 +6,8 @@ import { isDemoEnabled } from '../services/api';
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login, loginDemo } = useAuth();
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('owner@example.com');
+  const [password, setPassword] = useState('Password123');
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {

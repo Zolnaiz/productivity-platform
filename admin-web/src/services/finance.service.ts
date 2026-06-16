@@ -30,7 +30,13 @@ const defaultExpenses: ExpenseItem[] = [
 
 const readExpenses = (): ExpenseItem[] => {
   const stored = localStorage.getItem(expenseKey);
-  if (stored) return JSON.parse(stored) as ExpenseItem[];
+  if (stored) {
+    try {
+      return JSON.parse(stored) as ExpenseItem[];
+    } catch {
+      localStorage.removeItem(expenseKey);
+    }
+  }
   localStorage.setItem(expenseKey, JSON.stringify(defaultExpenses));
   return defaultExpenses;
 };

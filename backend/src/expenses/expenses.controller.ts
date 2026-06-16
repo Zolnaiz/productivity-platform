@@ -84,6 +84,37 @@ export class ExpensesController {
     return this.expensesService.findPending({ page, limit }, req.user);
   }
 
+  @Get('organization/:organizationId/stats')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN)
+  @ApiOperation({ summary: 'Get organization expense statistics' })
+  getOrganizationStats(
+    @Param('organizationId') organizationId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Request() req,
+  ) {
+    return this.expensesService.getOrganizationStats(
+      organizationId,
+      startDate,
+      endDate,
+      req.user,
+    );
+  }
+
+  @Get('categories/summary')
+  @ApiOperation({ summary: 'Get expense categories summary' })
+  getCategoriesSummary(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Request() req,
+  ) {
+    return this.expensesService.getCategoriesSummary(
+      req.user,
+      startDate,
+      endDate,
+    );
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get expense by ID' })
   findOne(@Param('id') id: string, @Request() req) {
@@ -174,34 +205,4 @@ export class ExpensesController {
     return this.expensesService.removeAttachment(id, attachmentId, req.user);
   }
 
-  @Get('organization/:organizationId/stats')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN)
-  @ApiOperation({ summary: 'Get organization expense statistics' })
-  getOrganizationStats(
-    @Param('organizationId') organizationId: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Request() req,
-  ) {
-    return this.expensesService.getOrganizationStats(
-      organizationId,
-      startDate,
-      endDate,
-      req.user,
-    );
-  }
-
-  @Get('categories/summary')
-  @ApiOperation({ summary: 'Get expense categories summary' })
-  getCategoriesSummary(
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Request() req,
-  ) {
-    return this.expensesService.getCategoriesSummary(
-      req.user,
-      startDate,
-      endDate,
-    );
-  }
 }

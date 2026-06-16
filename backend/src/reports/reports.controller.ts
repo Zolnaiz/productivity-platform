@@ -17,56 +17,44 @@ export class ReportsController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Тайлангийн жагсаалт', description: 'Бүх тайлангийн жагсаалт авах' })
+  @ApiOperation({ summary: 'List reports', description: 'Get paginated reports' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'type', required: false, enum: ['questionnaire', 'expense', 'combined'] })
-  @ApiResponse({ status: 200, description: 'Тайлангийн жагсаалт амжилттай авлаа' })
-  async findAll(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-    @Query('type') type?: string,
-  ) {
+  @ApiResponse({ status: 200, description: 'Reports returned successfully' })
+  async findAll(@Query('page') page = 1, @Query('limit') limit = 10, @Query('type') type?: string) {
     return this.reportsService.findAll({ page, limit, type });
-  }
-
-  @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Тайлан дэлгэрэнгүй', description: 'Тайлангийн дэлгэрэнгүй мэдээлэл авах' })
-  @ApiResponse({ status: 200, description: 'Тайлангийн дэлгэрэнгүй амжилттай авлаа' })
-  async findOne(@Param('id') id: string) {
-    return this.reportsService.findOne(id);
   }
 
   @Post('generate')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Тайлан үүсгэх', description: 'Шинэ тайлан үүсгэх' })
-  @ApiResponse({ status: 201, description: 'Тайлан амжилттай үүсгэгдлээ' })
-  @ApiResponse({ status: 400, description: 'Тайлан үүсгэхэд алдаа гарлаа' })
+  @ApiOperation({ summary: 'Generate report', description: 'Create a new report' })
+  @ApiResponse({ status: 201, description: 'Report generated successfully' })
+  @ApiResponse({ status: 400, description: 'Report generation failed' })
   async generateReport(@Body() generateReportDto: GenerateReportDto) {
     return this.reportsService.generateReport(generateReportDto);
   }
 
   @Post('generate/quick')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.USER)
-  @ApiOperation({ summary: 'Түргэн тайлан', description: 'Түргэн тайлан үүсгэх' })
-  @ApiResponse({ status: 200, description: 'Түргэн тайлан амжилттай үүсгэгдлээ' })
+  @ApiOperation({ summary: 'Generate quick report', description: 'Create an ad hoc report' })
+  @ApiResponse({ status: 200, description: 'Quick report generated successfully' })
   async generateQuickReport(@Body() filterDto: ReportFilterDto) {
     return this.reportsService.generateQuickReport(filterDto);
   }
 
   @Get('dashboard/summary')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Хяналтын самбарын тойм', description: 'Хяналтын самбарын тойм статистик авах' })
-  @ApiResponse({ status: 200, description: 'Тойм статистик амжилттай авлаа' })
+  @ApiOperation({ summary: 'Report dashboard summary', description: 'Get report dashboard statistics' })
+  @ApiResponse({ status: 200, description: 'Dashboard summary returned successfully' })
   async getDashboardSummary() {
     return this.reportsService.getDashboardSummary();
   }
 
   @Get('organization/:organizationId')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Байгууллагын тайлан', description: 'Тодорхой байгууллагын тайлан авах' })
-  @ApiResponse({ status: 200, description: 'Байгууллагын тайлан амжилттай авлаа' })
+  @ApiOperation({ summary: 'Organization reports', description: 'Get reports for an organization' })
+  @ApiResponse({ status: 200, description: 'Organization reports returned successfully' })
   async getOrganizationReports(
     @Param('organizationId') organizationId: string,
     @Query('startDate') startDate?: string,
@@ -77,12 +65,17 @@ export class ReportsController {
 
   @Get('export/:id/:format')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Тайлан экспортлох', description: 'Тайланг экспортлох (PDF, Excel)' })
-  @ApiResponse({ status: 200, description: 'Тайлан амжилттай экспортлогдлоо' })
-  async exportReport(
-    @Param('id') id: string,
-    @Param('format') format: string,
-  ) {
+  @ApiOperation({ summary: 'Export report', description: 'Export a report by format' })
+  @ApiResponse({ status: 200, description: 'Report exported successfully' })
+  async exportReport(@Param('id') id: string, @Param('format') format: string) {
     return this.reportsService.exportReport(id, format);
+  }
+
+  @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @ApiOperation({ summary: 'Get report by ID', description: 'Get report details' })
+  @ApiResponse({ status: 200, description: 'Report returned successfully' })
+  async findOne(@Param('id') id: string) {
+    return this.reportsService.findOne(id);
   }
 }

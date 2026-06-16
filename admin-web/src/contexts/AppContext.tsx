@@ -64,11 +64,28 @@ const defaultState: AppState = {
   currentView: 'dashboard',
 };
 
+const readStoredConfig = (): AppConfig => {
+  const savedConfig = localStorage.getItem('appConfig');
+  if (!savedConfig) return defaultConfig;
+
+  try {
+    const parsed = JSON.parse(savedConfig) as Partial<AppConfig>;
+    return {
+      ...defaultConfig,
+      ...parsed,
+      notifications: {
+        ...defaultConfig.notifications,
+        ...parsed.notifications,
+      },
+    };
+  } catch {
+    localStorage.removeItem('appConfig');
+    return defaultConfig;
+  }
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [config, setConfig] = useState<AppConfig>(() => {
-    const savedConfig = localStorage.getItem('appConfig');
-    return savedConfig ? JSON.parse(savedConfig) : defaultConfig;
-  });
+  const [config, setConfig] = useState<AppConfig>(readStoredConfig);
 
   const [state, setState] = useState<AppState>(defaultState);
   const { addNotification } = useNotification();

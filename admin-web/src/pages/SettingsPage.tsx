@@ -6,9 +6,10 @@ import { WorkspaceSettings } from '../types/admin.types';
 const SettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<WorkspaceSettings | null>(null);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    adminService.getWorkspaceSettings().then(setSettings);
+    adminService.getWorkspaceSettings().then(setSettings).finally(() => setLoading(false));
   }, []);
 
   const updateField = <T extends keyof WorkspaceSettings>(field: T, value: WorkspaceSettings[T]) => {
@@ -23,8 +24,6 @@ const SettingsPage: React.FC = () => {
     setSaved(true);
   };
 
-  if (!settings) return null;
-
   return (
     <div className="space-y-6">
       <div>
@@ -34,6 +33,12 @@ const SettingsPage: React.FC = () => {
         </p>
       </div>
 
+      {loading || !settings ? (
+        <Card loading title="Loading workspace settings">
+          <div />
+        </Card>
+      ) : (
+        <>
       <Card title="Workspace preferences">
         <div className="grid gap-4 md:grid-cols-3">
           <label className="space-y-1 text-sm">
@@ -92,13 +97,15 @@ const SettingsPage: React.FC = () => {
             </label>
           ))}
         </div>
-        <div className="mt-5 flex items-center gap-3">
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" onClick={saveSettings} type="button">
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" onClick={saveSettings} type="button">
             Save settings
           </button>
           {saved && <span className="text-sm text-green-600">Saved</span>}
         </div>
       </Card>
+        </>
+      )}
     </div>
   );
 };

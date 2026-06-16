@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { CheckSquare, ClipboardList, FileText } from 'lucide-react';
 import Card from '../components/common/Card';
+import EmptyState from '../components/common/EmptyState';
 import { assessmentService } from '../services/assessment.service';
 import { operationsService } from '../services/operations.service';
 import { productivityService } from '../services/productivity.service';
@@ -16,16 +18,31 @@ const ProfilePage: React.FC = () => {
   const [goals, setGoals] = useState<DailyGoal[]>([]);
   const [focus, setFocus] = useState<FocusSession[]>([]);
   const [badges, setBadges] = useState<Badge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [copyStatus, setCopyStatus] = useState('');
 
   useEffect(() => {
-    operationsService.getTasks().then(setTasks);
-    operationsService.getWorkLogs().then(setLogs);
-    operationsService.getTimeEntries().then(setTimeEntries);
-    operationsService.getAuditRuns().then(setAuditRuns);
-    assessmentService.getResponses().then(setResponses);
-    productivityService.getGoals().then(setGoals);
-    productivityService.getFocusSessions().then(setFocus);
-    productivityService.getBadges().then(setBadges);
+    Promise.all([
+      operationsService.getTasks(),
+      operationsService.getWorkLogs(),
+      operationsService.getTimeEntries(),
+      operationsService.getAuditRuns(),
+      assessmentService.getResponses(),
+      productivityService.getGoals(),
+      productivityService.getFocusSessions(),
+      productivityService.getBadges(),
+    ])
+      .then(([taskItems, logItems, timeItems, auditItems, responseItems, goalItems, focusItems, badgeItems]) => {
+        setTasks(taskItems);
+        setLogs(logItems);
+        setTimeEntries(timeItems);
+        setAuditRuns(auditItems);
+        setResponses(responseItems);
+        setGoals(goalItems);
+        setFocus(focusItems);
+        setBadges(badgeItems);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const summary = useMemo(() => {
@@ -70,7 +87,12 @@ const ProfilePage: React.FC = () => {
   ].join('\n');
 
   const copySummary = async () => {
-    await navigator.clipboard.writeText(employeeSummary);
+    try {
+      await navigator.clipboard.writeText(employeeSummary);
+      setCopyStatus('Copied');
+    } catch {
+      setCopyStatus('Copy unavailable');
+    }
   };
 
   return (
@@ -89,8 +111,15 @@ const ProfilePage: React.FC = () => {
         >
           Copy employee summary
         </button>
+        {copyStatus && <span className="text-sm text-gray-500">{copyStatus}</span>}
       </div>
 
+      {loading ? (
+        <Card loading title="Loading profile summary">
+          <div />
+        </Card>
+      ) : (
+        <>
       <Card>
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
@@ -143,26 +172,42 @@ const ProfilePage: React.FC = () => {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card title="Completed tasks">
           <div className="space-y-3">
-            {summary.completedTasks.map((task) => (
-              <div key={task.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                <div className="font-medium text-gray-900 dark:text-white">{task.title}</div>
-                <div className="mt-1 text-sm text-gray-500">{task.actualHours || 0} actual hours</div>
-              </div>
-            ))}
+            {summary.completedTasks.length ? (
+              summary.completedTasks.map((task) => (
+                <div key={task.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <div className="font-medium text-gray-900 dark:text-white">{task.title}</div>
+                  <div className="mt-1 text-sm text-gray-500">{task.actualHours || 0} actual hours</div>
+                </div>
+              ))
+            ) : (
+              <EmptyState
+                icon={CheckSquare}
+                title="No completed tasks yet"
+                description="Completed assigned work will appear here for the employee monthly summary."
+              />
+            )}
           </div>
         </Card>
 
         <Card title="Recent work logs">
           <div className="space-y-3">
-            {logs.slice(0, 5).map((log) => (
-              <div key={log.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-gray-900 dark:text-white">{log.logDate}</span>
-                  <span className="text-gray-500">{log.hours}h</span>
+            {logs.length ? (
+              logs.slice(0, 5).map((log) => (
+                <div key={log.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-900 dark:text-white">{log.logDate}</span>
+                    <span className="text-gray-500">{log.hours}h</span>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{log.summary}</p>
                 </div>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{log.summary}</p>
-              </div>
-            ))}
+              ))
+            ) : (
+              <EmptyState
+                icon={FileText}
+                title="No work logs yet"
+                description="Daily work summaries and blockers will appear here after employees submit logs."
+              />
+            )}
           </div>
         </Card>
 
@@ -176,15 +221,25 @@ const ProfilePage: React.FC = () => {
               <div className="text-sm text-gray-500">Average assessment score</div>
               <div className="mt-1 text-2xl font-semibold text-purple-600">{summary.averageAssessmentScore}%</div>
             </div>
-            {summary.earnedBadges.map((badge) => (
-              <div key={badge.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                <div className="font-medium text-gray-900 dark:text-white">{badge.title}</div>
-                <div className="text-sm text-gray-500">{badge.description}</div>
-              </div>
-            ))}
+            {summary.earnedBadges.length ? (
+              summary.earnedBadges.map((badge) => (
+                <div key={badge.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <div className="font-medium text-gray-900 dark:text-white">{badge.title}</div>
+                  <div className="text-sm text-gray-500">{badge.description}</div>
+                </div>
+              ))
+            ) : (
+              <EmptyState
+                icon={ClipboardList}
+                title="No earned badges yet"
+                description="Recognition and quality achievements will appear here."
+              />
+            )}
           </div>
         </Card>
       </div>
+        </>
+      )}
     </div>
   );
 };

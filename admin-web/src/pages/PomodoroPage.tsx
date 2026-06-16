@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { Timer } from 'lucide-react';
 import Card from '../components/common/Card';
+import EmptyState from '../components/common/EmptyState';
 import { productivityService } from '../services/productivity.service';
 import { FocusSession } from '../types/productivity.types';
 
@@ -60,7 +62,7 @@ const PomodoroPage: React.FC = () => {
               value={draft.minutes}
               onChange={(event) => setDraft((current) => ({ ...current, minutes: event.target.value }))}
             />
-            <button className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
+            <button className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
               Add
             </button>
           </div>
@@ -69,15 +71,23 @@ const PomodoroPage: React.FC = () => {
 
       <Card title="Sessions">
         <div className="space-y-3">
-          {sessions.map((session) => (
-            <div key={session.id} className="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              <div>
-                <div className="font-medium text-gray-900 dark:text-white">{session.title}</div>
-                <div className="text-sm text-gray-500">{session.date}</div>
+          {sessions.length ? (
+            sessions.map((session) => (
+              <div key={session.id} className="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">{session.title}</div>
+                  <div className="text-sm text-gray-500">{session.date}</div>
+                </div>
+                <div className="font-semibold text-blue-600">{session.minutes}m</div>
               </div>
-              <div className="font-semibold text-blue-600">{session.minutes}m</div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <EmptyState
+              icon={Timer}
+              title="No focus sessions logged"
+              description="Log focused work blocks here so daily focus time can be included in productivity reports."
+            />
+          )}
         </div>
       </Card>
     </div>

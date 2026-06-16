@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { ClipboardList } from 'lucide-react';
 import Card from '../components/common/Card';
+import EmptyState from '../components/common/EmptyState';
 import { assessmentService } from '../services/assessment.service';
 import { AssessmentTemplate } from '../types/assessment.types';
 
 const QuestionnairesPage: React.FC = () => {
   const [templates, setTemplates] = useState<AssessmentTemplate[]>([]);
   const [filter, setFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState({
     title: '',
     description: '',
@@ -15,7 +18,7 @@ const QuestionnairesPage: React.FC = () => {
   });
 
   useEffect(() => {
-    assessmentService.getTemplates().then(setTemplates);
+    assessmentService.getTemplates().then(setTemplates).finally(() => setLoading(false));
   }, []);
 
   const filteredTemplates = useMemo(
@@ -130,7 +133,7 @@ const QuestionnairesPage: React.FC = () => {
             value={draft.questionText}
             onChange={(event) => setDraft((current) => ({ ...current, questionText: event.target.value }))}
           />
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
+          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
             Add template
           </button>
           <textarea
@@ -143,41 +146,53 @@ const QuestionnairesPage: React.FC = () => {
         </form>
       </Card>
 
-      <Card title={`Template library (${filteredTemplates.length})`}>
-        <div className="grid gap-4 xl:grid-cols-2">
-          {filteredTemplates.map((template) => (
-            <div key={template.id} className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="font-semibold text-gray-900 dark:text-white">{template.title}</h2>
-                  <p className="mt-1 text-sm text-gray-500">{template.description}</p>
+      <Card title={`Template library (${filteredTemplates.length})`} loading={loading}>
+        {filteredTemplates.length ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {filteredTemplates.map((template) => (
+              <div key={template.id} className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="font-semibold text-gray-900 dark:text-white">{template.title}</h2>
+                    <p className="mt-1 text-sm text-gray-500">{template.description}</p>
+                  </div>
+                  <span className="w-fit rounded-full bg-gray-100 px-2 py-1 text-xs font-medium capitalize text-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                    {template.status}
+                  </span>
                 </div>
-                <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium capitalize text-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                  {template.status}
-                </span>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">{template.type}</span>
+                  <span className="rounded-full bg-gray-50 px-2 py-1 text-gray-600 dark:bg-gray-900 dark:text-gray-300">{template.industry}</span>
+                  <span className="rounded-full bg-gray-50 px-2 py-1 text-gray-600 dark:bg-gray-900 dark:text-gray-300">
+                    {template.questions.length} questions
+                  </span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {template.status !== 'published' && (
+                    <button className="text-sm font-medium text-green-600" onClick={() => updateStatus(template, 'published')} type="button">
+                      Publish
+                    </button>
+                  )}
+                  {template.status !== 'archived' && (
+                    <button className="text-sm font-medium text-gray-600" onClick={() => updateStatus(template, 'archived')} type="button">
+                      Archive
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">{template.type}</span>
-                <span className="rounded-full bg-gray-50 px-2 py-1 text-gray-600 dark:bg-gray-900 dark:text-gray-300">{template.industry}</span>
-                <span className="rounded-full bg-gray-50 px-2 py-1 text-gray-600 dark:bg-gray-900 dark:text-gray-300">
-                  {template.questions.length} questions
-                </span>
-              </div>
-              <div className="mt-4 flex gap-2">
-                {template.status !== 'published' && (
-                  <button className="text-sm font-medium text-green-600" onClick={() => updateStatus(template, 'published')} type="button">
-                    Publish
-                  </button>
-                )}
-                {template.status !== 'archived' && (
-                  <button className="text-sm font-medium text-gray-600" onClick={() => updateStatus(template, 'archived')} type="button">
-                    Archive
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={ClipboardList}
+            title={templates.length ? 'No templates match this filter' : 'No questionnaire templates yet'}
+            description={
+              templates.length
+                ? 'Change the filter to review other checklist templates.'
+                : 'Create templates for inspections, quality feedback, safety checks, and operational audits.'
+            }
+          />
+        )}
       </Card>
     </div>
   );

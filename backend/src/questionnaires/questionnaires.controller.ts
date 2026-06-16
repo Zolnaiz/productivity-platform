@@ -57,12 +57,6 @@ export class QuestionnairesController {
     );
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get questionnaire by ID' })
-  findOne(@Param('id') id: string, @Request() req) {
-    return this.questionnairesService.findOne(id, req.user);
-  }
-
   @Get('organization/:organizationId')
   @ApiOperation({ summary: 'Get questionnaires by organization' })
   findByOrganization(
@@ -77,6 +71,12 @@ export class QuestionnairesController {
       { page, limit, isActive },
       req.user,
     );
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get questionnaire by ID' })
+  findOne(@Param('id') id: string, @Request() req) {
+    return this.questionnairesService.findOne(id, req.user);
   }
 
   @Patch(':id')

@@ -1,7 +1,10 @@
 import dataSource from '../src/migrations/data-source';
+import * as bcrypt from 'bcrypt';
 
-const organizationId = process.env.SEED_ORGANIZATION_ID || 'demo-org';
-const ownerId = process.env.SEED_OWNER_ID || 'demo-owner';
+const organizationId = process.env.SEED_ORGANIZATION_ID || '11111111-1111-4111-8111-000000000001';
+const ownerId = process.env.SEED_OWNER_ID || '22222222-2222-4222-8222-000000000001';
+const ownerEmail = process.env.SEED_OWNER_EMAIL || 'owner@example.com';
+const ownerPassword = process.env.SEED_OWNER_PASSWORD || 'Password123';
 
 const projectOne = '11111111-1111-4111-8111-111111111111';
 const projectTwo = '22222222-2222-4222-8222-222222222222';
@@ -20,6 +23,73 @@ const json = (value: unknown) => JSON.stringify(value);
 
 async function seed() {
   await dataSource.initialize();
+  const ownerPasswordHash = await bcrypt.hash(ownerPassword, 10);
+
+  await dataSource.query(
+    `
+      INSERT INTO organizations (
+        id, name, description, contact_email, phone, features, settings, is_active
+      ) VALUES (
+        $1,
+        'Demo Operations Workspace',
+        'Productivity, 5S, audit, and monthly reporting demo organization.',
+        $2,
+        '99000000',
+        'tasks,projects,time,5s,audits,reports',
+        $3,
+        true
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        contact_email = EXCLUDED.contact_email,
+        features = EXCLUDED.features,
+        settings = EXCLUDED.settings,
+        updated_at = now()
+    `,
+    [
+      organizationId,
+      ownerEmail,
+      json({
+        language: 'mn',
+        timezone: 'Asia/Ulaanbaatar',
+        currency: 'MNT',
+        theme: 'light',
+      }),
+    ],
+  );
+
+  await dataSource.query(
+    `
+      INSERT INTO users (
+        id, "firstName", "lastName", email, password, role, position, phone, is_active, organization_id, email_verified
+      ) VALUES (
+        $1,
+        'Demo',
+        'Owner',
+        $2,
+        $3,
+        'admin',
+        'Workspace Owner',
+        '99000000',
+        true,
+        $4,
+        true
+      )
+      ON CONFLICT (email) DO UPDATE SET
+        "firstName" = EXCLUDED."firstName",
+        "lastName" = EXCLUDED."lastName",
+        password = EXCLUDED.password,
+        role = EXCLUDED.role,
+        position = EXCLUDED.position,
+        phone = EXCLUDED.phone,
+        is_active = true,
+        organization_id = EXCLUDED.organization_id,
+        email_verified = true,
+        updated_at = now()
+    `,
+    [ownerId, ownerEmail, ownerPasswordHash, organizationId],
+  );
 
   await dataSource.query(
     `
@@ -31,6 +101,8 @@ async function seed() {
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         description = EXCLUDED.description,
+        organization_id = EXCLUDED.organization_id,
+        owner_id = EXCLUDED.owner_id,
         status = EXCLUDED.status,
         priority = EXCLUDED.priority,
         progress = EXCLUDED.progress,
@@ -49,6 +121,10 @@ async function seed() {
         ($3, 'Monthly report export', 'Export employee and organization monthly summaries.', $4, $5, $7, $7, 'done', 'medium', '2026-06-12', 10, 10)
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
+        organization_id = EXCLUDED.organization_id,
+        project_id = EXCLUDED.project_id,
+        assignee_id = EXCLUDED.assignee_id,
+        reporter_id = EXCLUDED.reporter_id,
         status = EXCLUDED.status,
         priority = EXCLUDED.priority,
         actual_hours = EXCLUDED.actual_hours,
@@ -64,6 +140,10 @@ async function seed() {
       ) VALUES
         ($1, $2, $3, $4, $5, '2026-06-12', 'Dashboard, auth guard, and operations API hardening completed.', 'Runtime DB smoke waits for PostgreSQL.', 'Run migration and token smoke test after DB starts.', 6.5)
       ON CONFLICT (id) DO UPDATE SET
+        organization_id = EXCLUDED.organization_id,
+        user_id = EXCLUDED.user_id,
+        project_id = EXCLUDED.project_id,
+        task_id = EXCLUDED.task_id,
         summary = EXCLUDED.summary,
         blockers = EXCLUDED.blockers,
         next_steps = EXCLUDED.next_steps,
@@ -80,6 +160,10 @@ async function seed() {
       ) VALUES
         ($1, $2, $3, $4, $5, '2026-06-12', 6.5, 'Backend hardening and verification')
       ON CONFLICT (id) DO UPDATE SET
+        organization_id = EXCLUDED.organization_id,
+        user_id = EXCLUDED.user_id,
+        project_id = EXCLUDED.project_id,
+        task_id = EXCLUDED.task_id,
         hours = EXCLUDED.hours,
         note = EXCLUDED.note,
         "updatedAt" = now()
@@ -95,6 +179,7 @@ async function seed() {
         ($1, '5S workplace audit', 'Sort, set in order, shine, standardize, sustain checklist.', $2, '5s', 'Manufacturing', $3, true)
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
+        organization_id = EXCLUDED.organization_id,
         questions = EXCLUDED.questions,
         "updatedAt" = now()
     `,
@@ -116,6 +201,10 @@ async function seed() {
       ) VALUES
         ($1, $2, $3, $4, $5, 'Main production floor', $6, 82, 'submitted')
       ON CONFLICT (id) DO UPDATE SET
+        organization_id = EXCLUDED.organization_id,
+        template_id = EXCLUDED.template_id,
+        auditor_id = EXCLUDED.auditor_id,
+        project_id = EXCLUDED.project_id,
         answers = EXCLUDED.answers,
         score = EXCLUDED.score,
         status = EXCLUDED.status,
@@ -143,6 +232,7 @@ async function seed() {
         ($1, 'Daily operations checklist', 'Short supervisor checklist for execution quality.', $2, 'inspection', 'published', 'Operations', $3)
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
+        organization_id = EXCLUDED.organization_id,
         questions = EXCLUDED.questions,
         "updatedAt" = now()
     `,
@@ -164,6 +254,9 @@ async function seed() {
       ) VALUES
         ($1, $2, $3, $4, 'Employee User', 'Operations', 'submitted', 87, $5, now())
       ON CONFLICT (id) DO UPDATE SET
+        template_id = EXCLUDED.template_id,
+        organization_id = EXCLUDED.organization_id,
+        respondent_id = EXCLUDED.respondent_id,
         score = EXCLUDED.score,
         answers = EXCLUDED.answers,
         "updatedAt" = now()
@@ -188,6 +281,8 @@ async function seed() {
       ) VALUES
         ($1, 'Dashboard reporting tools', $2, $3, 'software', 450000, 'approved', '2026-06-10', 'Demo Owner', 'Reporting and export preparation.')
       ON CONFLICT (id) DO UPDATE SET
+        organization_id = EXCLUDED.organization_id,
+        project_id = EXCLUDED.project_id,
         amount = EXCLUDED.amount,
         status = EXCLUDED.status,
         note = EXCLUDED.note,
@@ -197,7 +292,7 @@ async function seed() {
   );
 
   await dataSource.destroy();
-  console.log(`Seeded operations demo data for organization "${organizationId}".`);
+  console.log(`Seeded operations demo data for organization "${organizationId}" and user "${ownerEmail}".`);
 }
 
 seed().catch(async (error) => {

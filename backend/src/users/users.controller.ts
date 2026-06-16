@@ -55,16 +55,22 @@ export class UsersController {
     );
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get user by ID' })
-  findOne(@Param('id') id: string, @Request() req) {
-    return this.usersService.findOne(id, req.user);
-  }
-
   @Get('profile/me')
   @ApiOperation({ summary: 'Get current user profile' })
   getProfile(@Request() req) {
     return this.usersService.getProfile(req.user.id);
+  }
+
+  @Patch('profile/me')
+  @ApiOperation({ summary: 'Update current user profile' })
+  updateProfile(@Body() updateUserDto: UpdateUserDto, @Request() req) {
+    return this.usersService.updateProfile(req.user.id, updateUserDto);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get user by ID' })
+  findOne(@Param('id') id: string, @Request() req) {
+    return this.usersService.findOne(id, req.user);
   }
 
   @Patch(':id')
@@ -75,12 +81,6 @@ export class UsersController {
     @Request() req,
   ) {
     return this.usersService.update(id, updateUserDto, req.user);
-  }
-
-  @Patch('profile/me')
-  @ApiOperation({ summary: 'Update current user profile' })
-  updateProfile(@Body() updateUserDto: UpdateUserDto, @Request() req) {
-    return this.usersService.updateProfile(req.user.id, updateUserDto);
   }
 
   @Delete(':id')

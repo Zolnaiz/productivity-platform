@@ -4,6 +4,7 @@ describe('OperationsController payload normalization', () => {
   const createController = () => {
     const service = {
       monthlyReport: jest.fn(),
+      removeProject: jest.fn((id) => ({ id, deleted: true })),
       createTimeEntry: jest.fn((payload) => payload),
       createAssessmentResponse: jest.fn((payload) => payload),
       updateAssessmentResponse: jest.fn((id, payload) => ({ id, ...payload })),
@@ -44,6 +45,14 @@ describe('OperationsController payload normalization', () => {
     controller.monthlyReport(req, '2026-06');
 
     expect(service.monthlyReport).toHaveBeenCalledWith(req.user, '2026-06');
+  });
+
+  it('passes project delete requests to the service with current user scope', () => {
+    const { controller, service, req } = createController();
+
+    controller.removeProject('project-1', req);
+
+    expect(service.removeProject).toHaveBeenCalledWith('project-1', req.user);
   });
 
   it('converts assessment response submittedAt strings before create', () => {

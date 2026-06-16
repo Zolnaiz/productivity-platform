@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './shared/database/database.module';
 import { OperationsModule } from './operations/operations.module';
 import { envValidationSchema } from './shared/config/env.validation';
+import { MetricsService } from './shared/metrics/metrics.service';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { envValidationSchema } from './shared/config/env.validation';
   controllers: [AppController],
   providers: [
     AppService,
+    MetricsService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

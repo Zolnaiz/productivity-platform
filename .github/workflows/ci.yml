@@ -69,3 +69,22 @@ jobs:
 
       - name: Audit
         run: npm audit --audit-level=moderate
+
+  docker-config:
+    name: Docker Compose Config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate default production compose
+        run: docker compose --env-file .env.production.example -f docker-compose.prod.yml config > /dev/null
+
+      - name: Validate cache production profile
+        run: docker compose --env-file .env.production.example -f docker-compose.prod.yml --profile cache config > /dev/null
+
+      - name: Validate backup production profile
+        run: docker compose --env-file .env.production.example -f docker-compose.prod.yml --profile backup config > /dev/null
+
+      - name: Validate monitoring production profile
+        run: docker compose --env-file .env.production.example -f docker-compose.prod.yml --profile monitoring config > /dev/null

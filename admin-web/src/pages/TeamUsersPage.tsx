@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Users } from 'lucide-react';
 import Card from '../components/common/Card';
+import EmptyState from '../components/common/EmptyState';
 import { peopleService } from '../services/people.service';
 import { Department, TeamUser } from '../types/people.types';
 
 const TeamUsersPage: React.FC = () => {
   const [users, setUsers] = useState<TeamUser[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState({
     name: '',
     email: '',
@@ -16,11 +19,13 @@ const TeamUsersPage: React.FC = () => {
   });
 
   useEffect(() => {
-    peopleService.getUsers().then(setUsers);
-    peopleService.getDepartments().then((items) => {
-      setDepartments(items);
-      setDraft((current) => ({ ...current, departmentId: current.departmentId || items[0]?.id || '' }));
-    });
+    Promise.all([peopleService.getUsers(), peopleService.getDepartments()])
+      .then(([teamUsers, items]) => {
+        setUsers(teamUsers);
+        setDepartments(items);
+        setDraft((current) => ({ ...current, departmentId: current.departmentId || items[0]?.id || '' }));
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const departmentById = useMemo(
@@ -101,14 +106,15 @@ const TeamUsersPage: React.FC = () => {
               </option>
             ))}
           </select>
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
+          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
             Add user
           </button>
         </form>
       </Card>
 
-      <Card title={`Team users (${users.length})`}>
-        <div className="overflow-x-auto">
+      <Card title={`Team users (${users.length})`} loading={loading}>
+        {users.length ? (
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b text-gray-500 dark:border-gray-700">
               <tr>
@@ -145,7 +151,14 @@ const TeamUsersPage: React.FC = () => {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        ) : (
+          <EmptyState
+            icon={Users}
+            title="No users yet"
+            description="Add owners, admins, managers, and employees so work can be assigned and reported by role."
+          />
+        )}
       </Card>
     </div>
   );

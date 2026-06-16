@@ -18,6 +18,7 @@ export const useLocalStorage = <T>(
       return item ? JSON.parse(item) : (initialValue || null);
     } catch (error) {
       console.warn(`Error reading localStorage key "${key}":`, error);
+      window.localStorage.removeItem(key);
       return initialValue || null;
     }
   }, [key, initialValue]);
@@ -79,13 +80,15 @@ export const useLocalStorage = <T>(
           setStoredValue(newValue);
         } catch (error) {
           console.warn(`Error parsing storage change for key "${key}":`, error);
+          window.localStorage.removeItem(key);
+          setStoredValue(initialValue || null);
         }
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [key]);
+  }, [key, initialValue]);
 
   // Анхны утгыг авах
   useEffect(() => {

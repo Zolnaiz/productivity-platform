@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, LoginCredentials } from '../types/user.types';
 import { authService } from '../services/auth.service';
-import { isDemoEnabled } from '../services/api';
+import { clearStoredAuth, isDemoEnabled } from '../services/api';
 import { useNotification } from './NotificationContext';
 
 interface AuthContextType {
@@ -18,6 +18,18 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const readStoredUser = (): User | null => {
+  const savedUser = localStorage.getItem('user');
+  if (!savedUser) return null;
+
+  try {
+    return JSON.parse(savedUser) as User;
+  } catch {
+    clearStoredAuth();
+    return null;
+  }
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -38,16 +50,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initializeAuth = async () => {
       try {
         const savedToken = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
+        const savedUser = readStoredUser();
         
         if (savedToken && savedUser) {
           setToken(savedToken);
-          setUser(JSON.parse(savedUser));
+          setUser(savedUser);
 
           if (savedToken === 'demo-token') {
             if (!isDemoEnabled()) {
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
+              clearStoredAuth();
               setToken(null);
               setUser(null);
               setIsLoading(false);
@@ -66,9 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } catch (error) {
             console.warn('Token validation failed:', error);
             // Token хүчингүй болвол цэвэрлэх
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('refreshToken');
+            clearStoredAuth();
             setToken(null);
             setUser(null);
           }
@@ -172,9 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setToken(null);
       setUser(null);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('refreshToken');
+      clearStoredAuth();
       
       addNotification({
         type: 'info',

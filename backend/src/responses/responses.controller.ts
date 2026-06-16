@@ -60,12 +60,6 @@ export class ResponsesController {
     );
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get response by ID' })
-  findOne(@Param('id') id: string, @Request() req) {
-    return this.responsesService.findOne(id, req.user);
-  }
-
   @Get('questionnaire/:questionnaireId')
   @ApiOperation({ summary: 'Get responses by questionnaire' })
   findByQuestionnaire(
@@ -102,30 +96,6 @@ export class ResponsesController {
     return this.responsesService.findMyResponses({ page, limit }, req.user);
   }
 
-  @Patch(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN)
-  @ApiOperation({ summary: 'Update response' })
-  update(
-    @Param('id') id: string,
-    @Body() updateResponseDto: UpdateResponseDto,
-    @Request() req,
-  ) {
-    return this.responsesService.update(id, updateResponseDto, req.user);
-  }
-
-  @Delete(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN)
-  @ApiOperation({ summary: 'Delete response' })
-  remove(@Param('id') id: string, @Request() req) {
-    return this.responsesService.remove(id, req.user);
-  }
-
-  @Get(':id/analysis')
-  @ApiOperation({ summary: 'Get response analysis' })
-  getAnalysis(@Param('id') id: string, @Request() req) {
-    return this.responsesService.getAnalysis(id, req.user);
-  }
-
   @Get('questionnaire/:questionnaireId/export')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN)
   @ApiOperation({ summary: 'Export questionnaire responses' })
@@ -156,4 +126,35 @@ export class ResponsesController {
   ) {
     return this.responsesService.bulkDelete(questionnaireId, responseIds, req.user);
   }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get response by ID' })
+  findOne(@Param('id') id: string, @Request() req) {
+    return this.responsesService.findOne(id, req.user);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN)
+  @ApiOperation({ summary: 'Update response' })
+  update(
+    @Param('id') id: string,
+    @Body() updateResponseDto: UpdateResponseDto,
+    @Request() req,
+  ) {
+    return this.responsesService.update(id, updateResponseDto, req.user);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN)
+  @ApiOperation({ summary: 'Delete response' })
+  remove(@Param('id') id: string, @Request() req) {
+    return this.responsesService.remove(id, req.user);
+  }
+
+  @Get(':id/analysis')
+  @ApiOperation({ summary: 'Get response analysis' })
+  getAnalysis(@Param('id') id: string, @Request() req) {
+    return this.responsesService.getAnalysis(id, req.user);
+  }
+
 }

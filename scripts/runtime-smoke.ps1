@@ -48,6 +48,20 @@ function Wait-HttpOk {
   throw "Timed out waiting for $Url"
 }
 
+function Test-HttpOk {
+  param(
+    [string]$Url
+  )
+
+  try {
+    $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5
+    return $response.StatusCode -ge 200 -and $response.StatusCode -lt 300
+  }
+  catch {
+    return $false
+  }
+}
+
 function Test-DockerReady {
   Write-Host ""
   Write-Host "==> Docker preflight" -ForegroundColor Cyan
@@ -77,16 +91,23 @@ try {
   Invoke-Step "Run migrations" $backend "npm run migration:run"
   Invoke-Step "Seed operations data" $backend "npm run seed"
 
-  Write-Host ""
-  Write-Host "==> Start backend" -ForegroundColor Cyan
-  $backendProcess = Start-Process `
-    -FilePath "cmd.exe" `
-    -ArgumentList "/c", "npm run start:prod" `
-    -WorkingDirectory $backend `
-    -WindowStyle Hidden `
-    -PassThru
+  if (Test-HttpOk "http://127.0.0.1:3000/api/health") {
+    Write-Host ""
+    Write-Host "==> Reuse running backend" -ForegroundColor Cyan
+  }
+  else {
+    Write-Host ""
+    Write-Host "==> Start backend" -ForegroundColor Cyan
+    $backendProcess = Start-Process `
+      -FilePath "cmd.exe" `
+      -ArgumentList "/c", "npm run start:prod" `
+      -WorkingDirectory $backend `
+      -WindowStyle Hidden `
+      -PassThru
 
-  Wait-HttpOk "http://127.0.0.1:3000/api/health"
+    Wait-HttpOk "http://127.0.0.1:3000/api/health"
+  }
+
   Invoke-Step "Run API smoke checks" $backend "npm run smoke:api"
 
   Write-Host ""

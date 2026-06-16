@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import Card from '../components/common/Card';
+import EmptyState from '../components/common/EmptyState';
 import { adminService } from '../services/admin.service';
 import { AuditLogEntry } from '../types/admin.types';
 
@@ -12,9 +14,10 @@ const severityClasses = {
 const AuditLogPage: React.FC = () => {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [filter, setFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    adminService.getAuditLog().then(setLogs);
+    adminService.getAuditLog().then(setLogs).finally(() => setLoading(false));
   }, []);
 
   const filteredLogs = useMemo(
@@ -54,6 +57,7 @@ const AuditLogPage: React.FC = () => {
 
       <Card
         title="System activity"
+        loading={loading}
         actions={
           <select
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
@@ -72,7 +76,8 @@ const AuditLogPage: React.FC = () => {
           </select>
         }
       >
-        <div className="overflow-x-auto">
+        {filteredLogs.length ? (
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b text-gray-500 dark:border-gray-700">
               <tr>
@@ -102,7 +107,18 @@ const AuditLogPage: React.FC = () => {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        ) : (
+          <EmptyState
+            icon={ShieldCheck}
+            title={logs.length ? 'No events match this filter' : 'No audit events yet'}
+            description={
+              logs.length
+                ? 'Change the filter to review other system activity.'
+                : 'Security events, report exports, permission changes, and audit submissions will appear here.'
+            }
+          />
+        )}
       </Card>
     </div>
   );

@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { FileCheck2 } from 'lucide-react';
 import Card from '../components/common/Card';
+import EmptyState from '../components/common/EmptyState';
 import { assessmentService } from '../services/assessment.service';
 import { operationsService } from '../services/operations.service';
 import { AssessmentResponse, AssessmentTemplate } from '../types/assessment.types';
@@ -16,10 +18,15 @@ const ResponsesPage: React.FC = () => {
   const [templates, setTemplates] = useState<AssessmentTemplate[]>([]);
   const [filter, setFilter] = useState('all');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    assessmentService.getResponses().then(setResponses);
-    assessmentService.getTemplates().then(setTemplates);
+    Promise.all([assessmentService.getResponses(), assessmentService.getTemplates()])
+      .then(([responseItems, templateItems]) => {
+        setResponses(responseItems);
+        setTemplates(templateItems);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const templateById = useMemo(
@@ -107,8 +114,9 @@ const ResponsesPage: React.FC = () => {
 
       {message && <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700 dark:bg-green-950/30 dark:text-green-300">{message}</div>}
 
-      <Card title={`Response queue (${filteredResponses.length})`}>
-        <div className="overflow-x-auto">
+      <Card title={`Response queue (${filteredResponses.length})`} loading={loading}>
+        {filteredResponses.length ? (
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b text-gray-500 dark:border-gray-700">
               <tr>
@@ -162,7 +170,18 @@ const ResponsesPage: React.FC = () => {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        ) : (
+          <EmptyState
+            icon={FileCheck2}
+            title={responses.length ? 'No responses match this filter' : 'No responses submitted yet'}
+            description={
+              responses.length
+                ? 'Change the filter to review other submissions.'
+                : 'Submitted checklist and questionnaire responses will appear here for review and action creation.'
+            }
+          />
+        )}
       </Card>
     </div>
   );

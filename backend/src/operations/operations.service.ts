@@ -50,8 +50,14 @@ export class OperationsService {
 
   async updateProject(id: string, payload: Partial<Project>, user: CurrentUser) {
     const project = await this.findOneScoped(this.projects, id, user, 'Project');
-    Object.assign(project, payload);
+    this.assignWithoutOrganizationChange(project, payload);
     return this.projects.save(project);
+  }
+
+  async removeProject(id: string, user: CurrentUser) {
+    const project = await this.findOneScoped(this.projects, id, user, 'Project');
+    await this.projects.softRemove(project);
+    return { id, deleted: true };
   }
 
   findTasks(user: CurrentUser, projectId?: string) {
@@ -75,7 +81,7 @@ export class OperationsService {
 
   async updateTask(id: string, payload: Partial<WorkTask>, user: CurrentUser) {
     const task = await this.findOneScoped(this.tasks, id, user, 'Task');
-    Object.assign(task, payload);
+    this.assignWithoutOrganizationChange(task, payload);
     return this.tasks.save(task);
   }
 
@@ -164,7 +170,7 @@ export class OperationsService {
 
   async updateAssessmentTemplate(id: string, payload: Partial<AssessmentTemplate>, user: CurrentUser) {
     const template = await this.findOneScoped(this.assessmentTemplates, id, user, 'Assessment template');
-    Object.assign(template, payload);
+    this.assignWithoutOrganizationChange(template, payload);
     return this.assessmentTemplates.save(template);
   }
 
@@ -188,7 +194,7 @@ export class OperationsService {
 
   async updateAssessmentResponse(id: string, payload: Partial<AssessmentResponse>, user: CurrentUser) {
     const response = await this.findOneScoped(this.assessmentResponses, id, user, 'Assessment response');
-    Object.assign(response, payload);
+    this.assignWithoutOrganizationChange(response, payload);
     return this.assessmentResponses.save(response);
   }
 
@@ -210,7 +216,7 @@ export class OperationsService {
 
   async updateExpense(id: string, payload: Partial<ExpenseItem>, user: CurrentUser) {
     const expense = await this.findOneScoped(this.expenses, id, user, 'Expense');
-    Object.assign(expense, payload);
+    this.assignWithoutOrganizationChange(expense, payload);
     return this.expenses.save(expense);
   }
 
@@ -389,5 +395,11 @@ export class OperationsService {
     }
 
     return entity;
+  }
+
+  private assignWithoutOrganizationChange<T extends { organizationId?: string }>(entity: T, payload: Partial<T>) {
+    const safePayload = { ...payload };
+    delete safePayload.organizationId;
+    Object.assign(entity, safePayload);
   }
 }

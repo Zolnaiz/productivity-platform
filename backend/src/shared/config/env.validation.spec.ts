@@ -11,6 +11,7 @@ describe('envValidationSchema', () => {
     expect(result.value.JWT_REFRESH_EXPIRES_IN).toBe('7d');
     expect(result.value.RATE_LIMIT_TTL_MS).toBe(60000);
     expect(result.value.RATE_LIMIT_LIMIT).toBe(120);
+    expect(result.value.ENABLE_METRICS).toBe(false);
   });
 
   it('requires a strong JWT secret in production', () => {
@@ -26,6 +27,26 @@ describe('envValidationSchema', () => {
     const result = envValidationSchema.validate({
       NODE_ENV: 'production',
       JWT_SECRET: 'a-long-production-secret-with-at-least-32-chars',
+    });
+
+    expect(result.error).toBeUndefined();
+  });
+
+  it('rejects weak refresh secrets in production when explicitly configured', () => {
+    const result = envValidationSchema.validate({
+      NODE_ENV: 'production',
+      JWT_SECRET: 'a-long-production-secret-with-at-least-32-chars',
+      JWT_REFRESH_SECRET: 'your-refresh-secret-key-change-in-production',
+    });
+
+    expect(result.error).toBeDefined();
+  });
+
+  it('allows an empty refresh secret in production so it can derive from JWT_SECRET', () => {
+    const result = envValidationSchema.validate({
+      NODE_ENV: 'production',
+      JWT_SECRET: 'a-long-production-secret-with-at-least-32-chars',
+      JWT_REFRESH_SECRET: '',
     });
 
     expect(result.error).toBeUndefined();

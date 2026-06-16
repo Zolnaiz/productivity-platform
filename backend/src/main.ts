@@ -10,6 +10,8 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
 import { TransformInterceptor } from './shared/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
+import { MetricsInterceptor } from './shared/metrics/metrics.interceptor';
+import { MetricsService } from './shared/metrics/metrics.service';
 
 const toBoolean = (value: unknown) => value === true || String(value).toLowerCase() === 'true';
 
@@ -41,7 +43,13 @@ async function bootstrap() {
       ? corsOrigins
       : isProduction
         ? false
-        : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173', 'http://127.0.0.1:5173'],
+        : [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://127.0.0.1:3001',
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+          ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
@@ -53,8 +61,9 @@ async function bootstrap() {
       'X-Device-Id',
       'X-App-Version',
       'X-Platform',
+      'X-Request-Id',
     ],
-    exposedHeaders: ['Content-Disposition'],
+    exposedHeaders: ['Content-Disposition', 'X-Request-Id'],
   });
 
   app.useGlobalPipes(
@@ -73,7 +82,7 @@ async function bootstrap() {
   );
 
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalInterceptors(new TransformInterceptor(), new LoggingInterceptor());
+  app.useGlobalInterceptors(new TransformInterceptor(), new LoggingInterceptor(), new MetricsInterceptor(app.get(MetricsService)));
   app.setGlobalPrefix('api');
 
   if (enableSwagger) {

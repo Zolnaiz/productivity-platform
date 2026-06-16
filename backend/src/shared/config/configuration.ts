@@ -34,7 +34,9 @@ export default () => ({
   // Security configuration
   security: {
     bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS, 10) || 10,
-    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3001'],
+    corsOrigins: process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',')
+      : ['http://localhost:3001', 'http://127.0.0.1:3001'],
     rateLimit: {
       ttl: parseInt(process.env.THROTTLE_TTL, 10) || 60,
       limit: parseInt(process.env.THROTTLE_LIMIT, 10) || 100,

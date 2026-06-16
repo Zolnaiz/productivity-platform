@@ -14,6 +14,25 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UserRole } from '../shared/constants';
 
+const durationToSeconds = (duration: string) => {
+  const match = duration.trim().match(/^(\d+)([smhd])?$/);
+
+  if (!match) {
+    return undefined;
+  }
+
+  const value = Number(match[1]);
+  const unit = match[2] || 's';
+  const multipliers: Record<string, number> = {
+    s: 1,
+    m: 60,
+    h: 60 * 60,
+    d: 24 * 60 * 60,
+  };
+
+  return value * multipliers[unit];
+};
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -97,7 +116,7 @@ export class AuthService {
         throw new UnauthorizedException('User not found or inactive');
       }
 
-      return this.generateTokens(user);
+      return this.buildAuthResponse(user);
     } catch (error) {
       this.logger.error(`Token refresh failed: ${error.message}`);
       throw new UnauthorizedException('Refresh token is invalid');
@@ -152,6 +171,7 @@ export class AuthService {
   }
 
   private generateTokens(user: User) {
+    const accessTokenExpiresIn = this.configService.get<string>('JWT_EXPIRES_IN', '1h');
     const payload = {
       sub: user.id,
       email: user.email,
@@ -160,7 +180,7 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '1h') as any,
+      expiresIn: accessTokenExpiresIn as any,
     });
 
     const refreshToken = this.jwtService.sign(
@@ -175,7 +195,7 @@ export class AuthService {
       access_token: accessToken,
       refresh_token: refreshToken,
       token_type: 'Bearer',
-      expires_in: 604800,
+      expires_in: durationToSeconds(accessTokenExpiresIn) || 3600,
     };
   }
 

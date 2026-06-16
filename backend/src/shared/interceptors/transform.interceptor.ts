@@ -19,6 +19,11 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
       map((data) => {
         const response = context.switchToHttp().getResponse();
         const statusCode = response.statusCode;
+        const contentType = response.getHeader?.('content-type');
+
+        if (typeof contentType === 'string' && contentType.toLowerCase().startsWith('text/plain')) {
+          return data as Response<T>;
+        }
 
         // Transform data using class-transformer
         const transformedData = data && typeof data === 'object' 

@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Landmark } from 'lucide-react';
 import Card from '../components/common/Card';
+import EmptyState from '../components/common/EmptyState';
 import { financeService } from '../services/finance.service';
 import { operationsService } from '../services/operations.service';
 import { ExpenseItem } from '../types/finance.types';
@@ -22,6 +24,7 @@ const statusClasses = {
 const ExpensesPage: React.FC = () => {
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState({
     title: '',
     projectId: '',
@@ -32,11 +35,13 @@ const ExpensesPage: React.FC = () => {
   });
 
   useEffect(() => {
-    financeService.getExpenses().then(setExpenses);
-    operationsService.getProjects().then((items) => {
-      setProjects(items);
-      setDraft((current) => ({ ...current, projectId: items[0]?.id || '' }));
-    });
+    Promise.all([financeService.getExpenses(), operationsService.getProjects()])
+      .then(([expenseItems, projectItems]) => {
+        setExpenses(expenseItems);
+        setProjects(projectItems);
+        setDraft((current) => ({ ...current, projectId: projectItems[0]?.id || '' }));
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const projectById = useMemo(() => Object.fromEntries(projects.map((project) => [project.id, project])), [projects]);
@@ -143,7 +148,7 @@ const ExpensesPage: React.FC = () => {
             value={draft.amount}
             onChange={(event) => setDraft((current) => ({ ...current, amount: event.target.value }))}
           />
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
+          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
             Submit
           </button>
           <input
@@ -161,8 +166,9 @@ const ExpensesPage: React.FC = () => {
         </form>
       </Card>
 
-      <Card title="Expense approvals">
-        <div className="overflow-x-auto">
+      <Card title="Expense approvals" loading={loading}>
+        {expenses.length ? (
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b text-gray-500 dark:border-gray-700">
               <tr>
@@ -207,7 +213,14 @@ const ExpensesPage: React.FC = () => {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        ) : (
+          <EmptyState
+            icon={Landmark}
+            title="No expenses submitted"
+            description="Submitted project expenses and approval decisions will appear here for reporting."
+          />
+        )}
       </Card>
     </div>
   );

@@ -9,10 +9,35 @@ export const isDemoMode = () => isDemoEnabled() && localStorage.getItem('token')
 
 export const shouldUseDemoFallback = () => isDemoMode() || import.meta.env.DEV;
 
+export const clearStoredAuth = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
+};
+
+export const getStoredAccessToken = () => {
+  const token = localStorage.getItem('token');
+
+  if (token === 'demo-token' && !isDemoEnabled()) {
+    clearStoredAuth();
+    return null;
+  }
+
+  return token;
+};
+
 export const normalizeTokenResponse = (data: any) => ({
   token: data?.token || data?.access_token || '',
   refreshToken: data?.refreshToken || data?.refresh_token || '',
 });
+
+export const createRequestId = () => {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
 
 // Axios instance үүсгэх
 const api = axios.create({
@@ -26,10 +51,11 @@ const api = axios.create({
 // Request интерсептор
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getStoredAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    config.headers['X-Request-Id'] = config.headers['X-Request-Id'] || createRequestId();
     return config;
   },
   (error) => {
@@ -76,9 +102,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         // Refresh token бас хүчингүй бол нэвтрэх хуудас руу шилжих
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
+        clearStoredAuth();
         
         window.location.href = '/login';
         return Promise.reject(refreshError);

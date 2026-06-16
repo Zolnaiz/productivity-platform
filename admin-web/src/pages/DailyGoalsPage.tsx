@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Target } from 'lucide-react';
 import Card from '../components/common/Card';
+import EmptyState from '../components/common/EmptyState';
 import { productivityService } from '../services/productivity.service';
 import { DailyGoal } from '../types/productivity.types';
 
@@ -61,14 +63,14 @@ const DailyGoalsPage: React.FC = () => {
       </div>
 
       <Card title="New goal">
-        <form onSubmit={createGoal} className="flex gap-3">
+        <form onSubmit={createGoal} className="flex flex-col gap-3 sm:flex-row">
           <input
             className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
             placeholder="Goal title"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
           />
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
+          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
             Add goal
           </button>
         </form>
@@ -76,14 +78,22 @@ const DailyGoalsPage: React.FC = () => {
 
       <Card title="Today">
         <div className="space-y-3">
-          {stats.todayGoals.map((goal) => (
-            <label key={goal.id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              <input type="checkbox" checked={goal.completed} onChange={() => toggleGoal(goal)} />
-              <span className={goal.completed ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}>
-                {goal.title}
-              </span>
-            </label>
-          ))}
+          {stats.todayGoals.length ? (
+            stats.todayGoals.map((goal) => (
+              <label key={goal.id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                <input type="checkbox" checked={goal.completed} onChange={() => toggleGoal(goal)} />
+                <span className={goal.completed ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}>
+                  {goal.title}
+                </span>
+              </label>
+            ))
+          ) : (
+            <EmptyState
+              icon={Target}
+              title="No goals for today"
+              description="Add a small set of daily goals to make monthly progress and carry-over work easier to review."
+            />
+          )}
         </div>
       </Card>
     </div>

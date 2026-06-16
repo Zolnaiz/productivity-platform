@@ -57,7 +57,13 @@ const defaultAuditLog: AuditLogEntry[] = [
 
 const readObject = <T>(key: string, fallback: T): T => {
   const stored = localStorage.getItem(key);
-  if (stored) return JSON.parse(stored) as T;
+  if (stored) {
+    try {
+      return JSON.parse(stored) as T;
+    } catch {
+      localStorage.removeItem(key);
+    }
+  }
   localStorage.setItem(key, JSON.stringify(fallback));
   return fallback;
 };

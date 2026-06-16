@@ -16,12 +16,17 @@ interface SearchItem {
   subtitle: string;
   path: string;
   type: string;
+  roles?: string[];
 }
+
+const adminRoles = ['admin', 'super_admin'];
+const ownerRoles = ['super_admin'];
 
 const pageItems: SearchItem[] = [
   { id: 'page-dashboard', title: 'Dashboard', subtitle: 'Operations overview', path: '/dashboard', type: 'Page' },
   { id: 'page-projects', title: 'Projects', subtitle: 'Project progress and status', path: '/projects', type: 'Page' },
   { id: 'page-tasks', title: 'Tasks', subtitle: 'Task and Kanban workflow', path: '/tasks', type: 'Page' },
+  { id: 'page-calendar', title: 'Calendar', subtitle: 'Deadlines and audit schedule', path: '/calendar', type: 'Page' },
   { id: 'page-work-logs', title: 'Work Logs', subtitle: 'Daily employee work logs', path: '/work-logs', type: 'Page' },
   { id: 'page-fives', title: '5S / Audits', subtitle: 'Industry inspection templates', path: '/fives', type: 'Page' },
   { id: 'page-questionnaires', title: 'Questionnaires', subtitle: 'Assessment template builder', path: '/questionnaires', type: 'Page' },
@@ -29,16 +34,28 @@ const pageItems: SearchItem[] = [
   { id: 'page-reports', title: 'Reports', subtitle: 'Monthly productivity report', path: '/reports', type: 'Page' },
   { id: 'page-analytics', title: 'Analytics', subtitle: 'Productivity and department analytics', path: '/analytics', type: 'Page' },
   { id: 'page-expenses', title: 'Expenses', subtitle: 'Project expenses and approvals', path: '/expenses', type: 'Page' },
-  { id: 'page-admin', title: 'Admin', subtitle: 'Workspace control center', path: '/admin', type: 'Page' },
-  { id: 'page-settings', title: 'Settings', subtitle: 'Workspace automation rules', path: '/settings', type: 'Page' },
+  { id: 'page-users', title: 'Users', subtitle: 'Team members and roles', path: '/users', type: 'Page', roles: adminRoles },
+  { id: 'page-departments', title: 'Departments', subtitle: 'Team structure', path: '/departments', type: 'Page', roles: adminRoles },
+  { id: 'page-admin', title: 'Admin', subtitle: 'Workspace control center', path: '/admin', type: 'Page', roles: adminRoles },
+  { id: 'page-organizations', title: 'Organizations', subtitle: 'Workspace profile', path: '/organizations', type: 'Page', roles: adminRoles },
+  { id: 'page-settings', title: 'Settings', subtitle: 'Workspace automation rules', path: '/settings', type: 'Page', roles: adminRoles },
+  { id: 'page-audit', title: 'Audit Log', subtitle: 'Owner activity and security events', path: '/audit', type: 'Page', roles: ownerRoles },
+  { id: 'page-profile', title: 'Profile', subtitle: 'Employee monthly summary', path: '/profile', type: 'Page' },
+  { id: 'page-goals', title: 'Goals', subtitle: 'Daily productivity goals', path: '/goals', type: 'Page' },
+  { id: 'page-notes', title: 'Notes', subtitle: 'Personal and project notes', path: '/notes', type: 'Page' },
 ];
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const userRoles = useMemo(() => user?.roles || [], [user?.roles]);
+  const visiblePageItems = useMemo(
+    () => pageItems.filter((item) => !item.roles?.length || item.roles.some((role) => userRoles.includes(role as any))),
+    [userRoles],
+  );
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
-  const [items, setItems] = useState<SearchItem[]>(pageItems);
+  const [items, setItems] = useState<SearchItem[]>(visiblePageItems);
 
   useEffect(() => {
     let active = true;
@@ -60,7 +77,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         ]);
       } catch {
         if (active) {
-          setItems(pageItems);
+          setItems(visiblePageItems);
         }
         return;
       }
@@ -68,7 +85,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
       if (!active) return;
 
       setItems([
-        ...pageItems,
+        ...visiblePageItems,
         ...projects.map((project) => ({
           id: `project-${project.id}`,
           title: project.name,
@@ -112,18 +129,18 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [visiblePageItems]);
 
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return pageItems.slice(0, 6);
+    if (!normalized) return visiblePageItems.slice(0, 6);
 
     return items
       .filter((item) =>
         `${item.title} ${item.subtitle} ${item.type}`.toLowerCase().includes(normalized),
       )
       .slice(0, 8);
-  }, [items, query]);
+  }, [items, query, visiblePageItems]);
 
   const goTo = (item: SearchItem) => {
     setQuery('');

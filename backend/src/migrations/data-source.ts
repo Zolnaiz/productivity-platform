@@ -19,7 +19,7 @@ export default new DataSource({
   database: process.env.DB_DATABASE || 'questionnaire_db',
   ssl: toBoolean(process.env.DB_SSL, false),
   entities: [],
-  migrations: ['src/migrations/*Operations*.ts'],
+  migrations: ['src/migrations/*Runtime*.ts', 'src/migrations/*Operations*.ts'],
   synchronize: false,
   logging: toBoolean(process.env.DB_LOGGING, false),
 });

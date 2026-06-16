@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { BarChart3 } from 'lucide-react';
 import Card from '../components/common/Card';
+import EmptyState from '../components/common/EmptyState';
 import KpiCard from '../components/widgets/KpiCard';
 import { assessmentService } from '../services/assessment.service';
 import { operationsService } from '../services/operations.service';
@@ -15,6 +17,7 @@ const AnalyticsPage: React.FC = () => {
   const [responses, setResponses] = useState<AssessmentResponse[]>([]);
   const [users, setUsers] = useState<TeamUser[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -31,7 +34,7 @@ const AnalyticsPage: React.FC = () => {
       setResponses(responseItems);
       setUsers(userItems);
       setDepartments(departmentItems);
-    });
+    }).finally(() => setLoading(false));
   }, []);
 
   const responseAverage = responses.length
@@ -57,8 +60,6 @@ const AnalyticsPage: React.FC = () => {
     [departments, responses, users],
   );
 
-  if (!summary) return null;
-
   return (
     <div className="space-y-6">
       <div>
@@ -68,6 +69,12 @@ const AnalyticsPage: React.FC = () => {
         </p>
       </div>
 
+      {loading || !summary ? (
+        <Card loading title="Loading analytics">
+          <div />
+        </Card>
+      ) : (
+        <>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard title="Task completion" value={`${summary.kpis.taskCompletionRate}%`} description={`${summary.totals.completedTasks}/${summary.totals.tasks} tasks done`} />
         <KpiCard title="Project progress" value={`${summary.kpis.averageProjectProgress}%`} description={`${projects.length} projects tracked`} />
@@ -78,17 +85,25 @@ const AnalyticsPage: React.FC = () => {
       <div className="grid gap-6 xl:grid-cols-2">
         <Card title="Project progress">
           <div className="space-y-4">
-            {projects.map((project) => (
-              <div key={project.id}>
-                <div className="mb-1 flex items-center justify-between text-sm">
-                  <span className="font-medium text-gray-800 dark:text-gray-200">{project.name}</span>
-                  <span className="text-gray-500">{project.progress}%</span>
+            {projects.length ? (
+              projects.map((project) => (
+                <div key={project.id}>
+                  <div className="mb-1 flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-800 dark:text-gray-200">{project.name}</span>
+                    <span className="text-gray-500">{project.progress}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-900">
+                    <div className="h-2 rounded-full bg-blue-600" style={{ width: `${project.progress}%` }} />
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-900">
-                  <div className="h-2 rounded-full bg-blue-600" style={{ width: `${project.progress}%` }} />
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <EmptyState
+                icon={BarChart3}
+                title="No project data yet"
+                description="Project progress analytics will appear after projects are created."
+              />
+            )}
           </div>
         </Card>
 
@@ -114,7 +129,8 @@ const AnalyticsPage: React.FC = () => {
       </div>
 
       <Card title="Department performance">
-        <div className="overflow-x-auto">
+        {departmentRows.length ? (
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b text-gray-500 dark:border-gray-700">
               <tr>
@@ -137,8 +153,17 @@ const AnalyticsPage: React.FC = () => {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        ) : (
+          <EmptyState
+            icon={BarChart3}
+            title="No department analytics yet"
+            description="Department performance will appear after departments and users are configured."
+          />
+        )}
       </Card>
+        </>
+      )}
     </div>
   );
 };
