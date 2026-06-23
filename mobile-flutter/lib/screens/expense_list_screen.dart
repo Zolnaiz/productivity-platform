@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/expense_model.dart';
@@ -22,6 +23,12 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
   ExpenseSort _currentSort = ExpenseSort.dateDesc;
   DateTimeRange? _dateRange;
   bool _isRefreshing = false;
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 
   final List<Expense> _mockExpenses = [
     Expense(
@@ -84,24 +91,32 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
     // Apply search filter
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((expense) {
-        return expense.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            expense.description.toLowerCase().contains(_searchQuery.toLowerCase());
+        return expense.title
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase()) ||
+            expense.description
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase());
       }).toList();
     }
 
     // Apply status filter
     switch (_currentFilter) {
       case ExpenseFilter.pending:
-        filtered = filtered.where((e) => e.status == ExpenseStatus.pending).toList();
+        filtered =
+            filtered.where((e) => e.status == ExpenseStatus.pending).toList();
         break;
       case ExpenseFilter.approved:
-        filtered = filtered.where((e) => e.status == ExpenseStatus.approved).toList();
+        filtered =
+            filtered.where((e) => e.status == ExpenseStatus.approved).toList();
         break;
       case ExpenseFilter.paid:
-        filtered = filtered.where((e) => e.status == ExpenseStatus.paid).toList();
+        filtered =
+            filtered.where((e) => e.status == ExpenseStatus.paid).toList();
         break;
       case ExpenseFilter.rejected:
-        filtered = filtered.where((e) => e.status == ExpenseStatus.rejected).toList();
+        filtered =
+            filtered.where((e) => e.status == ExpenseStatus.rejected).toList();
         break;
       case ExpenseFilter.all:
       default:
@@ -146,7 +161,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
       lastDate: DateTime(2030),
       initialDateRange: _dateRange,
     );
-    
+
     if (picked != null) {
       setState(() => _dateRange = picked);
     }
@@ -163,9 +178,8 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              Navigator.pushNamed(context, '/expenses/create');
-            },
+            tooltip: 'Add expense',
+            onPressed: () => context.push('/expenses/new'),
           ),
         ],
       ),
@@ -184,9 +198,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/expenses/create');
-        },
+        onPressed: () => context.push('/expenses/new'),
         child: const Icon(Icons.add),
       ),
     );
@@ -228,7 +240,8 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
   Widget _buildFilterRow() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingMedium),
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppConstants.paddingMedium),
       child: Row(
         children: [
           // Status filters
@@ -246,7 +259,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
               ),
             );
           }).toList(),
-          
+
           // Date range filter
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
@@ -269,7 +282,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                   : AppColors.primary.withOpacity(0.1),
             ),
           ),
-          
+
           // Sort dropdown
           DropdownButtonHideUnderline(
             child: DropdownButton<ExpenseSort>(
@@ -395,12 +408,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
           padding: const EdgeInsets.only(bottom: 12.0),
           child: ExpenseCard(
             expense: expense,
-            onTap: () {
-              Navigator.pushNamed(
-                context,
-                '/expenses/${expense.id}',
-              );
-            },
+            onTap: () => _showExpenseOptions(expense),
             onMoreTap: () {
               _showExpenseOptions(expense);
             },
@@ -423,9 +431,9 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                 title: const Text('View Details'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.pushNamed(
-                    context,
-                    '/expenses/${expense.id}',
+                  _showMessage(
+                    '${expense.description} - '
+                    '${NumberFormat.currency(symbol: '\$').format(expense.amount)}',
                   );
                 },
               ),
@@ -435,10 +443,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                   title: const Text('Edit'),
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.pushNamed(
-                      context,
-                      '/expenses/${expense.id}/edit',
-                    );
+                    this.context.push('/expenses/${expense.id}/edit');
                   },
                 ),
               ListTile(
@@ -525,7 +530,8 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Generate Receipt'),
-          content: const Text('Receipt will be generated and saved to your device.'),
+          content:
+              const Text('Receipt will be generated and saved to your device.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -584,7 +590,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
     setState(() {
       _mockExpenses.removeWhere((e) => e.id == expense.id);
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Expense deleted successfully'),
@@ -624,15 +630,15 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
     if (_searchQuery.isNotEmpty) {
       return 'No expenses found for "$_searchQuery"';
     }
-    
+
     if (_currentFilter != ExpenseFilter.all) {
       return 'No ${_getFilterLabel(_currentFilter).toLowerCase()} expenses';
     }
-    
+
     if (_dateRange != null) {
       return 'No expenses in selected date range';
     }
-    
+
     return 'No expenses recorded';
   }
 }

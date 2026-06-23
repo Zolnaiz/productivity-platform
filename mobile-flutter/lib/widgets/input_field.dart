@@ -8,7 +8,7 @@ class InputField extends StatelessWidget {
   final TextInputType? keyboardType;
   final bool obscureText;
   final bool readOnly;
-  final Widget? prefixIcon;
+  final Object? prefixIcon;
   final Widget? suffixIcon;
   final int? maxLines;
   final int? maxLength;
@@ -83,7 +83,9 @@ class InputField extends StatelessWidget {
           enabled: enabled,
           decoration: InputDecoration(
             hintText: hintText,
-            prefixIcon: prefixIcon,
+            prefixIcon: prefixIcon is IconData
+                ? Icon(prefixIcon as IconData)
+                : prefixIcon as Widget?,
             suffixIcon: suffixIcon,
             contentPadding: contentPadding ??
                 const EdgeInsets.symmetric(

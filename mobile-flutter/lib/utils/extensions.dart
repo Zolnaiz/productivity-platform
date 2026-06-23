@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -697,7 +699,7 @@ extension BuildContextExtensions on BuildContext {
     required WidgetBuilder builder,
     bool barrierDismissible = true,
   }) {
-    return showDialog<T>(
+    return showAdaptiveDialog<T>(
       context: this,
       builder: builder,
       barrierDismissible: barrierDismissible,

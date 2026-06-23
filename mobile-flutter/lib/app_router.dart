@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
 import 'screens/dashboard_screen.dart';
@@ -48,8 +47,8 @@ class AppRouter {
           path: '/questionnaires/:id',
           builder: (BuildContext context, GoRouterState state) =>
               QuestionnaireDetailScreen(
-                questionnaireId: state.pathParameters['id'] as String,
-              ),
+            questionnaireId: state.pathParameters['id']!,
+          ),
         ),
         GoRoute(
           path: '/expenses',
@@ -65,8 +64,8 @@ class AppRouter {
           path: '/expenses/:id/edit',
           builder: (BuildContext context, GoRouterState state) =>
               ExpenseFormScreen(
-                expenseId: state.pathParameters['id'] as String?,
-              ),
+            expenseId: state.pathParameters['id'] as String?,
+          ),
         ),
         GoRoute(
           path: '/reports',
@@ -86,19 +85,25 @@ class AppRouter {
       ],
       refreshListenable: authProvider,
       redirect: (BuildContext context, GoRouterState state) {
+        final location = state.uri.path;
+        final isLoading = authProvider?.isLoading ?? true;
         final isLoggedIn = authProvider?.isAuthenticated ?? false;
 
+        if (isLoading) {
+          return location == '/' ? null : '/';
+        }
+
+        if (location == '/') {
+          return isLoggedIn ? '/dashboard' : '/login';
+        }
+
         // If user is not logged in and trying to access protected routes
-        if (!isLoggedIn &&
-            state.location != '/login' &&
-            state.location != '/register' &&
-            state.location != '/') {
+        if (!isLoggedIn && location != '/login' && location != '/register') {
           return '/login';
         }
 
         // If user is logged in and trying to access login/register
-        if (isLoggedIn &&
-            (state.location == '/login' || state.location == '/register')) {
+        if (isLoggedIn && (location == '/login' || location == '/register')) {
           return '/dashboard';
         }
 

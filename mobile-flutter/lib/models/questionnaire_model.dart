@@ -1,13 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-enum QuestionType {
-  multipleChoice,
-  singleChoice,
-  text,
-  rating,
-  date,
-  number
-}
+enum QuestionType { multipleChoice, singleChoice, text, rating, date, number }
 
 class Question {
   final String id;
@@ -31,15 +24,21 @@ class Question {
   });
 
   factory Question.fromJson(Map<String, dynamic> json) {
+    final type = json['type'] as String? ?? 'text';
+
     return Question(
-      id: json['id'],
-      text: json['text'],
-      type: _parseQuestionType(json['type']),
-      options: json['options'] != null ? List<String>.from(json['options']) : null,
+      id: json['id'] as String? ?? '',
+      text: json['text'] as String? ?? '',
+      type: _parseQuestionType(type),
+      options: json['options'] != null
+          ? List<String>.from(json['options'] as List)
+          : type == 'yes_no'
+              ? const ['Yes', 'No']
+              : null,
       isRequired: json['isRequired'] ?? false,
-      placeholder: json['placeholder'],
-      minValue: json['minValue'],
-      maxValue: json['maxValue'],
+      placeholder: json['placeholder'] as String?,
+      minValue: json['minValue'] as int?,
+      maxValue: (json['maxValue'] ?? json['maxScore']) as int?,
     );
   }
 
@@ -58,13 +57,22 @@ class Question {
 
   static QuestionType _parseQuestionType(String type) {
     switch (type) {
-      case 'multipleChoice': return QuestionType.multipleChoice;
-      case 'singleChoice': return QuestionType.singleChoice;
-      case 'text': return QuestionType.text;
-      case 'rating': return QuestionType.rating;
-      case 'date': return QuestionType.date;
-      case 'number': return QuestionType.number;
-      default: return QuestionType.text;
+      case 'multipleChoice':
+        return QuestionType.multipleChoice;
+      case 'singleChoice':
+      case 'yes_no':
+        return QuestionType.singleChoice;
+      case 'text':
+        return QuestionType.text;
+      case 'rating':
+      case 'score':
+        return QuestionType.rating;
+      case 'date':
+        return QuestionType.date;
+      case 'number':
+        return QuestionType.number;
+      default:
+        return QuestionType.text;
     }
   }
 
@@ -97,17 +105,23 @@ class Questionnaire {
   });
 
   factory Questionnaire.fromJson(Map<String, dynamic> json) {
+    final createdAt = DateTime.tryParse(json['createdAt'] as String? ?? '');
+    final status = json['status'] as String?;
+
     return Questionnaire(
-      id: json['id'],
-      title: json['title'],
-      description: json['description'],
-      organizationId: json['organizationId'],
-      questions: List<Question>.from(
-        json['questions'].map((q) => Question.fromJson(q))
-      ),
-      createdAt: DateTime.parse(json['createdAt']),
-      expiresAt: json['expiresAt'] != null ? DateTime.parse(json['expiresAt']) : null,
-      isActive: json['isActive'] ?? true,
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? 'Untitled assessment',
+      description: json['description'] as String?,
+      organizationId: json['organizationId'] as String? ?? '',
+      questions: (json['questions'] as List<dynamic>? ?? const [])
+          .map(
+              (question) => Question.fromJson(question as Map<String, dynamic>))
+          .toList(),
+      createdAt: createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+      expiresAt: json['expiresAt'] != null
+          ? DateTime.tryParse(json['expiresAt'] as String)
+          : null,
+      isActive: json['isActive'] ?? status == 'published',
       responseCount: json['responseCount'] ?? 0,
     );
   }

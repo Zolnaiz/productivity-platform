@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/expense_model.dart';
+import '../models/report_model.dart';
+
 class AppColors {
   // Primary colors
   static const Color primary = Color(0xFF4F46E5);
@@ -136,6 +139,3 @@ class AppColors {
   }
 }
 
-// Re-export enums for easy access
-import '../models/expense_model.dart';
-import '../models/report_model.dart';

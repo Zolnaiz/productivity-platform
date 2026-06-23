@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRequestId, getStoredAccessToken, isDemoEnabled, isDemoMode, normalizeTokenResponse } from './api';
+import {
+  createRequestId,
+  getStoredAccessToken,
+  isDemoEnabled,
+  isDemoMode,
+  normalizeTokenResponse,
+  unwrapApiResponse,
+} from './api';
 
 describe('api demo mode guard', () => {
   afterEach(() => {
@@ -69,6 +76,31 @@ describe('normalizeTokenResponse', () => {
       token: 'access-token',
       refreshToken: 'refresh-token',
     });
+  });
+
+  it('accepts tokens wrapped in the backend response envelope', () => {
+    expect(
+      normalizeTokenResponse({
+        success: true,
+        data: {
+          access_token: 'access-token',
+          refresh_token: 'refresh-token',
+        },
+      }),
+    ).toEqual({
+      token: 'access-token',
+      refreshToken: 'refresh-token',
+    });
+  });
+});
+
+describe('unwrapApiResponse', () => {
+  it('unwraps the backend response envelope', () => {
+    expect(unwrapApiResponse({ success: true, data: ['one', 'two'] })).toEqual(['one', 'two']);
+  });
+
+  it('keeps an unwrapped response unchanged', () => {
+    expect(unwrapApiResponse(['one', 'two'])).toEqual(['one', 'two']);
   });
 });
 

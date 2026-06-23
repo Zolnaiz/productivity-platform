@@ -21,7 +21,10 @@ class QuestionnaireProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _questionnaires = await _apiService.getQuestionnaires();
+      final items = await _apiService.getQuestionnaires();
+      _questionnaires = items
+          .map((item) => Questionnaire.fromJson(item as Map<String, dynamic>))
+          .toList();
       _error = null;
     } catch (e) {
       _error = e.toString();
@@ -34,7 +37,8 @@ class QuestionnaireProvider with ChangeNotifier {
 
   Future<Questionnaire?> fetchQuestionnaireById(String id) async {
     try {
-      return await _apiService.getQuestionnaireById(id);
+      final item = await _apiService.getQuestionnaire(id);
+      return Questionnaire.fromJson(item);
     } catch (e) {
       _error = e.toString();
       return null;
@@ -47,11 +51,7 @@ class QuestionnaireProvider with ChangeNotifier {
     Duration? completionTime,
   }) async {
     try {
-      await _apiService.submitQuestionnaireResponse(
-        questionnaireId: questionnaireId,
-        answers: answers,
-        completionTime: completionTime,
-      );
+      await _apiService.submitResponse(questionnaireId, answers);
       return true;
     } catch (e) {
       _error = e.toString();

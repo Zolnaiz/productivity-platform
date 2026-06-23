@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/primary_button.dart';
@@ -21,6 +22,12 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
   bool _obscurePassword = true;
 
+  void _showUnavailable(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature is not available yet')),
+    );
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -32,16 +39,15 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     final success = await authProvider.login(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-      rememberMe: _rememberMe,
+      _emailController.text.trim(),
+      _passwordController.text,
     );
 
-    if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/dashboard');
-    } else {
+    if (!mounted || success) return;
+
+    if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.error ?? 'Login failed'),
@@ -141,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const Spacer(),
                         TextButton(
                           onPressed: () {
-                            Navigator.pushNamed(context, '/forgot-password');
+                            _showUnavailable('Password recovery');
                           },
                           child: const Text('Forgot password?'),
                         ),
@@ -170,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Text("Don't have an account?"),
                   TextButton(
                     onPressed: () {
-                      Navigator.pushNamed(context, '/register');
+                      context.push('/register');
                     },
                     child: const Text('Sign Up'),
                   ),

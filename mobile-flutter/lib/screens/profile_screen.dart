@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/auth_provider.dart';
@@ -8,6 +9,7 @@ import '../widgets/input_field.dart';
 import '../widgets/loading_indicator.dart';
 import '../utils/validators.dart';
 import '../utils/constants.dart';
+import '../utils/extensions.dart';
 import '../themes/colors.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -25,10 +27,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _phoneController = TextEditingController();
   final _positionController = TextEditingController();
   final _departmentController = TextEditingController();
-  
+
   bool _isEditing = false;
   bool _isLoading = false;
   String? _profileImageUrl;
+
+  void _showUnavailable(String feature) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('$feature is not available yet')));
+  }
 
   @override
   void initState() {
@@ -39,7 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _loadUserData() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
-    
+
     if (user != null) {
       _firstNameController.text = user.firstName;
       _lastNameController.text = user.lastName;
@@ -57,21 +65,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
-    final success = await authProvider.updateProfile(
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      phone: _phoneController.text.trim(),
-      position: _positionController.text.trim(),
-      department: _departmentController.text.trim(),
-    );
+
+    final success = await authProvider.updateProfile({
+      'firstName': _firstNameController.text.trim(),
+      'lastName': _lastNameController.text.trim(),
+      'phone': _phoneController.text.trim(),
+      'position': _positionController.text.trim(),
+      'department': _departmentController.text.trim(),
+    });
 
     if (success && mounted) {
       setState(() {
         _isEditing = false;
         _isLoading = false;
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Profile updated successfully'),
@@ -92,21 +100,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _pickProfileImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    
+
     if (pickedFile != null) {
       // Upload image to server
       setState(() {
         _isLoading = true;
       });
-      
+
       // Mock upload
       await Future.delayed(const Duration(seconds: 2));
-      
+
       setState(() {
         _profileImageUrl = pickedFile.path;
         _isLoading = false;
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Profile picture updated'),
@@ -151,10 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   _buildProfileHeader(user),
                   const SizedBox(height: 32),
-                  if (_isEditing)
-                    _buildEditForm()
-                  else
-                    _buildProfileInfo(user),
+                  if (_isEditing) _buildEditForm() else _buildProfileInfo(user),
                   const SizedBox(height: 32),
                   _buildAccountActions(),
                 ],
@@ -232,7 +237,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 4),
         if (user?.organization != null)
           Text(
-            user!.organization!.name,
+            user!.organization!,
             style: const TextStyle(
               fontSize: 14,
               color: Colors.grey,
@@ -353,12 +358,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _buildInfoCard(
           title: 'Organization',
           children: [
-            _buildInfoRow('Organization', user?.organization?.name ?? 'N/A'),
+            _buildInfoRow('Organization', user?.organization ?? 'N/A'),
             _buildInfoRow(
               'Member Since',
-              user?.createdAt?.format(pattern: 'MMM dd, yyyy') ?? 'N/A',
+              user?.createdAt.format(pattern: 'MMM dd, yyyy') ?? 'N/A',
             ),
-            _buildInfoRow('Role', user?.role?.name ?? 'User'),
+            _buildInfoRow('Role', user?.role ?? 'User'),
           ],
         ),
         const SizedBox(height: 16),
@@ -406,20 +411,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -435,7 +449,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: const Text('Notification Settings'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () {
-            Navigator.pushNamed(context, '/settings/notifications');
+            context.push('/settings');
           },
         ),
         ListTile(
@@ -443,7 +457,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: const Text('Change Password'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () {
-            Navigator.pushNamed(context, '/change-password');
+            context.push('/settings');
           },
         ),
         ListTile(
@@ -451,7 +465,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: const Text('Help & Support'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () {
-            Navigator.pushNamed(context, '/help');
+            _showUnavailable('Help & Support');
           },
         ),
         ListTile(
@@ -459,7 +473,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: const Text('Terms & Privacy'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () {
-            Navigator.pushNamed(context, '/terms');
+            _showUnavailable('Terms & Privacy');
           },
         ),
         ListTile(
@@ -492,7 +506,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () {
                 Navigator.pop(context);
                 Provider.of<AuthProvider>(context, listen: false).logout();
-                Navigator.pushReplacementNamed(context, '/login');
               },
               child: const Text(
                 'Logout',

@@ -77,7 +77,7 @@ class StorageService {
   Future<Map<String, dynamic>?> getJson(String key) async {
     final String? jsonString = await getString(key);
     if (jsonString != null) {
-      return jsonDecode(jsonString);
+      return Map<String, dynamic>.from(jsonDecode(jsonString));
     }
     return null;
   }

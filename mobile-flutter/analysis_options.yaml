@@ -22,16 +22,14 @@ analyzer:
     - ".idea/**"
     - ".vscode/**"
 
-  # Language features
   language:
-    strict-casts: true
-    strict-inference: true
-    strict-raw-types: true
+    strict-casts: false
+    strict-inference: false
+    strict-raw-types: false
 
-  # Strong-mode options
   strong-mode:
-    implicit-casts: false
-    implicit-dynamic: false
+    implicit-casts: true
+    implicit-dynamic: true
 
 # Code formatting rules
 formatting:

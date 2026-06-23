@@ -26,10 +26,22 @@ export const getStoredAccessToken = () => {
   return token;
 };
 
-export const normalizeTokenResponse = (data: any) => ({
-  token: data?.token || data?.access_token || '',
-  refreshToken: data?.refreshToken || data?.refresh_token || '',
-});
+export const unwrapApiResponse = <T>(response: T | { data: T }): T => {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return response.data;
+  }
+
+  return response;
+};
+
+export const normalizeTokenResponse = (response: any) => {
+  const data = unwrapApiResponse(response);
+
+  return {
+    token: data?.token || data?.access_token || '',
+    refreshToken: data?.refreshToken || data?.refresh_token || '',
+  };
+};
 
 export const createRequestId = () => {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
@@ -115,28 +127,28 @@ api.interceptors.response.use(
 
 // Ерөнхий API функцүүд
 export const get = async <T>(url: string, params?: any): Promise<T> => {
-  const response = await api.get<T>(url, { params });
-  return response.data;
+  const response = await api.get<T | { data: T }>(url, { params });
+  return unwrapApiResponse(response.data);
 };
 
 export const post = async <T>(url: string, data?: any): Promise<T> => {
-  const response = await api.post<T>(url, data);
-  return response.data;
+  const response = await api.post<T | { data: T }>(url, data);
+  return unwrapApiResponse(response.data);
 };
 
 export const put = async <T>(url: string, data?: any): Promise<T> => {
-  const response = await api.put<T>(url, data);
-  return response.data;
+  const response = await api.put<T | { data: T }>(url, data);
+  return unwrapApiResponse(response.data);
 };
 
 export const patch = async <T>(url: string, data?: any): Promise<T> => {
-  const response = await api.patch<T>(url, data);
-  return response.data;
+  const response = await api.patch<T | { data: T }>(url, data);
+  return unwrapApiResponse(response.data);
 };
 
 export const del = async <T>(url: string): Promise<T> => {
-  const response = await api.delete<T>(url);
-  return response.data;
+  const response = await api.delete<T | { data: T }>(url);
+  return unwrapApiResponse(response.data);
 };
 
 export { api };

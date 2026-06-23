@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/questionnaire_provider.dart';
@@ -13,7 +14,8 @@ class QuestionnaireListScreen extends StatefulWidget {
   const QuestionnaireListScreen({Key? key}) : super(key: key);
 
   @override
-  State<QuestionnaireListScreen> createState() => _QuestionnaireListScreenState();
+  State<QuestionnaireListScreen> createState() =>
+      _QuestionnaireListScreenState();
 }
 
 class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
@@ -21,6 +23,12 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
   String _searchQuery = '';
   QuestionnaireFilter _currentFilter = QuestionnaireFilter.all;
   bool _isRefreshing = false;
+
+  void _showUnavailable(String feature) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('$feature is not available yet')));
+  }
 
   @override
   void initState() {
@@ -41,14 +49,16 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
     setState(() => _isRefreshing = false);
   }
 
-  List<Questionnaire> _filterQuestionnaires(List<Questionnaire> questionnaires) {
+  List<Questionnaire> _filterQuestionnaires(
+      List<Questionnaire> questionnaires) {
     List<Questionnaire> filtered = questionnaires;
 
     // Apply search filter
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((q) {
         return q.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            (q.description?.toLowerCase() ?? '').contains(_searchQuery.toLowerCase());
+            (q.description?.toLowerCase() ?? '')
+                .contains(_searchQuery.toLowerCase());
       }).toList();
     }
 
@@ -58,9 +68,10 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
         filtered = filtered.where((q) => q.isActive).toList();
         break;
       case QuestionnaireFilter.expired:
-        filtered = filtered.where((q) => 
-          q.expiresAt != null && q.expiresAt!.isBefore(DateTime.now())
-        ).toList();
+        filtered = filtered
+            .where((q) =>
+                q.expiresAt != null && q.expiresAt!.isBefore(DateTime.now()))
+            .toList();
         break;
       case QuestionnaireFilter.completed:
         filtered = filtered.where((q) => q.responseCount > 0).toList();
@@ -81,9 +92,8 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              Navigator.pushNamed(context, '/questionnaires/create');
-            },
+            tooltip: 'New questionnaire',
+            onPressed: () => _showUnavailable('Questionnaire creation'),
           ),
         ],
       ),
@@ -117,9 +127,7 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/questionnaires/create');
-        },
+        onPressed: () => _showUnavailable('Questionnaire creation'),
         child: const Icon(Icons.add),
       ),
     );
@@ -156,7 +164,8 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
   Widget _buildFilterChips() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingMedium),
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppConstants.paddingMedium),
       child: Row(
         children: QuestionnaireFilter.values.map((filter) {
           return Padding(
@@ -196,7 +205,8 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            if (_searchQuery.isNotEmpty || _currentFilter != QuestionnaireFilter.all)
+            if (_searchQuery.isNotEmpty ||
+                _currentFilter != QuestionnaireFilter.all)
               TextButton(
                 onPressed: () {
                   setState(() {
@@ -221,12 +231,7 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
           padding: const EdgeInsets.only(bottom: 12.0),
           child: QuestionnaireCard(
             questionnaire: questionnaire,
-            onTap: () {
-              Navigator.pushNamed(
-                context,
-                '/questionnaires/${questionnaire.id}',
-              );
-            },
+            onTap: () => context.push('/questionnaires/${questionnaire.id}'),
             onMoreTap: () {
               _showQuestionnaireOptions(questionnaire);
             },
@@ -249,10 +254,7 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
                 title: const Text('View Details'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.pushNamed(
-                    context,
-                    '/questionnaires/${questionnaire.id}',
-                  );
+                  this.context.push('/questionnaires/${questionnaire.id}');
                 },
               ),
               ListTile(
@@ -260,10 +262,7 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
                 title: const Text('Edit'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.pushNamed(
-                    context,
-                    '/questionnaires/${questionnaire.id}/edit',
-                  );
+                  _showUnavailable('Questionnaire editing');
                 },
               ),
               if (questionnaire.isActive)
@@ -280,10 +279,7 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
                 title: const Text('View Responses'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.pushNamed(
-                    context,
-                    '/questionnaires/${questionnaire.id}/responses',
-                  );
+                  _showUnavailable('Questionnaire responses');
                 },
               ),
               ListTile(
@@ -338,7 +334,8 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
                 ),
                 readOnly: true,
                 controller: TextEditingController(
-                  text: 'https://app.example.com/questionnaires/${questionnaire.id}',
+                  text:
+                      'https://app.example.com/questionnaires/${questionnaire.id}',
                 ),
               ),
             ],
@@ -368,11 +365,11 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
 
   void _toggleQuestionnaireStatus(Questionnaire questionnaire) async {
     final provider = Provider.of<QuestionnaireProvider>(context, listen: false);
-    
+
     try {
       // Call API to toggle status
       await Future.delayed(const Duration(seconds: 1)); // Mock API call
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -382,7 +379,7 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
           ),
         ),
       );
-      
+
       _refreshData();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -427,17 +424,17 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
 
   Future<void> _deleteQuestionnaire(Questionnaire questionnaire) async {
     final provider = Provider.of<QuestionnaireProvider>(context, listen: false);
-    
+
     try {
       // Call API to delete
       await Future.delayed(const Duration(seconds: 1)); // Mock API call
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Questionnaire deleted successfully'),
         ),
       );
-      
+
       _refreshData();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -466,7 +463,7 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
     if (_searchQuery.isNotEmpty) {
       return 'No questionnaires found for "$_searchQuery"';
     }
-    
+
     switch (_currentFilter) {
       case QuestionnaireFilter.active:
         return 'No active questionnaires';

@@ -21,6 +21,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _selectedLanguage = 'English';
   String _selectedTheme = 'System default';
 
+  void _showUnavailable(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature is not available yet')),
+    );
+  }
+
   final List<String> _languages = [
     'English',
     'Spanish',
@@ -99,7 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (value) {
                   if (value != null) {
                     setState(() => _selectedTheme = value);
-                    
+
                     if (value == 'Light') {
                       themeProvider.setThemeMode(ThemeMode.light);
                     } else if (value == 'Dark') {
@@ -155,18 +161,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('Email Notifications'),
               subtitle: const Text('Receive notifications via email'),
               value: _emailNotifications,
-              onChanged: _notificationsEnabled ? (value) {
-                setState(() => _emailNotifications = value);
-              } : null,
+              onChanged: _notificationsEnabled
+                  ? (value) {
+                      setState(() => _emailNotifications = value);
+                    }
+                  : null,
               secondary: const Icon(Icons.email_outlined),
             ),
             SwitchListTile(
               title: const Text('Push Notifications'),
               subtitle: const Text('Receive push notifications on device'),
               value: _pushNotifications,
-              onChanged: _notificationsEnabled ? (value) {
-                setState(() => _pushNotifications = value);
-              } : null,
+              onChanged: _notificationsEnabled
+                  ? (value) {
+                      setState(() => _pushNotifications = value);
+                    }
+                  : null,
               secondary: const Icon(Icons.notifications_outlined),
             ),
             const Divider(),
@@ -213,7 +223,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('Change Password'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                Navigator.pushNamed(context, '/change-password');
+                _showUnavailable('Change password');
               },
             ),
             ListTile(
@@ -222,7 +232,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: const Text('View and remove connected devices'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                Navigator.pushNamed(context, '/settings/devices');
+                _showUnavailable('Device management');
               },
             ),
             ListTile(
@@ -231,7 +241,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: const Text('View recent login activity'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                Navigator.pushNamed(context, '/settings/login-history');
+                _showUnavailable('Login history');
               },
             ),
           ],
@@ -283,7 +293,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('Data Restore'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                Navigator.pushNamed(context, '/settings/restore');
+                _showUnavailable('Data restore');
               },
             ),
             const Divider(),
@@ -336,7 +346,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('Terms of Service'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                Navigator.pushNamed(context, '/terms');
+                _showUnavailable('Terms of Service');
               },
             ),
             ListTile(
@@ -344,7 +354,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('Privacy Policy'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                Navigator.pushNamed(context, '/privacy');
+                _showUnavailable('Privacy Policy');
               },
             ),
             ListTile(
@@ -352,7 +362,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('Help & Support'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                Navigator.pushNamed(context, '/help');
+                _showUnavailable('Help & Support');
               },
             ),
             ListTile(
@@ -456,7 +466,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Create Backup'),
-          content: const Text('This will create a backup of all your data. Continue?'),
+          content: const Text(
+              'This will create a backup of all your data. Continue?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -471,7 +482,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     content: Text('Creating backup...'),
                   ),
                 );
-                
+
                 Future.delayed(const Duration(seconds: 2), () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -504,7 +515,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       },
     );
-    
+
     // Simulate update check
     Future.delayed(const Duration(seconds: 2), () {
       Navigator.pop(context);
@@ -658,8 +669,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () {
                 Navigator.pop(context);
                 Provider.of<AuthProvider>(context, listen: false).logout();
-                Navigator.pushReplacementNamed(context, '/login');
-                
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Logged out from all devices'),

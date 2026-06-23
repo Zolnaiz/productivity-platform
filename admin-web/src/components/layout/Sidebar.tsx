@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React from "react";
+import { NavLink } from "react-router-dom";
 import {
   BarChart3,
   Bell,
@@ -25,72 +25,210 @@ import {
   Target,
   Trophy,
   Users,
-} from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+} from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface MenuItem {
   icon: React.ReactNode;
   label: string;
   path: string;
-  group: 'Work' | 'Quality' | 'People' | 'Reports' | 'Personal' | 'Admin';
+  group: "Work" | "Quality" | "People" | "Reports" | "Personal" | "Admin";
   roles?: string[];
 }
 
-const adminRoles = ['admin', 'super_admin'];
-const ownerRoles = ['super_admin'];
+const adminRoles = ["admin", "super_admin"];
+const ownerRoles = ["super_admin"];
 
 const menuItems: MenuItem[] = [
-  { icon: <Home className="h-5 w-5" />, label: 'Dashboard', path: '/dashboard', group: 'Work' },
-  { icon: <Briefcase className="h-5 w-5" />, label: 'Projects', path: '/projects', group: 'Work' },
-  { icon: <CheckSquare className="h-5 w-5" />, label: 'Tasks', path: '/tasks', group: 'Work' },
-  { icon: <Columns3 className="h-5 w-5" />, label: 'Kanban', path: '/kanban', group: 'Work' },
-  { icon: <CalendarDays className="h-5 w-5" />, label: 'Calendar', path: '/calendar', group: 'Work' },
-  { icon: <Clock className="h-5 w-5" />, label: 'Work Logs', path: '/work-logs', group: 'Work' },
-  { icon: <ClipboardCheck className="h-5 w-5" />, label: '5S / Audits', path: '/fives', group: 'Quality' },
-  { icon: <FileText className="h-5 w-5" />, label: 'Questionnaires', path: '/questionnaires', group: 'Quality' },
-  { icon: <FileCheck2 className="h-5 w-5" />, label: 'Responses', path: '/responses', group: 'Quality' },
-  { icon: <Users className="h-5 w-5" />, label: 'Users', path: '/users', group: 'People', roles: adminRoles },
-  { icon: <Building className="h-5 w-5" />, label: 'Departments', path: '/departments', group: 'People', roles: adminRoles },
-  { icon: <BarChart3 className="h-5 w-5" />, label: 'Reports', path: '/reports', group: 'Reports' },
-  { icon: <LineChart className="h-5 w-5" />, label: 'Analytics', path: '/analytics', group: 'Reports' },
-  { icon: <Landmark className="h-5 w-5" />, label: 'Expenses', path: '/expenses', group: 'Reports' },
-  { icon: <Bell className="h-5 w-5" />, label: 'Notifications', path: '/notifications', group: 'Reports' },
-  { icon: <Download className="h-5 w-5" />, label: 'Export', path: '/export', group: 'Reports' },
-  { icon: <Target className="h-5 w-5" />, label: 'Goals', path: '/goals', group: 'Personal' },
-  { icon: <StickyNote className="h-5 w-5" />, label: 'Notes', path: '/notes', group: 'Personal' },
-  { icon: <Trophy className="h-5 w-5" />, label: 'Badges', path: '/badges', group: 'Personal' },
-  { icon: <LayoutDashboard className="h-5 w-5" />, label: 'Admin', path: '/admin', group: 'Admin', roles: adminRoles },
-  { icon: <Building className="h-5 w-5" />, label: 'Organizations', path: '/organizations', group: 'Admin', roles: adminRoles },
-  { icon: <ShieldCheck className="h-5 w-5" />, label: 'Audit Log', path: '/audit', group: 'Admin', roles: ownerRoles },
-  { icon: <Settings className="h-5 w-5" />, label: 'Settings', path: '/settings', group: 'Admin', roles: adminRoles },
+  {
+    icon: <Home className="h-5 w-5" />,
+    label: "Dashboard",
+    path: "/dashboard",
+    group: "Work",
+  },
+  {
+    icon: <Briefcase className="h-5 w-5" />,
+    label: "Projects",
+    path: "/projects",
+    group: "Work",
+  },
+  {
+    icon: <CheckSquare className="h-5 w-5" />,
+    label: "Tasks",
+    path: "/tasks",
+    group: "Work",
+  },
+  {
+    icon: <Columns3 className="h-5 w-5" />,
+    label: "Kanban",
+    path: "/kanban",
+    group: "Work",
+  },
+  {
+    icon: <CalendarDays className="h-5 w-5" />,
+    label: "Calendar",
+    path: "/calendar",
+    group: "Work",
+  },
+  {
+    icon: <Clock className="h-5 w-5" />,
+    label: "Work Logs",
+    path: "/work-logs",
+    group: "Work",
+  },
+  {
+    icon: <ClipboardCheck className="h-5 w-5" />,
+    label: "5S / Audits",
+    path: "/fives",
+    group: "Quality",
+  },
+  {
+    icon: <FileText className="h-5 w-5" />,
+    label: "Assessments",
+    path: "/assessments",
+    group: "Quality",
+  },
+  {
+    icon: <FileCheck2 className="h-5 w-5" />,
+    label: "Responses",
+    path: "/responses",
+    group: "Quality",
+  },
+  {
+    icon: <Users className="h-5 w-5" />,
+    label: "Users",
+    path: "/users",
+    group: "People",
+    roles: adminRoles,
+  },
+  {
+    icon: <Building className="h-5 w-5" />,
+    label: "Departments",
+    path: "/departments",
+    group: "People",
+    roles: adminRoles,
+  },
+  {
+    icon: <BarChart3 className="h-5 w-5" />,
+    label: "Reports",
+    path: "/reports",
+    group: "Reports",
+  },
+  {
+    icon: <LineChart className="h-5 w-5" />,
+    label: "Analytics",
+    path: "/analytics",
+    group: "Reports",
+  },
+  {
+    icon: <Landmark className="h-5 w-5" />,
+    label: "Expenses",
+    path: "/expenses",
+    group: "Reports",
+  },
+  {
+    icon: <Bell className="h-5 w-5" />,
+    label: "Notifications",
+    path: "/notifications",
+    group: "Reports",
+  },
+  {
+    icon: <Download className="h-5 w-5" />,
+    label: "Export",
+    path: "/export",
+    group: "Reports",
+  },
+  {
+    icon: <Target className="h-5 w-5" />,
+    label: "Goals",
+    path: "/goals",
+    group: "Personal",
+  },
+  {
+    icon: <StickyNote className="h-5 w-5" />,
+    label: "Notes",
+    path: "/notes",
+    group: "Personal",
+  },
+  {
+    icon: <Trophy className="h-5 w-5" />,
+    label: "Badges",
+    path: "/badges",
+    group: "Personal",
+  },
+  {
+    icon: <LayoutDashboard className="h-5 w-5" />,
+    label: "Admin",
+    path: "/admin",
+    group: "Admin",
+    roles: adminRoles,
+  },
+  {
+    icon: <Building className="h-5 w-5" />,
+    label: "Organizations",
+    path: "/organizations",
+    group: "Admin",
+    roles: adminRoles,
+  },
+  {
+    icon: <ShieldCheck className="h-5 w-5" />,
+    label: "Audit Log",
+    path: "/audit",
+    group: "Admin",
+    roles: ownerRoles,
+  },
+  {
+    icon: <Settings className="h-5 w-5" />,
+    label: "Settings",
+    path: "/settings",
+    group: "Admin",
+    roles: adminRoles,
+  },
 ];
 
-const groups: MenuItem['group'][] = ['Work', 'Quality', 'People', 'Reports', 'Personal', 'Admin'];
+const groups: MenuItem["group"][] = [
+  "Work",
+  "Quality",
+  "People",
+  "Reports",
+  "Personal",
+  "Admin",
+];
 
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = React.useState(false);
   const { user } = useAuth();
   const userRoles = user?.roles || [];
   const visibleItems = menuItems.filter(
-    (item) => !item.roles?.length || item.roles.some((role) => userRoles.includes(role as any)),
+    (item) =>
+      !item.roles?.length ||
+      item.roles.some((role) => userRoles.includes(role as any)),
   );
-  const visibleGroups = groups.filter((group) => visibleItems.some((item) => item.group === group));
+  const visibleGroups = groups.filter((group) =>
+    visibleItems.some((item) => item.group === group),
+  );
 
   return (
     <aside
       className={`flex min-h-screen flex-col bg-gray-900 text-white transition-all duration-300 ${
-        collapsed ? 'w-16' : 'w-64'
+        collapsed ? "w-16" : "w-64"
       }`}
     >
       <div className="flex items-center justify-between border-b border-gray-800 p-4">
-        {!collapsed && <h2 className="text-lg font-bold">Productivity Platform</h2>}
+        {!collapsed && (
+          <h2 className="text-lg font-bold">Productivity Platform</h2>
+        )}
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="rounded-lg p-2 hover:bg-gray-800"
         >
-          {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+          {collapsed ? (
+            <ChevronRight className="h-5 w-5" />
+          ) : (
+            <ChevronLeft className="h-5 w-5" />
+          )}
         </button>
       </div>
 
@@ -112,13 +250,17 @@ const Sidebar: React.FC = () => {
                         to={item.path}
                         className={({ isActive }) =>
                           `flex items-center rounded-lg p-3 transition-colors ${
-                            isActive ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800'
-                          } ${collapsed ? 'justify-center' : 'space-x-3'}`
+                            isActive
+                              ? "bg-blue-600 text-white"
+                              : "text-gray-300 hover:bg-gray-800"
+                          } ${collapsed ? "justify-center" : "space-x-3"}`
                         }
                         title={collapsed ? item.label : undefined}
                       >
                         <span className="flex-shrink-0">{item.icon}</span>
-                        {!collapsed && <span className="flex-1">{item.label}</span>}
+                        {!collapsed && (
+                          <span className="flex-1">{item.label}</span>
+                        )}
                       </NavLink>
                     </li>
                   ))}

@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
@@ -9,7 +10,7 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  FirebaseMessaging? _firebaseMessaging;
   bool _isInitialized = false;
 
   Future<void> initialize() async {
@@ -17,8 +18,8 @@ class NotificationService {
 
     // Android notification channel
     const AndroidInitializationSettings androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    
+        AndroidInitializationSettings('ic_notification');
+
     // iOS notification settings
     const DarwinInitializationSettings iosSettings =
         DarwinInitializationSettings(
@@ -34,19 +35,29 @@ class NotificationService {
     );
 
     await _localNotificationsPlugin.initialize(
-      initializationSettings,
+      settings: initializationSettings,
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
 
-    // Firebase messaging setup
-    await _setupFirebaseMessaging();
-    
+    // FCM is optional until platform Firebase configuration is provided.
+    try {
+      await Firebase.initializeApp();
+      _firebaseMessaging = FirebaseMessaging.instance;
+      await _setupFirebaseMessaging();
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Firebase messaging disabled: $error');
+      }
+    }
+
     _isInitialized = true;
   }
 
   Future<void> _setupFirebaseMessaging() async {
+    final FirebaseMessaging firebaseMessaging = _firebaseMessaging!;
+
     // Request permission
-    NotificationSettings settings = await _firebaseMessaging.requestPermission(
+    NotificationSettings settings = await firebaseMessaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
@@ -57,7 +68,7 @@ class NotificationService {
     }
 
     // Get FCM token
-    String? token = await _firebaseMessaging.getToken();
+    String? token = await firebaseMessaging.getToken();
     if (kDebugMode) {
       print('FCM Token: $token');
     }
@@ -94,10 +105,10 @@ class NotificationService {
     );
 
     await _localNotificationsPlugin.show(
-      0,
-      message.notification?.title ?? 'New Notification',
-      message.notification?.body ?? 'You have a new notification',
-      notificationDetails,
+      id: 0,
+      title: message.notification?.title ?? 'New Notification',
+      body: message.notification?.body ?? 'You have a new notification',
+      notificationDetails: notificationDetails,
       payload: message.data['type'] ?? 'general',
     );
   }
@@ -127,10 +138,10 @@ class NotificationService {
     );
 
     await _localNotificationsPlugin.show(
-      0,
-      title,
-      body,
-      notificationDetails,
+      id: 0,
+      title: title,
+      body: body,
+      notificationDetails: notificationDetails,
       payload: payload,
     );
   }
@@ -158,15 +169,15 @@ class NotificationService {
   }
 
   Future<String?> getFCMToken() async {
-    return await _firebaseMessaging.getToken();
+    return _firebaseMessaging?.getToken();
   }
 
   Future<void> subscribeToTopic(String topic) async {
-    await _firebaseMessaging.subscribeToTopic(topic);
+    await _firebaseMessaging?.subscribeToTopic(topic);
   }
 
   Future<void> unsubscribeFromTopic(String topic) async {
-    await _firebaseMessaging.unsubscribeFromTopic(topic);
+    await _firebaseMessaging?.unsubscribeFromTopic(topic);
   }
 
   Future<void> cancelAllNotifications() async {

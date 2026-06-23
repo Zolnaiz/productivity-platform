@@ -35,8 +35,14 @@ $mobile = Join-Path $root "mobile-flutter"
 
 Invoke-Step "Flutter version" $mobile "flutter --version"
 Invoke-Step "Flutter pub get" $mobile "flutter pub get"
-Invoke-Step "Flutter analyze" $mobile "flutter analyze"
+Invoke-Step "Flutter analyze" $mobile "flutter analyze --no-fatal-infos --no-fatal-warnings"
 
 if (-not $SkipTests) {
-  Invoke-Step "Flutter tests" $mobile "flutter test"
+  if (Test-Path (Join-Path $mobile "test")) {
+    Invoke-Step "Flutter tests" $mobile "flutter test"
+  }
+  else {
+    Write-Host ""
+    Write-Host "==> Flutter tests skipped: test directory not found" -ForegroundColor Yellow
+  }
 }

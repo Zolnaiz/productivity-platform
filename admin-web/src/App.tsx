@@ -1,206 +1,299 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { NotificationProvider } from './contexts/NotificationContext';
-import { LoadingProvider } from './contexts/LoadingContext';
-import Layout from './components/layout/Layout';
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import PlatformModulePage from './pages/PlatformModulePage';
-import ProtectedRoute from './components/common/ProtectedRoute';
-import OperationsDashboardPage from './pages/OperationsDashboardPage';
-import ProjectsPage from './pages/ProjectsPage';
-import TasksPage from './pages/TasksPage';
-import WorkLogsPage from './pages/WorkLogsPage';
-import AuditTemplatesPage from './pages/AuditTemplatesPage';
-import MonthlyReportPage from './pages/MonthlyReportPage';
-import NotificationsPage from './pages/NotificationsPage';
-import CalendarPage from './pages/CalendarPage';
-import NotesPage from './pages/NotesPage';
-import DailyGoalsPage from './pages/DailyGoalsPage';
-import PomodoroPage from './pages/PomodoroPage';
-import BadgesPage from './pages/BadgesPage';
-import TeamUsersPage from './pages/TeamUsersPage';
-import DepartmentsPage from './pages/DepartmentsPage';
-import ProfilePage from './pages/ProfilePage';
-import OrganizationsPage from './pages/OrganizationsPage';
-import SettingsPage from './pages/SettingsPage';
-import AuditLogPage from './pages/AuditLogPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import QuestionnairesPage from './pages/QuestionnairesPage';
-import ResponsesPage from './pages/ResponsesPage';
-import AnalyticsPage from './pages/AnalyticsPage';
-import ExpensesPage from './pages/ExpensesPage';
+import { Navigate, Route, Routes } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import { LoadingProvider } from "./contexts/LoadingContext";
+import Layout from "./components/layout/Layout";
+import LandingPage from "./pages/LandingPage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import PlatformModulePage from "./pages/PlatformModulePage";
+import ProtectedRoute from "./components/common/ProtectedRoute";
+import OperationsDashboardPage from "./pages/OperationsDashboardPage";
+import ProjectsPage from "./pages/ProjectsPage";
+import TasksPage from "./pages/TasksPage";
+import WorkLogsPage from "./pages/WorkLogsPage";
+import AuditTemplatesPage from "./pages/AuditTemplatesPage";
+import MonthlyReportPage from "./pages/MonthlyReportPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import CalendarPage from "./pages/CalendarPage";
+import NotesPage from "./pages/NotesPage";
+import DailyGoalsPage from "./pages/DailyGoalsPage";
+import PomodoroPage from "./pages/PomodoroPage";
+import BadgesPage from "./pages/BadgesPage";
+import TeamUsersPage from "./pages/TeamUsersPage";
+import DepartmentsPage from "./pages/DepartmentsPage";
+import ProfilePage from "./pages/ProfilePage";
+import OrganizationsPage from "./pages/OrganizationsPage";
+import SettingsPage from "./pages/SettingsPage";
+import AuditLogPage from "./pages/AuditLogPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import QuestionnairesPage from "./pages/QuestionnairesPage";
+import ResponsesPage from "./pages/ResponsesPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import ExpensesPage from "./pages/ExpensesPage";
 
 const moduleRoutes = [
   {
-    path: 'dashboard',
-    title: 'Dashboard',
-    description: 'Байгууллага, төсөл, ажилтан, ажил, audit, сарын тайлангийн нэгдсэн самбар.',
-    items: ['Project progress', 'Employee workload', 'Monthly productivity', 'Audit score'],
+    path: "dashboard",
+    title: "Dashboard",
+    description:
+      "Байгууллага, төсөл, ажилтан, ажил, audit, сарын тайлангийн нэгдсэн самбар.",
+    items: [
+      "Project progress",
+      "Employee workload",
+      "Monthly productivity",
+      "Audit score",
+    ],
   },
   {
-    path: 'projects',
-    title: 'Төслүүд',
-    description: 'Төсөл бүрийн явц, deadline, баг, ажлын биелэлтийг нэг дор харуулна.',
-    items: ['Project progress', 'Team ownership', 'Milestones', 'Budget and deadline'],
+    path: "projects",
+    title: "Төслүүд",
+    description:
+      "Төсөл бүрийн явц, deadline, баг, ажлын биелэлтийг нэг дор харуулна.",
+    items: [
+      "Project progress",
+      "Team ownership",
+      "Milestones",
+      "Budget and deadline",
+    ],
   },
   {
-    path: 'tasks',
-    title: 'Ажлууд',
-    description: 'Ирээдүйд хийх ажил, шинээр гарсан ажил, өдөр тутмын гүйцэтгэлийг бүртгэнэ.',
-    items: ['Assignee and priority', 'Status workflow', 'Due dates', 'Estimated and actual hours'],
+    path: "tasks",
+    title: "Ажлууд",
+    description:
+      "Ирээдүйд хийх ажил, шинээр гарсан ажил, өдөр тутмын гүйцэтгэлийг бүртгэнэ.",
+    items: [
+      "Assignee and priority",
+      "Status workflow",
+      "Due dates",
+      "Estimated and actual hours",
+    ],
   },
   {
-    path: 'kanban',
-    title: 'Kanban',
-    description: 'Backlog, хийх, хийж байгаа, review, дууссан гэсэн ажлын урсгал.',
-    items: ['Drag and drop board', 'Sprint view', 'Blocked work', 'Quick updates'],
+    path: "kanban",
+    title: "Kanban",
+    description:
+      "Backlog, хийх, хийж байгаа, review, дууссан гэсэн ажлын урсгал.",
+    items: [
+      "Drag and drop board",
+      "Sprint view",
+      "Blocked work",
+      "Quick updates",
+    ],
   },
   {
-    path: 'calendar',
-    title: 'Календар',
-    description: 'Ажил, төсөл, audit, тайлангийн хугацааг календар дээр төлөвлөнө.',
-    items: ['Task deadlines', 'Audit schedules', 'Monthly reports', 'Team workload'],
+    path: "calendar",
+    title: "Календар",
+    description:
+      "Ажил, төсөл, audit, тайлангийн хугацааг календар дээр төлөвлөнө.",
+    items: [
+      "Task deadlines",
+      "Audit schedules",
+      "Monthly reports",
+      "Team workload",
+    ],
   },
   {
-    path: 'work-logs',
-    title: 'Өдрийн ажлын бүртгэл',
-    description: 'Ажилтан бүр хийсэн ажил, зарцуулсан цаг, blocker, дараагийн алхмаа тэмдэглэнэ.',
-    items: ['Daily summary', 'Project/task link', 'Blockers', 'Next actions'],
+    path: "work-logs",
+    title: "Өдрийн ажлын бүртгэл",
+    description:
+      "Ажилтан бүр хийсэн ажил, зарцуулсан цаг, blocker, дараагийн алхмаа тэмдэглэнэ.",
+    items: ["Daily summary", "Project/task link", "Blockers", "Next actions"],
   },
   {
-    path: 'time',
-    title: 'Цаг бүртгэл',
-    description: 'Ажил дээр байсан цаг, task дээр зарцуулсан цаг, сарын нийлбэрийг бүртгэнэ.',
-    items: ['Clock in/out', 'Task timer', 'Monthly totals', 'Timesheet approval'],
+    path: "time",
+    title: "Цаг бүртгэл",
+    description:
+      "Ажил дээр байсан цаг, task дээр зарцуулсан цаг, сарын нийлбэрийг бүртгэнэ.",
+    items: [
+      "Clock in/out",
+      "Task timer",
+      "Monthly totals",
+      "Timesheet approval",
+    ],
   },
   {
-    path: 'fives',
-    title: '5S Audit',
-    description: '5S checklist бөглөх, оноо тооцох, сайжруулалтын action үүсгэх module.',
-    items: ['Sort', 'Set in order', 'Shine', 'Standardize', 'Sustain'],
+    path: "fives",
+    title: "5S Audit",
+    description:
+      "5S checklist бөглөх, оноо тооцох, сайжруулалтын action үүсгэх module.",
+    items: ["Sort", "Set in order", "Shine", "Standardize", "Sustain"],
   },
   {
-    path: 'audit-templates',
-    title: 'Audit Templates',
-    description: 'Manufacturing, construction, retail, logistics зэрэг салбарын checklist загварууд.',
-    items: ['Safety', 'Quality', 'Compliance', 'Risk', 'Operational excellence'],
+    path: "audit-templates",
+    title: "Audit Templates",
+    description:
+      "Manufacturing, construction, retail, logistics зэрэг салбарын checklist загварууд.",
+    items: [
+      "Safety",
+      "Quality",
+      "Compliance",
+      "Risk",
+      "Operational excellence",
+    ],
   },
   {
-    path: 'organizations',
-    title: 'Organizations',
-    description: 'Байгууллага, салбар, workspace тохиргоо, subscription, үндсэн мэдээлэл.',
-    items: ['Workspace profile', 'Industry', 'Branches', 'Organization reports'],
+    path: "organizations",
+    title: "Organizations",
+    description:
+      "Байгууллага, салбар, workspace тохиргоо, subscription, үндсэн мэдээлэл.",
+    items: [
+      "Workspace profile",
+      "Industry",
+      "Branches",
+      "Organization reports",
+    ],
   },
   {
-    path: 'users',
-    title: 'Users',
-    description: 'Owner, admin, manager, employee эрхтэй хэрэглэгчдийн удирдлага.',
-    items: ['Roles', 'Departments', 'Permissions', 'Employee profile'],
+    path: "users",
+    title: "Users",
+    description:
+      "Owner, admin, manager, employee эрхтэй хэрэглэгчдийн удирдлага.",
+    items: ["Roles", "Departments", "Permissions", "Employee profile"],
   },
   {
-    path: 'departments',
-    title: 'Хэлтсүүд',
-    description: 'Байгууллагын хэлтэс, баг, manager, ажилтнуудын бүтэц.',
-    items: ['Department tree', 'Managers', 'Members', 'Department reports'],
+    path: "departments",
+    title: "Хэлтсүүд",
+    description: "Байгууллагын хэлтэс, баг, manager, ажилтнуудын бүтэц.",
+    items: ["Department tree", "Managers", "Members", "Department reports"],
   },
   {
-    path: 'questionnaires',
-    title: 'Questionnaires',
-    description: 'Checklist болон assessment form үүсгэх үндсэн builder.',
-    items: ['Questions', 'Scoring', 'Template library', 'Response collection'],
+    path: "assessments",
+    title: "Assessments",
+    description: "Checklist болон assessment form үүсгэх үндсэн builder.",
+    items: ["Questions", "Scoring", "Template library", "Response collection"],
   },
   {
-    path: 'responses',
-    title: 'Responses',
-    description: 'Асуулга, checklist, audit бөглөсөн хариултуудын нэгтгэл.',
-    items: ['Submissions', 'Scores', 'Review', 'Corrective actions'],
+    path: "responses",
+    title: "Responses",
+    description: "Асуулга, checklist, audit бөглөсөн хариултуудын нэгтгэл.",
+    items: ["Submissions", "Scores", "Review", "Corrective actions"],
   },
   {
-    path: 'expenses',
-    title: 'Expenses',
-    description: 'Төсөл болон байгууллагын зардлын бүртгэл, тайлантай холбох хэсэг.',
-    items: ['Expense log', 'Project budget', 'Approval', 'Forecast'],
+    path: "expenses",
+    title: "Expenses",
+    description:
+      "Төсөл болон байгууллагын зардлын бүртгэл, тайлантай холбох хэсэг.",
+    items: ["Expense log", "Project budget", "Approval", "Forecast"],
   },
   {
-    path: 'reports',
-    title: 'Reports',
-    description: 'Ажилтан, төсөл, хэлтэс, байгууллагын сарын болон нэгдсэн тайлан.',
-    items: ['Monthly employee report', 'Project report', 'Audit report', 'PDF/CSV/Excel'],
+    path: "reports",
+    title: "Reports",
+    description:
+      "Ажилтан, төсөл, хэлтэс, байгууллагын сарын болон нэгдсэн тайлан.",
+    items: [
+      "Monthly employee report",
+      "Project report",
+      "Audit report",
+      "PDF/CSV/Excel",
+    ],
   },
   {
-    path: 'analytics',
-    title: 'Analytics',
-    description: 'Бүтээмж, workload, completion rate, overdue task, audit score-г харуулна.',
-    items: ['Employee productivity', 'Project completion', 'Audit trends', 'Department comparison'],
+    path: "analytics",
+    title: "Analytics",
+    description:
+      "Бүтээмж, workload, completion rate, overdue task, audit score-г харуулна.",
+    items: [
+      "Employee productivity",
+      "Project completion",
+      "Audit trends",
+      "Department comparison",
+    ],
   },
   {
-    path: 'notifications',
-    title: 'Мэдэгдэл',
-    description: 'Ажил оноох, хугацаа дөхөх, approve хийх, тайлан гарах мэдэгдлүүд.',
-    items: ['Assignments', 'Due dates', 'Approvals', 'Monthly report ready'],
+    path: "notifications",
+    title: "Мэдэгдэл",
+    description:
+      "Ажил оноох, хугацаа дөхөх, approve хийх, тайлан гарах мэдэгдлүүд.",
+    items: ["Assignments", "Due dates", "Approvals", "Monthly report ready"],
   },
   {
-    path: 'profile',
-    title: 'Профайл',
-    description: 'Ажилтны хувийн мэдээлэл, role, productivity summary, сарын үзүүлэлт.',
-    items: ['Personal info', 'Role and department', 'Monthly work summary', 'Badges'],
+    path: "profile",
+    title: "Профайл",
+    description:
+      "Ажилтны хувийн мэдээлэл, role, productivity summary, сарын үзүүлэлт.",
+    items: [
+      "Personal info",
+      "Role and department",
+      "Monthly work summary",
+      "Badges",
+    ],
   },
   {
-    path: 'pomodoro',
-    title: 'Pomodoro',
-    description: 'Focus session бүртгэж task болон work log-той холбох productivity хэрэгсэл.',
-    items: ['Focus timer', 'Breaks', 'Task link', 'Daily focus total'],
+    path: "pomodoro",
+    title: "Pomodoro",
+    description:
+      "Focus session бүртгэж task болон work log-той холбох productivity хэрэгсэл.",
+    items: ["Focus timer", "Breaks", "Task link", "Daily focus total"],
   },
   {
-    path: 'notes',
-    title: 'Тэмдэглэл',
-    description: 'Ажилтан өөрийн тэмдэглэл, meeting note, project note хадгална.',
-    items: ['Personal notes', 'Project notes', 'Meeting notes', 'Search'],
+    path: "notes",
+    title: "Тэмдэглэл",
+    description:
+      "Ажилтан өөрийн тэмдэглэл, meeting note, project note хадгална.",
+    items: ["Personal notes", "Project notes", "Meeting notes", "Search"],
   },
   {
-    path: 'goals',
-    title: 'Өдрийн зорилго',
-    description: 'Өдрийн зорилго, биелэлт, дараагийн ажилтай холбосон tracking.',
-    items: ['Daily goals', 'Completion', 'Carry-over', 'Review'],
+    path: "goals",
+    title: "Өдрийн зорилго",
+    description:
+      "Өдрийн зорилго, биелэлт, дараагийн ажилтай холбосон tracking.",
+    items: ["Daily goals", "Completion", "Carry-over", "Review"],
   },
   {
-    path: 'badges',
-    title: 'Badges',
-    description: 'Гүйцэтгэл, чанар, тогтмол байдлаар ажилтны recognition өгөх хэсэг.',
-    items: ['Completion streaks', 'Quality score', 'Team recognition', 'Monthly awards'],
+    path: "badges",
+    title: "Badges",
+    description:
+      "Гүйцэтгэл, чанар, тогтмол байдлаар ажилтны recognition өгөх хэсэг.",
+    items: [
+      "Completion streaks",
+      "Quality score",
+      "Team recognition",
+      "Monthly awards",
+    ],
   },
   {
-    path: 'export',
-    title: 'Export Reports',
-    description: 'PDF, CSV, Excel тайлан экспортлох, сарын тайлан татах хэсэг.',
-    items: ['PDF', 'CSV', 'Excel', 'Scheduled exports'],
+    path: "export",
+    title: "Export Reports",
+    description: "PDF, CSV, Excel тайлан экспортлох, сарын тайлан татах хэсэг.",
+    items: ["PDF", "CSV", "Excel", "Scheduled exports"],
   },
   {
-    path: 'admin',
-    title: 'Admin Dashboard',
-    description: 'Байгууллага, хэрэглэгч, module, template, тайлангийн удирдлагын төв.',
-    items: ['Workspace overview', 'Users', 'Templates', 'Reports', 'Settings'],
+    path: "admin",
+    title: "Admin Dashboard",
+    description:
+      "Байгууллага, хэрэглэгч, module, template, тайлангийн удирдлагын төв.",
+    items: ["Workspace overview", "Users", "Templates", "Reports", "Settings"],
   },
   {
-    path: 'audit',
-    title: 'Audit Log',
-    description: 'Owner-д зориулсан системийн өөрчлөлт, login, permission, report үйлдлийн мөр.',
-    items: ['User activity', 'Permission changes', 'Report generation', 'Security events'],
+    path: "audit",
+    title: "Audit Log",
+    description:
+      "Owner-д зориулсан системийн өөрчлөлт, login, permission, report үйлдлийн мөр.",
+    items: [
+      "User activity",
+      "Permission changes",
+      "Report generation",
+      "Security events",
+    ],
   },
   {
-    path: 'settings',
-    title: 'Settings',
-    description: 'Workspace, profile, security, notification, report тохиргоо.',
-    items: ['Workspace settings', 'Security', 'Notifications', 'Report automation'],
+    path: "settings",
+    title: "Settings",
+    description: "Workspace, profile, security, notification, report тохиргоо.",
+    items: [
+      "Workspace settings",
+      "Security",
+      "Notifications",
+      "Report automation",
+    ],
   },
 ];
 
-const adminRoles = ['admin', 'super_admin'];
-const ownerRoles = ['super_admin'];
+const adminRoles = ["admin", "super_admin"];
+const ownerRoles = ["super_admin"];
 
 function App() {
   return (
@@ -219,7 +312,11 @@ function App() {
                   <PlatformModulePage
                     title="Нууц үг сэргээх"
                     description="И-мэйлээр token илгээж нууц үг сэргээх public урсгал."
-                    items={['Email request', 'Reset token', 'Security audit log']}
+                    items={[
+                      "Email request",
+                      "Reset token",
+                      "Security audit log",
+                    ]}
                   />
                 }
               />
@@ -229,7 +326,11 @@ function App() {
                   <PlatformModulePage
                     title="Шинэ нууц үг"
                     description="Token баталгаажуулж шинэ нууц үг хадгалах дэлгэц."
-                    items={['Token validation', 'New password form', 'Session cleanup']}
+                    items={[
+                      "Token validation",
+                      "New password form",
+                      "Session cleanup",
+                    ]}
                   />
                 }
               />
@@ -249,7 +350,10 @@ function App() {
                 <Route path="work-logs" element={<WorkLogsPage />} />
                 <Route path="time" element={<WorkLogsPage />} />
                 <Route path="fives" element={<AuditTemplatesPage />} />
-                <Route path="audit-templates" element={<AuditTemplatesPage />} />
+                <Route
+                  path="audit-templates"
+                  element={<AuditTemplatesPage />}
+                />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="reports" element={<MonthlyReportPage />} />
                 <Route path="export" element={<MonthlyReportPage />} />
@@ -306,7 +410,11 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route path="questionnaires" element={<QuestionnairesPage />} />
+                <Route path="assessments" element={<QuestionnairesPage />} />
+                <Route
+                  path="questionnaires"
+                  element={<Navigate to="/assessments" replace />}
+                />
                 <Route path="responses" element={<ResponsesPage />} />
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="expenses" element={<ExpensesPage />} />
@@ -314,33 +422,34 @@ function App() {
                   .filter(
                     (route) =>
                       ![
-                        'dashboard',
-                        'projects',
-                        'tasks',
-                        'kanban',
-                        'calendar',
-                        'work-logs',
-                        'time',
-                        'fives',
-                        'audit-templates',
-                        'notifications',
-                        'reports',
-                        'export',
-                        'notes',
-                        'goals',
-                        'pomodoro',
-                        'badges',
-                        'users',
-                        'departments',
-                        'profile',
-                        'organizations',
-                        'settings',
-                        'audit',
-                        'admin',
-                        'questionnaires',
-                        'responses',
-                        'analytics',
-                        'expenses',
+                        "dashboard",
+                        "projects",
+                        "tasks",
+                        "kanban",
+                        "calendar",
+                        "work-logs",
+                        "time",
+                        "fives",
+                        "audit-templates",
+                        "notifications",
+                        "reports",
+                        "export",
+                        "notes",
+                        "goals",
+                        "pomodoro",
+                        "badges",
+                        "users",
+                        "departments",
+                        "profile",
+                        "organizations",
+                        "settings",
+                        "audit",
+                        "admin",
+                        "assessments",
+                        "questionnaires",
+                        "responses",
+                        "analytics",
+                        "expenses",
                       ].includes(route.path),
                   )
                   .map((route) => (

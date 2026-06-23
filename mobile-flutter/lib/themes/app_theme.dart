@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'colors.dart';
 
@@ -195,7 +196,7 @@ class AppTheme {
     ),
     
     // Card theme
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: Colors.white,
       elevation: 2,
       shadowColor: Colors.grey.shade200,
@@ -206,7 +207,7 @@ class AppTheme {
     ),
     
     // Dialog theme
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: Colors.white,
       elevation: 8,
       shape: RoundedRectangleBorder(
@@ -273,7 +274,7 @@ class AppTheme {
     ),
     
     // Tab bar theme
-    tabBarTheme: const TabBarTheme(
+    tabBarTheme: const TabBarThemeData(
       indicatorSize: TabBarIndicatorSize.tab,
       labelColor: AppColors.primary,
       unselectedLabelColor: AppColors.textTertiary,
@@ -328,7 +329,7 @@ class AppTheme {
     ),
     
     // Progress indicator theme
-    progressIndicatorTheme: const ProgressIndicatorThemeData(
+    progressIndicatorTheme: ProgressIndicatorThemeData(
       color: AppColors.primary,
       linearTrackColor: Colors.grey.shade200,
       circularTrackColor: Colors.grey.shade200,
@@ -573,7 +574,7 @@ class AppTheme {
     ),
     
     // Card theme
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.surfaceDark,
       elevation: 2,
       shadowColor: Colors.black.withOpacity(0.3),
@@ -584,7 +585,7 @@ class AppTheme {
     ),
     
     // Dialog theme
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: AppColors.surfaceDark,
       elevation: 8,
       shape: RoundedRectangleBorder(
@@ -651,7 +652,7 @@ class AppTheme {
     ),
     
     // Tab bar theme
-    tabBarTheme: const TabBarTheme(
+    tabBarTheme: const TabBarThemeData(
       indicatorSize: TabBarIndicatorSize.tab,
       labelColor: AppColors.primary,
       unselectedLabelColor: AppColors.textTertiaryDark,

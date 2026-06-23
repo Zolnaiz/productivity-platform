@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/primary_button.dart';
@@ -26,6 +27,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   bool _termsAccepted = false;
 
+  void _showUnavailable(String document) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$document will be available soon')),
+    );
+  }
+
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_termsAccepted) {
@@ -39,17 +46,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+    final fullName =
+        '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
+            .trim();
+
     final success = await authProvider.register(
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
+      fullName: fullName,
+      organizationCode: _organizationNameController.text.trim(),
       organizationName: _organizationNameController.text.trim(),
     );
 
     if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/dashboard');
+      context.go('/dashboard');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -185,7 +195,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           const Text('I agree to the '),
                           GestureDetector(
                             onTap: () {
-                              Navigator.pushNamed(context, '/terms');
+                              _showUnavailable('Terms and Conditions');
                             },
                             child: const Text(
                               'Terms and Conditions',
@@ -198,7 +208,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           const Text(' and '),
                           GestureDetector(
                             onTap: () {
-                              Navigator.pushNamed(context, '/privacy');
+                              _showUnavailable('Privacy Policy');
                             },
                             child: const Text(
                               'Privacy Policy',

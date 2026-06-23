@@ -175,7 +175,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<void> updateProfile(Map<String, dynamic> data) async {
+  Future<bool> updateProfile(Map<String, dynamic> data) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -188,9 +188,16 @@ class AuthProvider with ChangeNotifier {
       if (data.containsKey('fullName')) {
         _user = _user?.copyWith(fullName: data['fullName']);
       }
+      if (data.containsKey('firstName') || data.containsKey('lastName')) {
+        final firstName = data['firstName'] ?? _user?.firstName ?? '';
+        final lastName = data['lastName'] ?? _user?.lastName ?? '';
+        _user = _user?.copyWith(fullName: '$firstName $lastName'.trim());
+      }
 
-      if (data.containsKey('phoneNumber')) {
-        _user = _user?.copyWith(phoneNumber: data['phoneNumber']);
+      if (data.containsKey('phoneNumber') || data.containsKey('phone')) {
+        _user = _user?.copyWith(
+          phoneNumber: data['phoneNumber'] ?? data['phone'],
+        );
       }
 
       final prefs = await _prefsFuture;
@@ -199,11 +206,13 @@ class AuthProvider with ChangeNotifier {
 
       _isLoading = false;
       notifyListeners();
+      return true;
     } catch (e) {
       _error = e.toString();
       print('Profile update error: $_error');
       _isLoading = false;
       notifyListeners();
+      return false;
     }
   }
 
@@ -245,22 +254,22 @@ class AuthProvider with ChangeNotifier {
     };
   }
 
-  Future<void> fromJson(Map<String, dynamic> json) async {
+  Future<void> fromJson(Map<String, dynamic> value) async {
     try {
-      if (json['user'] != null) {
-        _user = User.fromJson(json['user'] as Map<String, dynamic>);
+      if (value['user'] != null) {
+        _user = User.fromJson(value['user'] as Map<String, dynamic>);
       }
 
-      if (json['organization'] != null) {
+      if (value['organization'] != null) {
         _organization = Organization.fromJson(
-          json['organization'] as Map<String, dynamic>,
+          value['organization'] as Map<String, dynamic>,
         );
       }
 
-      _isAuthenticated = json['isAuthenticated'] ?? false;
+      _isAuthenticated = value['isAuthenticated'] ?? false;
 
       final prefs = await _prefsFuture;
-      await prefs.setString('user', json.encode(json['user']));
+      await prefs.setString('user', json.encode(value['user']));
 
       notifyListeners();
     } catch (e) {

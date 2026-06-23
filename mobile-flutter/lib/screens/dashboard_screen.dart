@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import '../providers/auth_provider.dart';
 import '../providers/questionnaire_provider.dart';
 import '../models/questionnaire_model.dart';
@@ -13,6 +15,10 @@ import '../widgets/kpi_card.dart';
 import '../widgets/loading_indicator.dart';
 import '../utils/constants.dart';
 import '../themes/colors.dart';
+import 'expense_list_screen.dart';
+import 'profile_screen.dart';
+import 'questionnaire_list_screen.dart';
+import 'report_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -48,11 +54,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       _selectedIndex = index;
     });
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    _pageController.jumpToPage(index);
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildDashboardTab() {
@@ -85,7 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildWelcomeSection() {
     final authProvider = Provider.of<AuthProvider>(context);
-    
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -136,7 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
-      childAspectRatio: 1.2,
+      childAspectRatio: 1.05,
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
       children: [
@@ -145,28 +153,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
           value: '5',
           icon: Icons.assignment_outlined,
           color: Colors.blue,
-          onTap: () {},
+          onTap: () => _onItemTapped(1),
         ),
         KpiCard(
           title: 'Expenses This Month',
           value: '\$1,250',
           icon: Icons.attach_money_outlined,
           color: Colors.green,
-          onTap: () {},
+          onTap: () => _onItemTapped(2),
         ),
         KpiCard(
           title: 'Response Rate',
           value: '78%',
           icon: Icons.trending_up_outlined,
           color: Colors.orange,
-          onTap: () {},
+          onTap: () => _onItemTapped(1),
         ),
         KpiCard(
           title: 'Reports Generated',
           value: '12',
           icon: Icons.description_outlined,
           color: Colors.purple,
-          onTap: () {},
+          onTap: () => _onItemTapped(3),
         ),
       ],
     );
@@ -174,7 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildRecentQuestionnaires() {
     final questionnaireProvider = Provider.of<QuestionnaireProvider>(context);
-    
+
     if (questionnaireProvider.isLoading) {
       return const LoadingIndicator();
     }
@@ -212,9 +220,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/questionnaires/create');
-              },
+              onPressed: () => _onItemTapped(1),
               child: const Text('Create Questionnaire'),
             ),
           ],
@@ -236,9 +242,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/questionnaires');
-              },
+              onPressed: () => _onItemTapped(1),
               child: const Text('View All'),
             ),
           ],
@@ -250,12 +254,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: QuestionnaireCard(
                     questionnaire: questionnaire,
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/questionnaires/${questionnaire.id}',
-                      );
-                    },
+                    onTap: () => context.push(
+                      '/questionnaires/${questionnaire.id}',
+                    ),
                   ),
                 ))
             .toList(),
@@ -265,7 +266,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildRecentExpenses() {
     final List<Expense> recentExpenses = []; // Mock data
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -280,9 +281,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/expenses');
-              },
+              onPressed: () => _onItemTapped(2),
               child: const Text('View All'),
             ),
           ],
@@ -321,9 +320,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/expenses/create');
-                  },
+                  onPressed: () => context.push('/expenses/new'),
                   child: const Text('Add Expense'),
                 ),
               ],
@@ -336,12 +333,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: ExpenseCard(
                       expense: expense,
-                      onTap: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/expenses/${expense.id}',
-                        );
-                      },
+                      onTap: () => _onItemTapped(2),
                     ),
                   ))
               .toList(),
@@ -372,30 +364,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _buildQuickActionButton(
               icon: Icons.add,
               label: 'New Questionnaire',
-              onTap: () {
-                Navigator.pushNamed(context, '/questionnaires/create');
-              },
+              onTap: () => _onItemTapped(1),
             ),
             _buildQuickActionButton(
               icon: Icons.receipt_long,
               label: 'Add Expense',
-              onTap: () {
-                Navigator.pushNamed(context, '/expenses/create');
-              },
+              onTap: () => context.push('/expenses/new'),
             ),
             _buildQuickActionButton(
               icon: Icons.description,
               label: 'Generate Report',
-              onTap: () {
-                Navigator.pushNamed(context, '/reports/create');
-              },
+              onTap: () => _onItemTapped(3),
             ),
             _buildQuickActionButton(
               icon: Icons.share,
               label: 'Share Data',
-              onTap: () {
-                // Implement share functionality
-              },
+              onTap: () => SharePlus.instance.share(
+                ShareParams(
+                  text: 'Productivity Platform dashboard',
+                  subject: 'Productivity Platform',
+                ),
+              ),
             ),
           ],
         ),
@@ -436,97 +425,90 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildQuestionnairesTab() {
-    return const Center(
-      child: Text('Questionnaires Tab'),
-    );
+    return const QuestionnaireListScreen();
   }
 
   Widget _buildExpensesTab() {
-    return const Center(
-      child: Text('Expenses Tab'),
-    );
+    return const ExpenseListScreen();
   }
 
   Widget _buildReportsTab() {
-    return const Center(
-      child: Text('Reports Tab'),
-    );
+    return const ReportScreen();
   }
 
   Widget _buildProfileTab() {
-    return const Center(
-      child: Text('Profile Tab'),
-    );
+    return const ProfileScreen();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              Navigator.pushNamed(context, '/notifications');
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              Navigator.pushNamed(context, '/search');
-            },
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'settings':
-                  Navigator.pushNamed(context, '/settings');
-                  break;
-                case 'help':
-                  Navigator.pushNamed(context, '/help');
-                  break;
-                case 'logout':
-                  Provider.of<AuthProvider>(context, listen: false).logout();
-                  Navigator.pushReplacementNamed(context, '/login');
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'settings',
-                child: Row(
-                  children: [
-                    Icon(Icons.settings_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('Settings'),
+      appBar: _selectedIndex == 0
+          ? AppBar(
+              title: const Text('Dashboard'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  tooltip: 'Notifications',
+                  onPressed: () => _showMessage('No new notifications'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  tooltip: 'Search forms',
+                  onPressed: () => _onItemTapped(1),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'settings':
+                        context.push('/settings');
+                        break;
+                      case 'help':
+                        _showMessage(
+                            'Support information will be available soon');
+                        break;
+                      case 'logout':
+                        Provider.of<AuthProvider>(context, listen: false)
+                            .logout();
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'settings',
+                      child: Row(
+                        children: [
+                          Icon(Icons.settings_outlined, size: 20),
+                          SizedBox(width: 8),
+                          Text('Settings'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'help',
+                      child: Row(
+                        children: [
+                          Icon(Icons.help_outline, size: 20),
+                          SizedBox(width: 8),
+                          Text('Help & Support'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'logout',
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout_outlined, size: 20),
+                          SizedBox(width: 8),
+                          Text('Logout'),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              const PopupMenuItem(
-                value: 'help',
-                child: Row(
-                  children: [
-                    Icon(Icons.help_outline, size: 20),
-                    SizedBox(width: 8),
-                    Text('Help & Support'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('Logout'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+              ],
+            )
+          : null,
       body: PageView(
         controller: _pageController,
         onPageChanged: (index) {
@@ -555,7 +537,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment_outlined),
             activeIcon: Icon(Icons.assignment),
-            label: 'Questionnaires',
+            label: 'Forms',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long_outlined),

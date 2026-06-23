@@ -11,10 +11,6 @@ import 'providers/auth_provider.dart';
 import 'providers/expense_provider.dart';
 import 'providers/questionnaire_provider.dart';
 import 'providers/theme_provider.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/login_screen.dart';
-// Screens
-import 'screens/splash_screen.dart';
 // Services
 import 'services/api_service.dart';
 import 'services/notification_service.dart';
@@ -39,7 +35,11 @@ void main() async {
   // Initialize services
   await StorageService().init();
   await ApiService().initialize();
-  await NotificationService().initialize();
+  try {
+    await NotificationService().initialize();
+  } catch (error) {
+    debugPrint('Notification initialization skipped: $error');
+  }
 
   // No pending font initialization required; fonts loaded when used.
 
@@ -63,23 +63,23 @@ class ProductivityApp extends StatelessWidget {
       child: Consumer<ThemeProvider>(
         builder:
             (BuildContext context, ThemeProvider themeProvider, Widget? child) {
-              return MaterialApp.router(
-                title: 'Productivity Platform',
-                debugShowCheckedModeBanner: false,
-                theme: _buildLightTheme(),
-                darkTheme: _buildDarkTheme(),
-                themeMode: themeProvider.themeMode,
-                routerConfig: AppRouter.createRouter(
-                  Provider.of<AuthProvider>(context, listen: false),
-                ),
-                builder: (BuildContext context, Widget? child) {
-                  return MediaQuery(
-                    data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
-                    child: child!,
-                  );
-                },
+          return MaterialApp.router(
+            title: 'Productivity Platform',
+            debugShowCheckedModeBanner: false,
+            theme: _buildLightTheme(),
+            darkTheme: _buildDarkTheme(),
+            themeMode: themeProvider.themeMode,
+            routerConfig: AppRouter.createRouter(
+              Provider.of<AuthProvider>(context, listen: false),
+            ),
+            builder: (BuildContext context, Widget? child) {
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+                child: child!,
               );
             },
+          );
+        },
       ),
     );
   }
@@ -106,7 +106,7 @@ class ProductivityApp extends StatelessWidget {
           color: Colors.black87,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         color: Colors.white,
@@ -296,7 +296,7 @@ class ProductivityApp extends StatelessWidget {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         color: const Color(0xFF1E1E2E),
