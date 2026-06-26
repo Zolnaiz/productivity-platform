@@ -30,6 +30,8 @@ const createService = (allowPublicOperations = false) => {
     assessmentTemplates: createRepository(),
     assessmentResponses: createRepository(),
     expenses: createRepository(),
+    dailyGoals: createRepository(),
+    fiveSLayouts: createRepository(),
   };
 
   const service = new OperationsService(
@@ -43,6 +45,8 @@ const createService = (allowPublicOperations = false) => {
     repositories.assessmentTemplates as any,
     repositories.assessmentResponses as any,
     repositories.expenses as any,
+    repositories.dailyGoals as any,
+    repositories.fiveSLayouts as any,
   );
 
   return { service, repositories };
@@ -198,6 +202,155 @@ describe('OperationsService organization scoping', () => {
     expect(result).toEqual({ id: 'project-1', deleted: true });
   });
 
+  it('scopes daily goals to the current user and organization', async () => {
+    const { service, repositories } = createService();
+    repositories.dailyGoals.find.mockResolvedValue([]);
+
+    await service.findDailyGoals({ id: 'user-1', organizationId: 'org-1' });
+
+    expect(repositories.dailyGoals.find).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      order: { date: 'DESC', createdAt: 'DESC' },
+    });
+  });
+
+  it('uses current user scope when creating daily goals', async () => {
+    const { service, repositories } = createService();
+
+    await service.createDailyGoal(
+      {
+        title: 'Finish goal wall',
+        organizationId: 'payload-org',
+        userId: 'payload-user',
+        completed: true,
+      } as any,
+      { id: 'user-1', organizationId: 'org-1' },
+    );
+
+    expect(repositories.dailyGoals.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Finish goal wall',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        completed: true,
+      }),
+    );
+  });
+
+  it('does not allow daily goal updates to move organization or user scope', async () => {
+    const { service, repositories } = createService();
+    const existingGoal = {
+      id: 'goal-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      title: 'Old goal',
+      completed: false,
+    };
+    repositories.dailyGoals.findOne.mockResolvedValue(existingGoal);
+
+    await service.updateDailyGoal(
+      'goal-1',
+      {
+        title: 'Updated goal',
+        organizationId: 'org-2',
+        userId: 'user-2',
+        completed: true,
+      } as any,
+      { id: 'user-1', organizationId: 'org-1' },
+    );
+
+    expect(repositories.dailyGoals.findOne).toHaveBeenCalledWith({
+      where: {
+        id: 'goal-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    });
+    expect(repositories.dailyGoals.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'goal-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        title: 'Updated goal',
+        completed: true,
+      }),
+    );
+  });
+
+  it('creates a default 5S layout when the organization has none', async () => {
+    const { service, repositories } = createService();
+    repositories.fiveSLayouts.findOne.mockResolvedValue(undefined);
+
+    const layout = await service.findFiveSLayout({ id: 'user-1', organizationId: 'org-1' });
+
+    expect(repositories.fiveSLayouts.findOne).toHaveBeenCalledWith({
+      where: { organizationId: 'org-1' },
+    });
+    expect(repositories.fiveSLayouts.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        name: '5S area map',
+        backgroundImage: '',
+        backgroundOpacity: 0.55,
+        showGrid: true,
+        zones: [],
+        objects: [],
+      }),
+    );
+    expect(layout).toEqual(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        zones: [],
+      }),
+    );
+  });
+
+  it('updates the existing organization 5S layout without accepting payload organization changes', async () => {
+    const { service, repositories } = createService();
+    const existingLayout = {
+      id: 'layout-1',
+      organizationId: 'org-1',
+      name: 'Old layout',
+      zones: [],
+      objects: [],
+    };
+    repositories.fiveSLayouts.findOne.mockResolvedValue(existingLayout);
+
+    await service.upsertFiveSLayout(
+      {
+        organizationId: 'org-2',
+        name: 'Office 5S map',
+        site: 'HQ',
+        scale: '1 square = 1 meter',
+        backgroundImage: 'data:image/png;base64,abc',
+        backgroundOpacity: 0.4,
+        showGrid: false,
+        zones: [{ id: 'zone-1', code: 'A01' }],
+        objects: [{ id: 'wall-1', type: 'wall' }],
+      } as any,
+      { id: 'user-1', organizationId: 'org-1' },
+    );
+
+    expect(repositories.fiveSLayouts.findOne).toHaveBeenCalledWith({
+      where: { organizationId: 'org-1' },
+    });
+    expect(repositories.fiveSLayouts.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'layout-1',
+        organizationId: 'org-1',
+        name: 'Office 5S map',
+        site: 'HQ',
+        backgroundImage: 'data:image/png;base64,abc',
+        backgroundOpacity: 0.4,
+        showGrid: false,
+        zones: [{ id: 'zone-1', code: 'A01' }],
+      }),
+    );
+  });
+
   it('filters monthly report activity by requested month', async () => {
     const { service, repositories } = createService();
     repositories.projects.find.mockResolvedValue([{ id: 'project-1', organizationId: 'org-1', progress: 50 }]);
@@ -225,6 +378,11 @@ describe('OperationsService organization scoping', () => {
       { id: 'expense-june', organizationId: 'org-1', expenseDate: '2026-06-12', status: 'approved', amount: 100 },
       { id: 'expense-july', organizationId: 'org-1', expenseDate: '2026-07-12', status: 'approved', amount: 300 },
     ]);
+    repositories.dailyGoals.find.mockResolvedValue([
+      { id: 'goal-june-done', organizationId: 'org-1', userId: 'user-1', date: '2026-06-12', completed: true },
+      { id: 'goal-june-open', organizationId: 'org-1', userId: 'user-1', date: '2026-06-13', completed: false },
+      { id: 'goal-july', organizationId: 'org-1', userId: 'user-1', date: '2026-07-12', completed: true },
+    ]);
 
     const report = await service.monthlyReport({ id: 'user-1', organizationId: 'org-1' }, '2026-06');
 
@@ -235,5 +393,14 @@ describe('OperationsService organization scoping', () => {
     expect(report.totals.auditRuns).toBe(1);
     expect(report.totals.assessmentResponses).toBe(1);
     expect(report.totals.approvedExpenseTotal).toBe(100);
+    expect(report.totals.dailyGoals).toBe(2);
+    expect(report.totals.completedDailyGoals).toBe(1);
+    expect(report.kpis.dailyGoalCompletionRate).toBe(50);
+    expect(repositories.dailyGoals.find).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    });
   });
 });

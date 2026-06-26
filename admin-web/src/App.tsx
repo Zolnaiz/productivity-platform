@@ -14,6 +14,7 @@ import OperationsDashboardPage from "./pages/OperationsDashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import TasksPage from "./pages/TasksPage";
 import WorkLogsPage from "./pages/WorkLogsPage";
+import FiveSSetupPage from "./pages/FiveSSetupPage";
 import AuditTemplatesPage from "./pages/AuditTemplatesPage";
 import MonthlyReportPage from "./pages/MonthlyReportPage";
 import NotificationsPage from "./pages/NotificationsPage";
@@ -116,10 +117,10 @@ const moduleRoutes = [
   },
   {
     path: "fives",
-    title: "5S Audit",
+    title: "5S Setup",
     description:
-      "5S checklist бөглөх, оноо тооцох, сайжруулалтын action үүсгэх module.",
-    items: ["Sort", "Set in order", "Shine", "Standardize", "Sustain"],
+      "Office and work area floorplans, labels, ownership, contents, and 5S rollout standards.",
+    items: ["Floorplan", "Area labels", "Owners", "Contents", "Standards"],
   },
   {
     path: "audit-templates",
@@ -349,7 +350,7 @@ function App() {
                 <Route path="calendar" element={<CalendarPage />} />
                 <Route path="work-logs" element={<WorkLogsPage />} />
                 <Route path="time" element={<WorkLogsPage />} />
-                <Route path="fives" element={<AuditTemplatesPage />} />
+                <Route path="fives" element={<FiveSSetupPage />} />
                 <Route
                   path="audit-templates"
                   element={<AuditTemplatesPage />}

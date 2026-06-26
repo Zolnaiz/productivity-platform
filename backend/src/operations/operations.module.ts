@@ -11,6 +11,8 @@ import { AuditRun } from './entities/audit-run.entity';
 import { AssessmentTemplate } from './entities/assessment-template.entity';
 import { AssessmentResponse } from './entities/assessment-response.entity';
 import { ExpenseItem } from './entities/expense.entity';
+import { DailyGoal } from './entities/daily-goal.entity';
+import { FiveSLayout } from './entities/five-s-layout.entity';
 import { OperationsController } from './operations.controller';
 import { OperationsService } from './operations.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
@@ -34,6 +36,8 @@ import { OperationsAuthGuard } from './guards/operations-auth.guard';
       AssessmentTemplate,
       AssessmentResponse,
       ExpenseItem,
+      DailyGoal,
+      FiveSLayout,
     ]),
   ],
   controllers: [OperationsController],

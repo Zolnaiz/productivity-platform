@@ -1,3 +1,5 @@
+import type { DailyGoal } from './productivity.types';
+
 export interface Project {
   id: string;
   organizationId?: string;
@@ -119,11 +121,14 @@ export interface OperationsMonthlyReport {
     auditRuns: number;
     assessmentResponses: number;
     expenses: number;
+    dailyGoals: number;
+    completedDailyGoals: number;
     approvedExpenseTotal: number;
     pendingExpenseTotal: number;
   };
   kpis: {
     completionRate: number;
+    dailyGoalCompletionRate: number;
     averageProjectProgress: number;
     averageAssessmentScore: number;
   };
@@ -131,6 +136,7 @@ export interface OperationsMonthlyReport {
   workLogs: WorkLog[];
   timeEntries: TimeEntry[];
   projects: Project[];
+  dailyGoals: DailyGoal[];
   assessmentResponses: Array<{
     id: string;
     organizationId?: string;

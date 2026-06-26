@@ -11,6 +11,8 @@ import { AuditRun } from './entities/audit-run.entity';
 import { AssessmentTemplate } from './entities/assessment-template.entity';
 import { AssessmentResponse } from './entities/assessment-response.entity';
 import { ExpenseItem } from './entities/expense.entity';
+import { DailyGoal } from './entities/daily-goal.entity';
+import { FiveSLayout } from './entities/five-s-layout.entity';
 
 type CurrentUser = {
   id?: string;
@@ -30,6 +32,8 @@ export class OperationsService {
     @InjectRepository(AssessmentTemplate) private assessmentTemplates: Repository<AssessmentTemplate>,
     @InjectRepository(AssessmentResponse) private assessmentResponses: Repository<AssessmentResponse>,
     @InjectRepository(ExpenseItem) private expenses: Repository<ExpenseItem>,
+    @InjectRepository(DailyGoal) private dailyGoals: Repository<DailyGoal>,
+    @InjectRepository(FiveSLayout) private fiveSLayouts: Repository<FiveSLayout>,
   ) {}
 
   findProjects(user: CurrentUser) {
@@ -117,6 +121,85 @@ export class OperationsService {
       workDate: payload.workDate || new Date().toISOString().slice(0, 10),
     });
     return this.timeEntries.save(entry);
+  }
+
+  findDailyGoals(user: CurrentUser, date?: string) {
+    return this.dailyGoals.find({
+      where: {
+        ...this.personalWhere(user),
+        ...(date ? { date } : {}),
+      },
+      order: { date: 'DESC', createdAt: 'DESC' },
+    });
+  }
+
+  createDailyGoal(payload: Partial<DailyGoal>, user: CurrentUser) {
+    const goal = this.dailyGoals.create({
+      ...payload,
+      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      userId: user?.id || payload.userId,
+      date: payload.date || new Date().toISOString().slice(0, 10),
+      completed: payload.completed ?? false,
+    });
+    return this.dailyGoals.save(goal);
+  }
+
+  async updateDailyGoal(id: string, payload: Partial<DailyGoal>, user: CurrentUser) {
+    const goal = await this.findOnePersonalScoped(this.dailyGoals, id, user, 'Daily goal');
+    this.assignWithoutPersonalScopeChange(goal, payload);
+    return this.dailyGoals.save(goal);
+  }
+
+  async findFiveSLayout(user: CurrentUser) {
+    const organizationId = this.resolveOrganizationId(user);
+    const where = organizationId ? { organizationId } : {};
+    const layout = await this.fiveSLayouts.findOne({ where });
+
+    if (layout) {
+      return layout;
+    }
+
+    const defaultLayout = this.fiveSLayouts.create({
+      organizationId,
+      name: '5S area map',
+      site: 'Workspace',
+      scale: '1 square = 1 meter',
+      backgroundImage: '',
+      backgroundOpacity: 0.55,
+      showGrid: true,
+      zones: [],
+      objects: [],
+    });
+
+    return this.fiveSLayouts.save(defaultLayout);
+  }
+
+  async upsertFiveSLayout(payload: Partial<FiveSLayout>, user: CurrentUser) {
+    const organizationId = this.resolveOrganizationId(user, payload.organizationId);
+    const where = organizationId ? { organizationId } : {};
+    const existing = await this.fiveSLayouts.findOne({ where });
+    const layoutPayload = {
+      name: payload.name || '5S area map',
+      site: payload.site || 'Workspace',
+      scale: payload.scale || '1 square = 1 meter',
+      backgroundImage: payload.backgroundImage || '',
+      backgroundOpacity: payload.backgroundOpacity ?? 0.55,
+      showGrid: payload.showGrid ?? true,
+      zones: payload.zones || [],
+      objects: payload.objects || [],
+    };
+
+    if (existing) {
+      Object.assign(existing, layoutPayload);
+      return this.fiveSLayouts.save(existing);
+    }
+
+    return this.fiveSLayouts.save(
+      this.fiveSLayouts.create({
+        ...layoutPayload,
+        organizationId,
+      }),
+    );
   }
 
   findAuditTemplates(user: CurrentUser) {
@@ -277,7 +360,7 @@ export class OperationsService {
 
   async monthlyReport(user: CurrentUser, month?: string) {
     const organization = this.organizationWhere(user);
-    const [projects, tasks, workLogs, timeEntries, auditRuns, assessmentResponses, expenses] = await Promise.all([
+    const [projects, tasks, workLogs, timeEntries, auditRuns, assessmentResponses, expenses, dailyGoals] = await Promise.all([
       this.projects.find({ where: organization }),
       this.tasks.find({ where: organization }),
       this.workLogs.find({ where: organization }),
@@ -285,6 +368,7 @@ export class OperationsService {
       this.auditRuns.find({ where: organization }),
       this.assessmentResponses.find({ where: organization }),
       this.expenses.find({ where: organization }),
+      this.dailyGoals.find({ where: this.personalWhere(user) }),
     ]);
 
     const reportMonth = this.resolveReportMonth(month);
@@ -296,10 +380,15 @@ export class OperationsService {
       this.isInMonth(response.submittedAt || response.createdAt, reportMonth),
     );
     const monthlyExpenses = expenses.filter((expense) => this.isInMonth(expense.expenseDate || expense.createdAt, reportMonth));
+    const monthlyDailyGoals = dailyGoals.filter((goal) => this.isInMonth(goal.date || goal.createdAt, reportMonth));
 
     const completedTasks = monthlyTasks.filter((task) => task.status === 'done');
+    const completedDailyGoals = monthlyDailyGoals.filter((goal) => goal.completed);
     const totalHours = monthlyTimeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
     const completionRate = monthlyTasks.length ? Math.round((completedTasks.length / monthlyTasks.length) * 100) : 0;
+    const dailyGoalCompletionRate = monthlyDailyGoals.length
+      ? Math.round((completedDailyGoals.length / monthlyDailyGoals.length) * 100)
+      : 0;
     const averageProjectProgress = projects.length
       ? Math.round(projects.reduce((sum, project) => sum + Number(project.progress || 0), 0) / projects.length)
       : 0;
@@ -327,11 +416,14 @@ export class OperationsService {
         auditRuns: monthlyAuditRuns.length,
         assessmentResponses: monthlyAssessmentResponses.length,
         expenses: monthlyExpenses.length,
+        dailyGoals: monthlyDailyGoals.length,
+        completedDailyGoals: completedDailyGoals.length,
         approvedExpenseTotal,
         pendingExpenseTotal,
       },
       kpis: {
         completionRate,
+        dailyGoalCompletionRate,
         averageProjectProgress,
         averageAssessmentScore,
       },
@@ -339,6 +431,7 @@ export class OperationsService {
       workLogs: monthlyWorkLogs,
       timeEntries: monthlyTimeEntries,
       projects,
+      dailyGoals: monthlyDailyGoals,
       assessmentResponses: monthlyAssessmentResponses,
       expenses: monthlyExpenses,
     };
@@ -361,6 +454,13 @@ export class OperationsService {
   private organizationWhere(user: CurrentUser) {
     const organizationId = this.resolveOrganizationId(user);
     return organizationId ? { organizationId } : {};
+  }
+
+  private personalWhere(user: CurrentUser) {
+    return {
+      ...this.organizationWhere(user),
+      ...(user?.id ? { userId: user.id } : {}),
+    };
   }
 
   private resolveOrganizationId(user?: CurrentUser, payloadOrganizationId?: string) {
@@ -397,9 +497,39 @@ export class OperationsService {
     return entity;
   }
 
+  private async findOnePersonalScoped<T extends { id: string; organizationId?: string; userId?: string }>(
+    repository: Repository<T>,
+    id: string,
+    user: CurrentUser,
+    label: string,
+  ) {
+    const entity = await repository.findOne({
+      where: {
+        id,
+        ...this.personalWhere(user),
+      } as any,
+    });
+
+    if (!entity) {
+      throw new NotFoundException(`${label} not found`);
+    }
+
+    return entity;
+  }
+
   private assignWithoutOrganizationChange<T extends { organizationId?: string }>(entity: T, payload: Partial<T>) {
     const safePayload = { ...payload };
     delete safePayload.organizationId;
+    Object.assign(entity, safePayload);
+  }
+
+  private assignWithoutPersonalScopeChange<T extends { organizationId?: string; userId?: string }>(
+    entity: T,
+    payload: Partial<T>,
+  ) {
+    const safePayload = { ...payload };
+    delete safePayload.organizationId;
+    delete safePayload.userId;
     Object.assign(entity, safePayload);
   }
 }

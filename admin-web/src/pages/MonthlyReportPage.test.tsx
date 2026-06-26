@@ -23,11 +23,14 @@ const report = {
     auditRuns: 1,
     assessmentResponses: 1,
     expenses: 1,
+    dailyGoals: 2,
+    completedDailyGoals: 1,
     approvedExpenseTotal: 50000,
     pendingExpenseTotal: 25000,
   },
   kpis: {
     completionRate: 33,
+    dailyGoalCompletionRate: 50,
     averageProjectProgress: 44,
     averageAssessmentScore: 81,
   },
@@ -57,6 +60,20 @@ const report = {
     },
   ],
   projects: [],
+  dailyGoals: [
+    {
+      id: 'g1',
+      title: 'Finish daily goal API',
+      date: '2026-06-23',
+      completed: true,
+    },
+    {
+      id: 'g2',
+      title: 'Review carry-over goals',
+      date: '2026-06-23',
+      completed: false,
+    },
+  ],
   assessmentResponses: [
     {
       id: 'r1',
@@ -112,6 +129,7 @@ describe('MonthlyReportPage', () => {
     expect(await screen.findByText('Build report endpoint')).toBeTruthy();
     expect(screen.getByText('Monthly report connected to backend.')).toBeTruthy();
     expect(screen.getByText('Report integration')).toBeTruthy();
+    expect(screen.getByText('Finish daily goal API')).toBeTruthy();
     expect(screen.getByText('Demo user')).toBeTruthy();
     expect(screen.getByText('Inspection tools')).toBeTruthy();
   });

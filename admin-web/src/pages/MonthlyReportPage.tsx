@@ -46,10 +46,13 @@ const MonthlyReportPage: React.FC = () => {
     ? report.assessmentResponses.filter((response) => response.score < 85).length
     : 0;
   const pendingExpenses = report ? report.expenses.filter((expense) => expense.status === 'submitted') : [];
+  const dailyGoals = report?.dailyGoals ?? [];
+  const completedDailyGoals = dailyGoals.filter((goal) => goal.completed);
 
   const executiveSummary = report
     ? [
         `Monthly productivity report (${report.period}): ${report.totals.projects} projects, ${report.totals.tasks} tasks, ${report.kpis.completionRate}% task completion.`,
+        `Daily goals: ${report.totals.completedDailyGoals}/${report.totals.dailyGoals} completed (${report.kpis.dailyGoalCompletionRate}%).`,
         `Tracked work: ${report.totals.totalHours} hours and ${report.totals.workLogs} work logs.`,
         `Quality and compliance: ${report.totals.auditRuns} audit runs; ${report.totals.assessmentResponses} assessment responses with ${report.kpis.averageAssessmentScore}% average score.`,
         `Finance: ${formatMnt(report.totals.approvedExpenseTotal)} approved expenses and ${formatMnt(report.totals.pendingExpenseTotal)} waiting approval.`,
@@ -67,6 +70,9 @@ const MonthlyReportPage: React.FC = () => {
       ['Tasks', report.totals.tasks],
       ['Completed tasks', report.totals.completedTasks],
       ['Task completion rate', `${report.kpis.completionRate}%`],
+      ['Daily goals', report.totals.dailyGoals],
+      ['Completed daily goals', report.totals.completedDailyGoals],
+      ['Daily goal completion rate', `${report.kpis.dailyGoalCompletionRate}%`],
       ['Tracked hours', report.totals.totalHours],
       ['Work logs', report.totals.workLogs],
       ['Audit runs', report.totals.auditRuns],
@@ -153,7 +159,7 @@ const MonthlyReportPage: React.FC = () => {
             </pre>
           </Card>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-8">
             <Card>
               <div className="text-sm text-gray-500">Projects</div>
               <div className="mt-2 text-3xl font-semibold">{report.totals.projects}</div>
@@ -169,6 +175,10 @@ const MonthlyReportPage: React.FC = () => {
             <Card>
               <div className="text-sm text-gray-500">Work logs</div>
               <div className="mt-2 text-3xl font-semibold">{report.totals.workLogs}</div>
+            </Card>
+            <Card>
+              <div className="text-sm text-gray-500">Daily goals</div>
+              <div className="mt-2 text-3xl font-semibold">{report.kpis.dailyGoalCompletionRate}%</div>
             </Card>
             <Card>
               <div className="text-sm text-gray-500">Audit runs</div>
@@ -227,6 +237,36 @@ const MonthlyReportPage: React.FC = () => {
               </div>
             </Card>
           </div>
+
+          <Card title="Daily goals">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {dailyGoals.length === 0 && <p className="text-sm text-gray-500">Daily goal алга.</p>}
+              {dailyGoals.map((goal) => (
+                <div key={goal.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className={goal.completed ? 'font-medium text-gray-400 line-through' : 'font-medium text-gray-900 dark:text-white'}>
+                        {goal.title}
+                      </div>
+                      <div className="mt-1 text-sm text-gray-500">{goal.date}</div>
+                    </div>
+                    <span
+                      className={`w-fit rounded-full px-2 py-0.5 text-xs ${
+                        goal.completed ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'
+                      }`}
+                    >
+                      {goal.completed ? 'Done' : 'Open'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {dailyGoals.length > 0 && (
+              <p className="mt-3 text-sm text-gray-500">
+                {completedDailyGoals.length}/{dailyGoals.length} daily goals completed in this period.
+              </p>
+            )}
+          </Card>
 
           <div className="grid gap-6 lg:grid-cols-3">
             <Card title="Assessment responses">

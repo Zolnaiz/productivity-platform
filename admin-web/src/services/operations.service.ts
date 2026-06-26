@@ -9,9 +9,10 @@ import {
   WorkLog,
   WorkTask,
 } from '../types/operations.types';
+import { DailyGoal } from '../types/productivity.types';
 
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
-type DemoKey = 'projects' | 'tasks' | 'workLogs' | 'timeEntries' | 'auditTemplates' | 'auditRuns';
+type DemoKey = 'projects' | 'tasks' | 'workLogs' | 'timeEntries' | 'auditTemplates' | 'auditRuns' | 'goals';
 
 const unwrap = <T>(response: ApiEnvelope<T>): T => {
   if (response && typeof response === 'object' && 'data' in response) {
@@ -133,6 +134,12 @@ const demoTimeEntries: TimeEntry[] = [
     hours: 4,
     note: 'Planning and cleanup',
   },
+];
+
+const demoDailyGoals: DailyGoal[] = [
+  { id: 'g1', organizationId: 'demo-org', userId: 'demo-owner', title: 'Finish operations MVP shell', date: '2026-06-23', completed: true },
+  { id: 'g2', organizationId: 'demo-org', userId: 'demo-owner', title: 'Add daily productivity tools', date: '2026-06-23', completed: false },
+  { id: 'g3', organizationId: 'demo-org', userId: 'demo-owner', title: 'Review carry-over work', date: '2026-06-20', completed: false },
 ];
 
 const demoAuditTemplates: AuditTemplate[] = [
@@ -305,6 +312,7 @@ const defaults = {
   tasks: demoTasks,
   workLogs: demoWorkLogs,
   timeEntries: demoTimeEntries,
+  goals: demoDailyGoals,
   auditTemplates: demoAuditTemplates,
   auditRuns: demoAuditRuns,
 };
@@ -318,6 +326,10 @@ const withDemoScope = <T extends Record<string, any>>(key: DemoKey, item: T): T 
   };
 
   if ((key === 'workLogs' || key === 'timeEntries') && !scoped.userId) {
+    scoped.userId = 'demo-owner';
+  }
+
+  if (key === 'goals' && !scoped.userId) {
     scoped.userId = 'demo-owner';
   }
 
@@ -459,9 +471,11 @@ const buildMonthlyReport = (month = currentMonth()): OperationsMonthlyReport => 
   const tasks = readDemo<WorkTask>('tasks');
   const workLogs = readDemo<WorkLog>('workLogs').filter((log) => inMonth(log.logDate, month));
   const timeEntries = readDemo<TimeEntry>('timeEntries').filter((entry) => inMonth(entry.workDate, month));
+  const dailyGoals = readDemo<DailyGoal>('goals').filter((goal) => inMonth(goal.date, month));
   const auditRuns = readDemo<AuditRun>('auditRuns').filter((run) => inMonth(run.createdAt, month));
   const completedTasks = tasks.filter((task) => task.status === 'done' && inMonth(task.dueDate, month));
   const monthlyTasks = tasks.filter((task) => inMonth(task.dueDate, month));
+  const completedDailyGoals = dailyGoals.filter((goal) => goal.completed);
   const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
   const averageProjectProgress = projects.length
     ? Math.round(projects.reduce((sum, project) => sum + Number(project.progress || 0), 0) / projects.length)
@@ -478,11 +492,14 @@ const buildMonthlyReport = (month = currentMonth()): OperationsMonthlyReport => 
       auditRuns: auditRuns.length,
       assessmentResponses: 0,
       expenses: 0,
+      dailyGoals: dailyGoals.length,
+      completedDailyGoals: completedDailyGoals.length,
       approvedExpenseTotal: 0,
       pendingExpenseTotal: 0,
     },
     kpis: {
       completionRate: monthlyTasks.length ? Math.round((completedTasks.length / monthlyTasks.length) * 100) : 0,
+      dailyGoalCompletionRate: dailyGoals.length ? Math.round((completedDailyGoals.length / dailyGoals.length) * 100) : 0,
       averageProjectProgress,
       averageAssessmentScore: 0,
     },
@@ -490,6 +507,7 @@ const buildMonthlyReport = (month = currentMonth()): OperationsMonthlyReport => 
     workLogs,
     timeEntries,
     projects,
+    dailyGoals,
     assessmentResponses: [],
     expenses: [],
   };

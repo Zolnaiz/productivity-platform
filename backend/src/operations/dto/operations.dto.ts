@@ -56,6 +56,141 @@ class OrganizationScopedDto {
   organizationId?: string;
 }
 
+class FiveSRedTagDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  title: string;
+
+  @IsString()
+  disposition: string;
+
+  @IsIn(['open', 'review', 'disposed', 'returned'])
+  status: 'open' | 'review' | 'disposed' | 'returned';
+
+  @IsOptional()
+  @IsString()
+  ownerId?: string;
+
+  @IsOptional()
+  @IsString()
+  ownerName?: string;
+
+  @IsOptional()
+  @IsString()
+  dueDate?: string;
+
+  @IsOptional()
+  @IsString()
+  createdAt?: string;
+
+  @IsOptional()
+  @IsString()
+  closedAt?: string;
+}
+
+class FiveSZoneDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  code: string;
+
+  @IsString()
+  name: string;
+
+  @IsString()
+  color: string;
+
+  @IsNumber()
+  x: number;
+
+  @IsNumber()
+  y: number;
+
+  @IsNumber()
+  width: number;
+
+  @IsNumber()
+  height: number;
+
+  @IsOptional()
+  @IsString()
+  ownerId?: string;
+
+  @IsOptional()
+  @IsString()
+  ownerName?: string;
+
+  @IsString()
+  contents: string;
+
+  @IsString()
+  standard: string;
+
+  @IsString()
+  labelText: string;
+
+  @IsIn(['sort', 'set_in_order', 'shine', 'standardize', 'sustain'])
+  stage: 'sort' | 'set_in_order' | 'shine' | 'standardize' | 'sustain';
+
+  @IsIn(['daily', 'weekly', 'monthly'])
+  auditFrequency: 'daily' | 'weekly' | 'monthly';
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  lastAuditScore?: number;
+
+  @IsOptional()
+  @IsString()
+  lastAuditAt?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  redTagCount?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FiveSRedTagDto)
+  redTags?: FiveSRedTagDto[];
+
+  @IsOptional()
+  @IsString()
+  lastCleanedAt?: string;
+}
+
+class FloorPlanObjectDto {
+  @IsString()
+  id: string;
+
+  @IsIn(['wall', 'door', 'desk', 'shelf', 'equipment', 'table'])
+  type: 'wall' | 'door' | 'desk' | 'shelf' | 'equipment' | 'table';
+
+  @IsString()
+  label: string;
+
+  @IsNumber()
+  x: number;
+
+  @IsNumber()
+  y: number;
+
+  @IsNumber()
+  width: number;
+
+  @IsNumber()
+  height: number;
+
+  @IsOptional()
+  @IsNumber()
+  rotation?: number;
+}
+
 export class CreateProjectDto extends OrganizationScopedDto {
   @IsString()
   name: string;
@@ -210,6 +345,60 @@ export class CreateTimeEntryDto extends OrganizationScopedDto {
   @IsOptional()
   @IsString()
   note?: string;
+}
+
+export class CreateDailyGoalDto extends OrganizationScopedDto {
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @IsString()
+  title: string;
+
+  @IsOptional()
+  @IsDateString()
+  date?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  completed?: boolean;
+}
+
+export class UpdateDailyGoalDto extends PartialType(CreateDailyGoalDto) {}
+
+export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
+  @IsString()
+  name: string;
+
+  @IsString()
+  site: string;
+
+  @IsString()
+  scale: string;
+
+  @IsOptional()
+  @IsString()
+  backgroundImage?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  backgroundOpacity?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  showGrid?: boolean;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FiveSZoneDto)
+  zones: FiveSZoneDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FloorPlanObjectDto)
+  objects: FloorPlanObjectDto[];
 }
 
 export class CreateAuditTemplateDto extends OrganizationScopedDto {

@@ -19,6 +19,7 @@ import {
   Landmark,
   LayoutDashboard,
   LineChart,
+  Map as MapIcon,
   Settings,
   ShieldCheck,
   StickyNote,
@@ -77,9 +78,15 @@ const menuItems: MenuItem[] = [
     group: "Work",
   },
   {
-    icon: <ClipboardCheck className="h-5 w-5" />,
-    label: "5S / Audits",
+    icon: <MapIcon className="h-5 w-5" />,
+    label: "5S Setup",
     path: "/fives",
+    group: "Quality",
+  },
+  {
+    icon: <ClipboardCheck className="h-5 w-5" />,
+    label: "Audit Templates",
+    path: "/audit-templates",
     group: "Quality",
   },
   {

@@ -7,6 +7,7 @@ import {
   CreateAssessmentTemplateDto,
   CreateAuditRunDto,
   CreateAuditTemplateDto,
+  CreateDailyGoalDto,
   CreateExpenseDto,
   CreateProjectDto,
   CreateTaskDto,
@@ -14,7 +15,9 @@ import {
   CreateWorkLogDto,
   UpdateAssessmentResponseDto,
   UpdateAssessmentTemplateDto,
+  UpdateDailyGoalDto,
   UpdateExpenseDto,
+  UpsertFiveSLayoutDto,
   UpdateProjectDto,
   UpdateTaskDto,
 } from './dto/operations.dto';
@@ -104,6 +107,31 @@ export class OperationsController {
   @Post('time-entries')
   createTimeEntry(@Body() body: CreateTimeEntryDto, @Request() req) {
     return this.operationsService.createTimeEntry(this.toTimeEntryPayload(body), req.user);
+  }
+
+  @Get('daily-goals')
+  findDailyGoals(@Request() req, @Query('date') date?: string) {
+    return this.operationsService.findDailyGoals(req.user, date);
+  }
+
+  @Post('daily-goals')
+  createDailyGoal(@Body() body: CreateDailyGoalDto, @Request() req) {
+    return this.operationsService.createDailyGoal(body, req.user);
+  }
+
+  @Patch('daily-goals/:id')
+  updateDailyGoal(@Param('id') id: string, @Body() body: UpdateDailyGoalDto, @Request() req) {
+    return this.operationsService.updateDailyGoal(id, body, req.user);
+  }
+
+  @Get('five-s-layout')
+  findFiveSLayout(@Request() req) {
+    return this.operationsService.findFiveSLayout(req.user);
+  }
+
+  @Patch('five-s-layout')
+  updateFiveSLayout(@Body() body: UpsertFiveSLayoutDto, @Request() req) {
+    return this.operationsService.upsertFiveSLayout(body, req.user);
   }
 
   @Get('audit-templates')

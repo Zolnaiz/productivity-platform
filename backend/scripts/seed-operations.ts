@@ -18,6 +18,9 @@ const auditRunOne = '99999999-9999-4999-8999-999999999999';
 const assessmentTemplateOne = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const assessmentResponseOne = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const expenseOne = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const dailyGoalOne = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const dailyGoalTwo = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+const fiveSLayoutOne = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
 
 const json = (value: unknown) => JSON.stringify(value);
 
@@ -169,6 +172,102 @@ async function seed() {
         "updatedAt" = now()
     `,
     [timeEntryOne, organizationId, ownerId, projectOne, taskOne],
+  );
+
+  await dataSource.query(
+    `
+      INSERT INTO daily_goals (
+        id, organization_id, user_id, title, goal_date, completed
+      ) VALUES
+        ($1, $3, $4, 'Review goal wall API integration', CURRENT_DATE, true),
+        ($2, $3, $4, 'Finish carry-over goals and monthly report linkage', CURRENT_DATE, false)
+      ON CONFLICT (id) DO UPDATE SET
+        organization_id = EXCLUDED.organization_id,
+        user_id = EXCLUDED.user_id,
+        title = EXCLUDED.title,
+        goal_date = EXCLUDED.goal_date,
+        completed = EXCLUDED.completed,
+        "updatedAt" = now()
+    `,
+    [dailyGoalOne, dailyGoalTwo, organizationId, ownerId],
+  );
+
+  await dataSource.query(
+    `
+      INSERT INTO five_s_layouts (
+        id, organization_id, name, site, scale, zones, objects
+      ) VALUES (
+        $1,
+        $2,
+        'Office 5S launch map',
+        'Demo Operations Workspace',
+        '1 square = 1 meter',
+        $3,
+        $4
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        organization_id = EXCLUDED.organization_id,
+        name = EXCLUDED.name,
+        site = EXCLUDED.site,
+        scale = EXCLUDED.scale,
+        zones = EXCLUDED.zones,
+        objects = EXCLUDED.objects,
+        "updatedAt" = now()
+    `,
+    [
+      fiveSLayoutOne,
+      organizationId,
+      json([
+        {
+          id: 'zone-1',
+          code: 'A01',
+          name: 'Reception',
+          color: '#38bdf8',
+          x: 52,
+          y: 48,
+          width: 214,
+          height: 132,
+          ownerId,
+          ownerName: 'Demo Owner',
+          contents: 'Visitor desk, waiting chairs, incoming document tray',
+          standard: 'Front desk clear, visitor chairs aligned, documents sorted before 17:00.',
+          labelText: 'Reception - owner visible at desk',
+          stage: 'set_in_order',
+          auditFrequency: 'daily',
+          lastAuditScore: 88,
+          lastAuditAt: '2026-06-24',
+          redTagCount: 0,
+          lastCleanedAt: '2026-06-24',
+        },
+        {
+          id: 'zone-2',
+          code: 'A02',
+          name: 'Storage',
+          color: '#f59e0b',
+          x: 52,
+          y: 230,
+          width: 214,
+          height: 170,
+          ownerId,
+          ownerName: 'Demo Owner',
+          contents: 'Office supplies, cleaning tools, spare labels, PPE',
+          standard: 'Every shelf position labeled, min/max stock marked, red-tag box checked weekly.',
+          labelText: 'Shelf labels + red-tag area',
+          stage: 'sort',
+          auditFrequency: 'weekly',
+          lastAuditScore: 74,
+          lastAuditAt: '2026-06-12',
+          redTagCount: 4,
+          lastCleanedAt: '2026-06-18',
+        },
+      ]),
+      json([
+        { id: 'wall-1', type: 'wall', label: 'Outer wall', x: 32, y: 28, width: 838, height: 10 },
+        { id: 'wall-2', type: 'wall', label: 'Outer wall', x: 32, y: 448, width: 838, height: 10 },
+        { id: 'door-1', type: 'door', label: 'Main door', x: 112, y: 438, width: 72, height: 18 },
+        { id: 'shelf-1', type: 'shelf', label: 'Supply shelf', x: 78, y: 260, width: 150, height: 46 },
+      ]),
+    ],
   );
 
   await dataSource.query(

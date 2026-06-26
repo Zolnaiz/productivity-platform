@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Card from '../components/common/Card';
+import { fiveSLayoutService } from '../services/fiveSLayout.service';
 import { operationsService } from '../services/operations.service';
 import { AuditRun, AuditTemplate } from '../types/operations.types';
 
@@ -100,6 +101,31 @@ const AuditTemplatesPage: React.FC = () => {
     setActionMessage(`Corrective action task created for ${run.location || templateTitle}.`);
   };
 
+  const updateFloorPlanAuditScore = async (run: AuditRun) => {
+    const zoneCode = run.location?.split('-')[0]?.trim();
+    if (!zoneCode) return false;
+
+    const plan = await fiveSLayoutService.getPlan();
+    let matched = false;
+    const zones = plan.zones.map((zone) => {
+      if (zone.code !== zoneCode) return zone;
+      matched = true;
+      return {
+        ...zone,
+        lastAuditScore: run.score,
+        lastAuditAt: new Date().toISOString().slice(0, 10),
+      };
+    });
+
+    if (!matched) return false;
+
+    await fiveSLayoutService.savePlan({
+      ...plan,
+      zones,
+    });
+    return true;
+  };
+
   const submitAudit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedTemplate) return;
@@ -125,19 +151,24 @@ const AuditTemplatesPage: React.FC = () => {
     setAnswers({});
     setLocation('');
     await operationsService.createAuditRun(auditRun);
+    const scoreSynced = await updateFloorPlanAuditScore(auditRun);
     if (auditRun.score < 85) {
       await createCorrectiveTask(auditRun, selectedTemplate.title);
     } else {
-      setActionMessage('Audit submitted. No corrective action needed.');
+      setActionMessage(
+        scoreSynced
+          ? 'Audit submitted. Zone score updated on the 5S area map.'
+          : 'Audit submitted. No corrective action needed.',
+      );
     }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">5S / Audit Templates</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Audit Templates</h1>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          5S, safety, quality, compliance, risk, and industry-specific inspection templates.
+          Run inspection checklists, score completed work, and create corrective actions for gaps.
         </p>
       </div>
 
@@ -193,7 +224,7 @@ const AuditTemplatesPage: React.FC = () => {
                 Location
                 <input
                   className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                  placeholder="Production floor, branch, site..."
+                  placeholder="Area code, branch, site..."
                   value={location}
                   onChange={(event) => setLocation(event.target.value)}
                 />

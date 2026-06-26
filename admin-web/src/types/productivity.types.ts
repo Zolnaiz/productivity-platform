@@ -8,9 +8,13 @@ export interface Note {
 
 export interface DailyGoal {
   id: string;
+  organizationId?: string;
+  userId?: string;
   title: string;
   date: string;
   completed: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface FocusSession {
