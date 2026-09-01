@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import Input from '../components/common/Input';
+import Select from '../components/common/Select';
 import { fiveSLayoutService } from '../services/fiveSLayout.service';
 import { operationsService } from '../services/operations.service';
 import { AuditRun, AuditTemplate } from '../types/operations.types';
@@ -203,32 +206,26 @@ const AuditTemplatesPage: React.FC = () => {
         <Card title="Run audit" subtitle={selectedTemplate?.description}>
           <form onSubmit={submitAudit} className="space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="text-sm text-gray-600 dark:text-gray-400">
-                Template
-                <select
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                  value={selectedTemplateId}
-                  onChange={(event) => {
-                    setSelectedTemplateId(event.target.value);
-                    setAnswers({});
-                  }}
-                >
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-sm text-gray-600 dark:text-gray-400">
-                Location
-                <input
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                  placeholder="Area code, branch, site..."
-                  value={location}
-                  onChange={(event) => setLocation(event.target.value)}
-                />
-              </label>
+              <Select
+                label="Template"
+                value={selectedTemplateId}
+                onChange={(event) => {
+                  setSelectedTemplateId(event.target.value);
+                  setAnswers({});
+                }}
+              >
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.title}
+                  </option>
+                ))}
+              </Select>
+              <Input
+                label="Location"
+                placeholder="Area code, branch, site..."
+                value={location}
+                onChange={(event) => setLocation(event.target.value)}
+              />
             </div>
 
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
@@ -261,8 +258,9 @@ const AuditTemplatesPage: React.FC = () => {
                     </div>
                   )}
                   {question.type === 'yes_no' && (
-                    <select
-                      className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                    <Select
+                      className="mt-3"
+                      aria-label={question.text}
                       value={answers[question.id] || 'no'}
                       onChange={(event) =>
                         setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
@@ -270,11 +268,12 @@ const AuditTemplatesPage: React.FC = () => {
                     >
                       <option value="no">No</option>
                       <option value="yes">Yes</option>
-                    </select>
+                    </Select>
                   )}
                   {question.type === 'text' && (
-                    <input
-                      className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                    <Input
+                      className="mt-3"
+                      aria-label={question.text}
                       value={answers[question.id] || ''}
                       onChange={(event) =>
                         setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
@@ -285,13 +284,9 @@ const AuditTemplatesPage: React.FC = () => {
               ))}
             </div>
 
-            <button
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              disabled={!selectedTemplate || loading}
-              type="submit"
-            >
+            <Button disabled={!selectedTemplate || loading} type="submit">
               Submit audit
-            </button>
+            </Button>
             {actionMessage && <div className="text-sm text-green-600">{actionMessage}</div>}
           </form>
         </Card>
@@ -299,8 +294,8 @@ const AuditTemplatesPage: React.FC = () => {
         <div className="space-y-6">
           <Card title="Template library">
             <div className="mb-4 grid gap-3 md:grid-cols-2">
-              <select
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              <Select
+                label="Industry"
                 value={industryFilter}
                 onChange={(event) => setIndustryFilter(event.target.value)}
               >
@@ -310,9 +305,9 @@ const AuditTemplatesPage: React.FC = () => {
                     {industry}
                   </option>
                 ))}
-              </select>
-              <select
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              </Select>
+              <Select
+                label="Business need"
                 value={categoryFilter}
                 onChange={(event) => setCategoryFilter(event.target.value)}
               >
@@ -322,7 +317,7 @@ const AuditTemplatesPage: React.FC = () => {
                     {category.replace('_', ' ')}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div className="space-y-3">
@@ -376,13 +371,15 @@ const AuditTemplatesPage: React.FC = () => {
                       <div className="text-lg font-semibold text-blue-600">{run.score}%</div>
                     </div>
                     {run.score < 85 && (
-                      <button
-                        className="mt-3 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950/30"
+                      <Button
+                        className="mt-3 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950/30"
+                        variant="outline"
+                        size="sm"
                         type="button"
                         onClick={() => createCorrectiveTask(run, template?.title || 'Audit run')}
                       >
                         Create corrective task
-                      </button>
+                      </Button>
                     )}
                   </div>
                 );

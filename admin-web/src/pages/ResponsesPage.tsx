@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FileCheck2 } from "lucide-react";
+import Button from "../components/common/Button";
 import Card from "../components/common/Card";
 import EmptyState from "../components/common/EmptyState";
+import Input from "../components/common/Input";
+import Select from "../components/common/Select";
+import Textarea from "../components/common/Textarea";
 import { assessmentService } from "../services/assessment.service";
 import { operationsService } from "../services/operations.service";
 import {
@@ -166,8 +170,9 @@ const ResponsesPage: React.FC = () => {
             into improvement tasks.
           </p>
         </div>
-        <select
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+        <Select
+          className="sm:w-56"
+          aria-label="Filter responses"
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
         >
@@ -180,7 +185,7 @@ const ResponsesPage: React.FC = () => {
               {departmentName}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -231,33 +236,30 @@ const ResponsesPage: React.FC = () => {
           }
         >
           <form onSubmit={submitResponse} className="space-y-4">
-            <label className="block text-sm text-gray-600 dark:text-gray-400">
-              Template
-              <select
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                value={selectedTemplateId}
-                onChange={(event) => {
-                  setSelectedTemplateId(event.target.value);
-                  setAnswers({});
-                }}
-              >
-                {templates.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Select
+              label="Template"
+              value={selectedTemplateId}
+              onChange={(event) => {
+                setSelectedTemplateId(event.target.value);
+                setAnswers({});
+              }}
+            >
+              {templates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.title}
+                </option>
+              ))}
+            </Select>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <input
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              <Input
+                label="Respondent"
                 placeholder="Respondent"
                 value={respondent}
                 onChange={(event) => setRespondent(event.target.value)}
               />
-              <input
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              <Input
+                label="Department"
                 placeholder="Department"
                 value={department}
                 onChange={(event) => setDepartment(event.target.value)}
@@ -304,8 +306,9 @@ const ResponsesPage: React.FC = () => {
                     </div>
                   )}
                   {question.type === "yes_no" && (
-                    <select
-                      className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                    <Select
+                      className="mt-3"
+                      aria-label={question.text}
                       value={answers[question.id] || "no"}
                       onChange={(event) =>
                         setAnswers((current) => ({
@@ -316,11 +319,12 @@ const ResponsesPage: React.FC = () => {
                     >
                       <option value="no">No</option>
                       <option value="yes">Yes</option>
-                    </select>
+                    </Select>
                   )}
                   {question.type === "text" && (
-                    <textarea
-                      className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                    <Textarea
+                      className="mt-3"
+                      aria-label={question.text}
                       rows={2}
                       value={answers[question.id] || ""}
                       onChange={(event) =>
@@ -335,13 +339,9 @@ const ResponsesPage: React.FC = () => {
               ))}
             </div>
 
-            <button
-              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              disabled={!selectedTemplate || loading}
-              type="submit"
-            >
+            <Button fullWidth disabled={!selectedTemplate || loading} type="submit">
               Submit response
-            </button>
+            </Button>
           </form>
         </Card>
 

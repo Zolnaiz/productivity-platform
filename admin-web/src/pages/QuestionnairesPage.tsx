@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ClipboardList, Plus, Trash2 } from "lucide-react";
+import Button from "../components/common/Button";
 import Card from "../components/common/Card";
 import EmptyState from "../components/common/EmptyState";
+import Input from "../components/common/Input";
+import Select from "../components/common/Select";
+import Textarea from "../components/common/Textarea";
 import { assessmentService } from "../services/assessment.service";
 import {
   AssessmentQuestion,
@@ -212,8 +216,9 @@ const QuestionnairesPage: React.FC = () => {
             5S, safety, quality, and compliance forms.
           </p>
         </div>
-        <select
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+        <Select
+          className="sm:w-56"
+          aria-label="Filter templates"
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
         >
@@ -223,7 +228,7 @@ const QuestionnairesPage: React.FC = () => {
           <option value="inspection">Inspection</option>
           <option value="quality">Quality</option>
           <option value="safety">Safety</option>
-        </select>
+        </Select>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -265,9 +270,10 @@ const QuestionnairesPage: React.FC = () => {
           subtitle="Build multi-question checklists, audits, surveys, and quality forms."
         >
           <form onSubmit={createTemplate} className="space-y-4">
-            <div className="grid gap-3 lg:grid-cols-4">
-              <input
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 lg:col-span-2"
+            <div className="grid items-end gap-3 lg:grid-cols-4">
+              <Input
+                className="lg:col-span-2"
+                label="Template title"
                 placeholder="Template title"
                 value={draft.title}
                 onChange={(event) =>
@@ -277,8 +283,8 @@ const QuestionnairesPage: React.FC = () => {
                   }))
                 }
               />
-              <input
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              <Input
+                label="Industry"
                 placeholder="Industry"
                 value={draft.industry}
                 onChange={(event) =>
@@ -288,8 +294,8 @@ const QuestionnairesPage: React.FC = () => {
                   }))
                 }
               />
-              <select
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              <Select
+                label="Type"
                 value={draft.type}
                 onChange={(event) =>
                   setDraft((current) => ({
@@ -303,10 +309,10 @@ const QuestionnairesPage: React.FC = () => {
                 <option value="safety">Safety</option>
                 <option value="feedback">Feedback</option>
                 <option value="survey">Survey</option>
-              </select>
+              </Select>
             </div>
-            <textarea
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+            <Textarea
+              label="Description"
               placeholder="Description"
               rows={2}
               value={draft.description}
@@ -324,16 +330,16 @@ const QuestionnairesPage: React.FC = () => {
                   key={question.id}
                   className="grid gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700 lg:grid-cols-[1fr_150px_96px_40px]"
                 >
-                  <input
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                  <Input
+                    aria-label={`Question ${index + 1}`}
                     placeholder={`Question ${index + 1}`}
                     value={question.text}
                     onChange={(event) =>
                       updateQuestion(question.id, { text: event.target.value })
                     }
                   />
-                  <select
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                  <Select
+                    aria-label={`Question ${index + 1} type`}
                     value={question.type}
                     onChange={(event) =>
                       updateQuestion(question.id, {
@@ -344,9 +350,9 @@ const QuestionnairesPage: React.FC = () => {
                     <option value="score">Score</option>
                     <option value="yes_no">Yes / No</option>
                     <option value="text">Text</option>
-                  </select>
-                  <input
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:disabled:bg-gray-800"
+                  </Select>
+                  <Input
+                    aria-label={`Question ${index + 1} maximum score`}
                     disabled={question.type !== "score"}
                     min="1"
                     max="10"
@@ -358,21 +364,23 @@ const QuestionnairesPage: React.FC = () => {
                       })
                     }
                   />
-                  <button
+                  <Button
                     aria-label="Remove question"
-                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                    className="h-10 w-10 px-0"
+                    variant="outline"
                     type="button"
                     onClick={() => removeQuestion(question.id)}
                   >
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <button
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+              <Button
+                variant="outline"
+                icon={Plus}
                 type="button"
                 onClick={() =>
                   setDraft((current) => ({
@@ -381,15 +389,9 @@ const QuestionnairesPage: React.FC = () => {
                   }))
                 }
               >
-                <Plus className="h-4 w-4" />
                 Add question
-              </button>
-              <button
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                type="submit"
-              >
-                Create template
-              </button>
+              </Button>
+              <Button type="submit">Create template</Button>
             </div>
           </form>
         </Card>
