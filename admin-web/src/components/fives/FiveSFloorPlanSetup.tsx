@@ -15,11 +15,13 @@ import {
   Package,
   Plus,
   Printer,
+  Redo2,
   RotateCcw,
   RotateCw,
   Square,
   Table,
   Trash2,
+  Undo2,
   Upload,
   UserCheck,
 } from 'lucide-react';
@@ -41,6 +43,7 @@ import { TeamUser } from '../../types/people.types';
 const CANVAS_WIDTH = 900;
 const CANVAS_HEIGHT = 500;
 const GRID_SIZE = 24;
+const HISTORY_LIMIT = 50;
 
 const stageLabels: Record<FiveSStage, string> = {
   sort: '1 Sort',
@@ -471,6 +474,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   showAuditControls = false,
 }) => {
   const [plan, setPlan] = useState<FiveSLayoutPlan | null>(null);
+  const [history, setHistory] = useState<FiveSLayoutPlan[]>([]);
+  const [future, setFuture] = useState<FiveSLayoutPlan[]>([]);
   const [users, setUsers] = useState<TeamUser[]>([]);
   const [selectedZoneId, setSelectedZoneId] = useState('');
   const [selectedObjectId, setSelectedObjectId] = useState('');
@@ -771,30 +776,72 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     [redTagRegister],
   );
 
-  const updatePlan = (buildPlan: (current: FiveSLayoutPlan) => FiveSLayoutPlan) => {
-    setPlan((current) => {
-      if (!current) return current;
-      const nextPlan = {
-        ...buildPlan(current),
-        updatedAt: new Date().toISOString(),
-      };
-      void fiveSLayoutService.savePlan(nextPlan);
-      return nextPlan;
-    });
+  const commitPlan = (nextPlan: FiveSLayoutPlan) => {
+    setPlan(nextPlan);
+    void fiveSLayoutService.savePlan(nextPlan);
   };
 
-  const updateZone = (zoneId: string, patch: Partial<FiveSZone>) => {
-    updatePlan((current) => ({
-      ...current,
-      zones: current.zones.map((zone) => (zone.id === zoneId ? { ...zone, ...patch } : zone)),
-    }));
+  const updatePlan = (
+    buildPlan: (current: FiveSLayoutPlan) => FiveSLayoutPlan,
+    options?: { skipHistory?: boolean },
+  ) => {
+    if (!plan) return;
+
+    const nextPlan = {
+      ...buildPlan(plan),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (!options?.skipHistory) {
+      setHistory((entries) => [...entries.slice(-(HISTORY_LIMIT - 1)), plan]);
+      setFuture([]);
+    }
+
+    commitPlan(nextPlan);
   };
 
-  const updateObject = (objectId: string, patch: Partial<FloorPlanObject>) => {
-    updatePlan((current) => ({
-      ...current,
-      objects: current.objects.map((object) => (object.id === objectId ? { ...object, ...patch } : object)),
-    }));
+  const undo = () => {
+    if (!plan || !history.length) return;
+
+    const previous = history[history.length - 1];
+    setHistory((entries) => entries.slice(0, -1));
+    setFuture((entries) => [plan, ...entries.slice(0, HISTORY_LIMIT - 1)]);
+    commitPlan(previous);
+    setActionMessage('Undid the last floorplan change.');
+  };
+
+  const redo = () => {
+    if (!plan || !future.length) return;
+
+    const [next, ...rest] = future;
+    setFuture(rest);
+    setHistory((entries) => [...entries.slice(-(HISTORY_LIMIT - 1)), plan]);
+    commitPlan(next);
+    setActionMessage('Redid the last undone change.');
+  };
+
+  const updateZone = (zoneId: string, patch: Partial<FiveSZone>, options?: { skipHistory?: boolean }) => {
+    updatePlan(
+      (current) => ({
+        ...current,
+        zones: current.zones.map((zone) => (zone.id === zoneId ? { ...zone, ...patch } : zone)),
+      }),
+      options,
+    );
+  };
+
+  const updateObject = (
+    objectId: string,
+    patch: Partial<FloorPlanObject>,
+    options?: { skipHistory?: boolean },
+  ) => {
+    updatePlan(
+      (current) => ({
+        ...current,
+        objects: current.objects.map((object) => (object.id === objectId ? { ...object, ...patch } : object)),
+      }),
+      options,
+    );
   };
 
   const addZone = () => {
@@ -906,10 +953,18 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   };
 
   const resetPlan = async () => {
+    const previousPlan = plan;
     const nextPlan = await fiveSLayoutService.resetPlan();
+
+    if (previousPlan) {
+      setHistory((entries) => [...entries.slice(-(HISTORY_LIMIT - 1)), previousPlan]);
+      setFuture([]);
+    }
+
     setPlan(nextPlan);
     setSelectedZoneId(nextPlan.zones[0]?.id || '');
     setSelectedObjectId('');
+    setActionMessage('Floorplan reset to the starting layout. Undo restores your version.');
   };
 
   const importBackgroundImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -939,6 +994,13 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setActionMessage('Blueprint image cleared.');
   };
 
+  // A pointer drag fires many move events; record one history entry for the whole gesture.
+  const beginDragHistory = () => {
+    if (!plan) return;
+    setHistory((entries) => [...entries.slice(-(HISTORY_LIMIT - 1)), plan]);
+    setFuture([]);
+  };
+
   const handleZonePointerDown = (event: React.PointerEvent<SVGRectElement>, zone: FiveSZone) => {
     if (!svgRef.current) return;
 
@@ -953,6 +1015,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
     setSelectedZoneId(zone.id);
     setSelectedObjectId('');
+    beginDragHistory();
     setDrag({
       kind: 'zone',
       zoneId: zone.id,
@@ -975,6 +1038,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
     setSelectedZoneId('');
     setSelectedObjectId(object.id);
+    beginDragHistory();
     setDrag({
       kind: 'object',
       objectId: object.id,
@@ -992,28 +1056,49 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       const zone = plan.zones.find((item) => item.id === drag.zoneId);
       if (!zone) return;
 
-      updateZone(zone.id, {
-        x: Math.round(clamp(snapToGrid(point.x - drag.offsetX, snap), 12, CANVAS_WIDTH - zone.width - 12)),
-        y: Math.round(clamp(snapToGrid(point.y - drag.offsetY, snap), 12, CANVAS_HEIGHT - zone.height - 12)),
-      });
+      updateZone(
+        zone.id,
+        {
+          x: Math.round(clamp(snapToGrid(point.x - drag.offsetX, snap), 12, CANVAS_WIDTH - zone.width - 12)),
+          y: Math.round(clamp(snapToGrid(point.y - drag.offsetY, snap), 12, CANVAS_HEIGHT - zone.height - 12)),
+        },
+        { skipHistory: true },
+      );
       return;
     }
 
     const object = plan.objects.find((item) => item.id === drag.objectId);
     if (!object) return;
 
-    updateObject(object.id, {
-      x: Math.round(clamp(snapToGrid(point.x - drag.offsetX, snap), 8, CANVAS_WIDTH - object.width - 8)),
-      y: Math.round(clamp(snapToGrid(point.y - drag.offsetY, snap), 8, CANVAS_HEIGHT - object.height - 8)),
-    });
+    updateObject(
+      object.id,
+      {
+        x: Math.round(clamp(snapToGrid(point.x - drag.offsetX, snap), 8, CANVAS_WIDTH - object.width - 8)),
+        y: Math.round(clamp(snapToGrid(point.y - drag.offsetY, snap), 8, CANVAS_HEIGHT - object.height - 8)),
+      },
+      { skipHistory: true },
+    );
   };
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!selectedZone && !selectedObject) return;
-
       const target = event.target;
       if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+        event.preventDefault();
+        redo();
+        return;
+      }
+
+      if (!selectedZone && !selectedObject) return;
 
       if (event.key === 'Escape') {
         setSelectedZoneId('');
@@ -1626,6 +1711,28 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       subtitle={`${plan.site} / ${readiness.zones} zones / ${readiness.rate}% launch ready`}
       actions={
         <>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={Undo2}
+            onClick={undo}
+            disabled={!history.length}
+            title="Undo (Ctrl+Z)"
+            type="button"
+          >
+            Undo
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={Redo2}
+            onClick={redo}
+            disabled={!future.length}
+            title="Redo (Ctrl+Shift+Z)"
+            type="button"
+          >
+            Redo
+          </Button>
           <Button variant="outline" size="sm" icon={Download} onClick={downloadZoneLabels} type="button">
             CSV
           </Button>
@@ -2249,6 +2356,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               <span>Arrows nudge / Shift+arrows jump</span>
               <span>Delete removes</span>
               <span>Esc deselects</span>
+              <span>Ctrl+Z undoes</span>
               {(plan.showGrid ?? true) && <span>Alt disables grid snap</span>}
             </div>
           </div>

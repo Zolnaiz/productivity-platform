@@ -127,4 +127,42 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     expect(await screen.findByText('Select or add a zone.')).toBeTruthy();
     expect(getZoneRect()).toBeNull();
   });
+
+  it('undoes a nudge with ctrl+z and replays it with ctrl+shift+z', async () => {
+    render(<FiveSFloorPlanSetup />);
+    expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+    await waitFor(() => expect(getZoneRect()?.getAttribute('x')).toBe('101'));
+
+    fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true });
+    await waitFor(() => expect(getZoneRect()?.getAttribute('x')).toBe('100'));
+
+    fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true, shiftKey: true });
+    await waitFor(() => expect(getZoneRect()?.getAttribute('x')).toBe('101'));
+  });
+
+  it('restores a deleted zone through undo', async () => {
+    render(<FiveSFloorPlanSetup />);
+    expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+    fireEvent.keyDown(document.body, { key: 'Delete' });
+    await waitFor(() => expect(getZoneRect()).toBeNull());
+
+    fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true });
+
+    await waitFor(() => expect(getZoneRect()).not.toBeNull());
+  });
+
+  it('keeps undo disabled until the plan is edited', async () => {
+    render(<FiveSFloorPlanSetup />);
+    expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+    const undoButton = screen.getByRole('button', { name: /undo/i }) as HTMLButtonElement;
+    expect(undoButton.disabled).toBe(true);
+
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+
+    await waitFor(() => expect(undoButton.disabled).toBe(false));
+  });
 });
