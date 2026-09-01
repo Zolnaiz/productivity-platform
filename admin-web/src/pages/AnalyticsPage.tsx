@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
+import HorizontalBarChart from '../components/charts/HorizontalBarChart';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
 import KpiCard from '../components/widgets/KpiCard';
@@ -40,6 +41,27 @@ const AnalyticsPage: React.FC = () => {
   const responseAverage = responses.length
     ? Math.round(responses.reduce((sum, response) => sum + response.score, 0) / responses.length)
     : 0;
+
+  const projectProgress = useMemo(
+    () => projects.map((project) => ({ label: project.name, value: project.progress })),
+    [projects],
+  );
+
+  // Ordered pipeline stages, so the ordinal ramp reads as progression.
+  const taskStatusMix = useMemo(() => {
+    const stages: Array<{ key: WorkTask['status']; label: string }> = [
+      { key: 'backlog', label: 'Backlog' },
+      { key: 'todo', label: 'To do' },
+      { key: 'in_progress', label: 'In progress' },
+      { key: 'review', label: 'Review' },
+      { key: 'done', label: 'Done' },
+    ];
+
+    return stages.map((stage) => ({
+      label: stage.label,
+      value: tasks.filter((task) => task.status === stage.key).length,
+    }));
+  }, [tasks]);
 
   const departmentRows = useMemo(
     () =>
@@ -83,48 +105,28 @@ const AnalyticsPage: React.FC = () => {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card title="Project progress">
-          <div className="space-y-4">
-            {projects.length ? (
-              projects.map((project) => (
-                <div key={project.id}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-800 dark:text-gray-200">{project.name}</span>
-                    <span className="text-gray-500">{project.progress}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-900">
-                    <div className="h-2 rounded-full bg-blue-600" style={{ width: `${project.progress}%` }} />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <EmptyState
-                icon={BarChart3}
-                title="No project data yet"
-                description="Project progress analytics will appear after projects are created."
-              />
-            )}
-          </div>
+        <Card title="Project progress" subtitle="Completion against plan, per project.">
+          {projectProgress.length ? (
+            <HorizontalBarChart data={projectProgress} unit="%" maxValue={100} />
+          ) : (
+            <EmptyState
+              icon={BarChart3}
+              title="No project data yet"
+              description="Project progress analytics will appear after projects are created."
+            />
+          )}
         </Card>
 
-        <Card title="Task status mix">
-          <div className="space-y-3">
-            {['backlog', 'todo', 'in_progress', 'review', 'done'].map((status) => {
-              const count = tasks.filter((task) => task.status === status).length;
-              const width = tasks.length ? Math.round((count / tasks.length) * 100) : 0;
-              return (
-                <div key={status}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="capitalize text-gray-700 dark:text-gray-300">{status.replace('_', ' ')}</span>
-                    <span className="text-gray-500">{count}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-900">
-                    <div className="h-2 rounded-full bg-green-600" style={{ width: `${width}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <Card title="Task status mix" subtitle="Where work currently sits in the pipeline.">
+          {tasks.length ? (
+            <HorizontalBarChart data={taskStatusMix} colorMode="ordinal" labelWidth={110} allowDecimals={false} />
+          ) : (
+            <EmptyState
+              icon={BarChart3}
+              title="No task data yet"
+              description="The status mix will appear once tasks are created."
+            />
+          )}
         </Card>
       </div>
 
