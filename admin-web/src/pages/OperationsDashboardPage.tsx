@@ -57,7 +57,11 @@ const OperationsDashboardPage: React.FC = () => {
         </div>
       )}
 
-      {loading && <Card>Dashboard мэдээлэл ачаалж байна...</Card>}
+      {loading && (
+        <Card loading>
+          <div />
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <KpiCard title="Projects" value={summary?.totals.projects || 0} description="Tracked projects" />

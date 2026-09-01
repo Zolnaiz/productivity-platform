@@ -136,7 +136,11 @@ const ProjectsPage: React.FC = () => {
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {loading && <Card>Төслүүдийг ачаалж байна...</Card>}
+        {loading && (
+          <Card loading>
+            <div />
+          </Card>
+        )}
         {!loading && projects.length === 0 && (
           <Card>
             <div className="text-sm text-gray-600 dark:text-gray-400">

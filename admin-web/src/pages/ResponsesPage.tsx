@@ -5,6 +5,7 @@ import Card from "../components/common/Card";
 import EmptyState from "../components/common/EmptyState";
 import Input from "../components/common/Input";
 import Select from "../components/common/Select";
+import Table from "../components/common/Table";
 import Textarea from "../components/common/Textarea";
 import { assessmentService } from "../services/assessment.service";
 import { operationsService } from "../services/operations.service";
@@ -349,111 +350,96 @@ const ResponsesPage: React.FC = () => {
           title={`Response queue (${filteredResponses.length})`}
           loading={loading}
         >
-          {filteredResponses.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b text-gray-500 dark:border-gray-700">
-                  <tr>
-                    <th className="py-3">Respondent</th>
-                    <th className="py-3">Template</th>
-                    <th className="py-3">Department</th>
-                    <th className="py-3">Score</th>
-                    <th className="py-3">Status</th>
-                    <th className="py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredResponses.map((response) => (
-                    <tr
-                      key={response.id}
-                      className="border-b dark:border-gray-700"
-                    >
-                      <td className="py-3">
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {response.respondent}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {response.submittedAt}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        {templateById[response.templateId]?.title ||
-                          "Unknown template"}
-                      </td>
-                      <td className="py-3">{response.department}</td>
-                      <td className="py-3">
-                        <span
-                          className={
-                            response.score < 80
-                              ? "font-semibold text-yellow-600"
-                              : "font-semibold text-green-600"
-                          }
-                        >
-                          {response.score}%
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs font-medium ${statusClasses[response.status]}`}
-                        >
-                          {response.status}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex flex-wrap gap-2">
-                          {response.status !== "reviewed" && (
-                            <button
-                              className="text-xs font-medium text-blue-600"
-                              onClick={() =>
-                                reviewResponse(response, "reviewed")
-                              }
-                              type="button"
-                            >
-                              Mark reviewed
-                            </button>
-                          )}
-                          {response.score < 85 && (
-                            <button
-                              className="text-xs font-medium text-green-600"
-                              onClick={() => createActionTask(response)}
-                              type="button"
-                            >
-                              Create task
-                            </button>
-                          )}
-                          {response.status !== "rejected" && (
-                            <button
-                              className="text-xs font-medium text-red-600"
-                              onClick={() =>
-                                reviewResponse(response, "rejected")
-                              }
-                              type="button"
-                            >
-                              Reject
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <EmptyState
-              icon={FileCheck2}
-              title={
-                responses.length
-                  ? "No responses match this filter"
-                  : "No responses submitted yet"
-              }
-              description={
-                responses.length
-                  ? "Change the filter to review other submissions."
-                  : "Submitted checklist and questionnaire responses will appear here for review and action creation."
-              }
-            />
-          )}
+          <Table
+            rows={filteredResponses}
+            rowKey={(response) => response.id}
+            columns={[
+              {
+                key: "respondent",
+                header: "Respondent",
+                render: (response) => (
+                  <>
+                    <div className="font-medium text-gray-900 dark:text-white">{response.respondent}</div>
+                    <div className="text-xs text-gray-500">{response.submittedAt}</div>
+                  </>
+                ),
+              },
+              {
+                key: "template",
+                header: "Template",
+                render: (response) => templateById[response.templateId]?.title || "Unknown template",
+              },
+              { key: "department", header: "Department" },
+              {
+                key: "score",
+                header: "Score",
+                render: (response) => (
+                  <span
+                    className={
+                      response.score < 80 ? "font-semibold text-yellow-600" : "font-semibold text-green-600"
+                    }
+                  >
+                    {response.score}%
+                  </span>
+                ),
+              },
+              {
+                key: "status",
+                header: "Status",
+                render: (response) => (
+                  <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClasses[response.status]}`}>
+                    {response.status}
+                  </span>
+                ),
+              },
+              {
+                key: "actions",
+                header: "Actions",
+                render: (response) => (
+                  <div className="flex flex-wrap gap-2">
+                    {response.status !== "reviewed" && (
+                      <button
+                        className="text-xs font-medium text-blue-600"
+                        onClick={() => reviewResponse(response, "reviewed")}
+                        type="button"
+                      >
+                        Mark reviewed
+                      </button>
+                    )}
+                    {response.score < 85 && (
+                      <button
+                        className="text-xs font-medium text-green-600"
+                        onClick={() => createActionTask(response)}
+                        type="button"
+                      >
+                        Create task
+                      </button>
+                    )}
+                    {response.status !== "rejected" && (
+                      <button
+                        className="text-xs font-medium text-red-600"
+                        onClick={() => reviewResponse(response, "rejected")}
+                        type="button"
+                      >
+                        Reject
+                      </button>
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+            empty={
+              <EmptyState
+                icon={FileCheck2}
+                title={responses.length ? "No responses match this filter" : "No responses submitted yet"}
+                description={
+                  responses.length
+                    ? "Change the filter to review other submissions."
+                    : "Submitted checklist and questionnaire responses will appear here for review and action creation."
+                }
+              />
+            }
+          />
         </Card>
       </div>
     </div>

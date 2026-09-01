@@ -3,6 +3,7 @@ import { ShieldCheck } from 'lucide-react';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
 import Select from '../components/common/Select';
+import Table from '../components/common/Table';
 import { adminService } from '../services/admin.service';
 import { AuditLogEntry } from '../types/admin.types';
 
@@ -78,49 +79,45 @@ const AuditLogPage: React.FC = () => {
           </Select>
         }
       >
-        {filteredLogs.length ? (
-          <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b text-gray-500 dark:border-gray-700">
-              <tr>
-                <th className="py-3">Time</th>
-                <th className="py-3">Actor</th>
-                <th className="py-3">Module</th>
-                <th className="py-3">Action</th>
-                <th className="py-3">Severity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.map((log) => (
-                <tr key={log.id} className="border-b dark:border-gray-700">
-                  <td className="py-3 text-gray-500">{log.createdAt}</td>
-                  <td className="py-3 font-medium text-gray-900 dark:text-white">{log.actor}</td>
-                  <td className="py-3">{log.module}</td>
-                  <td className="py-3">
-                    <div className="font-medium text-gray-800 dark:text-gray-200">{log.action}</div>
-                    <div className="text-xs text-gray-500">{log.details}</div>
-                  </td>
-                  <td className="py-3">
-                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${severityClasses[log.severity]}`}>
-                      {log.severity}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        ) : (
-          <EmptyState
-            icon={ShieldCheck}
-            title={logs.length ? 'No events match this filter' : 'No audit events yet'}
-            description={
-              logs.length
-                ? 'Change the filter to review other system activity.'
-                : 'Security events, report exports, permission changes, and audit submissions will appear here.'
-            }
-          />
-        )}
+        <Table
+          rows={filteredLogs}
+          rowKey={(log) => log.id}
+          columns={[
+            { key: 'createdAt', header: 'Time', className: 'py-3 text-gray-500' },
+            { key: 'actor', header: 'Actor', className: 'py-3 font-medium text-gray-900 dark:text-white' },
+            { key: 'module', header: 'Module' },
+            {
+              key: 'action',
+              header: 'Action',
+              render: (log) => (
+                <>
+                  <div className="font-medium text-gray-800 dark:text-gray-200">{log.action}</div>
+                  <div className="text-xs text-gray-500">{log.details}</div>
+                </>
+              ),
+            },
+            {
+              key: 'severity',
+              header: 'Severity',
+              render: (log) => (
+                <span className={`rounded-full px-2 py-1 text-xs font-medium ${severityClasses[log.severity]}`}>
+                  {log.severity}
+                </span>
+              ),
+            },
+          ]}
+          empty={
+            <EmptyState
+              icon={ShieldCheck}
+              title={logs.length ? 'No events match this filter' : 'No audit events yet'}
+              description={
+                logs.length
+                  ? 'Change the filter to review other system activity.'
+                  : 'Security events, report exports, permission changes, and audit submissions will appear here.'
+              }
+            />
+          }
+        />
       </Card>
     </div>
   );

@@ -5,6 +5,7 @@ import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
 import Input from '../components/common/Input';
 import Select from '../components/common/Select';
+import Table from '../components/common/Table';
 import { financeService } from '../services/finance.service';
 import { operationsService } from '../services/operations.service';
 import { ExpenseItem } from '../types/finance.types';
@@ -170,60 +171,78 @@ const ExpensesPage: React.FC = () => {
       </Card>
 
       <Card title="Expense approvals" loading={loading}>
-        {expenses.length ? (
-          <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b text-gray-500 dark:border-gray-700">
-              <tr>
-                <th className="py-3">Expense</th>
-                <th className="py-3">Project</th>
-                <th className="py-3">Category</th>
-                <th className="py-3">Amount</th>
-                <th className="py-3">Status</th>
-                <th className="py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {expenses.map((expense) => (
-                <tr key={expense.id} className="border-b dark:border-gray-700">
-                  <td className="py-3">
-                    <div className="font-medium text-gray-900 dark:text-white">{expense.title}</div>
-                    <div className="text-xs text-gray-500">{expense.expenseDate} - {expense.submittedBy}</div>
-                  </td>
-                  <td className="py-3">{expense.projectId ? projectById[expense.projectId]?.name || '-' : '-'}</td>
-                  <td className="py-3 capitalize">{expense.category}</td>
-                  <td className="py-3 font-medium">{formatMnt(expense.amount)}</td>
-                  <td className="py-3">
-                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClasses[expense.status]}`}>
-                      {expense.status}
-                    </span>
-                  </td>
-                  <td className="py-3">
-                    <div className="flex gap-2">
-                      {expense.status !== 'approved' && (
-                        <button className="text-xs font-medium text-green-600" onClick={() => updateStatus(expense, 'approved')} type="button">
-                          Approve
-                        </button>
-                      )}
-                      {expense.status !== 'rejected' && (
-                        <button className="text-xs font-medium text-red-600" onClick={() => updateStatus(expense, 'rejected')} type="button">
-                          Reject
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        ) : (
-          <EmptyState
-            icon={Landmark}
-            title="No expenses submitted"
-            description="Submitted project expenses and approval decisions will appear here for reporting."
-          />
-        )}
+        <Table
+          rows={expenses}
+          rowKey={(expense) => expense.id}
+          columns={[
+            {
+              key: 'title',
+              header: 'Expense',
+              render: (expense) => (
+                <>
+                  <div className="font-medium text-gray-900 dark:text-white">{expense.title}</div>
+                  <div className="text-xs text-gray-500">
+                    {expense.expenseDate} - {expense.submittedBy}
+                  </div>
+                </>
+              ),
+            },
+            {
+              key: 'project',
+              header: 'Project',
+              render: (expense) => (expense.projectId ? projectById[expense.projectId]?.name || '-' : '-'),
+            },
+            { key: 'category', header: 'Category', className: 'py-3 capitalize' },
+            {
+              key: 'amount',
+              header: 'Amount',
+              className: 'py-3 font-medium',
+              render: (expense) => formatMnt(expense.amount),
+            },
+            {
+              key: 'status',
+              header: 'Status',
+              render: (expense) => (
+                <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClasses[expense.status]}`}>
+                  {expense.status}
+                </span>
+              ),
+            },
+            {
+              key: 'actions',
+              header: 'Actions',
+              render: (expense) => (
+                <div className="flex gap-2">
+                  {expense.status !== 'approved' && (
+                    <button
+                      className="text-xs font-medium text-green-600"
+                      onClick={() => updateStatus(expense, 'approved')}
+                      type="button"
+                    >
+                      Approve
+                    </button>
+                  )}
+                  {expense.status !== 'rejected' && (
+                    <button
+                      className="text-xs font-medium text-red-600"
+                      onClick={() => updateStatus(expense, 'rejected')}
+                      type="button"
+                    >
+                      Reject
+                    </button>
+                  )}
+                </div>
+              ),
+            },
+          ]}
+          empty={
+            <EmptyState
+              icon={Landmark}
+              title="No expenses submitted"
+              description="Submitted project expenses and approval decisions will appear here for reporting."
+            />
+          }
+        />
       </Card>
     </div>
   );

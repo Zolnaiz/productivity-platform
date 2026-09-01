@@ -7,6 +7,7 @@ import EmptyState from '../components/common/EmptyState';
 import Input from '../components/common/Input';
 import Modal from '../components/common/Modal';
 import Select from '../components/common/Select';
+import Table from '../components/common/Table';
 import { peopleService } from '../services/people.service';
 import { Department, TeamUser } from '../types/people.types';
 
@@ -130,52 +131,52 @@ const TeamUsersPage: React.FC = () => {
       </Modal>
 
       <Card title={`Team users (${users.length})`} loading={loading}>
-        {users.length ? (
-          <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b text-gray-500 dark:border-gray-700">
-              <tr>
-                <th className="py-3">Name</th>
-                <th className="py-3">Role</th>
-                <th className="py-3">Department</th>
-                <th className="py-3">Position</th>
-                <th className="py-3">Status</th>
-                <th className="py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id} className="border-b dark:border-gray-700">
-                  <td className="py-3">
-                    <div className="font-medium text-gray-900 dark:text-white">{user.name}</div>
-                    <div className="text-xs text-gray-500">{user.email}</div>
-                  </td>
-                  <td className="py-3">{user.role}</td>
-                  <td className="py-3">{departmentById[user.departmentId]?.name || '-'}</td>
-                  <td className="py-3">{user.position}</td>
-                  <td className="py-3">{user.active ? 'Active' : 'Inactive'}</td>
-                  <td className="py-3 text-right">
-                    <div className="flex justify-end gap-3">
-                      <Link className="text-sm text-blue-600" to="/profile">
-                        Report
-                      </Link>
-                      <button className="text-sm text-blue-600" onClick={() => toggleActive(user)} type="button">
-                        {user.active ? 'Deactivate' : 'Activate'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        ) : (
-          <EmptyState
-            icon={Users}
-            title="No users yet"
-            description="Add owners, admins, managers, and employees so work can be assigned and reported by role."
-          />
-        )}
+        <Table
+          rows={users}
+          rowKey={(user) => user.id}
+          columns={[
+            {
+              key: 'name',
+              header: 'Name',
+              render: (user) => (
+                <>
+                  <div className="font-medium text-gray-900 dark:text-white">{user.name}</div>
+                  <div className="text-xs text-gray-500">{user.email}</div>
+                </>
+              ),
+            },
+            { key: 'role', header: 'Role' },
+            {
+              key: 'department',
+              header: 'Department',
+              render: (user) => departmentById[user.departmentId]?.name || '-',
+            },
+            { key: 'position', header: 'Position' },
+            { key: 'status', header: 'Status', render: (user) => (user.active ? 'Active' : 'Inactive') },
+            {
+              key: 'actions',
+              header: '',
+              className: 'py-3 text-right',
+              render: (user) => (
+                <div className="flex justify-end gap-3">
+                  <Link className="text-sm text-blue-600" to="/profile">
+                    Report
+                  </Link>
+                  <button className="text-sm text-blue-600" onClick={() => toggleActive(user)} type="button">
+                    {user.active ? 'Deactivate' : 'Activate'}
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+          empty={
+            <EmptyState
+              icon={Users}
+              title="No users yet"
+              description="Add owners, admins, managers, and employees so work can be assigned and reported by role."
+            />
+          }
+        />
       </Card>
     </div>
   );

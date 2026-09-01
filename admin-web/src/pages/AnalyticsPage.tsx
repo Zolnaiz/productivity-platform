@@ -3,6 +3,7 @@ import { BarChart3 } from 'lucide-react';
 import HorizontalBarChart from '../components/charts/HorizontalBarChart';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
+import Table from '../components/common/Table';
 import KpiCard from '../components/widgets/KpiCard';
 import { assessmentService } from '../services/assessment.service';
 import { operationsService } from '../services/operations.service';
@@ -131,38 +132,38 @@ const AnalyticsPage: React.FC = () => {
       </div>
 
       <Card title="Department performance">
-        {departmentRows.length ? (
-          <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b text-gray-500 dark:border-gray-700">
-              <tr>
-                <th className="py-3">Department</th>
-                <th className="py-3">Members</th>
-                <th className="py-3">Responses</th>
-                <th className="py-3">Assessment score</th>
-                <th className="py-3">Focus area</th>
-              </tr>
-            </thead>
-            <tbody>
-              {departmentRows.map((row) => (
-                <tr key={row.department.id} className="border-b dark:border-gray-700">
-                  <td className="py-3 font-medium text-gray-900 dark:text-white">{row.department.name}</td>
-                  <td className="py-3">{row.members}</td>
-                  <td className="py-3">{row.responses}</td>
-                  <td className="py-3">{row.score ? `${row.score}%` : '-'}</td>
-                  <td className="py-3 text-gray-500">{row.department.focusArea}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        ) : (
-          <EmptyState
-            icon={BarChart3}
-            title="No department analytics yet"
-            description="Department performance will appear after departments and users are configured."
-          />
-        )}
+        <Table
+          rows={departmentRows}
+          rowKey={(row) => row.department.id}
+          columns={[
+            {
+              key: 'name',
+              header: 'Department',
+              className: 'py-3 font-medium text-gray-900 dark:text-white',
+              render: (row) => row.department.name,
+            },
+            { key: 'members', header: 'Members', render: (row) => row.members },
+            { key: 'responses', header: 'Responses', render: (row) => row.responses },
+            {
+              key: 'score',
+              header: 'Assessment score',
+              render: (row) => (row.responses ? `${row.score}%` : '-'),
+            },
+            {
+              key: 'focus',
+              header: 'Focus area',
+              className: 'py-3 text-gray-500',
+              render: (row) => row.department.focusArea || '-',
+            },
+          ]}
+          empty={
+            <EmptyState
+              icon={BarChart3}
+              title="No department analytics yet"
+              description="Department performance will appear after departments and users are configured."
+            />
+          }
+        />
       </Card>
         </>
       )}

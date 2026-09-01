@@ -11,19 +11,22 @@ const Loading: React.FC<LoadingProps> = ({
   fullscreen = false,
   text,
 }) => {
+  // Tailwind ships no border-3; it would silently fall back to a hairline ring.
   const sizeClasses = {
-    sm: 'w-6 h-6 border-2',
-    md: 'w-8 h-8 border-3',
-    lg: 'w-12 h-12 border-4',
+    sm: 'h-6 w-6 border-2',
+    md: 'h-8 w-8 border-4',
+    lg: 'h-12 w-12 border-4',
   };
 
   const spinner = (
-    <div className="flex flex-col items-center justify-center">
+    <div className="flex flex-col items-center justify-center" role="status">
       <div
-        className={`${sizeClasses[size]} border-blue-500 border-t-transparent rounded-full animate-spin`}
+        className={`${sizeClasses[size]} animate-spin rounded-full border-blue-500 border-t-transparent`}
       />
-      {text && (
+      {text ? (
         <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">{text}</p>
+      ) : (
+        <span className="sr-only">Loading</span>
       )}
     </div>
   );

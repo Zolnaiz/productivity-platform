@@ -181,7 +181,11 @@ const AuditTemplatesPage: React.FC = () => {
         </div>
       )}
 
-      {loading && <Card>Audit загварууд ачаалж байна...</Card>}
+      {loading && (
+        <Card loading>
+          <div />
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>

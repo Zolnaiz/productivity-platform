@@ -147,7 +147,11 @@ const MonthlyReportPage: React.FC = () => {
         </div>
       )}
 
-      {loading && <Card>Сарын тайлангийн өгөгдөл ачаалж байна...</Card>}
+      {loading && (
+        <Card loading>
+          <div />
+        </Card>
+      )}
 
       {!loading && !report && !error && <Card>Энэ сард тайлангийн өгөгдөл олдсонгүй.</Card>}
 

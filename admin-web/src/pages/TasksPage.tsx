@@ -146,7 +146,11 @@ const TasksPage: React.FC = () => {
         </form>
       </Modal>
 
-      {loading && <Card>Ажлуудыг ачаалж байна...</Card>}
+      {loading && (
+        <Card loading>
+          <div />
+        </Card>
+      )}
       {!loading && tasks.length === 0 && (
         <Card>
           <div className="text-sm text-gray-600 dark:text-gray-400">
