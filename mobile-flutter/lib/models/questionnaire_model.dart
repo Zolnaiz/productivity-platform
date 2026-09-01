@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 
 enum QuestionType { multipleChoice, singleChoice, text, rating, date, number }
 

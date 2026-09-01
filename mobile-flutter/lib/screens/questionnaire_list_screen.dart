@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../providers/questionnaire_provider.dart';
 import '../models/questionnaire_model.dart';
 import '../widgets/questionnaire_card.dart';
@@ -77,7 +76,6 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
         filtered = filtered.where((q) => q.responseCount > 0).toList();
         break;
       case QuestionnaireFilter.all:
-      default:
         break;
     }
 
@@ -176,7 +174,7 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
               onSelected: (selected) {
                 setState(() => _currentFilter = filter);
               },
-              selectedColor: AppColors.primary.withOpacity(0.2),
+              selectedColor: AppColors.primary.withValues(alpha: 0.2),
               checkmarkColor: AppColors.primary,
             ),
           );
@@ -364,8 +362,6 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
   }
 
   void _toggleQuestionnaireStatus(Questionnaire questionnaire) async {
-    final provider = Provider.of<QuestionnaireProvider>(context, listen: false);
-
     try {
       // Call API to toggle status
       await Future.delayed(const Duration(seconds: 1)); // Mock API call
@@ -423,8 +419,6 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
   }
 
   Future<void> _deleteQuestionnaire(Questionnaire questionnaire) async {
-    final provider = Provider.of<QuestionnaireProvider>(context, listen: false);
-
     try {
       // Call API to delete
       await Future.delayed(const Duration(seconds: 1)); // Mock API call
@@ -472,7 +466,6 @@ class _QuestionnaireListScreenState extends State<QuestionnaireListScreen> {
       case QuestionnaireFilter.completed:
         return 'No completed questionnaires';
       case QuestionnaireFilter.all:
-      default:
         return 'No questionnaires yet';
     }
   }

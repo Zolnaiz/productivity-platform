@@ -43,6 +43,11 @@ doc/api/
 **/ios/**/*.perspectivev3
 **/ios/**/*sync/
 **/ios/.sconsign.dblite
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/ephemeral/
+**/ios/Runner/GeneratedPluginRegistrant.h
+**/ios/Runner/GeneratedPluginRegistrant.m
 **/ios/.tags*
 **/ios/.vagrant/
 **/ios/DerivedData/

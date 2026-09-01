@@ -42,11 +42,11 @@ class AuthProvider with ChangeNotifier {
         }
 
         _isAuthenticated = true;
-        print('User loaded from storage: ${_user?.email}');
+        debugPrint('User loaded from storage: ${_user?.email}');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error loading user from storage: $e');
+        debugPrint('Error loading user from storage: $e');
       }
     } finally {
       _isLoading = false;
@@ -60,7 +60,7 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      print('Attempting login for: $email');
+      debugPrint('Attempting login for: $email');
       final result = await _apiService.login(email, password);
 
       _user = User.fromJson(result['user'] as Map<String, dynamic>);
@@ -73,14 +73,14 @@ class AuthProvider with ChangeNotifier {
 
       final prefs = await _prefsFuture;
       await prefs.setString('user', json.encode(result['user']));
-      print('Login successful for: ${_user?.email}');
+      debugPrint('Login successful for: ${_user?.email}');
 
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
-      print('Login error: $_error');
+      debugPrint('Login error: $_error');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -99,7 +99,7 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      print('Attempting registration for: $email');
+      debugPrint('Attempting registration for: $email');
       final result = await _apiService.register(
         email,
         password,
@@ -117,14 +117,14 @@ class AuthProvider with ChangeNotifier {
 
       final prefs = await _prefsFuture;
       await prefs.setString('user', json.encode(result['user']));
-      print('Registration successful for: ${_user?.email}');
+      debugPrint('Registration successful for: ${_user?.email}');
 
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
-      print('Registration error: $_error');
+      debugPrint('Registration error: $_error');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -133,10 +133,10 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> logout() async {
     try {
-      print('Logging out user: ${_user?.email}');
+      debugPrint('Logging out user: ${_user?.email}');
       await _apiService.logout();
     } catch (e) {
-      print('Logout error: $e');
+      debugPrint('Logout error: $e');
     } finally {
       _user = null;
       _organization = null;
@@ -145,7 +145,7 @@ class AuthProvider with ChangeNotifier {
 
       final prefs = await _prefsFuture;
       await prefs.remove('user');
-      print('User logged out successfully');
+      debugPrint('User logged out successfully');
 
       notifyListeners();
     }
@@ -153,7 +153,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> refreshUser() async {
     try {
-      print('Refreshing user data');
+      debugPrint('Refreshing user data');
       final userData = await _apiService.getCurrentUser();
       _user = User.fromJson(userData);
 
@@ -165,11 +165,11 @@ class AuthProvider with ChangeNotifier {
 
       final prefs = await _prefsFuture;
       await prefs.setString('user', json.encode(userData));
-      print('User data refreshed: ${_user?.email}');
+      debugPrint('User data refreshed: ${_user?.email}');
 
       notifyListeners();
     } catch (e) {
-      print('Error refreshing user: $e');
+      debugPrint('Error refreshing user: $e');
       // If refresh fails, logout the user
       await logout();
     }
@@ -181,7 +181,7 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      print('Updating profile for: ${_user?.email}');
+      debugPrint('Updating profile for: ${_user?.email}');
       // TODO: Implement profile update API call
       await Future.delayed(const Duration(milliseconds: 500));
 
@@ -202,14 +202,14 @@ class AuthProvider with ChangeNotifier {
 
       final prefs = await _prefsFuture;
       await prefs.setString('user', json.encode(_user?.toJson()));
-      print('Profile updated successfully');
+      debugPrint('Profile updated successfully');
 
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
-      print('Profile update error: $_error');
+      debugPrint('Profile update error: $_error');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -225,17 +225,17 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      print('Changing password for: ${_user?.email}');
+      debugPrint('Changing password for: ${_user?.email}');
       // TODO: Implement password change API call
       await Future.delayed(const Duration(milliseconds: 500));
 
-      print('Password changed successfully');
+      debugPrint('Password changed successfully');
 
       _isLoading = false;
       notifyListeners();
     } catch (e) {
       _error = e.toString();
-      print('Password change error: $_error');
+      debugPrint('Password change error: $_error');
       _isLoading = false;
       notifyListeners();
     }
@@ -273,7 +273,7 @@ class AuthProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print('Error restoring auth state: $e');
+      debugPrint('Error restoring auth state: $e');
     }
   }
 }

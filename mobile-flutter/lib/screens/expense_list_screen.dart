@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/expense_model.dart';
 import '../widgets/expense_card.dart';
 import '../widgets/loading_indicator.dart';
-import '../widgets/error_widget.dart' as custom;
 import '../utils/constants.dart';
 import '../themes/colors.dart';
 
@@ -119,7 +117,6 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
             filtered.where((e) => e.status == ExpenseStatus.rejected).toList();
         break;
       case ExpenseFilter.all:
-      default:
         break;
     }
 
@@ -254,7 +251,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                 onSelected: (selected) {
                   setState(() => _currentFilter = filter);
                 },
-                selectedColor: AppColors.primary.withOpacity(0.2),
+                selectedColor: AppColors.primary.withValues(alpha: 0.2),
                 checkmarkColor: AppColors.primary,
               ),
             );
@@ -279,7 +276,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
               onPressed: () => _selectDateRange(context),
               backgroundColor: _dateRange == null
                   ? Colors.grey.shade200
-                  : AppColors.primary.withOpacity(0.1),
+                  : AppColors.primary.withValues(alpha: 0.1),
             ),
           ),
 
@@ -310,9 +307,9 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
       margin: const EdgeInsets.all(AppConstants.paddingMedium),
       padding: const EdgeInsets.all(AppConstants.paddingLarge),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.05),
+        color: AppColors.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

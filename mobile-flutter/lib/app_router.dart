@@ -64,7 +64,7 @@ class AppRouter {
           path: '/expenses/:id/edit',
           builder: (BuildContext context, GoRouterState state) =>
               ExpenseFormScreen(
-            expenseId: state.pathParameters['id'] as String?,
+            expenseId: state.pathParameters['id'],
           ),
         ),
         GoRoute(

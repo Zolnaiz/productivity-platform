@@ -21,6 +21,8 @@ analyzer:
     - ".dart_tool/**"
     - ".idea/**"
     - ".vscode/**"
+    - android/**
+    - ios/**
 
   language:
     strict-casts: false
