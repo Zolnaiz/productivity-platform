@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import Input from '../components/common/Input';
 import { operationsService } from '../services/operations.service';
 import { OperationsMonthlyReport } from '../types/operations.types';
 
@@ -49,15 +51,39 @@ const MonthlyReportPage: React.FC = () => {
   const dailyGoals = report?.dailyGoals ?? [];
   const completedDailyGoals = dailyGoals.filter((goal) => goal.completed);
 
-  const executiveSummary = report
+  // One source for both the on-screen summary and the copyable text, so the
+  // two can never drift apart.
+  const summaryLines = report
     ? [
-        `Monthly productivity report (${report.period}): ${report.totals.projects} projects, ${report.totals.tasks} tasks, ${report.kpis.completionRate}% task completion.`,
-        `Daily goals: ${report.totals.completedDailyGoals}/${report.totals.dailyGoals} completed (${report.kpis.dailyGoalCompletionRate}%).`,
-        `Tracked work: ${report.totals.totalHours} hours and ${report.totals.workLogs} work logs.`,
-        `Quality and compliance: ${report.totals.auditRuns} audit runs; ${report.totals.assessmentResponses} assessment responses with ${report.kpis.averageAssessmentScore}% average score.`,
-        `Finance: ${formatMnt(report.totals.approvedExpenseTotal)} approved expenses and ${formatMnt(report.totals.pendingExpenseTotal)} waiting approval.`,
-        `Management attention: ${improvementActions} improvement actions need follow-up.`,
-      ].join('\n')
+        {
+          label: 'Delivery',
+          text: `Monthly productivity report (${report.period}): ${report.totals.projects} projects, ${report.totals.tasks} tasks, ${report.kpis.completionRate}% task completion.`,
+        },
+        {
+          label: 'Daily goals',
+          text: `${report.totals.completedDailyGoals}/${report.totals.dailyGoals} completed (${report.kpis.dailyGoalCompletionRate}%).`,
+        },
+        {
+          label: 'Tracked work',
+          text: `${report.totals.totalHours} hours across ${report.totals.workLogs} work logs.`,
+        },
+        {
+          label: 'Quality',
+          text: `${report.totals.auditRuns} audit runs; ${report.totals.assessmentResponses} assessment responses averaging ${report.kpis.averageAssessmentScore}%.`,
+        },
+        {
+          label: 'Finance',
+          text: `${formatMnt(report.totals.approvedExpenseTotal)} approved and ${formatMnt(report.totals.pendingExpenseTotal)} waiting approval.`,
+        },
+        {
+          label: 'Needs attention',
+          text: `${improvementActions} improvement actions need follow-up.`,
+        },
+      ]
+    : [];
+
+  const executiveSummary = report
+    ? summaryLines.map((line) => `${line.label}: ${line.text}`).join('\n')
     : 'Monthly productivity report is loading.';
 
   const exportCsv = () => {
@@ -107,37 +133,21 @@ const MonthlyReportPage: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <input
+          <Input
             type="month"
             value={selectedMonth}
             onChange={(event) => setSelectedMonth(event.target.value || currentMonth())}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
             aria-label="Report month"
           />
-          <button
-            type="button"
-            onClick={exportCsv}
-            disabled={loading || !report}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-          >
+          <Button type="button" onClick={exportCsv} disabled={loading || !report}>
             Export CSV
-          </button>
-          <button
-            type="button"
-            onClick={copySummary}
-            disabled={loading || !report}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
+          </Button>
+          <Button variant="outline" type="button" onClick={copySummary} disabled={loading || !report}>
             Copy summary
-          </button>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            disabled={loading || !report}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
+          </Button>
+          <Button variant="outline" type="button" onClick={() => window.print()} disabled={loading || !report}>
             Print
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -157,10 +167,15 @@ const MonthlyReportPage: React.FC = () => {
 
       {report && (
         <>
-          <Card title="Executive summary">
-            <pre className="whitespace-pre-wrap text-sm leading-6 text-gray-700 dark:text-gray-300">
-              {executiveSummary}
-            </pre>
+          <Card title="Executive summary" subtitle={`Reporting period ${report.period}`}>
+            <dl className="divide-y divide-gray-200 dark:divide-gray-700">
+              {summaryLines.map((line) => (
+                <div key={line.label} className="grid gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[160px_1fr] sm:gap-4">
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{line.label}</dt>
+                  <dd className="text-sm leading-6 text-gray-800 dark:text-gray-200">{line.text}</dd>
+                </div>
+              ))}
+            </dl>
           </Card>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-8">
