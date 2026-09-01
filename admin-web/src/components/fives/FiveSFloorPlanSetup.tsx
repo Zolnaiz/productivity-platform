@@ -40,6 +40,7 @@ import { TeamUser } from '../../types/people.types';
 
 const CANVAS_WIDTH = 900;
 const CANVAS_HEIGHT = 500;
+const GRID_SIZE = 24;
 
 const stageLabels: Record<FiveSStage, string> = {
   sort: '1 Sort',
@@ -190,6 +191,9 @@ const fieldClass =
   'mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900';
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const snapToGrid = (value: number, enabled: boolean) =>
+  enabled ? Math.round(value / GRID_SIZE) * GRID_SIZE : value;
 
 const escapeHtml = (value: string | number | undefined) =>
   String(value ?? '')
@@ -982,14 +986,15 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const handleCanvasPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
     if (!drag || !plan) return;
     const point = getPointerPoint(event);
+    const snap = (plan.showGrid ?? true) && !event.altKey;
 
     if (drag.kind === 'zone') {
       const zone = plan.zones.find((item) => item.id === drag.zoneId);
       if (!zone) return;
 
       updateZone(zone.id, {
-        x: Math.round(clamp(point.x - drag.offsetX, 12, CANVAS_WIDTH - zone.width - 12)),
-        y: Math.round(clamp(point.y - drag.offsetY, 12, CANVAS_HEIGHT - zone.height - 12)),
+        x: Math.round(clamp(snapToGrid(point.x - drag.offsetX, snap), 12, CANVAS_WIDTH - zone.width - 12)),
+        y: Math.round(clamp(snapToGrid(point.y - drag.offsetY, snap), 12, CANVAS_HEIGHT - zone.height - 12)),
       });
       return;
     }
@@ -998,10 +1003,63 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     if (!object) return;
 
     updateObject(object.id, {
-      x: Math.round(clamp(point.x - drag.offsetX, 8, CANVAS_WIDTH - object.width - 8)),
-      y: Math.round(clamp(point.y - drag.offsetY, 8, CANVAS_HEIGHT - object.height - 8)),
+      x: Math.round(clamp(snapToGrid(point.x - drag.offsetX, snap), 8, CANVAS_WIDTH - object.width - 8)),
+      y: Math.round(clamp(snapToGrid(point.y - drag.offsetY, snap), 8, CANVAS_HEIGHT - object.height - 8)),
     });
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!selectedZone && !selectedObject) return;
+
+      const target = event.target;
+      if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+      if (event.key === 'Escape') {
+        setSelectedZoneId('');
+        setSelectedObjectId('');
+        return;
+      }
+
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault();
+        if (selectedZone) deleteSelectedZone();
+        else deleteSelectedObject();
+        return;
+      }
+
+      const nudge: Record<string, [number, number]> = {
+        ArrowLeft: [-1, 0],
+        ArrowRight: [1, 0],
+        ArrowUp: [0, -1],
+        ArrowDown: [0, 1],
+      };
+      const direction = nudge[event.key];
+      if (!direction) return;
+
+      event.preventDefault();
+      const step = event.shiftKey ? GRID_SIZE : 1;
+      const [dx, dy] = [direction[0] * step, direction[1] * step];
+
+      if (selectedZone) {
+        updateZone(selectedZone.id, {
+          x: Math.round(clamp(selectedZone.x + dx, 12, CANVAS_WIDTH - selectedZone.width - 12)),
+          y: Math.round(clamp(selectedZone.y + dy, 12, CANVAS_HEIGHT - selectedZone.height - 12)),
+        });
+        return;
+      }
+
+      if (selectedObject) {
+        updateObject(selectedObject.id, {
+          x: Math.round(clamp(selectedObject.x + dx, 8, CANVAS_WIDTH - selectedObject.width - 8)),
+          y: Math.round(clamp(selectedObject.y + dy, 8, CANVAS_HEIGHT - selectedObject.height - 8)),
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
 
   const handleOwnerChange = (ownerId: string) => {
     if (!selectedZone) return;
@@ -1992,88 +2050,93 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             <Button fullWidth size="sm" icon={Plus} onClick={addZone} type="button">
               Blank area
             </Button>
-            <div className="mt-4">
-              <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Area presets</div>
-              <div className="grid grid-cols-2 gap-2">
-                {zoneTemplates.map((template) => (
-                  <button
-                    key={template.name}
-                    type="button"
-                    onClick={() => addZoneFromTemplate(template)}
-                    className="flex min-h-[54px] flex-col items-start justify-between rounded-lg border border-gray-200 px-2.5 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                  >
-                    <span className="h-2.5 w-8 rounded-full" style={{ backgroundColor: template.color }} />
-                    <span className="font-medium">{template.name}</span>
-                  </button>
+            <div className="mt-4 max-h-[420px] space-y-4 overflow-y-auto pr-1 md:max-h-[520px]">
+              <div>
+                <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Area presets</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {zoneTemplates.map((template) => (
+                    <button
+                      key={template.name}
+                      type="button"
+                      onClick={() => addZoneFromTemplate(template)}
+                      className="flex min-h-[54px] flex-col items-start justify-between rounded-lg border border-gray-200 px-2.5 py-2 text-left text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                    >
+                      <span className="h-2.5 w-8 rounded-full" style={{ backgroundColor: template.color }} />
+                      <span className="font-medium">{template.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-3 border-t border-gray-200 pt-3 dark:border-gray-700">
+                {shapeToolGroups.map((group) => (
+                  <div key={group}>
+                    <div className="mb-2 text-xs font-semibold uppercase text-gray-500">{group}</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {shapeTools
+                        .filter((tool) => tool.group === group)
+                        .map((tool) => {
+                          const Icon = tool.icon;
+                          return (
+                            <button
+                              key={tool.type}
+                              type="button"
+                              onClick={() => addObject(tool.type)}
+                              className="flex min-h-[42px] items-center gap-2 rounded-lg border border-gray-200 px-2.5 py-2 text-left text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                            >
+                              <Icon className="h-4 w-4 flex-none" />
+                              <span className="leading-tight">{tool.label}</span>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
                 ))}
               </div>
-            </div>
-            <div className="mt-4 space-y-3 border-t border-gray-200 pt-3 dark:border-gray-700">
-              {shapeToolGroups.map((group) => (
-                <div key={group}>
-                  <div className="mb-2 text-xs font-semibold uppercase text-gray-500">{group}</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {shapeTools
-                      .filter((tool) => tool.group === group)
-                      .map((tool) => {
-                        const Icon = tool.icon;
-                        return (
-                          <button
-                            key={tool.type}
-                            type="button"
-                            onClick={() => addObject(tool.type)}
-                            className="flex min-h-[42px] items-center gap-2 rounded-lg border border-gray-200 px-2.5 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                          >
-                            <Icon className="h-4 w-4 flex-none" />
-                            <span className="leading-tight">{tool.label}</span>
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 space-y-2 border-t border-gray-200 pt-3 dark:border-gray-700">
-              {stageCounts.map((item) => (
-                <div key={item.stage} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-500">{stageLabels[item.stage]}</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{item.count}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 border-t border-gray-200 pt-3 dark:border-gray-700">
-              <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Color legend</div>
-              <div className="space-y-1.5">
-                {zoneColorPresets.map((preset) => (
-                  <div key={preset.value} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: preset.value }} />
-                      {preset.label}
-                    </span>
-                    <span className="font-mono text-[10px] text-gray-400">{preset.value}</span>
+              <div className="space-y-2 border-t border-gray-200 pt-3 dark:border-gray-700">
+                {stageCounts.map((item) => (
+                  <div key={item.stage} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500">{stageLabels[item.stage]}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{item.count}</span>
                   </div>
                 ))}
+              </div>
+              <div className="border-t border-gray-200 pt-3 dark:border-gray-700">
+                <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Color legend</div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                  {zoneColorPresets.map((preset) => (
+                    <div key={preset.value} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                      <span className="h-3 w-3 flex-none rounded-full" style={{ backgroundColor: preset.value }} />
+                      {preset.label}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-950">
+          <div className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-950">
             <svg
               ref={svgRef}
               viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
               role="img"
               aria-label="5S floor plan"
               className="h-[420px] w-full cursor-crosshair touch-none md:h-[520px]"
+              onPointerDown={(event) => {
+                if (event.target === event.currentTarget || (event.target as SVGElement).dataset.canvasBackground) {
+                  setSelectedZoneId('');
+                  setSelectedObjectId('');
+                }
+              }}
               onPointerMove={handleCanvasPointerMove}
               onPointerUp={() => setDrag(null)}
               onPointerLeave={() => setDrag(null)}
             >
               <defs>
-                <pattern id="five-s-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-                  <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#d1d5db" strokeWidth="0.8" />
+                <pattern id="five-s-grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
+                  <path d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`} fill="none" stroke="#d1d5db" strokeWidth="0.8" />
                 </pattern>
               </defs>
-              <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="white" />
+              <rect data-canvas-background="true" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="white" />
               {plan.backgroundImage && (
                 <image
                   href={plan.backgroundImage}
@@ -2085,7 +2148,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   preserveAspectRatio="xMidYMid meet"
                 />
               )}
-              {(plan.showGrid ?? true) && <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#five-s-grid)" />}
+              {(plan.showGrid ?? true) && (
+                <rect
+                  data-canvas-background="true"
+                  width={CANVAS_WIDTH}
+                  height={CANVAS_HEIGHT}
+                  fill="url(#five-s-grid)"
+                />
+              )}
 
               {plan.zones.map((zone) => {
                 const selected = zone.id === selectedZoneId;
@@ -2174,9 +2244,16 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 ),
               )}
             </svg>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-200 px-3 py-2 text-xs text-gray-500 dark:border-gray-700">
+              <span>Drag to move</span>
+              <span>Arrows nudge / Shift+arrows jump</span>
+              <span>Delete removes</span>
+              <span>Esc deselects</span>
+              {(plan.showGrid ?? true) && <span>Alt disables grid snap</span>}
+            </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+          <div className="max-h-[480px] overflow-y-auto rounded-lg border border-gray-200 p-3 dark:border-gray-700 md:max-h-[580px]">
             {selectedZone ? (
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -2659,18 +2736,6 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               </div>
             )}
           </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-5">
-          {stageCounts.map((item) => (
-            <div key={item.stage} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{stageLabels[item.stage]}</span>
-                {item.count > 0 && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{item.count}</div>
-            </div>
-          ))}
         </div>
 
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
