@@ -1,24 +1,23 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Card from '../components/common/Card';
 
 interface PlatformModulePageProps {
-  title: string;
-  description: string;
+  /** Translation keys, so placeholder screens follow the chosen language. */
+  titleKey: string;
+  descriptionKey: string;
+  /** Feature names, shown as-is. */
   items?: string[];
 }
 
-const PlatformModulePage: React.FC<PlatformModulePageProps> = ({
-  title,
-  description,
-  items = [],
-}) => {
+const PlatformModulePage: React.FC<PlatformModulePageProps> = ({ titleKey, descriptionKey, items = [] }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{title}</h1>
-        <p className="mt-2 max-w-3xl text-sm text-gray-600 dark:text-gray-400">
-          {description}
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t(titleKey)}</h1>
+        <p className="mt-2 max-w-3xl text-sm text-gray-600 dark:text-gray-400">{t(descriptionKey)}</p>
       </div>
 
       <Card>

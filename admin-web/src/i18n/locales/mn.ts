@@ -281,7 +281,18 @@ const mn: Translations<typeof en> = {
       needsAttention: '{{count}} сайжруулах арга хэмжээ хяналт шаардаж байна.',
     },
   },
+  landing: {
+    eyebrow: 'Бүтээмж + Үйл ажиллагааны платформ',
+    headline: 'Төсөл, ажилтан, цаг бүртгэл, 5S audit, тайланг нэг дор удирдана.',
+    lede: 'Байгууллагын өдөр тутмын ажил, сарын тайлан, салбарын checklist, productivity analytics-ийг нэгтгэсэн web болон mobile платформ.',
+    signIn: 'Нэвтрэх',
+    viewDashboard: 'Dashboard харах',
+  },
   auth: {
+    forgotPasswordTitle: 'Нууц үг сэргээх',
+    forgotPasswordDescription: 'И-мэйлээр token илгээж нууц үг сэргээх public урсгал.',
+    newPasswordTitle: 'Шинэ нууц үг',
+    newPasswordDescription: 'Token баталгаажуулж шинэ нууц үг хадгалах дэлгэц.',
     signIn: 'Нэвтрэх',
     signInSubtitle: 'Productivity platform workspace руу нэвтрэх.',
     email: 'И-мэйл',

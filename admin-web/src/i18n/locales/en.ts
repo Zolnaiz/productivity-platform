@@ -284,7 +284,18 @@ const en = {
       needsAttention: '{{count}} improvement actions need follow-up.',
     },
   },
+  landing: {
+    eyebrow: 'Productivity + Operations Platform',
+    headline: 'Run projects, people, time tracking, 5S audits and reporting in one place.',
+    lede: 'A web and mobile platform that brings daily work, monthly reporting, industry checklists and productivity analytics together.',
+    signIn: 'Sign in',
+    viewDashboard: 'View dashboard',
+  },
   auth: {
+    forgotPasswordTitle: 'Reset password',
+    forgotPasswordDescription: 'Public flow that emails a token so a password can be reset.',
+    newPasswordTitle: 'New password',
+    newPasswordDescription: 'Verify the token and save a new password.',
     signIn: 'Sign in',
     signInSubtitle: 'Sign in to the Productivity Platform workspace.',
     email: 'Email',
