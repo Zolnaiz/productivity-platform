@@ -1,0 +1,86 @@
+import type en from './en';
+import type { Translations } from './en';
+
+/**
+ * Mongolian copy. Typed against the English reference, so a key added there
+ * fails the build here until it is translated — the two can never drift.
+ */
+const mn: Translations<typeof en> = {
+  nav: {
+    group: {
+      work: 'Ажил',
+      quality: 'Чанар',
+      people: 'Хүний нөөц',
+      reports: 'Тайлан',
+      personal: 'Хувийн',
+      admin: 'Удирдлага',
+    },
+    dashboard: 'Хяналтын самбар',
+    projects: 'Төслүүд',
+    tasks: 'Ажлууд',
+    kanban: 'Канбан',
+    calendar: 'Хуанли',
+    workLogs: 'Ажлын бүртгэл',
+    fiveS: '5S тохиргоо',
+    auditTemplates: 'Аудитын загвар',
+    assessments: 'Үнэлгээ',
+    responses: 'Хариултууд',
+    users: 'Хэрэглэгчид',
+    departments: 'Хэлтэс',
+    reports: 'Тайлан',
+    analytics: 'Шинжилгээ',
+    expenses: 'Зардал',
+    notifications: 'Мэдэгдэл',
+    export: 'Экспорт',
+    goals: 'Зорилтууд',
+    notes: 'Тэмдэглэл',
+    pomodoro: 'Помодоро',
+    badges: 'Тэмдэг',
+    profile: 'Профайл',
+    organizations: 'Байгууллага',
+    settings: 'Тохиргоо',
+    auditLog: 'Аудитын бүртгэл',
+    adminHome: 'Удирдлага',
+  },
+  common: {
+    cancel: 'Болих',
+    save: 'Хадгалах',
+    delete: 'Устгах',
+    loading: 'Ачаалж байна',
+    logout: 'Гарах',
+    search: 'Ажил, төсөл, аудит, тайлан хайх...',
+  },
+  projects: {
+    title: 'Төслүүд',
+    subtitle: 'Төсөл бүрийн явц, deadline, priority, budget-ийг хянана.',
+    newProject: 'Шинэ төсөл',
+    addProject: 'Төсөл нэмэх',
+    name: 'Төслийн нэр',
+    description: 'Товч тайлбар',
+    dueDate: 'Дуусах огноо',
+    status: 'Төлөв',
+    priority: 'Ач холбогдол',
+    progress: 'Явц',
+    deleteProject: 'Төсөл устгах',
+    deleteConfirmTitle: 'Төсөл устгах',
+    deleteWarning: 'болон түүний явц устана. Үүнийг буцаах боломжгүй.',
+    empty: 'Одоогоор төсөл алга. Эхний төслөө нэмээд явц, deadline, priority-г хянаж эхэлнэ.',
+    loadFailed: 'Төслийн мэдээлэл ачаалж чадсангүй.',
+    saveFailed: 'Төсөл хадгалах үед алдаа гарлаа.',
+    progressFailed: 'Төслийн явц шинэчлэх үед алдаа гарлаа.',
+    statusFailed: 'Төслийн төлөв шинэчлэх үед алдаа гарлаа.',
+    deleteFailed: 'Төслийг устгах үед алдаа гарлаа.',
+  },
+  settings: {
+    title: 'Тохиргоо',
+    subtitle: 'Тайлангийн автоматжуулалт, мэдэгдлийн дүрэм, workspace тохиргоо.',
+    workspacePreferences: 'Workspace тохиргоо',
+    timezone: 'Цагийн бүс',
+    language: 'Хэл',
+    monthCloseDay: 'Сар хаах өдөр',
+    saveSettings: 'Тохиргоо хадгалах',
+    saved: 'Хадгалагдлаа',
+  },
+};
+
+export default mn;

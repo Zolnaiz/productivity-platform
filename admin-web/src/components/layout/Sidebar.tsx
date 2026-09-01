@@ -27,11 +27,12 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 
 interface MenuItem {
   icon: React.ReactNode;
-  label: string;
+  labelKey: string;
   path: string;
   group: "Work" | "Quality" | "People" | "Reports" | "Personal" | "Admin";
   roles?: string[];
@@ -43,150 +44,150 @@ const ownerRoles = ["super_admin"];
 const menuItems: MenuItem[] = [
   {
     icon: <Home className="h-5 w-5" />,
-    label: "Dashboard",
+    labelKey: "nav.dashboard",
     path: "/dashboard",
     group: "Work",
   },
   {
     icon: <Briefcase className="h-5 w-5" />,
-    label: "Projects",
+    labelKey: "nav.projects",
     path: "/projects",
     group: "Work",
   },
   {
     icon: <CheckSquare className="h-5 w-5" />,
-    label: "Tasks",
+    labelKey: "nav.tasks",
     path: "/tasks",
     group: "Work",
   },
   {
     icon: <Columns3 className="h-5 w-5" />,
-    label: "Kanban",
+    labelKey: "nav.kanban",
     path: "/kanban",
     group: "Work",
   },
   {
     icon: <CalendarDays className="h-5 w-5" />,
-    label: "Calendar",
+    labelKey: "nav.calendar",
     path: "/calendar",
     group: "Work",
   },
   {
     icon: <Clock className="h-5 w-5" />,
-    label: "Work Logs",
+    labelKey: "nav.workLogs",
     path: "/work-logs",
     group: "Work",
   },
   {
     icon: <MapIcon className="h-5 w-5" />,
-    label: "5S Setup",
+    labelKey: "nav.fiveS",
     path: "/fives",
     group: "Quality",
   },
   {
     icon: <ClipboardCheck className="h-5 w-5" />,
-    label: "Audit Templates",
+    labelKey: "nav.auditTemplates",
     path: "/audit-templates",
     group: "Quality",
   },
   {
     icon: <FileText className="h-5 w-5" />,
-    label: "Assessments",
+    labelKey: "nav.assessments",
     path: "/assessments",
     group: "Quality",
   },
   {
     icon: <FileCheck2 className="h-5 w-5" />,
-    label: "Responses",
+    labelKey: "nav.responses",
     path: "/responses",
     group: "Quality",
   },
   {
     icon: <Users className="h-5 w-5" />,
-    label: "Users",
+    labelKey: "nav.users",
     path: "/users",
     group: "People",
     roles: adminRoles,
   },
   {
     icon: <Building className="h-5 w-5" />,
-    label: "Departments",
+    labelKey: "nav.departments",
     path: "/departments",
     group: "People",
     roles: adminRoles,
   },
   {
     icon: <BarChart3 className="h-5 w-5" />,
-    label: "Reports",
+    labelKey: "nav.reports",
     path: "/reports",
     group: "Reports",
   },
   {
     icon: <LineChart className="h-5 w-5" />,
-    label: "Analytics",
+    labelKey: "nav.analytics",
     path: "/analytics",
     group: "Reports",
   },
   {
     icon: <Landmark className="h-5 w-5" />,
-    label: "Expenses",
+    labelKey: "nav.expenses",
     path: "/expenses",
     group: "Reports",
   },
   {
     icon: <Bell className="h-5 w-5" />,
-    label: "Notifications",
+    labelKey: "nav.notifications",
     path: "/notifications",
     group: "Reports",
   },
   {
     icon: <Download className="h-5 w-5" />,
-    label: "Export",
+    labelKey: "nav.export",
     path: "/export",
     group: "Reports",
   },
   {
     icon: <Target className="h-5 w-5" />,
-    label: "Goals",
+    labelKey: "nav.goals",
     path: "/goals",
     group: "Personal",
   },
   {
     icon: <StickyNote className="h-5 w-5" />,
-    label: "Notes",
+    labelKey: "nav.notes",
     path: "/notes",
     group: "Personal",
   },
   {
     icon: <Trophy className="h-5 w-5" />,
-    label: "Badges",
+    labelKey: "nav.badges",
     path: "/badges",
     group: "Personal",
   },
   {
     icon: <LayoutDashboard className="h-5 w-5" />,
-    label: "Admin",
+    labelKey: "nav.adminHome",
     path: "/admin",
     group: "Admin",
     roles: adminRoles,
   },
   {
     icon: <Building className="h-5 w-5" />,
-    label: "Organizations",
+    labelKey: "nav.organizations",
     path: "/organizations",
     group: "Admin",
     roles: adminRoles,
   },
   {
     icon: <ShieldCheck className="h-5 w-5" />,
-    label: "Audit Log",
+    labelKey: "nav.auditLog",
     path: "/audit",
     group: "Admin",
     roles: ownerRoles,
   },
   {
     icon: <Settings className="h-5 w-5" />,
-    label: "Settings",
+    labelKey: "nav.settings",
     path: "/settings",
     group: "Admin",
     roles: adminRoles,
@@ -204,6 +205,7 @@ const groups: MenuItem["group"][] = [
 
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = React.useState(false);
+  const { t } = useTranslation();
   const { user } = useAuth();
   const userRoles = user?.roles || [];
   const visibleItems = menuItems.filter(
@@ -245,7 +247,7 @@ const Sidebar: React.FC = () => {
             <div key={group}>
               {!collapsed && (
                 <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-                  {group}
+                  {t(`nav.group.${group.toLowerCase()}`)}
                 </div>
               )}
               <ul className="space-y-1">
@@ -262,11 +264,11 @@ const Sidebar: React.FC = () => {
                               : "text-gray-300 hover:bg-gray-800"
                           } ${collapsed ? "justify-center" : "space-x-3"}`
                         }
-                        title={collapsed ? item.label : undefined}
+                        title={collapsed ? t(item.labelKey) : undefined}
                       >
                         <span className="flex-shrink-0">{item.icon}</span>
                         {!collapsed && (
-                          <span className="flex-1">{item.label}</span>
+                          <span className="flex-1">{t(item.labelKey)}</span>
                         )}
                       </NavLink>
                     </li>

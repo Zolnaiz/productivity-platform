@@ -6,6 +6,8 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ErrorBoundary } from 'react-error-boundary';
 import App from './App';
 import AppErrorFallback from './components/common/AppErrorFallback';
+// Initialises i18next before the first render, so no screen paints untranslated.
+import './i18n';
 import './styles/global.css';
 
 const isDevelopment = import.meta.env.DEV;

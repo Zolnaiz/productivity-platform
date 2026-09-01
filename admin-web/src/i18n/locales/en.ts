@@ -1,0 +1,94 @@
+/**
+ * English copy. Keys are grouped by where the text appears, so a page's
+ * strings stay together and are easy to review as a set.
+ *
+ * `en` is the reference locale: every other locale is type-checked against it,
+ * so adding a key here forces the translation to be added everywhere.
+ */
+const en = {
+  nav: {
+    group: {
+      work: 'Work',
+      quality: 'Quality',
+      people: 'People',
+      reports: 'Reports',
+      personal: 'Personal',
+      admin: 'Admin',
+    },
+    dashboard: 'Dashboard',
+    projects: 'Projects',
+    tasks: 'Tasks',
+    kanban: 'Kanban',
+    calendar: 'Calendar',
+    workLogs: 'Work Logs',
+    fiveS: '5S Setup',
+    auditTemplates: 'Audit Templates',
+    assessments: 'Assessments',
+    responses: 'Responses',
+    users: 'Users',
+    departments: 'Departments',
+    reports: 'Reports',
+    analytics: 'Analytics',
+    expenses: 'Expenses',
+    notifications: 'Notifications',
+    export: 'Export',
+    goals: 'Goals',
+    notes: 'Notes',
+    pomodoro: 'Pomodoro',
+    badges: 'Badges',
+    profile: 'Profile',
+    organizations: 'Organizations',
+    settings: 'Settings',
+    auditLog: 'Audit Log',
+    adminHome: 'Admin',
+  },
+  common: {
+    cancel: 'Cancel',
+    save: 'Save',
+    delete: 'Delete',
+    loading: 'Loading',
+    logout: 'Logout',
+    search: 'Search tasks, projects, audits, reports...',
+  },
+  projects: {
+    title: 'Projects',
+    subtitle: 'Track progress, deadlines, priority and budget for every project.',
+    newProject: 'New project',
+    addProject: 'Add project',
+    name: 'Project name',
+    description: 'Short description',
+    dueDate: 'Due date',
+    status: 'Status',
+    priority: 'Priority',
+    progress: 'Progress',
+    deleteProject: 'Delete project',
+    deleteConfirmTitle: 'Delete project',
+    deleteWarning: 'and its progress will be removed. This cannot be undone.',
+    empty: 'No projects yet. Add your first one to start tracking progress, deadlines and priority.',
+    loadFailed: 'Could not load projects.',
+    saveFailed: 'Could not save the project.',
+    progressFailed: 'Could not update project progress.',
+    statusFailed: 'Could not update project status.',
+    deleteFailed: 'Could not delete the project.',
+  },
+  settings: {
+    title: 'Settings',
+    subtitle: 'Report automation, notification rules, and workspace preferences.',
+    workspacePreferences: 'Workspace preferences',
+    timezone: 'Timezone',
+    language: 'Language',
+    monthCloseDay: 'Month close day',
+    saveSettings: 'Save settings',
+    saved: 'Saved',
+  },
+} as const;
+
+/**
+ * Same shape as the reference locale, but every leaf is a plain string — so a
+ * translation must supply every key without having to repeat the English text.
+ */
+export type Translations<T> = {
+  [K in keyof T]: T[K] extends string ? string : Translations<T[K]>;
+};
+
+export default en;

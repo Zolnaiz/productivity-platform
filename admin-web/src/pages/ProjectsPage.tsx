@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -10,6 +11,7 @@ import { operationsService } from '../services/operations.service';
 import { Project } from '../types/operations.types';
 
 const ProjectsPage: React.FC = () => {
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ const ProjectsPage: React.FC = () => {
         const data = await operationsService.getProjects();
         if (active) setProjects(data);
       } catch {
-        if (active) setError('Төслийн мэдээлэл ачаалж чадсангүй.');
+        if (active) setError(t('projects.loadFailed'));
       } finally {
         if (active) setLoading(false);
       }
@@ -66,7 +68,7 @@ const ProjectsPage: React.FC = () => {
     try {
       await operationsService.createProject(optimistic);
     } catch {
-      setError('Төсөл хадгалах үед алдаа гарлаа.');
+      setError(t('projects.saveFailed'));
     }
   };
 
@@ -80,7 +82,7 @@ const ProjectsPage: React.FC = () => {
     try {
       await operationsService.updateProject(project.id, { progress: nextProgress });
     } catch {
-      setError('Төслийн явц шинэчлэх үед алдаа гарлаа.');
+      setError(t('projects.progressFailed'));
     }
   };
 
@@ -93,7 +95,7 @@ const ProjectsPage: React.FC = () => {
     try {
       await operationsService.updateProject(project.id, { status });
     } catch {
-      setError('Төслийн төлөв шинэчлэх үед алдаа гарлаа.');
+      setError(t('projects.statusFailed'));
     }
   };
 
@@ -108,7 +110,7 @@ const ProjectsPage: React.FC = () => {
       setProjectPendingDelete(null);
     } catch {
       setProjects(previousProjects);
-      setError('Төслийг устгах үед алдаа гарлаа.');
+      setError(t('projects.deleteFailed'));
       setProjectPendingDelete(null);
     } finally {
       setDeleting(false);
@@ -119,13 +121,11 @@ const ProjectsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Projects</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Төсөл бүрийн явц, deadline, priority, budget-ийг хянана.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('projects.title')}</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('projects.subtitle')}</p>
         </div>
         <Button icon={Plus} type="button" onClick={() => setCreateOpen(true)}>
-          New project
+          {t('projects.newProject')}
         </Button>
       </div>
 
@@ -144,7 +144,7 @@ const ProjectsPage: React.FC = () => {
         {!loading && projects.length === 0 && (
           <Card>
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Одоогоор төсөл алга. Эхний төслөө нэмээд явц, deadline, priority-г хянаж эхэлнэ.
+              {t('projects.empty')}
             </div>
           </Card>
         )}
@@ -162,15 +162,15 @@ const ProjectsPage: React.FC = () => {
 
             <div className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
               <div>
-                <div className="text-gray-500">Priority</div>
+                <div className="text-gray-500">{t('projects.priority')}</div>
                 <div className="font-medium">{project.priority}</div>
               </div>
               <div>
-                <div className="text-gray-500">Due date</div>
+                <div className="text-gray-500">{t('projects.dueDate')}</div>
                 <div className="font-medium">{project.dueDate || '-'}</div>
               </div>
               <div>
-                <div className="text-gray-500">Progress</div>
+                <div className="text-gray-500">{t('projects.progress')}</div>
                 <div className="font-medium">{project.progress}%</div>
               </div>
             </div>
@@ -181,7 +181,7 @@ const ProjectsPage: React.FC = () => {
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="text-sm text-gray-600 dark:text-gray-400">
-                Progress
+                {t('projects.progress')}
                 <input
                   className="mt-1 w-full"
                   type="range"
@@ -192,7 +192,7 @@ const ProjectsPage: React.FC = () => {
                 />
               </label>
               <Select
-                label="Status"
+                label={t('projects.status')}
                 value={project.status}
                 onChange={(event) => updateStatus(project, event.target.value as Project['status'])}
               >
@@ -212,53 +212,53 @@ const ProjectsPage: React.FC = () => {
                 type="button"
                 onClick={() => setProjectPendingDelete(project)}
               >
-                Delete project
+                {t('projects.deleteProject')}
               </Button>
             </div>
           </Card>
         ))}
       </div>
 
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="New project">
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title={t('projects.newProject')}>
         <form id="new-project-form" onSubmit={handleCreate} className="space-y-4">
           <Input
-            label="Project name"
-            placeholder="Project name"
+            label={t('projects.name')}
+            placeholder={t('projects.name')}
             value={draft.name}
             onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
             required
           />
           <Input
-            label="Short description"
-            placeholder="Short description"
+            label={t('projects.description')}
+            placeholder={t('projects.description')}
             value={draft.description}
             onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
           />
           <Input
-            label="Due date"
+            label={t('projects.dueDate')}
             type="date"
             value={draft.dueDate}
             onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))}
           />
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" type="button" onClick={() => setCreateOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
-            <Button type="submit">Add project</Button>
+            <Button type="submit">{t('projects.addProject')}</Button>
           </div>
         </form>
       </Modal>
 
       <ConfirmDialog
         isOpen={Boolean(projectPendingDelete)}
-        title="Delete project"
+        title={t('projects.deleteConfirmTitle')}
         message={
           <>
-            <strong className="text-gray-900 dark:text-white">{projectPendingDelete?.name}</strong> and its progress
-            will be removed. This cannot be undone.
+            <strong className="text-gray-900 dark:text-white">{projectPendingDelete?.name}</strong>{' '}
+            {t('projects.deleteWarning')}
           </>
         }
-        confirmLabel="Delete project"
+        confirmLabel={t('projects.deleteProject')}
         destructive
         loading={deleting}
         onConfirm={() => projectPendingDelete && deleteProject(projectPendingDelete)}
