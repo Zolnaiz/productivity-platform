@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -44,6 +44,7 @@ const CANVAS_WIDTH = 900;
 const CANVAS_HEIGHT = 500;
 const GRID_SIZE = 24;
 const HISTORY_LIMIT = 50;
+const SAVE_DEBOUNCE_MS = 600;
 
 const stageLabels: Record<FiveSStage, string> = {
   sort: '1 Sort',
@@ -540,6 +541,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const backgroundInputRef = useRef<HTMLInputElement | null>(null);
+  const saveTimerRef = useRef<number | null>(null);
+  const pendingPlanRef = useRef<FiveSLayoutPlan | null>(null);
+  const shortcutHandlerRef = useRef<((event: KeyboardEvent) => void) | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -560,6 +564,26 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       active = false;
     };
   }, [refreshKey]);
+
+  // Never leave a coalesced edit unsaved when the page is closed or the
+  // component goes away.
+  useEffect(() => {
+    const flushOnHide = () => {
+      const pending = pendingPlanRef.current;
+      if (pending) {
+        pendingPlanRef.current = null;
+        void fiveSLayoutService.savePlan(pending);
+      }
+    };
+
+    window.addEventListener('pagehide', flushOnHide);
+
+    return () => {
+      window.removeEventListener('pagehide', flushOnHide);
+      if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
+      flushOnHide();
+    };
+  }, []);
 
   const selectedZone = useMemo(
     () => plan?.zones.find((zone) => zone.id === selectedZoneId),
@@ -825,9 +849,35 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     [redTagRegister],
   );
 
+  // A drag updates the plan on every pointer frame. Persisting each one would
+  // fire a request per frame against a real backend, and late responses could
+  // land out of order, so coalesce writes and only send the settled plan.
+  const flushPlanSave = () => {
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+
+    const pending = pendingPlanRef.current;
+    pendingPlanRef.current = null;
+
+    if (pending) void fiveSLayoutService.savePlan(pending);
+  };
+
+  const cancelPlanSave = () => {
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    pendingPlanRef.current = null;
+  };
+
   const commitPlan = (nextPlan: FiveSLayoutPlan) => {
     setPlan(nextPlan);
-    void fiveSLayoutService.savePlan(nextPlan);
+    pendingPlanRef.current = nextPlan;
+
+    if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(flushPlanSave, SAVE_DEBOUNCE_MS);
   };
 
   const updatePlan = (
@@ -1003,6 +1053,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
   const resetPlan = async () => {
     const previousPlan = plan;
+    // Drop any coalesced write so it cannot land after the reset and undo it.
+    cancelPlanSave();
     const nextPlan = await fiveSLayoutService.resetPlan();
 
     if (previousPlan) {
@@ -1167,71 +1219,79 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     );
   };
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target;
-      if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+  const handleShortcutKey = (event: KeyboardEvent) => {
+    const target = event.target;
+    if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]')) return;
 
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
-        event.preventDefault();
-        if (event.shiftKey) redo();
-        else undo();
-        return;
-      }
-
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
-        event.preventDefault();
-        redo();
-        return;
-      }
-
-      if (!selectedZone && !selectedObject) return;
-
-      if (event.key === 'Escape') {
-        setSelectedZoneId('');
-        setSelectedObjectId('');
-        return;
-      }
-
-      if (event.key === 'Delete' || event.key === 'Backspace') {
-        event.preventDefault();
-        if (selectedZone) deleteSelectedZone();
-        else deleteSelectedObject();
-        return;
-      }
-
-      const nudge: Record<string, [number, number]> = {
-        ArrowLeft: [-1, 0],
-        ArrowRight: [1, 0],
-        ArrowUp: [0, -1],
-        ArrowDown: [0, 1],
-      };
-      const direction = nudge[event.key];
-      if (!direction) return;
-
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
       event.preventDefault();
-      const step = event.shiftKey ? GRID_SIZE : 1;
-      const [dx, dy] = [direction[0] * step, direction[1] * step];
+      if (event.shiftKey) redo();
+      else undo();
+      return;
+    }
 
-      if (selectedZone) {
-        updateZone(selectedZone.id, {
-          x: Math.round(clamp(selectedZone.x + dx, 12, CANVAS_WIDTH - selectedZone.width - 12)),
-          y: Math.round(clamp(selectedZone.y + dy, 12, CANVAS_HEIGHT - selectedZone.height - 12)),
-        });
-        return;
-      }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+      event.preventDefault();
+      redo();
+      return;
+    }
 
-      if (selectedObject) {
-        updateObject(selectedObject.id, {
-          x: Math.round(clamp(selectedObject.x + dx, 8, CANVAS_WIDTH - selectedObject.width - 8)),
-          y: Math.round(clamp(selectedObject.y + dy, 8, CANVAS_HEIGHT - selectedObject.height - 8)),
-        });
-      }
+    if (!selectedZone && !selectedObject) return;
+
+    if (event.key === 'Escape') {
+      setSelectedZoneId('');
+      setSelectedObjectId('');
+      return;
+    }
+
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      event.preventDefault();
+      if (selectedZone) deleteSelectedZone();
+      else deleteSelectedObject();
+      return;
+    }
+
+    const nudge: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
     };
+    const direction = nudge[event.key];
+    if (!direction) return;
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    event.preventDefault();
+    const step = event.shiftKey ? GRID_SIZE : 1;
+    const [dx, dy] = [direction[0] * step, direction[1] * step];
+
+    if (selectedZone) {
+      updateZone(selectedZone.id, {
+        x: Math.round(clamp(selectedZone.x + dx, 12, CANVAS_WIDTH - selectedZone.width - 12)),
+        y: Math.round(clamp(selectedZone.y + dy, 12, CANVAS_HEIGHT - selectedZone.height - 12)),
+      });
+      return;
+    }
+
+    if (selectedObject) {
+      updateObject(selectedObject.id, {
+        x: Math.round(clamp(selectedObject.x + dx, 8, CANVAS_WIDTH - selectedObject.width - 8)),
+        y: Math.round(clamp(selectedObject.y + dy, 8, CANVAS_HEIGHT - selectedObject.height - 8)),
+      });
+    }
+  };
+
+  // Keep the handler current without re-registering the listener on every
+  // render: a layout effect updates the ref during commit, so a keypress can
+  // never be handled by a closure from a stale render.
+  useLayoutEffect(() => {
+    shortcutHandlerRef.current = handleShortcutKey;
   });
+
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => shortcutHandlerRef.current?.(event);
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, []);
 
   const handleOwnerChange = (ownerId: string) => {
     if (!selectedZone) return;
@@ -1681,6 +1741,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       if (!imported.name || !Array.isArray(imported.zones) || !Array.isArray(imported.objects)) {
         throw new Error('Invalid 5S layout backup.');
       }
+
+      // Drop any coalesced write so it cannot land after the import.
+      cancelPlanSave();
 
       const nextPlan: FiveSLayoutPlan = {
         ...imported,

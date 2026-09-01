@@ -273,6 +273,40 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     expect(getZoneRect()?.getAttribute('height')).toBe('120');
   });
 
+  it('coalesces a drag into a single save instead of one per frame', async () => {
+    const { unmount } = render(<FiveSFloorPlanSetup />);
+    expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+    const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+    } as DOMRect);
+
+    serviceMocks.savePlan.mockClear();
+
+    const zone = getZoneRect() as SVGRectElement;
+    fireEvent.pointerDown(zone, { clientX: 110, clientY: 110, pointerId: 1 });
+    [200, 260, 320, 380, 440].forEach((x) => {
+      fireEvent.pointerMove(svg, { clientX: x, clientY: 200, pointerId: 1 });
+    });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+
+    // the moves are applied to the UI right away
+    await waitFor(() => expect(getZoneRect()?.getAttribute('x')).not.toBe('100'));
+
+    // Unmount flushes anything still pending. Whether the debounce already
+    // fired or the flush sends it, six frames must collapse into one write
+    // carrying the settled position.
+    unmount();
+
+    expect(serviceMocks.savePlan).toHaveBeenCalledTimes(1);
+    const savedPlan = serviceMocks.savePlan.mock.calls[0][0] as FiveSLayoutPlan;
+    expect(savedPlan.zones[0].x).toBe(432);
+  });
+
   it('keeps undo disabled until the plan is edited', async () => {
     render(<FiveSFloorPlanSetup />);
     expect(await screen.findByText('Selected zone')).toBeTruthy();
