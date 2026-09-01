@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Building } from 'lucide-react';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
+import Input from '../components/common/Input';
 import { peopleService } from '../services/people.service';
 import { Department } from '../types/people.types';
 
@@ -35,28 +37,26 @@ const DepartmentsPage: React.FC = () => {
       </div>
 
       <Card title="New department">
-        <form onSubmit={createDepartment} className="grid gap-3 lg:grid-cols-4">
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+        <form onSubmit={createDepartment} className="grid items-end gap-3 lg:grid-cols-4">
+          <Input
+            label="Department name"
             placeholder="Department name"
             value={draft.name}
             onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Manager"
             placeholder="Manager"
             value={draft.manager}
             onChange={(event) => setDraft((current) => ({ ...current, manager: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Focus area"
             placeholder="Focus area"
             value={draft.focusArea}
             onChange={(event) => setDraft((current) => ({ ...current, focusArea: event.target.value }))}
           />
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
-            Add department
-          </button>
+          <Button type="submit">Add department</Button>
         </form>
       </Card>
 

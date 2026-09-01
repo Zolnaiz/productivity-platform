@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users } from 'lucide-react';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
+import Input from '../components/common/Input';
+import Select from '../components/common/Select';
 import { peopleService } from '../services/people.service';
 import { Department, TeamUser } from '../types/people.types';
 
@@ -66,27 +69,28 @@ const TeamUsersPage: React.FC = () => {
       </div>
 
       <Card title="New user">
-        <form onSubmit={createUser} className="grid gap-3 lg:grid-cols-6">
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+        <form onSubmit={createUser} className="grid items-end gap-3 lg:grid-cols-6">
+          <Input
+            label="Name"
             placeholder="Name"
             value={draft.name}
             onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Email"
+            type="email"
             placeholder="Email"
             value={draft.email}
             onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Position"
             placeholder="Position"
             value={draft.position}
             onChange={(event) => setDraft((current) => ({ ...current, position: event.target.value }))}
           />
-          <select
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Select
+            label="Role"
             value={draft.role}
             onChange={(event) => setDraft((current) => ({ ...current, role: event.target.value as TeamUser['role'] }))}
           >
@@ -94,9 +98,9 @@ const TeamUsersPage: React.FC = () => {
             <option value="admin">Admin</option>
             <option value="manager">Manager</option>
             <option value="employee">Employee</option>
-          </select>
-          <select
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          </Select>
+          <Select
+            label="Department"
             value={draft.departmentId}
             onChange={(event) => setDraft((current) => ({ ...current, departmentId: event.target.value }))}
           >
@@ -105,10 +109,8 @@ const TeamUsersPage: React.FC = () => {
                 {department.name}
               </option>
             ))}
-          </select>
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
-            Add user
-          </button>
+          </Select>
+          <Button type="submit">Add user</Button>
         </form>
       </Card>
 

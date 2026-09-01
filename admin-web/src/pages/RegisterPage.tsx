@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import Button from '../components/common/Button';
+import Input from '../components/common/Input';
 import { authService } from '../services/auth.service';
 
 const RegisterPage: React.FC = () => {
@@ -44,67 +46,61 @@ const RegisterPage: React.FC = () => {
           Байгууллагын workspace болон эхний admin хэрэглэгчийг үүсгэнэ.
         </p>
 
-        <label className="mt-6 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Таны нэр
-          <input
-            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+        <div className="mt-6 space-y-4">
+          <Input
+            label="Таны нэр"
+            autoComplete="name"
             value={name}
             onChange={(event) => setName(event.target.value)}
             required
           />
-        </label>
 
-        <label className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Байгууллагын нэр
-          <input
-            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Байгууллагын нэр"
+            autoComplete="organization"
             value={organizationName}
             onChange={(event) => setOrganizationName(event.target.value)}
             required
           />
-        </label>
 
-        <label className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Email
-          <input
-            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Email"
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
           />
-        </label>
 
-        <label className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Утас
-          <input
-            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Утас"
+            type="tel"
+            autoComplete="tel"
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
           />
-        </label>
 
-        <label className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Password
-          <input
-            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Password"
             type="password"
+            autoComplete="new-password"
+            helperText="Дор хаяж 6 тэмдэгт"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             minLength={6}
             required
           />
-        </label>
+        </div>
 
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="mt-4 text-sm text-red-600 dark:text-red-400" role="alert">
+            {error}
+          </p>
+        )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-500 disabled:opacity-60"
-        >
+        <Button className="mt-6" fullWidth type="submit" loading={loading} disabled={loading}>
           {loading ? 'Бүртгэж байна...' : 'Workspace үүсгэх'}
-        </button>
+        </Button>
 
         <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           Бүртгэлтэй юу?{' '}

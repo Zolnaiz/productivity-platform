@@ -45,6 +45,14 @@ describe('Input', () => {
     expect(screen.getByText('Code is taken')).toBeTruthy();
   });
 
+  it('keeps the required marker out of the accessible name', () => {
+    render(<Input label="Таны нэр" required />);
+
+    // The asterisk is decoration; querying by the plain label must still work.
+    expect(screen.getByLabelText('Таны нэр')).toBeTruthy();
+    expect(screen.getByLabelText('Таны нэр').hasAttribute('required')).toBe(true);
+  });
+
   it('forwards typing to the caller', () => {
     const onChange = vi.fn();
     render(<Input label="Search" onChange={onChange} />);

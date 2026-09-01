@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Landmark } from 'lucide-react';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
+import Input from '../components/common/Input';
+import Select from '../components/common/Select';
 import { financeService } from '../services/finance.service';
 import { operationsService } from '../services/operations.service';
 import { ExpenseItem } from '../types/finance.types';
@@ -111,15 +114,16 @@ const ExpensesPage: React.FC = () => {
       </div>
 
       <Card title="New expense">
-        <form onSubmit={createExpense} className="grid gap-3 lg:grid-cols-6">
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 lg:col-span-2"
+        <form onSubmit={createExpense} className="grid items-end gap-3 lg:grid-cols-6">
+          <Input
+            className="lg:col-span-2"
+            label="Expense title"
             placeholder="Expense title"
             value={draft.title}
             onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
           />
-          <select
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Select
+            label="Project"
             value={draft.projectId}
             onChange={(event) => setDraft((current) => ({ ...current, projectId: event.target.value }))}
           >
@@ -128,9 +132,9 @@ const ExpensesPage: React.FC = () => {
                 {project.name}
               </option>
             ))}
-          </select>
-          <select
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          </Select>
+          <Select
+            label="Category"
             value={draft.category}
             onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value as ExpenseItem['category'] }))}
           >
@@ -139,30 +143,29 @@ const ExpensesPage: React.FC = () => {
             <option value="materials">Materials</option>
             <option value="software">Software</option>
             <option value="other">Other</option>
-          </select>
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          </Select>
+          <Input
+            label="Amount"
             min="0"
             step="1000"
             type="number"
             value={draft.amount}
             onChange={(event) => setDraft((current) => ({ ...current, amount: event.target.value }))}
           />
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
-            Submit
-          </button>
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Expense date"
             type="date"
             value={draft.expenseDate}
             onChange={(event) => setDraft((current) => ({ ...current, expenseDate: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 lg:col-span-5"
+          <Input
+            className="lg:col-span-5"
+            label="Note"
             placeholder="Note"
             value={draft.note}
             onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))}
           />
+          <Button type="submit">Submit</Button>
         </form>
       </Card>
 

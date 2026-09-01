@@ -46,10 +46,18 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {label}
-            {props.required && <span className="ml-1 text-red-500">*</span>}
-          </label>
+          // The asterisk sits outside the label element so it does not become
+          // part of the field's accessible name; `required` already conveys it.
+          <div className="mb-1 flex items-center gap-1">
+            <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {label}
+            </label>
+            {props.required && (
+              <span aria-hidden="true" className="text-red-500">
+                *
+              </span>
+            )}
+          </div>
         )}
 
         <div className="relative">

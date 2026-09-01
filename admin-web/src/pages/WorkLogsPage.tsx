@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import Input from '../components/common/Input';
 import { operationsService } from '../services/operations.service';
 import { TimeEntry, WorkLog } from '../types/operations.types';
 
@@ -95,36 +97,35 @@ const WorkLogsPage: React.FC = () => {
       )}
 
       <Card title="Add daily work log">
-        <form onSubmit={handleCreate} className="grid gap-3 lg:grid-cols-6">
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+        <form onSubmit={handleCreate} className="grid items-end gap-3 lg:grid-cols-6">
+          <Input
+            label="Date"
             type="date"
             value={draft.logDate}
             onChange={(event) => setDraft((current) => ({ ...current, logDate: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 lg:col-span-2"
+          <Input
+            className="lg:col-span-2"
+            label="What did you finish?"
             placeholder="What did you finish?"
             value={draft.summary}
             onChange={(event) => setDraft((current) => ({ ...current, summary: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Hours"
             type="number"
             min="0"
             step="0.5"
             value={draft.hours}
             onChange={(event) => setDraft((current) => ({ ...current, hours: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Next step"
             placeholder="Next step"
             value={draft.nextSteps}
             onChange={(event) => setDraft((current) => ({ ...current, nextSteps: event.target.value }))}
           />
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
-            Add log
-          </button>
+          <Button type="submit">Add log</Button>
         </form>
       </Card>
 

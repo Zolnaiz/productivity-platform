@@ -17,10 +17,17 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={selectId} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {label}
-            {props.required && <span className="ml-1 text-red-500">*</span>}
-          </label>
+          // See Input: the asterisk stays out of the accessible name.
+          <div className="mb-1 flex items-center gap-1">
+            <label htmlFor={selectId} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {label}
+            </label>
+            {props.required && (
+              <span aria-hidden="true" className="text-red-500">
+                *
+              </span>
+            )}
+          </div>
         )}
 
         <select
