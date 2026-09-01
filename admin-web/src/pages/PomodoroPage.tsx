@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Timer } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
@@ -8,6 +9,7 @@ import { productivityService } from '../services/productivity.service';
 import { FocusSession } from '../types/productivity.types';
 
 const PomodoroPage: React.FC = () => {
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [draft, setDraft] = useState({ title: '', minutes: '25' });
 
@@ -32,7 +34,7 @@ const PomodoroPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Pomodoro / Focus</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('pomodoro.title')}</h1>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
           Focus session бүртгэж тухайн өдрийн ажилласан төвлөрсөн цагийг хэмжинэ.
         </p>
@@ -40,40 +42,40 @@ const PomodoroPage: React.FC = () => {
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <div className="text-sm text-gray-500">Focus sessions</div>
+          <div className="text-sm text-gray-500">{t('pomodoro.focusSessions')}</div>
           <div className="mt-2 text-3xl font-semibold">{sessions.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Focus minutes</div>
+          <div className="text-sm text-gray-500">{t('pomodoro.focusMinutes')}</div>
           <div className="mt-2 text-3xl font-semibold">{totalMinutes}</div>
         </Card>
       </div>
 
-      <Card title="Log focus session">
+      <Card title={t('pomodoro.logSession')}>
         <form onSubmit={createSession} className="grid items-end gap-3 md:grid-cols-3">
           <Input
             className="md:col-span-2"
-            label="What did you focus on?"
-            placeholder="What did you focus on?"
+            label={t('pomodoro.whatDidYouFocusOn')}
+            placeholder={t('pomodoro.whatDidYouFocusOn')}
             value={draft.title}
             onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
           />
           <div className="flex items-end gap-3">
             <Input
               className="w-24"
-              label="Minutes"
+              label={t('pomodoro.minutes')}
               type="number"
               value={draft.minutes}
               onChange={(event) => setDraft((current) => ({ ...current, minutes: event.target.value }))}
             />
             <Button className="flex-1" type="submit">
-              Add
+              {t('pomodoro.add')}
             </Button>
           </div>
         </form>
       </Card>
 
-      <Card title="Sessions">
+      <Card title={t('pomodoro.sessions')}>
         <div className="space-y-3">
           {sessions.length ? (
             sessions.map((session) => (
@@ -88,8 +90,8 @@ const PomodoroPage: React.FC = () => {
           ) : (
             <EmptyState
               icon={Timer}
-              title="No focus sessions logged"
-              description="Log focused work blocks here so daily focus time can be included in productivity reports."
+              title={t('pomodoro.emptyTitle')}
+              description={t('pomodoro.emptyDescription')}
             />
           )}
         </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, StickyNote } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
@@ -10,6 +11,7 @@ import { productivityService } from '../services/productivity.service';
 import { Note } from '../types/productivity.types';
 
 const NotesPage: React.FC = () => {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState({ title: '', content: '', tag: 'work' });
   const [createOpen, setCreateOpen] = useState(false);
@@ -34,28 +36,28 @@ const NotesPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Notes</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('notes.title')}</h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Ажлын тэмдэглэл, meeting note, report idea, blocker-уудаа хадгална.
+            {t('notes.subtitle')}
           </p>
         </div>
         <Button icon={Plus} type="button" onClick={() => setCreateOpen(true)}>
-          New note
+          {t('notes.newNote')}
         </Button>
       </div>
 
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="New note">
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title={t('notes.newNote')}>
         <form onSubmit={createNote} className="space-y-4">
           <Input
-            label="Title"
-            placeholder="Title"
+            label={t('notes.noteTitle')}
+            placeholder={t('notes.noteTitle')}
             value={draft.title}
             onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
             required
           />
           <Textarea
-            label="Note"
-            placeholder="Note"
+            label={t('notes.note')}
+            placeholder={t('notes.note')}
             rows={4}
             value={draft.content}
             onChange={(event) => setDraft((current) => ({ ...current, content: event.target.value }))}
@@ -63,9 +65,9 @@ const NotesPage: React.FC = () => {
           />
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" type="button" onClick={() => setCreateOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
-            <Button type="submit">Add note</Button>
+            <Button type="submit">{t('notes.addNote')}</Button>
           </div>
         </form>
       </Modal>
@@ -88,8 +90,8 @@ const NotesPage: React.FC = () => {
       ) : (
         <EmptyState
           icon={StickyNote}
-          title="No notes yet"
-          description="Capture meeting notes, project context, blockers, and report ideas so they can feed future summaries."
+          title={t('notes.emptyTitle')}
+          description={t('notes.emptyDescription')}
         />
       )}
     </div>

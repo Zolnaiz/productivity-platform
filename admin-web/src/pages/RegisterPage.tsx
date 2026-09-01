@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import { authService } from '../services/auth.service';
 
 const RegisterPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [organizationName, setOrganizationName] = useState('');
@@ -41,14 +43,12 @@ const RegisterPage: React.FC = () => {
         onSubmit={handleSubmit}
         className="w-full max-w-lg rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-800"
       >
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Бүртгүүлэх</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Байгууллагын workspace болон эхний admin хэрэглэгчийг үүсгэнэ.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('auth.registerTitle')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('auth.registerSubtitle')}</p>
 
         <div className="mt-6 space-y-4">
           <Input
-            label="Таны нэр"
+            label={t('auth.yourName')}
             autoComplete="name"
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -56,7 +56,7 @@ const RegisterPage: React.FC = () => {
           />
 
           <Input
-            label="Байгууллагын нэр"
+            label={t('auth.organizationName')}
             autoComplete="organization"
             value={organizationName}
             onChange={(event) => setOrganizationName(event.target.value)}
@@ -64,7 +64,7 @@ const RegisterPage: React.FC = () => {
           />
 
           <Input
-            label="Email"
+            label={t('auth.email')}
             type="email"
             autoComplete="email"
             value={email}
@@ -73,7 +73,7 @@ const RegisterPage: React.FC = () => {
           />
 
           <Input
-            label="Утас"
+            label={t('auth.phone')}
             type="tel"
             autoComplete="tel"
             value={phone}
@@ -81,10 +81,10 @@ const RegisterPage: React.FC = () => {
           />
 
           <Input
-            label="Password"
+            label={t('auth.password')}
             type="password"
             autoComplete="new-password"
-            helperText="Дор хаяж 6 тэмдэгт"
+            helperText={t('auth.passwordHint')}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             minLength={6}
@@ -99,13 +99,13 @@ const RegisterPage: React.FC = () => {
         )}
 
         <Button className="mt-6" fullWidth type="submit" loading={loading} disabled={loading}>
-          {loading ? 'Бүртгэж байна...' : 'Workspace үүсгэх'}
+          {loading ? t('auth.creating') : t('auth.createWorkspace')}
         </Button>
 
         <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-          Бүртгэлтэй юу?{' '}
+          {t('auth.alreadyRegistered')}{' '}
           <Link className="text-blue-600 hover:text-blue-500" to="/login">
-            Нэвтрэх
+            {t('auth.signIn')}
           </Link>
         </p>
       </form>

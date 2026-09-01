@@ -38,12 +38,12 @@ describe('RegisterPage', () => {
 
     renderRegister();
 
-    await userEvent.type(screen.getByLabelText('Таны нэр'), 'Owner User');
-    await userEvent.type(screen.getByLabelText('Байгууллагын нэр'), 'NewTech Operations');
+    await userEvent.type(screen.getByLabelText('Your name'), 'Owner User');
+    await userEvent.type(screen.getByLabelText('Organization name'), 'NewTech Operations');
     await userEvent.type(screen.getByLabelText('Email'), 'owner@example.com');
-    await userEvent.type(screen.getByLabelText('Утас'), '+97699112233');
+    await userEvent.type(screen.getByLabelText('Phone'), '+97699112233');
     await userEvent.type(screen.getByLabelText('Password'), 'Password123');
-    await userEvent.click(screen.getByRole('button', { name: 'Workspace үүсгэх' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Create workspace' }));
 
     expect(serviceMocks.register).toHaveBeenCalledWith({
       name: 'Owner User',
@@ -60,11 +60,11 @@ describe('RegisterPage', () => {
 
     renderRegister();
 
-    await userEvent.type(screen.getByLabelText('Таны нэр'), 'Owner User');
-    await userEvent.type(screen.getByLabelText('Байгууллагын нэр'), 'NewTech Operations');
+    await userEvent.type(screen.getByLabelText('Your name'), 'Owner User');
+    await userEvent.type(screen.getByLabelText('Organization name'), 'NewTech Operations');
     await userEvent.type(screen.getByLabelText('Email'), 'owner@example.com');
     await userEvent.type(screen.getByLabelText('Password'), 'Password123');
-    await userEvent.click(screen.getByRole('button', { name: 'Workspace үүсгэх' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Create workspace' }));
 
     expect(await screen.findByText('Бүртгэл үүсгэж чадсангүй. Мэдээллээ шалгаад дахин оролдоно уу.')).toBeTruthy();
   });

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, CheckCircle2, Circle, Plus, Target } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
@@ -10,6 +11,7 @@ import { DailyGoal } from '../types/productivity.types';
 const today = () => new Date().toISOString().slice(0, 10);
 
 const DailyGoalsPage: React.FC = () => {
+  const { t } = useTranslation();
   const [goals, setGoals] = useState<DailyGoal[]>([]);
   const [title, setTitle] = useState('');
   const [goalDate, setGoalDate] = useState(today());
@@ -25,7 +27,7 @@ const DailyGoalsPage: React.FC = () => {
         const data = await productivityService.getGoals();
         if (active) setGoals(data);
       } catch {
-        if (active) setError('Зорилгын мэдээлэл ачаалж чадсангүй.');
+        if (active) setError(t('goals.loadFailed'));
       } finally {
         if (active) setLoading(false);
       }
@@ -71,7 +73,7 @@ const DailyGoalsPage: React.FC = () => {
       setTitle('');
       setGoalDate(today());
     } catch {
-      setError('Зорилго хадгалах үед алдаа гарлаа.');
+      setError(t('goals.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -84,7 +86,7 @@ const DailyGoalsPage: React.FC = () => {
       const updated = await productivityService.updateGoal(goal.id, { completed: !goal.completed });
       setGoals((current) => current.map((item) => (item.id === goal.id ? updated : item)));
     } catch {
-      setError('Зорилгын төлөв шинэчлэх үед алдаа гарлаа.');
+      setError(t('goals.updateFailed'));
     }
   };
 
@@ -121,9 +123,9 @@ const DailyGoalsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Goal Wall</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('goals.title')}</h1>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Өдрийн зорилго, биелэлт, хоцорсон carry-over ажлыг нэг дор хянаж сарын тайлангийн суурь дата үүсгэнэ.
+          {t('goals.subtitle')}
         </p>
       </div>
 
@@ -135,77 +137,79 @@ const DailyGoalsPage: React.FC = () => {
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <div className="text-sm text-gray-500">Today goals</div>
+          <div className="text-sm text-gray-500">{t('goals.todayGoals')}</div>
           <div className="mt-2 text-3xl font-semibold">{stats.todayGoals.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Completed today</div>
+          <div className="text-sm text-gray-500">{t('goals.completedToday')}</div>
           <div className="mt-2 text-3xl font-semibold">{stats.completedToday}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Completion rate</div>
+          <div className="text-sm text-gray-500">{t('goals.completionRate')}</div>
           <div className="mt-2 text-3xl font-semibold">{stats.rate}%</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Carry-over</div>
+          <div className="text-sm text-gray-500">{t('goals.carryOver')}</div>
           <div className="mt-2 text-3xl font-semibold">{stats.carryOverGoals.length}</div>
         </Card>
       </div>
 
-      <Card title="New goal">
+      <Card title={t('goals.newGoal')}>
         <form onSubmit={createGoal} className="grid items-end gap-3 md:grid-cols-[1fr_180px_auto]">
           <Input
-            label="Goal title"
-            placeholder="Goal title"
+            label={t('goals.goalTitle')}
+            placeholder={t('goals.goalTitle')}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
           />
           <Input
-            label="Goal date"
+            label={t('goals.goalDate')}
             type="date"
             value={goalDate}
             onChange={(event) => setGoalDate(event.target.value)}
           />
           <Button type="submit" icon={Plus} loading={saving}>
-            Add goal
+            {t('goals.addGoal')}
           </Button>
         </form>
       </Card>
 
       {loading ? (
-        <Card>Зорилгуудыг ачаалж байна...</Card>
+        <Card loading>
+          <div />
+        </Card>
       ) : (
         <div className="grid gap-6 xl:grid-cols-3">
-          <Card title="Today">
+          <Card title={t('goals.today')}>
             <div className="space-y-3">
               {stats.todayGoals.length ? (
                 stats.todayGoals.map(renderGoal)
               ) : (
                 <EmptyState
                   icon={Target}
-                  title="No goals for today"
-                  description="Add a small set of daily goals to make monthly progress and carry-over work easier to review."
+                  title={t('goals.emptyTitle')}
+                  description={t('goals.emptyDescription')}
                 />
               )}
             </div>
           </Card>
 
-          <Card title="Carry-over">
+          <Card title={t('goals.carryOver')}>
             <div className="space-y-3">
               {stats.carryOverGoals.length ? (
                 stats.carryOverGoals.map(renderGoal)
               ) : (
-                <p className="text-sm text-gray-500">Хоцорсон зорилго алга.</p>
+                <p className="text-sm text-gray-500">{t('goals.noCarryOver')}</p>
               )}
             </div>
           </Card>
 
-          <Card title="Recent goals">
+          <Card title={t('goals.recentGoals')}>
             <div className="space-y-3">
               {recentGoals.length ? (
                 recentGoals.map(renderGoal)
               ) : (
-                <p className="text-sm text-gray-500">Өмнөх эсвэл ирээдүйн зорилго одоогоор алга.</p>
+                <p className="text-sm text-gray-500">{t('goals.noOtherGoals')}</p>
               )}
             </div>
           </Card>

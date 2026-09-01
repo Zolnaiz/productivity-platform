@@ -41,7 +41,7 @@ describe('LoginPage', () => {
   it('opens the demo workspace when demo mode is enabled', async () => {
     renderLogin();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Demo workspace нээх' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Open demo workspace' }));
 
     expect(authMocks.loginDemo).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Dashboard page')).toBeTruthy();
@@ -52,6 +52,6 @@ describe('LoginPage', () => {
 
     renderLogin();
 
-    expect(screen.queryByRole('button', { name: 'Demo workspace нээх' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open demo workspace' })).toBeNull();
   });
 });
