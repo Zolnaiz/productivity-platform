@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
+import Select from '../components/common/Select';
 import { adminService } from '../services/admin.service';
 import { AuditLogEntry } from '../types/admin.types';
 
@@ -59,8 +60,9 @@ const AuditLogPage: React.FC = () => {
         title="System activity"
         loading={loading}
         actions={
-          <select
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Select
+            className="w-48"
+            aria-label="Filter events"
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
           >
@@ -73,7 +75,7 @@ const AuditLogPage: React.FC = () => {
                 {module}
               </option>
             ))}
-          </select>
+          </Select>
         }
       >
         {filteredLogs.length ? (

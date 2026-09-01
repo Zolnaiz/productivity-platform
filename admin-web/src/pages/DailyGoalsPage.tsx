@@ -3,6 +3,7 @@ import { CalendarDays, CheckCircle2, Circle, Plus, Target } from 'lucide-react';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
+import Input from '../components/common/Input';
 import { productivityService } from '../services/productivity.service';
 import { DailyGoal } from '../types/productivity.types';
 
@@ -152,19 +153,18 @@ const DailyGoalsPage: React.FC = () => {
       </div>
 
       <Card title="New goal">
-        <form onSubmit={createGoal} className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+        <form onSubmit={createGoal} className="grid items-end gap-3 md:grid-cols-[1fr_180px_auto]">
+          <Input
+            label="Goal title"
             placeholder="Goal title"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Goal date"
             type="date"
             value={goalDate}
             onChange={(event) => setGoalDate(event.target.value)}
-            aria-label="Goal date"
           />
           <Button type="submit" icon={Plus} loading={saving}>
             Add goal

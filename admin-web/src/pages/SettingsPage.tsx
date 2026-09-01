@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import Input from '../components/common/Input';
+import Select from '../components/common/Select';
 import { adminService } from '../services/admin.service';
 import { WorkspaceSettings } from '../types/admin.types';
 
@@ -41,40 +44,31 @@ const SettingsPage: React.FC = () => {
         <>
       <Card title="Workspace preferences">
         <div className="grid gap-4 md:grid-cols-3">
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Timezone</span>
-            <select
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-              value={settings.timezone}
-              onChange={(event) => updateField('timezone', event.target.value)}
-            >
-              <option value="Asia/Ulaanbaatar">Asia/Ulaanbaatar</option>
-              <option value="UTC">UTC</option>
-              <option value="Asia/Tokyo">Asia/Tokyo</option>
-            </select>
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Language</span>
-            <select
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-              value={settings.language}
-              onChange={(event) => updateField('language', event.target.value)}
-            >
-              <option value="mn-MN">Mongolian</option>
-              <option value="en-US">English</option>
-            </select>
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Month close day</span>
-            <input
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-              max={31}
-              min={1}
-              type="number"
-              value={settings.monthCloseDay}
-              onChange={(event) => updateField('monthCloseDay', Number(event.target.value))}
-            />
-          </label>
+          <Select
+            label="Timezone"
+            value={settings.timezone}
+            onChange={(event) => updateField('timezone', event.target.value)}
+          >
+            <option value="Asia/Ulaanbaatar">Asia/Ulaanbaatar</option>
+            <option value="UTC">UTC</option>
+            <option value="Asia/Tokyo">Asia/Tokyo</option>
+          </Select>
+          <Select
+            label="Language"
+            value={settings.language}
+            onChange={(event) => updateField('language', event.target.value)}
+          >
+            <option value="mn-MN">Mongolian</option>
+            <option value="en-US">English</option>
+          </Select>
+          <Input
+            label="Month close day"
+            max={31}
+            min={1}
+            type="number"
+            value={settings.monthCloseDay}
+            onChange={(event) => updateField('monthCloseDay', Number(event.target.value))}
+          />
         </div>
       </Card>
 
@@ -98,9 +92,9 @@ const SettingsPage: React.FC = () => {
           ))}
         </div>
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" onClick={saveSettings} type="button">
+          <Button onClick={saveSettings} type="button">
             Save settings
-          </button>
+          </Button>
           {saved && <span className="text-sm text-green-600">Saved</span>}
         </div>
       </Card>

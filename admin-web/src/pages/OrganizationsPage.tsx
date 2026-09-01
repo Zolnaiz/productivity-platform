@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import Input from '../components/common/Input';
+import Select from '../components/common/Select';
 import { adminService } from '../services/admin.service';
 import { WorkspaceProfile } from '../types/admin.types';
 
@@ -61,67 +64,49 @@ const OrganizationsPage: React.FC = () => {
 
       <Card title="Workspace profile" subtitle="Used by dashboards, report headers, and audit template suggestions.">
         <form onSubmit={saveProfile} className="grid gap-4 md:grid-cols-2">
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Organization name</span>
-            <input
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-              value={profile.name}
-              onChange={(event) => updateField('name', event.target.value)}
-            />
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Industry</span>
-            <select
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-              value={profile.industry}
-              onChange={(event) => updateField('industry', event.target.value)}
-            >
-              <option>Manufacturing / Operations</option>
-              <option>Construction</option>
-              <option>Hospitality</option>
-              <option>Retail</option>
-              <option>Logistics</option>
-              <option>Facility management</option>
-            </select>
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Contact email</span>
-            <input
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-              value={profile.contactEmail}
-              onChange={(event) => updateField('contactEmail', event.target.value)}
-            />
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Contact phone</span>
-            <input
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-              value={profile.contactPhone}
-              onChange={(event) => updateField('contactPhone', event.target.value)}
-            />
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Employee count</span>
-            <input
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-              min={1}
-              type="number"
-              value={profile.employeeCount}
-              onChange={(event) => updateField('employeeCount', Number(event.target.value))}
-            />
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Address</span>
-            <input
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-              value={profile.address}
-              onChange={(event) => updateField('address', event.target.value)}
-            />
-          </label>
+          <Input
+            label="Organization name"
+            value={profile.name}
+            onChange={(event) => updateField('name', event.target.value)}
+          />
+          <Select
+            label="Industry"
+            value={profile.industry}
+            onChange={(event) => updateField('industry', event.target.value)}
+          >
+            <option>Manufacturing / Operations</option>
+            <option>Construction</option>
+            <option>Hospitality</option>
+            <option>Retail</option>
+            <option>Logistics</option>
+            <option>Facility management</option>
+          </Select>
+          <Input
+            label="Contact email"
+            type="email"
+            value={profile.contactEmail}
+            onChange={(event) => updateField('contactEmail', event.target.value)}
+          />
+          <Input
+            label="Contact phone"
+            type="tel"
+            value={profile.contactPhone}
+            onChange={(event) => updateField('contactPhone', event.target.value)}
+          />
+          <Input
+            label="Employee count"
+            min={1}
+            type="number"
+            value={profile.employeeCount}
+            onChange={(event) => updateField('employeeCount', Number(event.target.value))}
+          />
+          <Input
+            label="Address"
+            value={profile.address}
+            onChange={(event) => updateField('address', event.target.value)}
+          />
           <div className="flex flex-col gap-3 md:col-span-2 sm:flex-row sm:items-center">
-            <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
-              Save workspace
-            </button>
+            <Button type="submit">Save workspace</Button>
             {saved && <span className="text-sm text-green-600">Saved</span>}
           </div>
         </form>

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Timer } from 'lucide-react';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
+import Input from '../components/common/Input';
 import { productivityService } from '../services/productivity.service';
 import { FocusSession } from '../types/productivity.types';
 
@@ -48,23 +50,25 @@ const PomodoroPage: React.FC = () => {
       </div>
 
       <Card title="Log focus session">
-        <form onSubmit={createSession} className="grid gap-3 md:grid-cols-3">
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 md:col-span-2"
+        <form onSubmit={createSession} className="grid items-end gap-3 md:grid-cols-3">
+          <Input
+            className="md:col-span-2"
+            label="What did you focus on?"
             placeholder="What did you focus on?"
             value={draft.title}
             onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
           />
-          <div className="flex gap-3">
-            <input
-              className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <div className="flex items-end gap-3">
+            <Input
+              className="w-24"
+              label="Minutes"
               type="number"
               value={draft.minutes}
               onChange={(event) => setDraft((current) => ({ ...current, minutes: event.target.value }))}
             />
-            <button className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
+            <Button className="flex-1" type="submit">
               Add
-            </button>
+            </Button>
           </div>
         </form>
       </Card>

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { StickyNote } from 'lucide-react';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
+import Input from '../components/common/Input';
 import { productivityService } from '../services/productivity.service';
 import { Note } from '../types/productivity.types';
 
@@ -34,22 +36,21 @@ const NotesPage: React.FC = () => {
       </div>
 
       <Card title="New note">
-        <form onSubmit={createNote} className="grid gap-3 lg:grid-cols-5">
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+        <form onSubmit={createNote} className="grid items-end gap-3 lg:grid-cols-5">
+          <Input
+            label="Title"
             placeholder="Title"
             value={draft.title}
             onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 lg:col-span-3"
+          <Input
+            className="lg:col-span-3"
+            label="Note"
             placeholder="Note"
             value={draft.content}
             onChange={(event) => setDraft((current) => ({ ...current, content: event.target.value }))}
           />
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
-            Add note
-          </button>
+          <Button type="submit">Add note</Button>
         </form>
       </Card>
 
