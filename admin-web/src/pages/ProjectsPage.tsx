@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import Input from '../components/common/Input';
+import Select from '../components/common/Select';
 import { operationsService } from '../services/operations.service';
 import { Project } from '../types/operations.types';
 
@@ -116,28 +119,26 @@ const ProjectsPage: React.FC = () => {
       )}
 
       <Card title="New project">
-        <form onSubmit={handleCreate} className="grid gap-3 lg:grid-cols-4">
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+        <form onSubmit={handleCreate} className="grid items-end gap-3 lg:grid-cols-4">
+          <Input
+            label="Project name"
             placeholder="Project name"
             value={draft.name}
             onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Short description"
             placeholder="Short description"
             value={draft.description}
             onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Due date"
             type="date"
             value={draft.dueDate}
             onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))}
           />
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
-            Add project
-          </button>
+          <Button type="submit">Add project</Button>
         </form>
       </Card>
 
@@ -193,30 +194,29 @@ const ProjectsPage: React.FC = () => {
                   onChange={(event) => updateProgress(project, Number(event.target.value))}
                 />
               </label>
-              <label className="text-sm text-gray-600 dark:text-gray-400">
-                Status
-                <select
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                  value={project.status}
-                  onChange={(event) => updateStatus(project, event.target.value as Project['status'])}
-                >
-                  <option value="planned">Planned</option>
-                  <option value="active">Active</option>
-                  <option value="on_hold">On hold</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </label>
+              <Select
+                label="Status"
+                value={project.status}
+                onChange={(event) => updateStatus(project, event.target.value as Project['status'])}
+              >
+                <option value="planned">Planned</option>
+                <option value="active">Active</option>
+                <option value="on_hold">On hold</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </Select>
             </div>
 
             <div className="mt-4 flex justify-end">
-              <button
-                className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
                 type="button"
                 onClick={() => deleteProject(project)}
               >
                 Delete project
-              </button>
+              </Button>
             </div>
           </Card>
         ))}

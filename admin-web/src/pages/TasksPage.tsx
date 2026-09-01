@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import Input from '../components/common/Input';
+import Select from '../components/common/Select';
 import { operationsService } from '../services/operations.service';
 import { WorkTask } from '../types/operations.types';
 
@@ -103,30 +106,29 @@ const TasksPage: React.FC = () => {
       )}
 
       <Card title="New task">
-        <form onSubmit={handleCreate} className="grid gap-3 lg:grid-cols-5">
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 lg:col-span-2"
+        <form onSubmit={handleCreate} className="grid items-end gap-3 lg:grid-cols-5">
+          <Input
+            className="lg:col-span-2"
+            label="Task title"
             placeholder="Task title"
             value={draft.title}
             onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Due date"
             type="date"
             value={draft.dueDate}
             onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label="Estimated hours"
             type="number"
             min="0"
             step="0.5"
             value={draft.estimatedHours}
             onChange={(event) => setDraft((current) => ({ ...current, estimatedHours: event.target.value }))}
           />
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
-            Add task
-          </button>
+          <Button type="submit">Add task</Button>
         </form>
       </Card>
 
@@ -153,8 +155,10 @@ const TasksPage: React.FC = () => {
                   <div className="mt-2 text-xs text-gray-500">
                     {task.actualHours || 0}h / {task.estimatedHours || 0}h
                   </div>
-                  <select
-                    className="mt-3 w-full rounded-lg border border-gray-300 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900"
+                  <Select
+                    className="mt-3"
+                    fieldSize="sm"
+                    aria-label={`Status for ${task.title}`}
                     value={task.status}
                     onChange={(event) => updateStatus(task, event.target.value as WorkTask['status'])}
                   >
@@ -163,7 +167,7 @@ const TasksPage: React.FC = () => {
                         {option.label}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               ))}
             </div>

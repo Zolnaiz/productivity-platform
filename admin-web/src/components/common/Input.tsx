@@ -1,44 +1,61 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useId } from 'react';
 import { LucideIcon } from 'lucide-react';
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export type FieldSize = 'sm' | 'md';
+
+interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string;
   error?: string;
   helperText?: string;
   icon?: LucideIcon;
   iconPosition?: 'left' | 'right';
+  fieldSize?: FieldSize;
 }
 
+// Matches the field styling the pages already use, so adopting this component
+// does not change how existing forms look. `sm` is for dense contexts such as
+// board cards and table rows.
+export const fieldSizeClass: Record<FieldSize, string> = {
+  sm: 'px-2 py-1 text-xs',
+  md: 'px-3 py-2 text-sm',
+};
+
+export const inputFieldClass =
+  'w-full rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-white';
+
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({
-    label,
-    error,
-    helperText,
-    icon: Icon,
-    iconPosition = 'left',
-    className = '',
-    id,
-    type = 'text',
-    ...props
-  }, ref) => {
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  (
+    {
+      label,
+      error,
+      helperText,
+      icon: Icon,
+      iconPosition = 'left',
+      fieldSize = 'md',
+      className = '',
+      id,
+      type = 'text',
+      ...props
+    },
+    ref,
+  ) => {
+    const generatedId = useId();
+    const inputId = id || generatedId;
+    const describedById = error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined;
 
     return (
       <div className="w-full">
         {label && (
-          <label
-            htmlFor={inputId}
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
+          <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             {label}
-            {props.required && <span className="text-red-500 ml-1">*</span>}
+            {props.required && <span className="ml-1 text-red-500">*</span>}
           </label>
         )}
 
         <div className="relative">
           {Icon && iconPosition === 'left' && (
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Icon className="h-5 w-5 text-gray-400" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Icon className="h-4 w-4 text-gray-400" />
             </div>
           )}
 
@@ -46,43 +63,45 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             type={type}
-            className={`
-              w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors
-              ${Icon && iconPosition === 'left' ? 'pl-10' : ''}
-              ${Icon && iconPosition === 'right' ? 'pr-10' : ''}
-              ${error
+            aria-invalid={error ? true : undefined}
+            aria-describedby={describedById}
+            className={[
+              inputFieldClass,
+              fieldSizeClass[fieldSize],
+              Icon && iconPosition === 'left' ? 'pl-9' : '',
+              Icon && iconPosition === 'right' ? 'pr-9' : '',
+              error
                 ? 'border-red-500 focus:ring-red-500 dark:border-red-500'
-                : 'border-gray-300 dark:border-gray-600 focus:border-transparent'
-              }
-              ${props.disabled
-                ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed'
-                : 'bg-white dark:bg-gray-700'
-              }
-              text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400
-              ${className}
-            `.trim()}
+                : 'border-gray-300 dark:border-gray-700',
+              props.disabled ? 'cursor-not-allowed bg-gray-100 dark:bg-gray-800' : '',
+              className,
+            ]
+              .filter(Boolean)
+              .join(' ')}
             {...props}
           />
 
           {Icon && iconPosition === 'right' && (
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <Icon className="h-5 w-5 text-gray-400" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+              <Icon className="h-4 w-4 text-gray-400" />
             </div>
           )}
         </div>
 
         {error && (
-          <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p id={`${inputId}-error`} className="mt-1 text-sm text-red-600 dark:text-red-400">
+            {error}
+          </p>
         )}
 
         {helperText && !error && (
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p id={`${inputId}-helper`} className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {helperText}
           </p>
         )}
       </div>
     );
-  }
+  },
 );
 
 Input.displayName = 'Input';
