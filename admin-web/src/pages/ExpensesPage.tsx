@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Landmark } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
@@ -26,6 +27,7 @@ const statusClasses = {
 };
 
 const ExpensesPage: React.FC = () => {
+  const { t } = useTranslation();
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,42 +91,40 @@ const ExpensesPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Expenses</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Track project expenses, approval status, and budget impact for monthly reporting.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('expenses.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('expenses.subtitle')}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <div className="text-sm text-gray-500">Total expenses</div>
+          <div className="text-sm text-gray-500">{t('expenses.totalExpenses')}</div>
           <div className="mt-2 text-xl font-semibold text-gray-900 dark:text-white">{formatMnt(totalAll)}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Approved</div>
+          <div className="text-sm text-gray-500">{t('expenses.approved')}</div>
           <div className="mt-2 text-xl font-semibold text-green-600">{formatMnt(totalApproved)}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Waiting approval</div>
+          <div className="text-sm text-gray-500">{t('expenses.waiting')}</div>
           <div className="mt-2 text-xl font-semibold text-yellow-600">{formatMnt(totalSubmitted)}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Records</div>
+          <div className="text-sm text-gray-500">{t('expenses.records')}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{expenses.length}</div>
         </Card>
       </div>
 
-      <Card title="New expense">
+      <Card title={t('expenses.newExpense')}>
         <form onSubmit={createExpense} className="grid items-end gap-3 lg:grid-cols-6">
           <Input
             className="lg:col-span-2"
-            label="Expense title"
-            placeholder="Expense title"
+            label={t('expenses.expenseTitle')}
+            placeholder={t('expenses.expenseTitle')}
             value={draft.title}
             onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
           />
           <Select
-            label="Project"
+            label={t('expenses.project')}
             value={draft.projectId}
             onChange={(event) => setDraft((current) => ({ ...current, projectId: event.target.value }))}
           >
@@ -135,18 +135,18 @@ const ExpensesPage: React.FC = () => {
             ))}
           </Select>
           <Select
-            label="Category"
+            label={t('expenses.category')}
             value={draft.category}
             onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value as ExpenseItem['category'] }))}
           >
-            <option value="tools">Tools</option>
-            <option value="travel">Travel</option>
-            <option value="materials">Materials</option>
-            <option value="software">Software</option>
-            <option value="other">Other</option>
+            <option value="tools">{t('expenses.categories.tools')}</option>
+            <option value="travel">{t('expenses.categories.travel')}</option>
+            <option value="materials">{t('expenses.categories.materials')}</option>
+            <option value="software">{t('expenses.categories.software')}</option>
+            <option value="other">{t('expenses.categories.other')}</option>
           </Select>
           <Input
-            label="Amount"
+            label={t('expenses.amount')}
             min="0"
             step="1000"
             type="number"
@@ -154,30 +154,30 @@ const ExpensesPage: React.FC = () => {
             onChange={(event) => setDraft((current) => ({ ...current, amount: event.target.value }))}
           />
           <Input
-            label="Expense date"
+            label={t('expenses.expenseDate')}
             type="date"
             value={draft.expenseDate}
             onChange={(event) => setDraft((current) => ({ ...current, expenseDate: event.target.value }))}
           />
           <Input
             className="lg:col-span-5"
-            label="Note"
-            placeholder="Note"
+            label={t('expenses.note')}
+            placeholder={t('expenses.note')}
             value={draft.note}
             onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))}
           />
-          <Button type="submit">Submit</Button>
+          <Button type="submit">{t('expenses.submit')}</Button>
         </form>
       </Card>
 
-      <Card title="Expense approvals" loading={loading}>
+      <Card title={t('expenses.approvals')} loading={loading}>
         <Table
           rows={expenses}
           rowKey={(expense) => expense.id}
           columns={[
             {
               key: 'title',
-              header: 'Expense',
+              header: t('expenses.expense'),
               render: (expense) => (
                 <>
                   <div className="font-medium text-gray-900 dark:text-white">{expense.title}</div>
@@ -189,19 +189,19 @@ const ExpensesPage: React.FC = () => {
             },
             {
               key: 'project',
-              header: 'Project',
+              header: t('expenses.project'),
               render: (expense) => (expense.projectId ? projectById[expense.projectId]?.name || '-' : '-'),
             },
-            { key: 'category', header: 'Category', className: 'py-3 capitalize' },
+            { key: 'category', header: t('expenses.category'), className: 'py-3 capitalize' },
             {
               key: 'amount',
-              header: 'Amount',
+              header: t('expenses.amount'),
               className: 'py-3 font-medium',
               render: (expense) => formatMnt(expense.amount),
             },
             {
               key: 'status',
-              header: 'Status',
+              header: t('expenses.status'),
               render: (expense) => (
                 <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClasses[expense.status]}`}>
                   {expense.status}
@@ -210,7 +210,7 @@ const ExpensesPage: React.FC = () => {
             },
             {
               key: 'actions',
-              header: 'Actions',
+              header: t('expenses.actions'),
               render: (expense) => (
                 <div className="flex gap-2">
                   {expense.status !== 'approved' && (
@@ -219,7 +219,7 @@ const ExpensesPage: React.FC = () => {
                       onClick={() => updateStatus(expense, 'approved')}
                       type="button"
                     >
-                      Approve
+                      {t('expenses.approve')}
                     </button>
                   )}
                   {expense.status !== 'rejected' && (
@@ -228,7 +228,7 @@ const ExpensesPage: React.FC = () => {
                       onClick={() => updateStatus(expense, 'rejected')}
                       type="button"
                     >
-                      Reject
+                      {t('expenses.reject')}
                     </button>
                   )}
                 </div>
@@ -238,8 +238,8 @@ const ExpensesPage: React.FC = () => {
           empty={
             <EmptyState
               icon={Landmark}
-              title="No expenses submitted"
-              description="Submitted project expenses and approval decisions will appear here for reporting."
+              title={t('expenses.emptyTitle')}
+              description={t('expenses.emptyDescription')}
             />
           }
         />

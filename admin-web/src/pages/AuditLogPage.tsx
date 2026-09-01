@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
 import Select from '../components/common/Select';
@@ -14,6 +15,7 @@ const severityClasses = {
 };
 
 const AuditLogPage: React.FC = () => {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -32,25 +34,23 @@ const AuditLogPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Audit Log</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Owner view for report exports, permission changes, audit submissions, and system activity.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('auditLog.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('auditLog.subtitle')}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <div className="text-sm text-gray-500">Total events</div>
+          <div className="text-sm text-gray-500">{t('auditLog.totalEvents')}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{logs.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Warnings</div>
+          <div className="text-sm text-gray-500">{t('auditLog.warnings')}</div>
           <div className="mt-2 text-2xl font-semibold text-yellow-600">
             {logs.filter((log) => log.severity === 'warning').length}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Critical</div>
+          <div className="text-sm text-gray-500">{t('auditLog.critical')}</div>
           <div className="mt-2 text-2xl font-semibold text-red-600">
             {logs.filter((log) => log.severity === 'critical').length}
           </div>
@@ -58,16 +58,16 @@ const AuditLogPage: React.FC = () => {
       </div>
 
       <Card
-        title="System activity"
+        title={t('auditLog.systemActivity')}
         loading={loading}
         actions={
           <Select
             className="w-48"
-            aria-label="Filter events"
+            aria-label={t('auditLog.filterEvents')}
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
           >
-            <option value="all">All events</option>
+            <option value="all">{t('auditLog.allEvents')}</option>
             <option value="info">Info</option>
             <option value="warning">Warning</option>
             <option value="critical">Critical</option>
@@ -83,12 +83,12 @@ const AuditLogPage: React.FC = () => {
           rows={filteredLogs}
           rowKey={(log) => log.id}
           columns={[
-            { key: 'createdAt', header: 'Time', className: 'py-3 text-gray-500' },
-            { key: 'actor', header: 'Actor', className: 'py-3 font-medium text-gray-900 dark:text-white' },
-            { key: 'module', header: 'Module' },
+            { key: 'createdAt', header: t('auditLog.time'), className: 'py-3 text-gray-500' },
+            { key: 'actor', header: t('auditLog.actor'), className: 'py-3 font-medium text-gray-900 dark:text-white' },
+            { key: 'module', header: t('auditLog.module') },
             {
               key: 'action',
-              header: 'Action',
+              header: t('auditLog.action'),
               render: (log) => (
                 <>
                   <div className="font-medium text-gray-800 dark:text-gray-200">{log.action}</div>
@@ -98,7 +98,7 @@ const AuditLogPage: React.FC = () => {
             },
             {
               key: 'severity',
-              header: 'Severity',
+              header: t('auditLog.severity'),
               render: (log) => (
                 <span className={`rounded-full px-2 py-1 text-xs font-medium ${severityClasses[log.severity]}`}>
                   {log.severity}
@@ -109,11 +109,9 @@ const AuditLogPage: React.FC = () => {
           empty={
             <EmptyState
               icon={ShieldCheck}
-              title={logs.length ? 'No events match this filter' : 'No audit events yet'}
+              title={logs.length ? t('auditLog.noMatchTitle') : t('auditLog.emptyTitle')}
               description={
-                logs.length
-                  ? 'Change the filter to review other system activity.'
-                  : 'Security events, report exports, permission changes, and audit submissions will appear here.'
+                logs.length ? t('auditLog.noMatchDescription') : t('auditLog.emptyDescription')
               }
             />
           }

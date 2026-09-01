@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
@@ -15,6 +16,7 @@ const formatMnt = (value: number) =>
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
 const MonthlyReportPage: React.FC = () => {
+  const { t } = useTranslation();
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
   const [report, setReport] = useState<OperationsMonthlyReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,7 @@ const MonthlyReportPage: React.FC = () => {
         const reportData = await operationsService.getMonthlyReport(selectedMonth);
         if (active) setReport(reportData);
       } catch {
-        if (active) setError('Сарын тайлангийн өгөгдөл ачаалж чадсангүй.');
+        if (active) setError(t('monthlyReport.loadFailed'));
       } finally {
         if (active) setLoading(false);
       }
@@ -56,28 +58,47 @@ const MonthlyReportPage: React.FC = () => {
   const summaryLines = report
     ? [
         {
-          label: 'Delivery',
-          text: `Monthly productivity report (${report.period}): ${report.totals.projects} projects, ${report.totals.tasks} tasks, ${report.kpis.completionRate}% task completion.`,
+          label: t('monthlyReport.labels.delivery'),
+          text: t('monthlyReport.lines.delivery', {
+            period: report.period,
+            projects: report.totals.projects,
+            tasks: report.totals.tasks,
+            completion: report.kpis.completionRate,
+          }),
         },
         {
-          label: 'Daily goals',
-          text: `${report.totals.completedDailyGoals}/${report.totals.dailyGoals} completed (${report.kpis.dailyGoalCompletionRate}%).`,
+          label: t('monthlyReport.labels.dailyGoals'),
+          text: t('monthlyReport.lines.dailyGoals', {
+            completed: report.totals.completedDailyGoals,
+            total: report.totals.dailyGoals,
+            rate: report.kpis.dailyGoalCompletionRate,
+          }),
         },
         {
-          label: 'Tracked work',
-          text: `${report.totals.totalHours} hours across ${report.totals.workLogs} work logs.`,
+          label: t('monthlyReport.labels.trackedWork'),
+          text: t('monthlyReport.lines.trackedWork', {
+            hours: report.totals.totalHours,
+            logs: report.totals.workLogs,
+          }),
         },
         {
-          label: 'Quality',
-          text: `${report.totals.auditRuns} audit runs; ${report.totals.assessmentResponses} assessment responses averaging ${report.kpis.averageAssessmentScore}%.`,
+          label: t('monthlyReport.labels.quality'),
+          text: t('monthlyReport.lines.quality', {
+            audits: report.totals.auditRuns,
+            responses: report.totals.assessmentResponses,
+            score: report.kpis.averageAssessmentScore,
+          }),
         },
         {
-          label: 'Finance',
-          text: `${formatMnt(report.totals.approvedExpenseTotal)} approved and ${formatMnt(report.totals.pendingExpenseTotal)} waiting approval.`,
+          label: t('monthlyReport.labels.finance'),
+          text: t('monthlyReport.lines.finance', {
+            approved: formatMnt(report.totals.approvedExpenseTotal),
+            pending: formatMnt(report.totals.pendingExpenseTotal),
+          }),
         },
         {
-          label: 'Needs attention',
-          text: `${improvementActions} improvement actions need follow-up.`,
+          label: t('monthlyReport.labels.needsAttention'),
+          text: t('monthlyReport.lines.needsAttention', { count: improvementActions }),
         },
       ]
     : [];
@@ -127,26 +148,24 @@ const MonthlyReportPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Monthly Report</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Төсөл, task, work log, time entry, audit, assessment, expense өгөгдлөөс сарын нэгдсэн тайлан гаргана.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('monthlyReport.title')}</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('monthlyReport.subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Input
             type="month"
             value={selectedMonth}
             onChange={(event) => setSelectedMonth(event.target.value || currentMonth())}
-            aria-label="Report month"
+            aria-label={t('monthlyReport.reportMonth')}
           />
           <Button type="button" onClick={exportCsv} disabled={loading || !report}>
-            Export CSV
+            {t('monthlyReport.exportCsv')}
           </Button>
           <Button variant="outline" type="button" onClick={copySummary} disabled={loading || !report}>
-            Copy summary
+            {t('monthlyReport.copySummary')}
           </Button>
           <Button variant="outline" type="button" onClick={() => window.print()} disabled={loading || !report}>
-            Print
+            {t('monthlyReport.print')}
           </Button>
         </div>
       </div>
@@ -163,11 +182,11 @@ const MonthlyReportPage: React.FC = () => {
         </Card>
       )}
 
-      {!loading && !report && !error && <Card>Энэ сард тайлангийн өгөгдөл олдсонгүй.</Card>}
+      {!loading && !report && !error && <Card>{t('monthlyReport.noData')}</Card>}
 
       {report && (
         <>
-          <Card title="Executive summary" subtitle={`Reporting period ${report.period}`}>
+          <Card title={t('monthlyReport.executiveSummary')} subtitle={t('monthlyReport.reportingPeriod', { period: report.period })}>
             <dl className="divide-y divide-gray-200 dark:divide-gray-700">
               {summaryLines.map((line) => (
                 <div key={line.label} className="grid gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[160px_1fr] sm:gap-4">

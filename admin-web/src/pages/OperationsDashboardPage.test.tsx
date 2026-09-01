@@ -50,6 +50,6 @@ describe('OperationsDashboardPage', () => {
 
     renderDashboard();
 
-    expect(await screen.findByText('Dashboard мэдээлэл ачаалж чадсангүй.')).toBeTruthy();
+    expect(await screen.findByText('Could not load dashboard data.')).toBeTruthy();
   });
 });
