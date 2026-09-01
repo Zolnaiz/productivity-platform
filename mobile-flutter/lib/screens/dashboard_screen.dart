@@ -5,12 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import '../providers/auth_provider.dart';
 import '../providers/questionnaire_provider.dart';
-import '../models/questionnaire_model.dart';
 import '../models/expense_model.dart';
-import '../models/report_model.dart';
 import '../widgets/questionnaire_card.dart';
 import '../widgets/expense_card.dart';
-import '../widgets/report_card.dart';
 import '../widgets/kpi_card.dart';
 import '../widgets/loading_indicator.dart';
 import '../utils/constants.dart';
@@ -30,15 +27,10 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
-  late DateTimeRange _dateRange;
 
   @override
   void initState() {
     super.initState();
-    _dateRange = DateTimeRange(
-      start: DateTime.now().subtract(const Duration(days: 30)),
-      end: DateTime.now(),
-    );
     _loadData();
   }
 
@@ -102,8 +94,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primary.withOpacity(0.1),
-            AppColors.secondary.withOpacity(0.1),
+            AppColors.primary.withValues(alpha: 0.1),
+            AppColors.secondary.withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),

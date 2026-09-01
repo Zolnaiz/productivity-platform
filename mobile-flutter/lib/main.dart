@@ -74,7 +74,8 @@ class ProductivityApp extends StatelessWidget {
             ),
             builder: (BuildContext context, Widget? child) {
               return MediaQuery(
-                data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+                data: MediaQuery.of(context)
+                    .copyWith(textScaler: TextScaler.noScaling),
                 child: child!,
               );
             },
@@ -162,12 +163,12 @@ class ProductivityApp extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
           elevation: 2,
-          shadowColor: const Color(0xFF4361EE).withOpacity(0.3),
+          shadowColor: const Color(0xFF4361EE).withValues(alpha: 0.3),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: const Color(0xFF4361EE), width: 1),
+          side: const BorderSide(color: Color(0xFF4361EE), width: 1),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -286,7 +287,6 @@ class ProductivityApp extends StatelessWidget {
         secondary: const Color(0xFF4361EE),
         tertiary: const Color(0xFF3A0CA3),
         surface: const Color(0xFF1E1E2E),
-        background: const Color(0xFF121212),
       ),
       useMaterial3: true,
       fontFamily: GoogleFonts.inter().fontFamily,

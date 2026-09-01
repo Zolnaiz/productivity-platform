@@ -588,7 +588,7 @@ extension ColorExtensions on Color {
   
   // Convert to hex string
   String get toHex {
-    return '#${value.toRadixString(16).padLeft(8, '0').toUpperCase()}';
+    return '#${toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
   }
   
   // Create color from hex string
@@ -603,10 +603,10 @@ extension ColorExtensions on Color {
   Color blend(Color other, double ratio) {
     final invRatio = 1.0 - ratio;
     return Color.fromARGB(
-      (alpha * invRatio + other.alpha * ratio).round(),
-      (red * invRatio + other.red * ratio).round(),
-      (green * invRatio + other.green * ratio).round(),
-      (blue * invRatio + other.blue * ratio).round(),
+      ((a * invRatio + other.a * ratio) * 255.0).round().clamp(0, 255),
+      ((r * invRatio + other.r * ratio) * 255.0).round().clamp(0, 255),
+      ((g * invRatio + other.g * ratio) * 255.0).round().clamp(0, 255),
+      ((b * invRatio + other.b * ratio) * 255.0).round().clamp(0, 255),
     );
   }
 }
@@ -644,7 +644,7 @@ extension BuildContextExtensions on BuildContext {
   Color get primaryColor => colorScheme.primary;
   
   // Get background color
-  Color get backgroundColor => colorScheme.background;
+  Color get backgroundColor => colorScheme.surface;
   
   // Get surface color
   Color get surfaceColor => colorScheme.surface;

@@ -64,13 +64,13 @@ class NotificationService {
     );
 
     if (kDebugMode) {
-      print('Notification permission: ${settings.authorizationStatus}');
+      debugPrint('Notification permission: ${settings.authorizationStatus}');
     }
 
     // Get FCM token
     String? token = await firebaseMessaging.getToken();
     if (kDebugMode) {
-      print('FCM Token: $token');
+      debugPrint('FCM Token: $token');
     }
 
     // Handle background messages
@@ -84,7 +84,7 @@ class NotificationService {
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {
-    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'productivity_channel',
       'Productivity Platform',
       channelDescription: 'Notifications for Productivity Platform',
@@ -93,13 +93,13 @@ class NotificationService {
       playSound: true,
     );
 
-    DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
     );
 
-    NotificationDetails notificationDetails = NotificationDetails(
+    NotificationDetails notificationDetails = const NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
@@ -118,7 +118,7 @@ class NotificationService {
     required String body,
     required String payload,
   }) async {
-    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'local_channel',
       'Local Notifications',
       channelDescription: 'Local notifications from the app',
@@ -126,13 +126,13 @@ class NotificationService {
       priority: Priority.high,
     );
 
-    DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
     );
 
-    NotificationDetails notificationDetails = NotificationDetails(
+    NotificationDetails notificationDetails = const NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
@@ -148,7 +148,7 @@ class NotificationService {
 
   void _onNotificationTap(NotificationResponse response) {
     if (kDebugMode) {
-      print('Notification tapped: ${response.payload}');
+      debugPrint('Notification tapped: ${response.payload}');
     }
     // Handle notification tap based on payload
     // You can use Provider or Navigation service here
@@ -156,7 +156,7 @@ class NotificationService {
 
   void _onMessageOpenedApp(RemoteMessage message) {
     if (kDebugMode) {
-      print('Message opened from background: ${message.data}');
+      debugPrint('Message opened from background: ${message.data}');
     }
     // Handle notification when app is opened from background
   }
@@ -164,7 +164,7 @@ class NotificationService {
   static Future<void> _firebaseBackgroundMessageHandler(
       RemoteMessage message) async {
     if (kDebugMode) {
-      print('Background message received: ${message.notification?.title}');
+      debugPrint('Background message received: ${message.notification?.title}');
     }
   }
 

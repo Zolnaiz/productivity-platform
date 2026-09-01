@@ -5,14 +5,12 @@ import 'colors.dart';
 class AppTheme {
   static ThemeData lightTheme = ThemeData(
     // Color scheme
-    colorScheme: ColorScheme.light(
+    colorScheme: const ColorScheme.light(
       primary: AppColors.primary,
       secondary: AppColors.secondary,
-      background: AppColors.backgroundLight,
       surface: AppColors.surfaceLight,
       onPrimary: Colors.white,
       onSecondary: Colors.white,
-      onBackground: AppColors.textPrimary,
       onSurface: AppColors.textPrimary,
       error: AppColors.error,
     ),
@@ -123,7 +121,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
         ),
         elevation: 2,
-        shadowColor: AppColors.primary.withOpacity(0.3),
+        shadowColor: AppColors.primary.withValues(alpha: 0.3),
       ),
     ),
     
@@ -135,7 +133,7 @@ class AppTheme {
           fontWeight: FontWeight.w600,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        side: BorderSide(color: AppColors.primary),
+        side: const BorderSide(color: AppColors.primary),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -228,7 +226,7 @@ class AppTheme {
     // Chip theme
     chipTheme: ChipThemeData(
       backgroundColor: Colors.grey.shade100,
-      selectedColor: AppColors.primary.withOpacity(0.2),
+      selectedColor: AppColors.primary.withValues(alpha: 0.2),
       checkmarkColor: AppColors.primary,
       labelStyle: const TextStyle(
         fontSize: 12,
@@ -290,15 +288,15 @@ class AppTheme {
     
     // Switch theme
     switchTheme: SwitchThemeData(
-      thumbColor: MaterialStateProperty.resolveWith((states) {
-        if (states.contains(MaterialState.selected)) {
+      thumbColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
           return AppColors.primary;
         }
         return Colors.grey.shade400;
       }),
-      trackColor: MaterialStateProperty.resolveWith((states) {
-        if (states.contains(MaterialState.selected)) {
-          return AppColors.primary.withOpacity(0.5);
+      trackColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return AppColors.primary.withValues(alpha: 0.5);
         }
         return Colors.grey.shade300;
       }),
@@ -306,13 +304,13 @@ class AppTheme {
     
     // Checkbox theme
     checkboxTheme: CheckboxThemeData(
-      fillColor: MaterialStateProperty.resolveWith((states) {
-        if (states.contains(MaterialState.selected)) {
+      fillColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
           return AppColors.primary;
         }
         return Colors.grey.shade400;
       }),
-      checkColor: MaterialStateProperty.all(Colors.white),
+      checkColor: WidgetStateProperty.all(Colors.white),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(4),
       ),
@@ -320,8 +318,8 @@ class AppTheme {
     
     // Radio theme
     radioTheme: RadioThemeData(
-      fillColor: MaterialStateProperty.resolveWith((states) {
-        if (states.contains(MaterialState.selected)) {
+      fillColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
           return AppColors.primary;
         }
         return Colors.grey.shade400;
@@ -367,7 +365,7 @@ class AppTheme {
         color: Colors.white,
       ),
       decoration: BoxDecoration(
-        color: AppColors.textPrimary.withOpacity(0.9),
+        color: AppColors.textPrimary.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(6),
       ),
     ),
@@ -383,21 +381,19 @@ class AppTheme {
 
   static ThemeData darkTheme = ThemeData(
     // Color scheme
-    colorScheme: ColorScheme.dark(
+    colorScheme: const ColorScheme.dark(
       primary: AppColors.primary,
       secondary: AppColors.secondary,
-      background: AppColors.backgroundDark,
       surface: AppColors.surfaceDark,
       onPrimary: Colors.white,
       onSecondary: Colors.white,
-      onBackground: AppColors.textPrimaryDark,
       onSurface: AppColors.textPrimaryDark,
       error: AppColors.error,
     ),
-    
+
     // Typography
     fontFamily: 'Inter',
-    textTheme: TextTheme(
+    textTheme: const TextTheme(
       displayLarge: const TextStyle(
         fontSize: 32,
         fontWeight: FontWeight.w700,
@@ -471,17 +467,17 @@ class AppTheme {
     ),
     
     // App bar theme
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.surfaceDark,
       foregroundColor: AppColors.textPrimaryDark,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: const TextStyle(
+      titleTextStyle: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimaryDark,
       ),
-      iconTheme: const IconThemeData(
+      iconTheme: IconThemeData(
         color: AppColors.textPrimaryDark,
         size: 24,
       ),
@@ -501,7 +497,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
         ),
         elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.3),
+        shadowColor: Colors.black.withValues(alpha: 0.3),
       ),
     ),
     
@@ -513,7 +509,7 @@ class AppTheme {
           fontWeight: FontWeight.w600,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        side: BorderSide(color: AppColors.primary),
+        side: const BorderSide(color: AppColors.primary),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -577,7 +573,7 @@ class AppTheme {
     cardTheme: CardThemeData(
       color: AppColors.surfaceDark,
       elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.3),
+      shadowColor: Colors.black.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -606,7 +602,7 @@ class AppTheme {
     // Chip theme
     chipTheme: ChipThemeData(
       backgroundColor: Colors.grey.shade800,
-      selectedColor: AppColors.primary.withOpacity(0.3),
+      selectedColor: AppColors.primary.withValues(alpha: 0.3),
       checkmarkColor: AppColors.primary,
       labelStyle: const TextStyle(
         fontSize: 12,
@@ -633,12 +629,12 @@ class AppTheme {
     ),
     
     // Bottom navigation bar theme
-    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: AppColors.surfaceDark,
       selectedItemColor: AppColors.primary,
       unselectedItemColor: AppColors.textTertiaryDark,
-      selectedLabelStyle: const TextStyle(fontSize: 12),
-      unselectedLabelStyle: const TextStyle(fontSize: 12),
+      selectedLabelStyle: TextStyle(fontSize: 12),
+      unselectedLabelStyle: TextStyle(fontSize: 12),
       elevation: 4,
       type: BottomNavigationBarType.fixed,
     ),
@@ -668,15 +664,15 @@ class AppTheme {
     
     // Switch theme
     switchTheme: SwitchThemeData(
-      thumbColor: MaterialStateProperty.resolveWith((states) {
-        if (states.contains(MaterialState.selected)) {
+      thumbColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
           return AppColors.primary;
         }
         return Colors.grey.shade600;
       }),
-      trackColor: MaterialStateProperty.resolveWith((states) {
-        if (states.contains(MaterialState.selected)) {
-          return AppColors.primary.withOpacity(0.5);
+      trackColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return AppColors.primary.withValues(alpha: 0.5);
         }
         return Colors.grey.shade700;
       }),
@@ -684,13 +680,13 @@ class AppTheme {
     
     // Checkbox theme
     checkboxTheme: CheckboxThemeData(
-      fillColor: MaterialStateProperty.resolveWith((states) {
-        if (states.contains(MaterialState.selected)) {
+      fillColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
           return AppColors.primary;
         }
         return Colors.grey.shade600;
       }),
-      checkColor: MaterialStateProperty.all(Colors.white),
+      checkColor: WidgetStateProperty.all(Colors.white),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(4),
       ),
@@ -698,8 +694,8 @@ class AppTheme {
     
     // Radio theme
     radioTheme: RadioThemeData(
-      fillColor: MaterialStateProperty.resolveWith((states) {
-        if (states.contains(MaterialState.selected)) {
+      fillColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
           return AppColors.primary;
         }
         return Colors.grey.shade600;
@@ -728,9 +724,9 @@ class AppTheme {
     ),
     
     // Bottom sheet theme
-    bottomSheetTheme: BottomSheetThemeData(
+    bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: AppColors.surfaceDark,
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       elevation: 8,
@@ -745,7 +741,7 @@ class AppTheme {
         color: Colors.white,
       ),
       decoration: BoxDecoration(
-        color: Colors.grey.shade800.withOpacity(0.9),
+        color: Colors.grey.shade800.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(6),
       ),
     ),

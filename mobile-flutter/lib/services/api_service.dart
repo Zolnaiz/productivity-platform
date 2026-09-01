@@ -68,10 +68,10 @@ class ApiService {
                 : 'web';
 
         if (isDebug) {
-          print('🌐 API Request: ${options.method} ${options.path}');
-          print('📦 Headers: ${options.headers}');
+          debugPrint('🌐 API Request: ${options.method} ${options.path}');
+          debugPrint('📦 Headers: ${options.headers}');
           if (options.data != null) {
-            print('📝 Body: ${options.data}');
+            debugPrint('📝 Body: ${options.data}');
           }
         }
 
@@ -79,9 +79,9 @@ class ApiService {
       },
       onResponse: (response, handler) {
         if (isDebug) {
-          print(
+          debugPrint(
               '✅ API Response: ${response.statusCode} ${response.requestOptions.path}');
-          print('📦 Response Data: ${response.data}');
+          debugPrint('📦 Response Data: ${response.data}');
         }
 
         final responseData = response.data;
@@ -96,10 +96,10 @@ class ApiService {
       },
       onError: (error, handler) async {
         if (isDebug) {
-          print(
+          debugPrint(
               '❌ API Error: ${error.response?.statusCode} ${error.requestOptions.path}');
-          print('📦 Error Data: ${error.response?.data}');
-          print('📦 Error Message: ${error.message}');
+          debugPrint('📦 Error Data: ${error.response?.data}');
+          debugPrint('📦 Error Message: ${error.message}');
         }
 
         // Handle 401 Unauthorized (Token expired)
@@ -112,7 +112,7 @@ class ApiService {
             options.headers['Authorization'] = 'Bearer $token';
 
             if (isDebug) {
-              print('🔄 Retrying request with new token');
+              debugPrint('🔄 Retrying request with new token');
             }
 
             try {
@@ -148,7 +148,7 @@ class ApiService {
         responseHeader: true,
         responseBody: true,
         error: true,
-        logPrint: (object) => print(object),
+        logPrint: (object) => debugPrint(object.toString()),
       ));
     }
   }
@@ -166,11 +166,11 @@ class ApiService {
     try {
       final refreshToken = await _secureStorage.read(key: 'refresh_token');
       if (refreshToken == null) {
-        if (isDebug) print('❌ No refresh token available');
+        if (isDebug) debugPrint('❌ No refresh token available');
         return false;
       }
 
-      if (isDebug) print('🔄 Refreshing access token');
+      if (isDebug) debugPrint('🔄 Refreshing access token');
 
       final response = await _dio.post('/auth/refresh', data: {
         'refresh_token': refreshToken,
@@ -191,10 +191,10 @@ class ApiService {
         );
       }
 
-      if (isDebug) print('✅ Token refreshed successfully');
+      if (isDebug) debugPrint('✅ Token refreshed successfully');
       return true;
     } catch (e) {
-      if (isDebug) print('❌ Token refresh failed: $e');
+      if (isDebug) debugPrint('❌ Token refresh failed: $e');
       return false;
     }
   }
@@ -204,7 +204,7 @@ class ApiService {
     await _secureStorage.delete(key: 'refresh_token');
     await _prefs.remove('user');
 
-    if (isDebug) print('🧹 Auth data cleared');
+    if (isDebug) debugPrint('🧹 Auth data cleared');
   }
 
   // ========== AUTH METHODS ==========
@@ -231,13 +231,13 @@ class ApiService {
       await _prefs.setString('user', json.encode(data['user']));
 
       if (isDebug) {
-        print('✅ Login successful for: $email');
-        print('🔑 Access Token: ${data['access_token']?.substring(0, 20)}...');
+        debugPrint('✅ Login successful for: $email');
+        debugPrint('🔑 Access Token: ${data['access_token']?.substring(0, 20)}...');
       }
 
       return data;
     } catch (e) {
-      if (isDebug) print('❌ Login failed: $e');
+      if (isDebug) debugPrint('❌ Login failed: $e');
       rethrow;
     }
   }
@@ -270,11 +270,11 @@ class ApiService {
 
       await _prefs.setString('user', json.encode(data['user']));
 
-      if (isDebug) print('✅ Registration successful for: $email');
+      if (isDebug) debugPrint('✅ Registration successful for: $email');
 
       return data;
     } catch (e) {
-      if (isDebug) print('❌ Registration failed: $e');
+      if (isDebug) debugPrint('❌ Registration failed: $e');
       rethrow;
     }
   }
@@ -283,10 +283,10 @@ class ApiService {
     try {
       await _dio.post('/auth/logout');
     } catch (e) {
-      if (isDebug) print('⚠️ Logout API call failed: $e');
+      if (isDebug) debugPrint('⚠️ Logout API call failed: $e');
     } finally {
       await _clearAuth();
-      if (isDebug) print('✅ User logged out');
+      if (isDebug) debugPrint('✅ User logged out');
     }
   }
 
@@ -296,7 +296,7 @@ class ApiService {
       await _prefs.setString('user', json.encode(response.data));
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to get current user: $e');
+      if (isDebug) debugPrint('❌ Failed to get current user: $e');
       rethrow;
     }
   }
@@ -308,7 +308,7 @@ class ApiService {
       final response = await _dio.get('/assessment-templates');
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to get questionnaires: $e');
+      if (isDebug) debugPrint('❌ Failed to get questionnaires: $e');
       rethrow;
     }
   }
@@ -321,7 +321,7 @@ class ApiService {
             orElse: () => throw StateError('Questionnaire not found: $id'),
           );
     } catch (e) {
-      if (isDebug) print('❌ Failed to get questionnaire $id: $e');
+      if (isDebug) debugPrint('❌ Failed to get questionnaire $id: $e');
       rethrow;
     }
   }
@@ -338,7 +338,7 @@ class ApiService {
       });
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to submit response: $e');
+      if (isDebug) debugPrint('❌ Failed to submit response: $e');
       rethrow;
     }
   }
@@ -350,7 +350,7 @@ class ApiService {
       final response = await _dio.get('/reports/overview');
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to get overview: $e');
+      if (isDebug) debugPrint('❌ Failed to get overview: $e');
       rethrow;
     }
   }
@@ -360,7 +360,7 @@ class ApiService {
       final response = await _dio.get('/responses/me');
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to get my responses: $e');
+      if (isDebug) debugPrint('❌ Failed to get my responses: $e');
       rethrow;
     }
   }
@@ -372,7 +372,7 @@ class ApiService {
       final response = await _dio.get('/expenses');
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to get expenses: $e');
+      if (isDebug) debugPrint('❌ Failed to get expenses: $e');
       rethrow;
     }
   }
@@ -382,7 +382,7 @@ class ApiService {
       final response = await _dio.post('/expenses', data: data);
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to create expense: $e');
+      if (isDebug) debugPrint('❌ Failed to create expense: $e');
       rethrow;
     }
   }
@@ -395,7 +395,7 @@ class ApiService {
       final response = await _dio.put('/expenses/$id', data: data);
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to update expense: $e');
+      if (isDebug) debugPrint('❌ Failed to update expense: $e');
       rethrow;
     }
   }
@@ -404,7 +404,7 @@ class ApiService {
     try {
       await _dio.delete('/expenses/$id');
     } catch (e) {
-      if (isDebug) print('❌ Failed to delete expense: $e');
+      if (isDebug) debugPrint('❌ Failed to delete expense: $e');
       rethrow;
     }
   }
@@ -416,7 +416,7 @@ class ApiService {
       final response = await _dio.get('/organizations/me');
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to get organization: $e');
+      if (isDebug) debugPrint('❌ Failed to get organization: $e');
       rethrow;
     }
   }
@@ -426,7 +426,7 @@ class ApiService {
       final response = await _dio.get('/organizations/members');
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to get organization members: $e');
+      if (isDebug) debugPrint('❌ Failed to get organization members: $e');
       rethrow;
     }
   }
@@ -438,7 +438,7 @@ class ApiService {
       final response = await _dio.get('/reports');
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to get reports: $e');
+      if (isDebug) debugPrint('❌ Failed to get reports: $e');
       rethrow;
     }
   }
@@ -448,7 +448,7 @@ class ApiService {
       final response = await _dio.post('/reports/generate', data: data);
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to generate report: $e');
+      if (isDebug) debugPrint('❌ Failed to generate report: $e');
       rethrow;
     }
   }
@@ -467,7 +467,7 @@ class ApiService {
       final response = await _dio.post('/upload', data: formData);
       return response.data['url'];
     } catch (e) {
-      if (isDebug) print('❌ Failed to upload file: $e');
+      if (isDebug) debugPrint('❌ Failed to upload file: $e');
       rethrow;
     }
   }
@@ -479,7 +479,7 @@ class ApiService {
       await _dio.get('/health');
       return true;
     } catch (e) {
-      if (isDebug) print('❌ Health check failed: $e');
+      if (isDebug) debugPrint('❌ Health check failed: $e');
       return false;
     }
   }
@@ -491,7 +491,7 @@ class ApiService {
       final response = await _dio.get('/statistics');
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to get statistics: $e');
+      if (isDebug) debugPrint('❌ Failed to get statistics: $e');
       rethrow;
     }
   }
@@ -501,7 +501,7 @@ class ApiService {
       final response = await _dio.get('/notifications');
       return response.data;
     } catch (e) {
-      if (isDebug) print('❌ Failed to get notifications: $e');
+      if (isDebug) debugPrint('❌ Failed to get notifications: $e');
       rethrow;
     }
   }
@@ -510,7 +510,7 @@ class ApiService {
     try {
       await _dio.patch('/notifications/$id/read');
     } catch (e) {
-      if (isDebug) print('❌ Failed to mark notification as read: $e');
+      if (isDebug) debugPrint('❌ Failed to mark notification as read: $e');
       rethrow;
     }
   }

@@ -328,10 +328,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(AppConstants.paddingMedium),
         child: Column(
           children: [
-            ListTile(
-              leading: const Icon(Icons.info_outlined),
-              title: const Text('App Version'),
-              subtitle: const Text('1.0.0 (Build 123)'),
+            const ListTile(
+              leading: Icon(Icons.info_outlined),
+              title: Text('App Version'),
+              subtitle: Text('1.0.0 (Build 123)'),
             ),
             ListTile(
               leading: const Icon(Icons.update_outlined),

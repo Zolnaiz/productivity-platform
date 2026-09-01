@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/questionnaire_model.dart';
 import '../utils/constants.dart';
-import '../themes/colors.dart';
 
 class QuestionnaireCard extends StatelessWidget {
   final Questionnaire questionnaire;
@@ -161,7 +160,7 @@ class QuestionnaireCard extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
       ),
-      backgroundColor: color.withOpacity(0.1),
+      backgroundColor: color.withValues(alpha: 0.1),
       side: BorderSide.none,
       padding: const EdgeInsets.symmetric(horizontal: 4),
       labelPadding: const EdgeInsets.symmetric(horizontal: 4),

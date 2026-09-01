@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/report_model.dart';
 import '../widgets/report_card.dart';
-import '../widgets/loading_indicator.dart';
 import '../utils/constants.dart';
 import '../themes/colors.dart';
 
@@ -15,6 +14,7 @@ class ReportScreen extends StatefulWidget {
 
 class _ReportScreenState extends State<ReportScreen> {
   ReportType _selectedType = ReportType.questionnaireSummary;
+  ReportFormat _selectedFormat = ReportFormat.pdf;
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isGenerating = false;
@@ -127,7 +127,7 @@ class _ReportScreenState extends State<ReportScreen> {
           'end': _endDate!.toIso8601String(),
         },
       },
-      format: ReportFormat.pdf,
+      format: _selectedFormat,
       downloadUrl: 'https://example.com/reports/${DateTime.now().millisecondsSinceEpoch}.pdf',
       fileSize: 1234567,
       summary: {
@@ -182,8 +182,8 @@ class _ReportScreenState extends State<ReportScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Reports'),
-          bottom: TabBar(
-            tabs: const [
+          bottom: const TabBar(
+            tabs: [
               Tab(text: 'Generate'),
               Tab(text: 'History'),
             ],
@@ -249,7 +249,7 @@ class _ReportScreenState extends State<ReportScreen> {
               onSelected: (selected) {
                 setState(() => _selectedType = type);
               },
-              selectedColor: AppColors.primary.withOpacity(0.2),
+              selectedColor: AppColors.primary.withValues(alpha: 0.2),
             );
           }).toList(),
         ),
@@ -360,19 +360,23 @@ class _ReportScreenState extends State<ReportScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
-          children: ReportFormat.values.map((format) {
-            return Expanded(
-              child: RadioListTile<ReportFormat>(
-                title: Text(_getFormatLabel(format)),
-                value: format,
-                groupValue: ReportFormat.pdf, // Default to PDF
-                onChanged: (value) {
-                  // Handle format change
-                },
-              ),
-            );
-          }).toList(),
+        RadioGroup<ReportFormat>(
+          groupValue: _selectedFormat,
+          onChanged: (value) {
+            if (value != null) {
+              setState(() => _selectedFormat = value);
+            }
+          },
+          child: Row(
+            children: ReportFormat.values.map((format) {
+              return Expanded(
+                child: RadioListTile<ReportFormat>(
+                  title: Text(_getFormatLabel(format)),
+                  value: format,
+                ),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );
