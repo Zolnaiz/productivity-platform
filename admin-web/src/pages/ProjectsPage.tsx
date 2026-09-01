@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import Input from '../components/common/Input';
 import Select from '../components/common/Select';
 import { operationsService } from '../services/operations.service';
@@ -10,6 +11,8 @@ const ProjectsPage: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [projectPendingDelete, setProjectPendingDelete] = useState<Project | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [draft, setDraft] = useState({
     name: '',
     description: '',
@@ -94,12 +97,17 @@ const ProjectsPage: React.FC = () => {
     setError(null);
     const previousProjects = projects;
     setProjects((current) => current.filter((item) => item.id !== project.id));
+    setDeleting(true);
 
     try {
       await operationsService.deleteProject(project.id);
+      setProjectPendingDelete(null);
     } catch {
       setProjects(previousProjects);
       setError('Төслийг устгах үед алдаа гарлаа.');
+      setProjectPendingDelete(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -213,7 +221,7 @@ const ProjectsPage: React.FC = () => {
                 size="sm"
                 className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
                 type="button"
-                onClick={() => deleteProject(project)}
+                onClick={() => setProjectPendingDelete(project)}
               >
                 Delete project
               </Button>
@@ -221,6 +229,22 @@ const ProjectsPage: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(projectPendingDelete)}
+        title="Delete project"
+        message={
+          <>
+            <strong className="text-gray-900 dark:text-white">{projectPendingDelete?.name}</strong> and its progress
+            will be removed. This cannot be undone.
+          </>
+        }
+        confirmLabel="Delete project"
+        destructive
+        loading={deleting}
+        onConfirm={() => projectPendingDelete && deleteProject(projectPendingDelete)}
+        onCancel={() => setProjectPendingDelete(null)}
+      />
     </div>
   );
 };
