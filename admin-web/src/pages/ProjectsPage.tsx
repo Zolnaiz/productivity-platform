@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import Input from '../components/common/Input';
+import Modal from '../components/common/Modal';
 import Select from '../components/common/Select';
 import { operationsService } from '../services/operations.service';
 import { Project } from '../types/operations.types';
@@ -13,6 +15,7 @@ const ProjectsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [projectPendingDelete, setProjectPendingDelete] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [draft, setDraft] = useState({
     name: '',
     description: '',
@@ -58,6 +61,7 @@ const ProjectsPage: React.FC = () => {
 
     setProjects((current) => [optimistic, ...current]);
     setDraft({ name: '', description: '', dueDate: '', priority: 'medium' });
+    setCreateOpen(false);
 
     try {
       await operationsService.createProject(optimistic);
@@ -113,11 +117,16 @@ const ProjectsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Projects</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Төсөл бүрийн явц, deadline, priority, budget-ийг хянана.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Projects</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Төсөл бүрийн явц, deadline, priority, budget-ийг хянана.
+          </p>
+        </div>
+        <Button icon={Plus} type="button" onClick={() => setCreateOpen(true)}>
+          New project
+        </Button>
       </div>
 
       {error && (
@@ -125,30 +134,6 @@ const ProjectsPage: React.FC = () => {
           {error}
         </div>
       )}
-
-      <Card title="New project">
-        <form onSubmit={handleCreate} className="grid items-end gap-3 lg:grid-cols-4">
-          <Input
-            label="Project name"
-            placeholder="Project name"
-            value={draft.name}
-            onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-          />
-          <Input
-            label="Short description"
-            placeholder="Short description"
-            value={draft.description}
-            onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
-          />
-          <Input
-            label="Due date"
-            type="date"
-            value={draft.dueDate}
-            onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))}
-          />
-          <Button type="submit">Add project</Button>
-        </form>
-      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {loading && <Card>Төслүүдийг ачаалж байна...</Card>}
@@ -229,6 +214,36 @@ const ProjectsPage: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="New project">
+        <form id="new-project-form" onSubmit={handleCreate} className="space-y-4">
+          <Input
+            label="Project name"
+            placeholder="Project name"
+            value={draft.name}
+            onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+            required
+          />
+          <Input
+            label="Short description"
+            placeholder="Short description"
+            value={draft.description}
+            onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+          />
+          <Input
+            label="Due date"
+            type="date"
+            value={draft.dueDate}
+            onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))}
+          />
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" type="button" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">Add project</Button>
+          </div>
+        </form>
+      </Modal>
 
       <ConfirmDialog
         isOpen={Boolean(projectPendingDelete)}

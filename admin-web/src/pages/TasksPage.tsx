@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Plus } from 'lucide-react';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
+import Modal from '../components/common/Modal';
 import Select from '../components/common/Select';
 import { operationsService } from '../services/operations.service';
 import { WorkTask } from '../types/operations.types';
@@ -18,6 +20,7 @@ const TasksPage: React.FC = () => {
   const [tasks, setTasks] = useState<WorkTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const [draft, setDraft] = useState({
     title: '',
     dueDate: '',
@@ -71,6 +74,7 @@ const TasksPage: React.FC = () => {
 
     setTasks((current) => [optimistic, ...current]);
     setDraft({ title: '', dueDate: '', estimatedHours: '1' });
+    setCreateOpen(false);
 
     try {
       await operationsService.createTask(optimistic);
@@ -92,11 +96,16 @@ const TasksPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Tasks / Kanban</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Ирээдүйд хийх, шинээр гарсан, хийж байгаа, review, дууссан ажлуудыг нэг урсгалаар хянана.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Tasks / Kanban</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Ирээдүйд хийх, шинээр гарсан, хийж байгаа, review, дууссан ажлуудыг нэг урсгалаар хянана.
+          </p>
+        </div>
+        <Button icon={Plus} type="button" onClick={() => setCreateOpen(true)}>
+          New task
+        </Button>
       </div>
 
       {error && (
@@ -105,14 +114,14 @@ const TasksPage: React.FC = () => {
         </div>
       )}
 
-      <Card title="New task">
-        <form onSubmit={handleCreate} className="grid items-end gap-3 lg:grid-cols-5">
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="New task">
+        <form onSubmit={handleCreate} className="space-y-4">
           <Input
-            className="lg:col-span-2"
             label="Task title"
             placeholder="Task title"
             value={draft.title}
             onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+            required
           />
           <Input
             label="Due date"
@@ -128,9 +137,14 @@ const TasksPage: React.FC = () => {
             value={draft.estimatedHours}
             onChange={(event) => setDraft((current) => ({ ...current, estimatedHours: event.target.value }))}
           />
-          <Button type="submit">Add task</Button>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" type="button" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">Add task</Button>
+          </div>
         </form>
-      </Card>
+      </Modal>
 
       {loading && <Card>Ажлуудыг ачаалж байна...</Card>}
       {!loading && tasks.length === 0 && (

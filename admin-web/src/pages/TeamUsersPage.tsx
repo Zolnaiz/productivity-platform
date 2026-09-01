@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
 import Input from '../components/common/Input';
+import Modal from '../components/common/Modal';
 import Select from '../components/common/Select';
 import { peopleService } from '../services/people.service';
 import { Department, TeamUser } from '../types/people.types';
@@ -12,6 +13,7 @@ import { Department, TeamUser } from '../types/people.types';
 const TeamUsersPage: React.FC = () => {
   const [users, setUsers] = useState<TeamUser[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState({
     name: '',
@@ -52,6 +54,7 @@ const TeamUsersPage: React.FC = () => {
       departmentId: departments[0]?.id || '',
       position: '',
     });
+    setCreateOpen(false);
   };
 
   const toggleActive = async (user: TeamUser) => {
@@ -61,20 +64,26 @@ const TeamUsersPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Users</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Owner, admin, manager, employee role-той хэрэглэгчид болон хэлтсийн холбоос.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Users</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Owner, admin, manager, employee role-той хэрэглэгчид болон хэлтсийн холбоос.
+          </p>
+        </div>
+        <Button icon={Plus} type="button" onClick={() => setCreateOpen(true)}>
+          New user
+        </Button>
       </div>
 
-      <Card title="New user">
-        <form onSubmit={createUser} className="grid items-end gap-3 lg:grid-cols-6">
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="New user">
+        <form onSubmit={createUser} className="space-y-4">
           <Input
             label="Name"
             placeholder="Name"
             value={draft.name}
             onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+            required
           />
           <Input
             label="Email"
@@ -82,6 +91,7 @@ const TeamUsersPage: React.FC = () => {
             placeholder="Email"
             value={draft.email}
             onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
+            required
           />
           <Input
             label="Position"
@@ -110,9 +120,14 @@ const TeamUsersPage: React.FC = () => {
               </option>
             ))}
           </Select>
-          <Button type="submit">Add user</Button>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" type="button" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">Add user</Button>
+          </div>
         </form>
-      </Card>
+      </Modal>
 
       <Card title={`Team users (${users.length})`} loading={loading}>
         {users.length ? (
