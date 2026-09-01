@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import Card from '../components/common/Card';
 import KpiCard from '../components/widgets/KpiCard';
@@ -8,6 +9,7 @@ import { ActionItem } from '../types/action.types';
 import { OperationsSummary } from '../types/operations.types';
 
 const OperationsDashboardPage: React.FC = () => {
+  const { t } = useTranslation();
   const [summary, setSummary] = useState<OperationsSummary | null>(null);
   const [actions, setActions] = useState<ActionItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,7 @@ const OperationsDashboardPage: React.FC = () => {
         setSummary(summaryData);
         setActions(actionItems);
       } catch {
-        if (active) setError('Dashboard мэдээлэл ачаалж чадсангүй.');
+        if (active) setError(t('dashboard.loadFailed'));
       } finally {
         if (active) setLoading(false);
       }
@@ -45,10 +47,8 @@ const OperationsDashboardPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Unified view of projects, tasks, hours, work logs, audits, reports, and action items.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('dashboard.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('dashboard.subtitle')}</p>
       </div>
 
       {error && (
@@ -64,27 +64,27 @@ const OperationsDashboardPage: React.FC = () => {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <KpiCard title="Projects" value={summary?.totals.projects || 0} description="Tracked projects" />
-        <KpiCard title="Tasks" value={summary?.totals.tasks || 0} description="Total work items" />
+        <KpiCard title={t('dashboard.projects')} value={summary?.totals.projects || 0} description={t('dashboard.trackedProjects')} />
+        <KpiCard title={t('dashboard.tasks')} value={summary?.totals.tasks || 0} description={t('dashboard.totalWorkItems')} />
         <KpiCard
-          title="Completion"
+          title={t('dashboard.completion')}
           value={`${summary?.kpis.taskCompletionRate || 0}%`}
-          description="Task completion rate"
-          trend="Monthly KPI"
+          description={t('dashboard.taskCompletionRate')}
+          trend={t('dashboard.monthlyKpi')}
           trendType="up"
         />
-        <KpiCard title="Hours" value={summary?.totals.totalHours || 0} description="Tracked hours" />
+        <KpiCard title={t('dashboard.hours')} value={summary?.totals.totalHours || 0} description={t('dashboard.trackedHours')} />
         <KpiCard
-          title="Audit score"
+          title={t('dashboard.auditScore')}
           value={`${summary?.kpis.averageAuditScore || 0}%`}
           description={`${summary?.totals.auditRuns || 0} audit runs`}
         />
       </div>
 
       <Card
-        title={`Action Center (${actions.length})`}
-        subtitle={`${highPriorityActions.length} high priority items need attention`}
-        actions={<Link className="text-sm font-medium text-blue-600" to="/notifications">View all</Link>}
+        title={`${t('dashboard.actionCenter')} (${actions.length})`}
+        subtitle={t('dashboard.highPriorityAttention', { count: highPriorityActions.length })}
+        actions={<Link className="text-sm font-medium text-blue-600" to="/notifications">{t('dashboard.viewAll')}</Link>}
       >
         <div className="grid gap-3 lg:grid-cols-3">
           {actions.slice(0, 6).map((item) => (
@@ -105,12 +105,12 @@ const OperationsDashboardPage: React.FC = () => {
               <div className="mt-1 text-sm text-gray-500">{item.meta}</div>
             </Link>
           ))}
-          {!actions.length && <p className="text-sm text-gray-500">No open actions.</p>}
+          {!actions.length && <p className="text-sm text-gray-500">{t('dashboard.noOpenActions')}</p>}
         </div>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card title="Recent Projects">
+        <Card title={t('dashboard.recentProjects')}>
           <div className="space-y-3">
             {summary?.recent.projects.map((project) => (
               <div key={project.id} className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
@@ -132,7 +132,7 @@ const OperationsDashboardPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card title="Recent Work Logs">
+        <Card title={t('dashboard.recentWorkLogs')}>
           <div className="space-y-3">
             {summary?.recent.workLogs.map((log) => (
               <div key={log.id} className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
@@ -149,7 +149,7 @@ const OperationsDashboardPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card title="Recent Audits">
+        <Card title={t('dashboard.recentAudits')}>
           <div className="space-y-3">
             {summary?.recent.auditRuns?.map((run) => (
               <div key={run.id} className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">

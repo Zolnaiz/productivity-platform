@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
@@ -12,6 +13,7 @@ import { peopleService } from '../services/people.service';
 import { Department, TeamUser } from '../types/people.types';
 
 const TeamUsersPage: React.FC = () => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<TeamUser[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
@@ -67,51 +69,49 @@ const TeamUsersPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Users</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Owner, admin, manager, employee role-той хэрэглэгчид болон хэлтсийн холбоос.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('users.title')}</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('users.subtitle')}</p>
         </div>
         <Button icon={Plus} type="button" onClick={() => setCreateOpen(true)}>
-          New user
+          {t('users.newUser')}
         </Button>
       </div>
 
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="New user">
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title={t('users.newUser')}>
         <form onSubmit={createUser} className="space-y-4">
           <Input
-            label="Name"
-            placeholder="Name"
+            label={t('users.name')}
+            placeholder={t('users.name')}
             value={draft.name}
             onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
             required
           />
           <Input
-            label="Email"
+            label={t('users.email')}
             type="email"
-            placeholder="Email"
+            placeholder={t('users.email')}
             value={draft.email}
             onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
             required
           />
           <Input
-            label="Position"
-            placeholder="Position"
+            label={t('users.position')}
+            placeholder={t('users.position')}
             value={draft.position}
             onChange={(event) => setDraft((current) => ({ ...current, position: event.target.value }))}
           />
           <Select
-            label="Role"
+            label={t('users.role')}
             value={draft.role}
             onChange={(event) => setDraft((current) => ({ ...current, role: event.target.value as TeamUser['role'] }))}
           >
-            <option value="owner">Owner</option>
-            <option value="admin">Admin</option>
-            <option value="manager">Manager</option>
-            <option value="employee">Employee</option>
+            <option value="owner">{t('users.roles.owner')}</option>
+            <option value="admin">{t('users.roles.admin')}</option>
+            <option value="manager">{t('users.roles.manager')}</option>
+            <option value="employee">{t('users.roles.employee')}</option>
           </Select>
           <Select
-            label="Department"
+            label={t('users.department')}
             value={draft.departmentId}
             onChange={(event) => setDraft((current) => ({ ...current, departmentId: event.target.value }))}
           >
@@ -123,21 +123,21 @@ const TeamUsersPage: React.FC = () => {
           </Select>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" type="button" onClick={() => setCreateOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
-            <Button type="submit">Add user</Button>
+            <Button type="submit">{t('users.addUser')}</Button>
           </div>
         </form>
       </Modal>
 
-      <Card title={`Team users (${users.length})`} loading={loading}>
+      <Card title={`${t('users.teamUsers')} (${users.length})`} loading={loading}>
         <Table
           rows={users}
           rowKey={(user) => user.id}
           columns={[
             {
               key: 'name',
-              header: 'Name',
+              header: t('users.name'),
               render: (user) => (
                 <>
                   <div className="font-medium text-gray-900 dark:text-white">{user.name}</div>
@@ -145,14 +145,14 @@ const TeamUsersPage: React.FC = () => {
                 </>
               ),
             },
-            { key: 'role', header: 'Role' },
+            { key: 'role', header: t('users.role') },
             {
               key: 'department',
-              header: 'Department',
+              header: t('users.department'),
               render: (user) => departmentById[user.departmentId]?.name || '-',
             },
-            { key: 'position', header: 'Position' },
-            { key: 'status', header: 'Status', render: (user) => (user.active ? 'Active' : 'Inactive') },
+            { key: 'position', header: t('users.position') },
+            { key: 'status', header: t('users.status'), render: (user) => (user.active ? t('users.active') : t('users.inactive')) },
             {
               key: 'actions',
               header: '',
@@ -160,10 +160,10 @@ const TeamUsersPage: React.FC = () => {
               render: (user) => (
                 <div className="flex justify-end gap-3">
                   <Link className="text-sm text-blue-600" to="/profile">
-                    Report
+                    {t('users.report')}
                   </Link>
                   <button className="text-sm text-blue-600" onClick={() => toggleActive(user)} type="button">
-                    {user.active ? 'Deactivate' : 'Activate'}
+                    {user.active ? t('users.deactivate') : t('users.activate')}
                   </button>
                 </div>
               ),
@@ -172,8 +172,8 @@ const TeamUsersPage: React.FC = () => {
           empty={
             <EmptyState
               icon={Users}
-              title="No users yet"
-              description="Add owners, admins, managers, and employees so work can be assigned and reported by role."
+              title={t('users.emptyTitle')}
+              description={t('users.emptyDescription')}
             />
           }
         />

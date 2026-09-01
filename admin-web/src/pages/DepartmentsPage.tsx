@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Building, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
@@ -9,6 +10,7 @@ import { peopleService } from '../services/people.service';
 import { Department } from '../types/people.types';
 
 const DepartmentsPage: React.FC = () => {
+  const { t } = useTranslation();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [draft, setDraft] = useState({ name: '', manager: '', focusArea: '' });
   const [loading, setLoading] = useState(true);
@@ -34,48 +36,46 @@ const DepartmentsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Departments</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Байгууллагын хэлтэс, manager, focus area, багийн бүтэц.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('departments.title')}</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('departments.subtitle')}</p>
         </div>
         <Button icon={Plus} type="button" onClick={() => setCreateOpen(true)}>
-          New department
+          {t('departments.newDepartment')}
         </Button>
       </div>
 
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="New department">
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title={t('departments.newDepartment')}>
         <form onSubmit={createDepartment} className="space-y-4">
           <Input
-            label="Department name"
-            placeholder="Department name"
+            label={t('departments.name')}
+            placeholder={t('departments.name')}
             value={draft.name}
             onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
             required
           />
           <Input
-            label="Manager"
-            placeholder="Manager"
+            label={t('departments.manager')}
+            placeholder={t('departments.manager')}
             value={draft.manager}
             onChange={(event) => setDraft((current) => ({ ...current, manager: event.target.value }))}
           />
           <Input
-            label="Focus area"
-            placeholder="Focus area"
+            label={t('departments.focusArea')}
+            placeholder={t('departments.focusArea')}
             value={draft.focusArea}
             onChange={(event) => setDraft((current) => ({ ...current, focusArea: event.target.value }))}
           />
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" type="button" onClick={() => setCreateOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
-            <Button type="submit">Add department</Button>
+            <Button type="submit">{t('departments.addDepartment')}</Button>
           </div>
         </form>
       </Modal>
 
       {loading ? (
-        <Card loading title="Loading departments">
+        <Card loading title={t('common.loading')}>
           <div />
         </Card>
       ) : departments.length ? (
@@ -84,9 +84,9 @@ const DepartmentsPage: React.FC = () => {
             <Card key={department.id}>
               <h2 className="font-semibold text-gray-900 dark:text-white">{department.name}</h2>
               <div className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                <div>Manager: {department.manager || '-'}</div>
-                <div>Members: {department.memberCount}</div>
-                <div>Focus: {department.focusArea || '-'}</div>
+                <div>{t('departments.manager')}: {department.manager || '-'}</div>
+                <div>{t('departments.members')}: {department.memberCount}</div>
+                <div>{t('departments.focus')}: {department.focusArea || '-'}</div>
               </div>
             </Card>
           ))}
@@ -94,8 +94,8 @@ const DepartmentsPage: React.FC = () => {
       ) : (
         <EmptyState
           icon={Building}
-          title="No departments yet"
-          description="Create departments to group employees, compare performance, and route monthly reports."
+          title={t('departments.emptyTitle')}
+          description={t('departments.emptyDescription')}
         />
       )}
     </div>
