@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
@@ -10,6 +11,7 @@ import { AuditRun, AuditTemplate } from '../types/operations.types';
 type Answers = Record<string, string>;
 
 const AuditTemplatesPage: React.FC = () => {
+  const { t } = useTranslation();
   const [templates, setTemplates] = useState<AuditTemplate[]>([]);
   const [runs, setRuns] = useState<AuditRun[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
@@ -36,7 +38,7 @@ const AuditTemplatesPage: React.FC = () => {
         setSelectedTemplateId(templateItems[0]?.id || '');
         setRuns(runItems);
       } catch {
-        if (active) setError('Audit загварууд ачаалж чадсангүй.');
+        if (active) setError(t('auditTemplates.loadFailed'));
       } finally {
         if (active) setLoading(false);
       }
@@ -169,10 +171,8 @@ const AuditTemplatesPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Audit Templates</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Run inspection checklists, score completed work, and create corrective actions for gaps.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('auditTemplates.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('auditTemplates.subtitle')}</p>
       </div>
 
       {error && (
@@ -189,29 +189,29 @@ const AuditTemplatesPage: React.FC = () => {
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <div className="text-sm text-gray-500">Templates</div>
+          <div className="text-sm text-gray-500">{t('auditTemplates.templates')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{templates.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Industries</div>
+          <div className="text-sm text-gray-500">{t('auditTemplates.industries')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{industries.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Categories</div>
+          <div className="text-sm text-gray-500">{t('auditTemplates.categories')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{categories.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Audit runs</div>
+          <div className="text-sm text-gray-500">{t('auditTemplates.auditRuns')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{runs.length}</div>
         </Card>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_440px]">
-        <Card title="Run audit" subtitle={selectedTemplate?.description}>
+        <Card title={t('auditTemplates.runAudit')} subtitle={selectedTemplate?.description}>
           <form onSubmit={submitAudit} className="space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
               <Select
-                label="Template"
+                label={t('auditTemplates.template')}
                 value={selectedTemplateId}
                 onChange={(event) => {
                   setSelectedTemplateId(event.target.value);
@@ -225,18 +225,18 @@ const AuditTemplatesPage: React.FC = () => {
                 ))}
               </Select>
               <Input
-                label="Location"
-                placeholder="Area code, branch, site..."
+                label={t('auditTemplates.location')}
+                placeholder={t('auditTemplates.locationPlaceholder')}
                 value={location}
                 onChange={(event) => setLocation(event.target.value)}
               />
             </div>
 
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
-              <div className="text-sm text-blue-700 dark:text-blue-300">Current audit score</div>
+              <div className="text-sm text-blue-700 dark:text-blue-300">{t('auditTemplates.currentScore')}</div>
               <div className="mt-1 text-3xl font-semibold text-blue-700 dark:text-blue-300">{score}%</div>
               <div className="mt-2 text-xs text-blue-700 dark:text-blue-300">
-                Scores below 85% automatically create a corrective action task.
+                {t('auditTemplates.scoreHint')}
               </div>
             </div>
 
@@ -289,21 +289,21 @@ const AuditTemplatesPage: React.FC = () => {
             </div>
 
             <Button disabled={!selectedTemplate || loading} type="submit">
-              Submit audit
+              {t('auditTemplates.submitAudit')}
             </Button>
             {actionMessage && <div className="text-sm text-green-600">{actionMessage}</div>}
           </form>
         </Card>
 
         <div className="space-y-6">
-          <Card title="Template library">
+          <Card title={t('auditTemplates.templateLibrary')}>
             <div className="mb-4 grid gap-3 md:grid-cols-2">
               <Select
-                label="Industry"
+                label={t('auditTemplates.industry')}
                 value={industryFilter}
                 onChange={(event) => setIndustryFilter(event.target.value)}
               >
-                <option value="all">All industries</option>
+                <option value="all">{t('auditTemplates.allIndustries')}</option>
                 {industries.map((industry) => (
                   <option key={industry} value={industry}>
                     {industry}
@@ -311,11 +311,11 @@ const AuditTemplatesPage: React.FC = () => {
                 ))}
               </Select>
               <Select
-                label="Business need"
+                label={t('auditTemplates.businessNeed')}
                 value={categoryFilter}
                 onChange={(event) => setCategoryFilter(event.target.value)}
               >
-                <option value="all">All needs</option>
+                <option value="all">{t('auditTemplates.allNeeds')}</option>
                 {categories.map((category) => (
                   <option key={category} value={category}>
                     {category.replace('_', ' ')}
@@ -327,7 +327,7 @@ const AuditTemplatesPage: React.FC = () => {
             <div className="space-y-3">
               {!loading && filteredTemplates.length === 0 && (
                 <div className="text-sm text-gray-500">
-                  Сонгосон filter-д тохирох audit template алга.
+                  {t('auditTemplates.noTemplatesMatch')}
                 </div>
               )}
               {filteredTemplates.map((template) => (
@@ -354,7 +354,7 @@ const AuditTemplatesPage: React.FC = () => {
             </div>
           </Card>
 
-          <Card title="Recent audit runs">
+          <Card title={t('auditTemplates.recentRuns')}>
             <div className="space-y-3">
               {!loading && runs.length === 0 && (
                 <div className="text-sm text-gray-500">
@@ -382,7 +382,7 @@ const AuditTemplatesPage: React.FC = () => {
                         type="button"
                         onClick={() => createCorrectiveTask(run, template?.title || 'Audit run')}
                       >
-                        Create corrective task
+                        {t('auditTemplates.createCorrectiveTask')}
                       </Button>
                     )}
                   </div>

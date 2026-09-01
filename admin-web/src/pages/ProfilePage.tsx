@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckSquare, ClipboardList, FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
 import { assessmentService } from '../services/assessment.service';
@@ -10,6 +11,7 @@ import { AuditRun, TimeEntry, WorkLog, WorkTask } from '../types/operations.type
 import { Badge, DailyGoal, FocusSession } from '../types/productivity.types';
 
 const ProfilePage: React.FC = () => {
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<WorkTask[]>([]);
   const [logs, setLogs] = useState<WorkLog[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
@@ -99,10 +101,8 @@ const ProfilePage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Profile</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Employee productivity summary, monthly report preview, goals, focus, and recognition.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('profile.title')}</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('profile.subtitle')}</p>
         </div>
         <button
           className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
@@ -115,7 +115,7 @@ const ProfilePage: React.FC = () => {
       </div>
 
       {loading ? (
-        <Card loading title="Loading profile summary">
+        <Card loading title={t('common.loading')}>
           <div />
         </Card>
       ) : (
@@ -132,7 +132,7 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
           <div className="rounded-lg bg-blue-50 px-5 py-3 text-right dark:bg-blue-950/30">
-            <div className="text-sm text-blue-700 dark:text-blue-300">Productivity score</div>
+            <div className="text-sm text-blue-700 dark:text-blue-300">{t('profile.productivityScore')}</div>
             <div className="text-3xl font-semibold text-blue-700 dark:text-blue-300">{summary.productivityScore}%</div>
           </div>
         </div>
@@ -140,19 +140,19 @@ const ProfilePage: React.FC = () => {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <Card>
-          <div className="text-sm text-gray-500">Completed tasks</div>
+          <div className="text-sm text-gray-500">{t('profile.completedTasks')}</div>
           <div className="mt-2 text-3xl font-semibold">{summary.completedTasks.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Tracked hours</div>
+          <div className="text-sm text-gray-500">{t('profile.trackedHours')}</div>
           <div className="mt-2 text-3xl font-semibold">{summary.trackedHours}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Work logs</div>
+          <div className="text-sm text-gray-500">{t('profile.workLogs')}</div>
           <div className="mt-2 text-3xl font-semibold">{logs.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Focus minutes</div>
+          <div className="text-sm text-gray-500">{t('profile.focusMinutes')}</div>
           <div className="mt-2 text-3xl font-semibold">{summary.focusMinutes}</div>
         </Card>
         <Card>
@@ -165,12 +165,12 @@ const ProfilePage: React.FC = () => {
         </Card>
       </div>
 
-      <Card title="Employee monthly summary">
+      <Card title={t('profile.monthlySummary')}>
         <pre className="whitespace-pre-wrap text-sm leading-6 text-gray-700 dark:text-gray-300">{employeeSummary}</pre>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card title="Completed tasks">
+        <Card title={t('profile.completedTasks')}>
           <div className="space-y-3">
             {summary.completedTasks.length ? (
               summary.completedTasks.map((task) => (
@@ -182,14 +182,14 @@ const ProfilePage: React.FC = () => {
             ) : (
               <EmptyState
                 icon={CheckSquare}
-                title="No completed tasks yet"
+                title={t('profile.noCompletedTasks')}
                 description="Completed assigned work will appear here for the employee monthly summary."
               />
             )}
           </div>
         </Card>
 
-        <Card title="Recent work logs">
+        <Card title={t('profile.recentWorkLogs')}>
           <div className="space-y-3">
             {logs.length ? (
               logs.slice(0, 5).map((log) => (
@@ -204,7 +204,7 @@ const ProfilePage: React.FC = () => {
             ) : (
               <EmptyState
                 icon={FileText}
-                title="No work logs yet"
+                title={t('profile.noWorkLogs')}
                 description="Daily work summaries and blockers will appear here after employees submit logs."
               />
             )}

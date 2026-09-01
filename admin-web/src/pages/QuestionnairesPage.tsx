@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ClipboardList, Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import Button from "../components/common/Button";
 import Card from "../components/common/Card";
 import EmptyState from "../components/common/EmptyState";
@@ -91,6 +92,7 @@ const emptyQuestion = (): DraftQuestion => ({
 });
 
 const QuestionnairesPage: React.FC = () => {
+  const { t } = useTranslation();
   const [templates, setTemplates] = useState<AssessmentTemplate[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -209,37 +211,36 @@ const QuestionnairesPage: React.FC = () => {
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Assessments & Checklists
+            {t("assessments.title")}
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Create one shared engine for employee assessments, daily checklists,
-            5S, safety, quality, and compliance forms.
+            {t("assessments.subtitle")}
           </p>
         </div>
         <Select
           className="sm:w-56"
-          aria-label="Filter templates"
+          aria-label={t("assessments.filterTemplates")}
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
         >
-          <option value="all">All templates</option>
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
-          <option value="inspection">Inspection</option>
-          <option value="quality">Quality</option>
-          <option value="safety">Safety</option>
+          <option value="all">{t("assessments.allTemplates")}</option>
+          <option value="draft">{t("assessments.draft")}</option>
+          <option value="published">{t("assessments.published")}</option>
+          <option value="inspection">{t("assessments.inspection")}</option>
+          <option value="quality">{t("assessments.quality")}</option>
+          <option value="safety">{t("assessments.safety")}</option>
         </Select>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <div className="text-sm text-gray-500">Templates</div>
+          <div className="text-sm text-gray-500">{t("assessments.templates")}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
             {templates.length}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Published</div>
+          <div className="text-sm text-gray-500">{t("assessments.published")}</div>
           <div className="mt-2 text-2xl font-semibold text-green-600">
             {
               templates.filter((template) => template.status === "published")
@@ -248,13 +249,13 @@ const QuestionnairesPage: React.FC = () => {
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Draft</div>
+          <div className="text-sm text-gray-500">{t("assessments.draft")}</div>
           <div className="mt-2 text-2xl font-semibold text-yellow-600">
             {templates.filter((template) => template.status === "draft").length}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Questions</div>
+          <div className="text-sm text-gray-500">{t("assessments.questions")}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
             {templates.reduce(
               (sum, template) => sum + template.questions.length,
@@ -266,15 +267,15 @@ const QuestionnairesPage: React.FC = () => {
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <Card
-          title="Assessment builder"
-          subtitle="Build multi-question checklists, audits, surveys, and quality forms."
+          title={t("assessments.builder")}
+          subtitle={t("assessments.builderSubtitle")}
         >
           <form onSubmit={createTemplate} className="space-y-4">
             <div className="grid items-end gap-3 lg:grid-cols-4">
               <Input
                 className="lg:col-span-2"
-                label="Template title"
-                placeholder="Template title"
+                label={t("assessments.templateTitle")}
+                placeholder={t("assessments.templateTitle")}
                 value={draft.title}
                 onChange={(event) =>
                   setDraft((current) => ({
@@ -284,8 +285,8 @@ const QuestionnairesPage: React.FC = () => {
                 }
               />
               <Input
-                label="Industry"
-                placeholder="Industry"
+                label={t("assessments.industry")}
+                placeholder={t("assessments.industry")}
                 value={draft.industry}
                 onChange={(event) =>
                   setDraft((current) => ({
@@ -295,7 +296,7 @@ const QuestionnairesPage: React.FC = () => {
                 }
               />
               <Select
-                label="Type"
+                label={t("assessments.type")}
                 value={draft.type}
                 onChange={(event) =>
                   setDraft((current) => ({
@@ -307,13 +308,13 @@ const QuestionnairesPage: React.FC = () => {
                 <option value="inspection">Inspection</option>
                 <option value="quality">Quality</option>
                 <option value="safety">Safety</option>
-                <option value="feedback">Feedback</option>
-                <option value="survey">Survey</option>
+                <option value="feedback">{t("assessments.feedback")}</option>
+                <option value="survey">{t("assessments.survey")}</option>
               </Select>
             </div>
             <Textarea
-              label="Description"
-              placeholder="Description"
+              label={t("assessments.description")}
+              placeholder={t("assessments.description")}
               rows={2}
               value={draft.description}
               onChange={(event) =>
@@ -331,15 +332,15 @@ const QuestionnairesPage: React.FC = () => {
                   className="grid gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700 lg:grid-cols-[1fr_150px_96px_40px]"
                 >
                   <Input
-                    aria-label={`Question ${index + 1}`}
-                    placeholder={`Question ${index + 1}`}
+                    aria-label={t("assessments.question", { index: index + 1 })}
+                    placeholder={t("assessments.question", { index: index + 1 })}
                     value={question.text}
                     onChange={(event) =>
                       updateQuestion(question.id, { text: event.target.value })
                     }
                   />
                   <Select
-                    aria-label={`Question ${index + 1} type`}
+                    aria-label={t("assessments.questionType", { index: index + 1 })}
                     value={question.type}
                     onChange={(event) =>
                       updateQuestion(question.id, {
@@ -347,12 +348,12 @@ const QuestionnairesPage: React.FC = () => {
                       })
                     }
                   >
-                    <option value="score">Score</option>
-                    <option value="yes_no">Yes / No</option>
-                    <option value="text">Text</option>
+                    <option value="score">{t("assessments.score")}</option>
+                    <option value="yes_no">{t("assessments.yesNo")}</option>
+                    <option value="text">{t("assessments.text")}</option>
                   </Select>
                   <Input
-                    aria-label={`Question ${index + 1} maximum score`}
+                    aria-label={t("assessments.questionMaxScore", { index: index + 1 })}
                     disabled={question.type !== "score"}
                     min="1"
                     max="10"
@@ -365,7 +366,7 @@ const QuestionnairesPage: React.FC = () => {
                     }
                   />
                   <Button
-                    aria-label="Remove question"
+                    aria-label={t("assessments.removeQuestion")}
                     className="h-10 w-10 px-0"
                     variant="outline"
                     type="button"
@@ -389,16 +390,16 @@ const QuestionnairesPage: React.FC = () => {
                   }))
                 }
               >
-                Add question
+                {t("assessments.addQuestion")}
               </Button>
-              <Button type="submit">Create template</Button>
+              <Button type="submit">{t("assessments.createTemplate")}</Button>
             </div>
           </form>
         </Card>
 
         <Card
-          title="Quick starts"
-          subtitle="Starter templates for the industries you listed."
+          title={t("assessments.quickStarts")}
+          subtitle={t("assessments.quickStartsSubtitle")}
         >
           <div className="space-y-3">
             {templatePresets.map((preset) => (
@@ -462,7 +463,7 @@ const QuestionnairesPage: React.FC = () => {
                       onClick={() => updateStatus(template, "published")}
                       type="button"
                     >
-                      Publish
+                      {t("assessments.publish")}
                     </button>
                   )}
                   {template.status !== "archived" && (
@@ -471,7 +472,7 @@ const QuestionnairesPage: React.FC = () => {
                       onClick={() => updateStatus(template, "archived")}
                       type="button"
                     >
-                      Archive
+                      {t("assessments.archive")}
                     </button>
                   )}
                 </div>

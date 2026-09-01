@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
 import KpiCard from '../components/widgets/KpiCard';
@@ -11,6 +12,7 @@ import { OperationsSummary } from '../types/operations.types';
 import { Department, TeamUser } from '../types/people.types';
 
 const AdminDashboardPage: React.FC = () => {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<WorkspaceProfile | null>(null);
   const [summary, setSummary] = useState<OperationsSummary | null>(null);
   const [users, setUsers] = useState<TeamUser[]>([]);
@@ -37,27 +39,25 @@ const AdminDashboardPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Admin Dashboard</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Workspace control center for users, departments, reports, and audit health.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('adminDashboard.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('adminDashboard.subtitle')}</p>
       </div>
 
       {loading || !profile || !summary ? (
-        <Card loading title="Loading admin dashboard">
+        <Card loading title={t('common.loading')}>
           <div />
         </Card>
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <KpiCard title="Users" value={users.length} description={`${users.filter((user) => user.active).length} active`} />
-            <KpiCard title="Departments" value={departments.length} description="Team structure" />
-            <KpiCard title="Open Tasks" value={summary.totals.tasks - summary.totals.completedTasks} description={`${summary.kpis.taskCompletionRate}% complete`} />
-            <KpiCard title="Audit Score" value={`${summary.kpis.averageAuditScore}%`} description={`${summary.totals.auditRuns} submitted`} />
+            <KpiCard title={t('adminDashboard.users')} value={users.length} description={t('adminDashboard.activeCount', { count: users.filter((user) => user.active).length })} />
+            <KpiCard title={t('adminDashboard.departments')} value={departments.length} description={t('adminDashboard.teamStructure')} />
+            <KpiCard title={t('adminDashboard.openTasks')} value={summary.totals.tasks - summary.totals.completedTasks} description={t('adminDashboard.percentComplete', { percent: summary.kpis.taskCompletionRate })} />
+            <KpiCard title={t('adminDashboard.auditScore')} value={`${summary.kpis.averageAuditScore}%`} description={t('adminDashboard.submittedCount', { count: summary.totals.auditRuns })} />
           </div>
 
           <div className="grid gap-6 xl:grid-cols-3">
-            <Card title="Workspace">
+            <Card title={t('adminDashboard.workspace')}>
           <div className="space-y-3 text-sm">
             <div>
               <div className="text-gray-500">Name</div>
@@ -74,7 +74,7 @@ const AdminDashboardPage: React.FC = () => {
           </div>
             </Card>
 
-            <Card title="Role mix">
+            <Card title={t('adminDashboard.roleMix')}>
           <div className="space-y-3 text-sm">
             {['owner', 'admin', 'manager', 'employee'].map((role) => (
               <div key={role} className="flex items-center justify-between">
@@ -87,7 +87,7 @@ const AdminDashboardPage: React.FC = () => {
           </div>
             </Card>
 
-            <Card title="Recent owner log">
+            <Card title={t('adminDashboard.recentOwnerLog')}>
           <div className="space-y-3">
             {logs.length ? (
               logs.slice(0, 4).map((log) => (
@@ -99,7 +99,7 @@ const AdminDashboardPage: React.FC = () => {
             ) : (
               <EmptyState
                 icon={ShieldCheck}
-                title="No owner activity yet"
+                title={t('adminDashboard.noOwnerActivityTitle')}
                 description="Report exports, permission changes, and admin actions will appear here."
               />
             )}

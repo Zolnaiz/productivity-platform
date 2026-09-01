@@ -16,15 +16,19 @@ describe('translations', () => {
   });
 
   it('leaves no key untranslated', () => {
-    const untranslated = flatten(en).filter((key) => {
-      const read = (source: unknown) =>
-        key.split('.').reduce<unknown>((value, part) => (value as Record<string, unknown>)?.[part], source);
+    // Terms both languages genuinely share. Everything else must differ — a
+    // repeated English value is almost always a forgotten translation.
+    const sharedTerms = ['organizations.workspaceId', 'adminDashboard.workspace'];
 
-      return read(en) === read(mn);
-    });
+    const untranslated = flatten(en)
+      .filter((key) => !sharedTerms.includes(key))
+      .filter((key) => {
+        const read = (source: unknown) =>
+          key.split('.').reduce<unknown>((value, part) => (value as Record<string, unknown>)?.[part], source);
 
-    // A shared value is almost always a forgotten translation. Add the key here
-    // only when the two languages genuinely use the same word.
+        return read(en) === read(mn);
+      });
+
     expect(untranslated).toEqual([]);
   });
 });

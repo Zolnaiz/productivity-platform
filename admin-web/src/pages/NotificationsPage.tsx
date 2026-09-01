@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Card from '../components/common/Card';
 import { actionService } from '../services/action.service';
 import { ActionItem } from '../types/action.types';
@@ -20,6 +21,7 @@ const priorityStyles: Record<ActionItem['priority'], string> = {
 };
 
 const NotificationsPage: React.FC = () => {
+  const { t } = useTranslation();
   const [items, setItems] = useState<ActionItem[]>([]);
 
   useEffect(() => {
@@ -59,29 +61,27 @@ const NotificationsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Notifications</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Action queue from tasks, project progress, audits, assessment responses, and expense approvals.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('notifications.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('notifications.subtitle')}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <div className="text-sm text-gray-500">Total actions</div>
+          <div className="text-sm text-gray-500">{t('notifications.totalActions')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{items.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">High priority</div>
+          <div className="text-sm text-gray-500">{t('notifications.highPriority')}</div>
           <div className="mt-2 text-3xl font-semibold text-red-600">{grouped.urgent.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Quality actions</div>
+          <div className="text-sm text-gray-500">{t('notifications.qualityActions')}</div>
           <div className="mt-2 text-3xl font-semibold text-purple-600">
             {items.filter((item) => item.type === 'audit' || item.type === 'assessment').length}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Approvals</div>
+          <div className="text-sm text-gray-500">{t('notifications.approvals')}</div>
           <div className="mt-2 text-3xl font-semibold text-green-600">
             {items.filter((item) => item.type === 'expense').length}
           </div>
@@ -91,13 +91,13 @@ const NotificationsPage: React.FC = () => {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title={`Needs attention (${grouped.urgent.length})`}>
           <div className="space-y-3">
-            {grouped.urgent.length ? grouped.urgent.map(renderItem) : <p className="text-sm text-gray-500">No urgent items.</p>}
+            {grouped.urgent.length ? grouped.urgent.map(renderItem) : <p className="text-sm text-gray-500">{t('notifications.noUrgentItems')}</p>}
           </div>
         </Card>
 
         <Card title={`Work queue (${grouped.work.length})`}>
           <div className="space-y-3">
-            {grouped.work.length ? grouped.work.map(renderItem) : <p className="text-sm text-gray-500">No open work items.</p>}
+            {grouped.work.length ? grouped.work.map(renderItem) : <p className="text-sm text-gray-500">{t('notifications.noOpenItems')}</p>}
           </div>
         </Card>
       </div>
