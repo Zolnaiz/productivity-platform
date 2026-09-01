@@ -198,6 +198,43 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 const snapToGrid = (value: number, enabled: boolean) =>
   enabled ? Math.round(value / GRID_SIZE) * GRID_SIZE : value;
 
+type ResizeCorner = 'nw' | 'ne' | 'sw' | 'se';
+
+const resizeCorners: Array<{ corner: ResizeCorner; cursor: string }> = [
+  { corner: 'nw', cursor: 'nwse-resize' },
+  { corner: 'ne', cursor: 'nesw-resize' },
+  { corner: 'sw', cursor: 'nesw-resize' },
+  { corner: 'se', cursor: 'nwse-resize' },
+];
+
+// Resize from a corner: the dragged corner follows the pointer while the
+// opposite corner stays pinned.
+const resizeBox = (
+  box: { x: number; y: number; width: number; height: number },
+  corner: ResizeCorner,
+  pointerX: number,
+  pointerY: number,
+  minWidth: number,
+  minHeight: number,
+) => {
+  const right = box.x + box.width;
+  const bottom = box.y + box.height;
+
+  const left = corner === 'nw' || corner === 'sw' ? clamp(pointerX, 0, right - minWidth) : box.x;
+  const top = corner === 'nw' || corner === 'ne' ? clamp(pointerY, 0, bottom - minHeight) : box.y;
+  const newRight =
+    corner === 'ne' || corner === 'se' ? clamp(pointerX, box.x + minWidth, CANVAS_WIDTH) : right;
+  const newBottom =
+    corner === 'sw' || corner === 'se' ? clamp(pointerY, box.y + minHeight, CANVAS_HEIGHT) : bottom;
+
+  return {
+    x: Math.round(left),
+    y: Math.round(top),
+    width: Math.round(newRight - left),
+    height: Math.round(newBottom - top),
+  };
+};
+
 const escapeHtml = (value: string | number | undefined) =>
   String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -454,6 +491,16 @@ const buildZoneTaskPayload = (zone: FiveSZone, titlePrefix: string, includeAudit
   };
 };
 
+// setPointerCapture is unavailable in jsdom and can throw for a pointer that
+// is no longer active; capture is an enhancement, so failing it is not fatal.
+const capturePointer = (element: Element, pointerId: number) => {
+  try {
+    element.setPointerCapture?.(pointerId);
+  } catch {
+    // keep dragging without capture
+  }
+};
+
 const getPointerPoint = (event: React.PointerEvent<SVGSVGElement>) => {
   const rect = event.currentTarget.getBoundingClientRect();
   return {
@@ -486,6 +533,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const [drag, setDrag] = useState<
     | { kind: 'zone'; zoneId: string; offsetX: number; offsetY: number }
     | { kind: 'object'; objectId: string; offsetX: number; offsetY: number }
+    | { kind: 'resize-zone'; zoneId: string; corner: ResizeCorner }
+    | { kind: 'resize-object'; objectId: string; corner: ResizeCorner }
     | null
   >(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -1006,7 +1055,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
     event.preventDefault();
     event.stopPropagation();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    capturePointer(event.currentTarget, event.pointerId);
     const rect = svgRef.current.getBoundingClientRect();
     const point = {
       x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
@@ -1024,12 +1073,29 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     });
   };
 
+  const handleResizePointerDown = (
+    event: React.PointerEvent<SVGRectElement>,
+    corner: ResizeCorner,
+    target: { kind: 'zone'; id: string } | { kind: 'object'; id: string },
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    capturePointer(event.currentTarget, event.pointerId);
+    beginDragHistory();
+
+    setDrag(
+      target.kind === 'zone'
+        ? { kind: 'resize-zone', zoneId: target.id, corner }
+        : { kind: 'resize-object', objectId: target.id, corner },
+    );
+  };
+
   const handleObjectPointerDown = (event: React.PointerEvent<SVGGElement>, object: FloorPlanObject) => {
     if (!svgRef.current) return;
 
     event.preventDefault();
     event.stopPropagation();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    capturePointer(event.currentTarget, event.pointerId);
     const rect = svgRef.current.getBoundingClientRect();
     const point = {
       x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
@@ -1051,6 +1117,27 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     if (!drag || !plan) return;
     const point = getPointerPoint(event);
     const snap = (plan.showGrid ?? true) && !event.altKey;
+    const snappedPoint = { x: snapToGrid(point.x, snap), y: snapToGrid(point.y, snap) };
+
+    if (drag.kind === 'resize-zone') {
+      const zone = plan.zones.find((item) => item.id === drag.zoneId);
+      if (!zone) return;
+
+      updateZone(zone.id, resizeBox(zone, drag.corner, snappedPoint.x, snappedPoint.y, 80, 72), {
+        skipHistory: true,
+      });
+      return;
+    }
+
+    if (drag.kind === 'resize-object') {
+      const object = plan.objects.find((item) => item.id === drag.objectId);
+      if (!object) return;
+
+      updateObject(object.id, resizeBox(object, drag.corner, snappedPoint.x, snappedPoint.y, 12, 8), {
+        skipHistory: true,
+      });
+      return;
+    }
 
     if (drag.kind === 'zone') {
       const zone = plan.zones.find((item) => item.id === drag.zoneId);
@@ -2350,9 +2437,46 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   handleObjectPointerDown(event, object),
                 ),
               )}
+
+              {(selectedZone || selectedObject) &&
+                (() => {
+                  const box = selectedZone ?? selectedObject;
+                  if (!box) return null;
+
+                  return resizeCorners.map(({ corner, cursor }) => {
+                    const cx = corner === 'nw' || corner === 'sw' ? box.x : box.x + box.width;
+                    const cy = corner === 'nw' || corner === 'ne' ? box.y : box.y + box.height;
+
+                    return (
+                      <rect
+                        key={corner}
+                        data-testid={`five-s-resize-${corner}`}
+                        x={cx - 6}
+                        y={cy - 6}
+                        width="12"
+                        height="12"
+                        rx="2"
+                        fill="#ffffff"
+                        stroke="#2563eb"
+                        strokeWidth="2"
+                        style={{ cursor }}
+                        onPointerDown={(event) =>
+                          handleResizePointerDown(
+                            event,
+                            corner,
+                            selectedZone
+                              ? { kind: 'zone', id: selectedZone.id }
+                              : { kind: 'object', id: selectedObject!.id },
+                          )
+                        }
+                      />
+                    );
+                  });
+                })()}
             </svg>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-200 px-3 py-2 text-xs text-gray-500 dark:border-gray-700">
               <span>Drag to move</span>
+              <span>Corner handles resize</span>
               <span>Arrows nudge / Shift+arrows jump</span>
               <span>Delete removes</span>
               <span>Esc deselects</span>

@@ -67,6 +67,24 @@ const buildPlan = (): FiveSLayoutPlan => ({
   updatedAt: '2026-06-24T00:00:00.000Z',
 });
 
+const CANVAS_WIDTH = 900;
+const CANVAS_HEIGHT = 500;
+
+// jsdom has no PointerEvent, so fireEvent would drop clientX/clientY and the
+// drag maths would see NaN. MouseEvent carries the coordinates we need.
+if (typeof window.PointerEvent === 'undefined') {
+  class TestPointerEvent extends MouseEvent {
+    pointerId: number;
+
+    constructor(type: string, params: MouseEventInit & { pointerId?: number } = {}) {
+      super(type, params);
+      this.pointerId = params.pointerId ?? 0;
+    }
+  }
+
+  window.PointerEvent = TestPointerEvent as unknown as typeof window.PointerEvent;
+}
+
 const getZoneRect = () =>
   document.querySelector('rect[rx="8"]') as SVGRectElement | null;
 
@@ -152,6 +170,107 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true });
 
     await waitFor(() => expect(getZoneRect()).not.toBeNull());
+  });
+
+  it('resizes from the south-east handle without moving the origin', async () => {
+    render(<FiveSFloorPlanSetup />);
+    expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+    const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+    } as DOMRect);
+
+    const handle = screen.getByTestId('five-s-resize-se');
+    fireEvent.pointerDown(handle, { clientX: 300, clientY: 220, pointerId: 1 });
+    fireEvent.pointerMove(svg, { clientX: 480, clientY: 340, pointerId: 1 });
+
+    // the dragged edge snaps to the grid: right edge 480, bottom edge 336
+    await waitFor(() => {
+      const zone = getZoneRect();
+      expect(zone?.getAttribute('width')).toBe('380');
+      expect(zone?.getAttribute('height')).toBe('236');
+    });
+
+    // the pinned corner must not have shifted
+    expect(getZoneRect()?.getAttribute('x')).toBe('100');
+    expect(getZoneRect()?.getAttribute('y')).toBe('100');
+  });
+
+  it('keeps the opposite corner pinned when resizing from the north-west handle', async () => {
+    render(<FiveSFloorPlanSetup />);
+    expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+    const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+    } as DOMRect);
+
+    const handle = screen.getByTestId('five-s-resize-nw');
+    fireEvent.pointerDown(handle, { clientX: 100, clientY: 100, pointerId: 1 });
+    fireEvent.pointerMove(svg, { clientX: 148, clientY: 148, pointerId: 1 });
+
+    await waitFor(() => expect(getZoneRect()?.getAttribute('x')).toBe('144'));
+
+    const zone = getZoneRect();
+    const right = Number(zone?.getAttribute('x')) + Number(zone?.getAttribute('width'));
+    const bottom = Number(zone?.getAttribute('y')) + Number(zone?.getAttribute('height'));
+    expect(right).toBe(300);
+    expect(bottom).toBe(220);
+  });
+
+  it('does not let a resize collapse a zone past its minimum size', async () => {
+    render(<FiveSFloorPlanSetup />);
+    expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+    const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+    } as DOMRect);
+
+    const handle = screen.getByTestId('five-s-resize-se');
+    fireEvent.pointerDown(handle, { clientX: 300, clientY: 220, pointerId: 1 });
+    fireEvent.pointerMove(svg, { clientX: 0, clientY: 0, pointerId: 1 });
+
+    await waitFor(() => expect(getZoneRect()?.getAttribute('width')).toBe('80'));
+    expect(getZoneRect()?.getAttribute('height')).toBe('72');
+  });
+
+  it('reverses a whole resize gesture with a single undo', async () => {
+    render(<FiveSFloorPlanSetup />);
+    expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+    const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+    } as DOMRect);
+
+    const handle = screen.getByTestId('five-s-resize-se');
+    fireEvent.pointerDown(handle, { clientX: 300, clientY: 220, pointerId: 1 });
+    // several frames, as a real drag produces
+    fireEvent.pointerMove(svg, { clientX: 360, clientY: 260, pointerId: 1 });
+    fireEvent.pointerMove(svg, { clientX: 420, clientY: 300, pointerId: 1 });
+    fireEvent.pointerMove(svg, { clientX: 480, clientY: 340, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+
+    await waitFor(() => expect(getZoneRect()?.getAttribute('width')).toBe('380'));
+
+    fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true });
+
+    await waitFor(() => expect(getZoneRect()?.getAttribute('width')).toBe('200'));
+    expect(getZoneRect()?.getAttribute('height')).toBe('120');
   });
 
   it('keeps undo disabled until the plan is edited', async () => {
