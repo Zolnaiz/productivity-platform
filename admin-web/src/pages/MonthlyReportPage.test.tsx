@@ -113,12 +113,16 @@ describe('MonthlyReportPage', () => {
   });
 
   it('loads the current month through the monthly report API', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-06-15T00:00:00Z'));
     serviceMocks.getMonthlyReport.mockResolvedValue(report);
 
     render(<MonthlyReportPage />);
 
     expect(await screen.findByText('Monthly Report')).toBeTruthy();
     expect(serviceMocks.getMonthlyReport).toHaveBeenCalledWith('2026-06');
+
+    vi.useRealTimers();
   });
 
   it('renders report totals and detail sections from the API response', async () => {
