@@ -89,6 +89,9 @@ For PostgreSQL-backed local smoke testing, see:
 - [Backend Dev Setup](docs/BACKEND_DEV_SETUP.md)
 - [Verification](docs/VERIFY.md)
 - [PostgreSQL Backup And Restore](docs/POSTGRES_BACKUP_RESTORE.md)
+- [Architecture Decisions](docs/DECISIONS.md)
+- [UI Guidelines](docs/UI_GUIDELINES.md)
+- [Roadmap](docs/ROADMAP.md)
 
 ## Mobile
 
@@ -181,8 +184,9 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 63 passing
-- Frontend tests: 53 passing
+- Backend tests: 74 passing
+- Frontend tests: 103 passing
+- Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing
 - Frontend lint/build/audit passing
 - Docker PostgreSQL runtime smoke passing with seeded owner login and project create/update/delete checks

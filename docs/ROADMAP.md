@@ -4,20 +4,49 @@
 
 - Add browser-driven API smoke automation for login, dashboard load, and core module navigation.
 - Decide whether runtime auth tables should remain as dedicated operations-platform migrations or be merged into the legacy initial migration set before first production deployment.
+- Translate backend-generated strings. The frontend now reads every string from
+  the locale files, but API error messages and seeded demo content are still
+  written in one language in the source.
 
 ## Next Frontend Work
 
 - Add visual regression screenshots for the polished module pages.
-- Add mobile viewport visual QA for dashboard, sidebar, kanban, reports, and audit templates.
+- Extend `ConfirmDialog` to the remaining destructive actions. Only project
+  deletion is confirmed so far; the register rows in the 5S guideline tables and
+  template archiving are still one click.
+- Give the charts a table view. Values are directly labelled today, so nothing is
+  hover-only, but a table twin is still the accessible equivalent for a reader
+  who cannot use the chart at all.
 
 ## Next Mobile Work
 
-- Finish Flutter SDK installation and add `flutter\bin` to PATH.
-- Run `powershell -ExecutionPolicy Bypass -File .\scripts\mobile-verify.ps1`.
-- Fix any Flutter analyze/test findings after the CLI is available.
+- Run `powershell -ExecutionPolicy Bypass -File .\scripts\mobile-verify.ps1`
+  after each change; `flutter analyze` is clean as of 2026-09-01.
+- Add the first Flutter tests. `mobile-flutter` has no test directory, so the
+  mobile workspace is the only one of the three without coverage.
+- Build Phase 1 screens against the real API: login, my tasks, calendar, work
+  log, clock in/out.
 
 ## Recently Completed Hardening
 
+- Added Mongolian and English translations behind the workspace language
+  setting, which previously announced a change it could not make. Every page
+  reads its copy from the locale files. See
+  [DECISIONS.md](DECISIONS.md).
+- Adopted the shared form, table, dialog and loading components across every
+  page, removing 34 copies of the same field class string; fixed the defects
+  this surfaced in `Input`, `Table` and `Loading`.
+- Replaced the hand-drawn analytics bars with validated charts, and removed
+  three unused chart components that would have shipped an unreadable dark mode.
+- Made the 5S floor plan directly editable — grid snap, resize handles, keyboard
+  nudge, undo/redo — and coalesced its saves, which had been one write per
+  pointer frame.
+- Confirmed project deletion, which previously destroyed a project and its
+  progress on the first click.
+- Removed a 27-entry route table in `App.tsx` whose filter excluded every entry,
+  so it rendered nothing.
+- Cleaned up `flutter analyze` in `mobile-flutter` (159 findings to zero) and
+  stopped tracking Flutter's machine-generated iOS config.
 - Added runtime auth/organization migrations aligned with the current backend entities.
 - Seeded a real demo organization and owner user for PostgreSQL runtime checks.
 - Switched runtime API smoke to log in through `/auth/login` and use the returned JWT for summary and project create/update/delete checks.
