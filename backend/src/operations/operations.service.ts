@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,6 +13,7 @@ import { AssessmentResponse } from './entities/assessment-response.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
+import { apiError, ErrorCode } from '../shared/errors/api-error';
 
 type CurrentUser = {
   id?: string;
@@ -471,7 +472,7 @@ export class OperationsService {
     }
 
     if (!allowPublicOperations) {
-      throw new UnauthorizedException('Organization context is required');
+      throw apiError(ErrorCode.AuthOrganizationRequired);
     }
 
     return payloadOrganizationId;
@@ -491,7 +492,7 @@ export class OperationsService {
     });
 
     if (!entity) {
-      throw new NotFoundException(`${label} not found`);
+      throw apiError(ErrorCode.ResourceNotFound, label);
     }
 
     return entity;
@@ -511,7 +512,7 @@ export class OperationsService {
     });
 
     if (!entity) {
-      throw new NotFoundException(`${label} not found`);
+      throw apiError(ErrorCode.ResourceNotFound, label);
     }
 
     return entity;

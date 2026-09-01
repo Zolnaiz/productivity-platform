@@ -168,6 +168,8 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Frontend API requests include `X-Request-Id`; backend logs and responses expose the same ID for correlation.
 - Backend logs redact sensitive payload fields.
 - Backend unexpected errors return a generic client message while detailed exception data stays in logs.
+- Backend error responses carry a stable `errorCode` so clients can report failures in the user's own language; the frontend translates it and never displays the API's English text.
+- A 401 from an auth endpoint is reported to the caller rather than treated as an expired session, so a rejected sign-in explains itself instead of reloading the page.
 - Backend exposes Prometheus-compatible metrics at `/api/metrics` only when `ENABLE_METRICS=true`.
 - Unused Socket.IO dependencies were removed and backend `js-yaml` is pinned through overrides to keep dependency audits clean.
 - PostgreSQL backup/restore guidance is documented for Docker and non-Docker environments.
@@ -184,8 +186,8 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 74 passing
-- Frontend tests: 103 passing
+- Backend tests: 81 passing
+- Frontend tests: 115 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing
 - Frontend lint/build/audit passing

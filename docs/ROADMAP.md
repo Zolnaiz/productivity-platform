@@ -4,9 +4,13 @@
 
 - Add browser-driven API smoke automation for login, dashboard load, and core module navigation.
 - Decide whether runtime auth tables should remain as dedicated operations-platform migrations or be merged into the legacy initial migration set before first production deployment.
-- Translate backend-generated strings. The frontend now reads every string from
-  the locale files, but API error messages and seeded demo content are still
-  written in one language in the source.
+- Decide what to do with the legacy modules. `expenses`, `reports`,
+  `questionnaires` and `shared/pipes/validation.pipe.ts` are not in the
+  application graph and ship nothing, but they hold most of the repository's
+  untranslated strings and read as live code. Wire them up or delete them.
+- Seeded demo content is still written in one language in the source. Unlike
+  error messages, this is organization data rather than UI copy, so it belongs
+  in the seed per organization rather than in the locale files.
 
 ## Next Frontend Work
 
@@ -17,6 +21,10 @@
 - Give the charts a table view. Values are directly labelled today, so nothing is
   hover-only, but a table twin is still the accessible equivalent for a reader
   who cannot use the chart at all.
+- Move the 5S guideline register content out of `FiveSGuidelineRegisters.tsx`.
+  Roughly a hundred Mongolian strings are hardcoded there. They are not UI copy
+  — they are one organization's 5S standard — so they belong in seeded
+  organization data, which also lets a second organization have its own.
 
 ## Next Mobile Work
 
@@ -29,6 +37,13 @@
 
 ## Recently Completed Hardening
 
+- Gave the API stable error codes and translated them in the browser, so a
+  failure is reported in the workspace language instead of English prose. Fixed
+  the sign-in path, which reported "check that the backend API is running" for
+  every failure including a wrong password. See [DECISIONS.md](DECISIONS.md).
+- Stopped treating a 401 from `/auth/login` as an expired session. The refresh
+  interceptor redirected to `/login`, reloading the page and discarding the
+  error message before it could be read.
 - Added Mongolian and English translations behind the workspace language
   setting, which previously announced a change it could not make. Every page
   reads its copy from the locale files. See

@@ -5,6 +5,7 @@ import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import { useAuth } from '../contexts/AuthContext';
 import { isDemoEnabled } from '../services/api';
+import { apiErrorMessage } from '../i18n/apiError';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
@@ -21,8 +22,8 @@ const LoginPage: React.FC = () => {
     try {
       await login({ email, password });
       navigate('/dashboard');
-    } catch {
-      setError(t('auth.signInFailed'));
+    } catch (submitError) {
+      setError(apiErrorMessage(submitError, t));
     }
   };
 

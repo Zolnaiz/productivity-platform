@@ -303,7 +303,6 @@ const en = {
     openDemo: 'Open demo workspace',
     forgotPassword: 'Forgot password',
     register: 'Register',
-    signInFailed: 'Sign in failed. Check that the backend API is running.',
     registerTitle: 'Register',
     registerSubtitle: 'Create the organization workspace and its first admin user.',
     yourName: 'Your name',
@@ -313,6 +312,37 @@ const en = {
     creating: 'Creating...',
     createWorkspace: 'Create workspace',
     alreadyRegistered: 'Already registered?',
+    signedIn: 'Signed in',
+    welcomeBack: 'Welcome back, {{name}}',
+    signInError: 'Could not sign in',
+    signedOut: 'Signed out',
+    signedOutMessage: 'You have been signed out of the workspace.',
+    demoDisabled: 'Demo workspace is off',
+    demoDisabledMessage: 'This build was published without the demo workspace.',
+    demoWorkspace: 'Demo workspace',
+    demoWorkspaceMessage: 'You are exploring sample data. Nothing is saved to the server.',
+  },
+  /**
+   * Keyed by the `errorCode` the API returns, so the server names the failure
+   * and the browser words it. `unknown` covers a code this build has not
+   * learned yet — an older client against a newer API.
+   */
+  errors: {
+    AUTH_INVALID_CREDENTIALS: 'Email or password is incorrect.',
+    AUTH_ACCOUNT_INACTIVE: 'This account has been deactivated. Contact your workspace admin.',
+    AUTH_EMAIL_TAKEN: 'This email is already registered. Sign in instead.',
+    AUTH_USER_NOT_FOUND: 'This account no longer exists.',
+    AUTH_SESSION_EXPIRED: 'Your session expired. Sign in again.',
+    AUTH_TOKEN_INVALID: 'Your session is no longer valid. Sign in again.',
+    AUTH_TOKEN_MISSING: 'Sign in to continue.',
+    AUTH_ORGANIZATION_REQUIRED: 'Your account is not linked to an organization. Contact your admin.',
+    ACCESS_DENIED: 'You do not have access to this.',
+    RESOURCE_NOT_FOUND: 'That record was not found. It may have been deleted.',
+    VALIDATION_FAILED: 'Check the highlighted fields and try again.',
+    METRICS_DISABLED: 'The metrics endpoint is switched off.',
+    INTERNAL_ERROR: 'Something went wrong on the server. Try again in a moment.',
+    offline: 'Could not reach the server. Check your connection and try again.',
+    unknown: 'Something went wrong. Try again.',
   },
   notes: {
     title: 'Notes',

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import { authService } from '../services/auth.service';
+import { apiErrorMessage } from '../i18n/apiError';
 
 const RegisterPage: React.FC = () => {
   const { t } = useTranslation();
@@ -30,8 +31,8 @@ const RegisterPage: React.FC = () => {
         password,
       });
       navigate('/login', { replace: true });
-    } catch {
-      setError('Бүртгэл үүсгэж чадсангүй. Мэдээллээ шалгаад дахин оролдоно уу.');
+    } catch (submitError) {
+      setError(apiErrorMessage(submitError, t));
     } finally {
       setLoading(false);
     }

@@ -18,7 +18,13 @@ describe('translations', () => {
   it('leaves no key untranslated', () => {
     // Terms both languages genuinely share. Everything else must differ — a
     // repeated English value is almost always a forgotten translation.
-    const sharedTerms = ['organizations.workspaceId', 'adminDashboard.workspace'];
+    const sharedTerms = [
+      'organizations.workspaceId',
+      'adminDashboard.workspace',
+      // "Demo workspace" is the product's own name for the mode and stays in
+      // Latin script in Mongolian copy, as it already does in `auth.openDemo`.
+      'auth.demoWorkspace',
+    ];
 
     const untranslated = flatten(en)
       .filter((key) => !sharedTerms.includes(key))

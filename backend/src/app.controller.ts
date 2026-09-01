@@ -1,7 +1,8 @@
-import { Controller, Get, Header, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Header } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppService } from './app.service';
 import { MetricsService } from './shared/metrics/metrics.service';
+import { apiError, ErrorCode } from './shared/errors/api-error';
 
 @Controller()
 export class AppController {
@@ -38,7 +39,7 @@ export class AppController {
   @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
   getMetrics() {
     if (this.configService.get('ENABLE_METRICS') !== true) {
-      throw new NotFoundException('Metrics endpoint is disabled');
+      throw apiError(ErrorCode.MetricsDisabled);
     }
 
     return this.metricsService.renderPrometheusMetrics();

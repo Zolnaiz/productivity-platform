@@ -55,17 +55,35 @@ describe('RegisterPage', () => {
     await waitFor(() => expect(screen.getByText('Login page')).toBeTruthy());
   });
 
-  it('shows an error when registration fails', async () => {
-    serviceMocks.register.mockRejectedValue(new Error('backend unavailable'));
-
-    renderRegister();
-
+  const submitRegistration = async () => {
     await userEvent.type(screen.getByLabelText('Your name'), 'Owner User');
     await userEvent.type(screen.getByLabelText('Organization name'), 'NewTech Operations');
     await userEvent.type(screen.getByLabelText('Email'), 'owner@example.com');
     await userEvent.type(screen.getByLabelText('Password'), 'Password123');
     await userEvent.click(screen.getByRole('button', { name: 'Create workspace' }));
+  };
 
-    expect(await screen.findByText('Бүртгэл үүсгэж чадсангүй. Мэдээллээ шалгаад дахин оролдоно уу.')).toBeTruthy();
+  it('tells the user their email is already taken, not just that it failed', async () => {
+    serviceMocks.register.mockRejectedValue({
+      response: { status: 409, data: { errorCode: 'AUTH_EMAIL_TAKEN' } },
+    });
+
+    renderRegister();
+    await submitRegistration();
+
+    expect(
+      await screen.findByText('This email is already registered. Sign in instead.'),
+    ).toBeTruthy();
+  });
+
+  it('reports an unreachable backend as a connection problem', async () => {
+    serviceMocks.register.mockRejectedValue(new Error('Network Error'));
+
+    renderRegister();
+    await submitRegistration();
+
+    expect(
+      await screen.findByText('Could not reach the server. Check your connection and try again.'),
+    ).toBeTruthy();
   });
 });

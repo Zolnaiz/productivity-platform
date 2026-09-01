@@ -42,6 +42,24 @@ Every page that loads data handles all four:
 
 Empty-state copy says what will appear here and what to do to make it appear.
 
+## Errors from the API
+
+A failed request is turned into a sentence by `apiErrorMessage(error, t)`, which
+reads the `errorCode` the API returned and looks its wording up in the locale
+files. Never display `error.response.data.message` — that is English prose meant
+for logs, and it will appear untranslated in a Mongolian workspace.
+
+```tsx
+} catch (submitError) {
+  setError(apiErrorMessage(submitError, t));
+}
+```
+
+A message for a new backend code goes in `errors.<CODE>` in every locale;
+`errorContract.test.ts` fails if one is missing. Say what happened and what the
+person can do about it — "Contact your workspace admin" earns its place, "an
+error occurred" does not.
+
 ## Components
 
 Use these; do not re-implement them.

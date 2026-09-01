@@ -3,6 +3,8 @@ import { User, LoginCredentials } from '../types/user.types';
 import { authService } from '../services/auth.service';
 import { clearStoredAuth, isDemoEnabled } from '../services/api';
 import { useNotification } from './NotificationContext';
+import { useTranslation } from 'react-i18next';
+import { apiErrorMessage } from '../i18n/apiError';
 
 interface AuthContextType {
   user: User | null;
@@ -44,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { addNotification } = useNotification();
+  const { t } = useTranslation();
 
   // Анхны ачаалал - хадгалсан өгөгдлийг шалгах
   useEffect(() => {
@@ -109,27 +112,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       addNotification({
         type: 'success',
-        title: 'Амжилттай нэвтэрлээ',
-        message: `Тавтай морил, ${response.user.name}!`,
+        title: t('auth.signedIn'),
+        message: t('auth.welcomeBack', { name: response.user.name }),
       });
     } catch (error: any) {
       addNotification({
         type: 'error',
-        title: 'Нэвтрэх алдаа',
-        message: error.response?.data?.message || 'Нэвтрэх нэр эсвэл нууц үг буруу байна',
+        title: t('auth.signInError'),
+        message: apiErrorMessage(error, t),
       });
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [addNotification]);
+  }, [addNotification, t]);
 
   const loginDemo = useCallback(() => {
     if (!isDemoEnabled()) {
       addNotification({
         type: 'error',
-        title: 'Demo disabled',
-        message: 'Demo workspace is disabled for this build.',
+        title: t('auth.demoDisabled'),
+        message: t('auth.demoDisabledMessage'),
       });
       return;
     }
@@ -167,10 +170,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     addNotification({
       type: 'success',
-      title: 'Demo mode',
-      message: 'Demo workspace нээгдлээ.',
+      title: t('auth.demoWorkspace'),
+      message: t('auth.demoWorkspaceMessage'),
     });
-  }, [addNotification]);
+  }, [addNotification, t]);
 
   // Гарах функц
   const logout = useCallback(async () => {
@@ -185,11 +188,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       addNotification({
         type: 'info',
-        title: 'Гарлаа',
-        message: 'Амжилттай гарлаа',
+        title: t('auth.signedOut'),
+        message: t('auth.signedOutMessage'),
       });
     }
-  }, [addNotification]);
+  }, [addNotification, t]);
 
   // Хэрэглэгчийн мэдээлэл шинэчлэх
   const refreshUser = useCallback(async () => {

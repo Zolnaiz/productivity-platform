@@ -75,6 +75,17 @@ api.interceptors.request.use(
   }
 );
 
+/**
+ * Endpoints where a 401 is the answer, not an expired session.
+ *
+ * Signing in with the wrong password returns 401. Retrying it with a refreshed
+ * token is meaningless — there is no session yet — and the redirect that
+ * follows reloads the page, discarding the very message that explains what
+ * went wrong. So these paths report their 401 to the caller untouched.
+ */
+const isAuthChallengeUrl = (url?: string) =>
+  Boolean(url && /\/auth\/(login|register|refresh|forgot-password|reset-password)$/.test(url));
+
 // Response интерсептор
 api.interceptors.response.use(
   (response) => response,
@@ -83,7 +94,7 @@ api.interceptors.response.use(
 
     // Token хүчингүй болвол шинээр авах
     if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isDemoMode()) {
+      if (isDemoMode() || isAuthChallengeUrl(originalRequest?.url)) {
         return Promise.reject(error);
       }
 

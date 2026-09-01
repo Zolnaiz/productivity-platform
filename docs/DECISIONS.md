@@ -8,6 +8,44 @@ Newest first.
 
 ---
 
+## 2026-09-02 — The API names failures with a code; the client supplies the words
+
+**Decision.** Every error response carries an `errorCode` — a stable identifier
+such as `AUTH_INVALID_CREDENTIALS` — alongside its English `message`. The codes
+are declared once in `backend/src/shared/errors/api-error.ts`, which also owns
+each code's HTTP status and English fallback. The browser looks the code up in
+`admin-web/src/i18n/locales/*.ts` under `errors.<CODE>` and shows the result.
+
+**Why.** The frontend reads every string from the locale files, but the backend
+sent prose, so a Mongolian workspace showed English sentences the moment
+anything failed. Translating on the server was the obvious alternative and is
+worse: the server would need its own copy of the locale files, kept in step with
+the client's, in order to guess a language it only knows from a header.
+
+Sending a code instead also removes a class of bad message. Sign-in previously
+reported *"Check that the backend API is running"* for every failure, including
+a wrong password, because the page had no way to tell the causes apart.
+
+**Consequences.**
+- Code strings are API contract. Renaming one silently degrades every client
+  that matched it to the generic message. `errorContract.test.ts` reads the
+  backend's declaration and fails if a code has no wording — or if wording
+  survives a code that no longer exists.
+- Errors thrown by code we do not own — a class-validator rejection, a bare Nest
+  exception — are classified by status in the exception filter, so a response
+  never reaches a client without a code.
+- `details` on `apiError` appends to the English fallback only. It takes data — a
+  record name, an id — never a sentence, because nothing in it is translated.
+- `offline` and `unknown` are the client's own codes; no server sends them.
+- A 401 from `/auth/*` is now excluded from the token-refresh interceptor. It
+  had been treated as an expired session, and the redirect that followed
+  reloaded the page and discarded the message explaining the failure.
+
+**Rules out.** Returning a user-facing sentence from the API and displaying it
+verbatim.
+
+---
+
 ## 2026-09-02 — The app ships in Mongolian and English through i18next
 
 **Decision.** All user-facing copy lives in `src/i18n/locales/{en,mn}.ts` and is
