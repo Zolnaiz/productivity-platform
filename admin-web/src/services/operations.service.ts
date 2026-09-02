@@ -385,6 +385,22 @@ const createDemo = <T extends { id: string }>(key: DemoKey, data: Partial<T>) =>
   return item;
 };
 
+/**
+ * The open task already raised for a finding, if there is one.
+ *
+ * The server refuses to raise a second task for the same finding, so the demo
+ * workspace has to do it too — otherwise the demo shows behaviour the product
+ * does not have, and pressing "red-tag tasks" twice appears to double the work.
+ */
+const findOpenDemoTaskForSource = (data: Partial<WorkTask>) => {
+  if (!data.sourceType || !data.sourceId) return undefined;
+
+  return readDemo<WorkTask>('tasks').find(
+    (task) =>
+      task.sourceType === data.sourceType && task.sourceId === data.sourceId && task.status !== 'done',
+  );
+};
+
 const updateDemo = <T extends { id: string }>(key: DemoKey, id: string, data: Partial<T>) => {
   const items = readDemo<T>(key);
   const updated = items.map((item) => (item.id === id ? { ...item, ...data } : item));
@@ -534,7 +550,7 @@ export const operationsService = {
   getTasks: () => fallback<WorkTask[]>(() => get('/tasks'), readDemo<WorkTask>('tasks')),
   createTask: (data: Partial<WorkTask>) =>
     isDemoMode()
-      ? Promise.resolve(createDemo<WorkTask>('tasks', data))
+      ? Promise.resolve(findOpenDemoTaskForSource(data) ?? createDemo<WorkTask>('tasks', data))
       : post<WorkTask>('/tasks', withoutClientScopedFields(data)),
   updateTask: (id: string, data: Partial<WorkTask>) =>
     isDemoMode()

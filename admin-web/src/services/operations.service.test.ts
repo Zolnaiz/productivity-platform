@@ -195,3 +195,64 @@ describe('operationsService fallback behavior', () => {
     expect(report.totals.totalHours).toBe(10.5);
   });
 });
+
+describe('tasks raised from a finding, in demo mode', () => {
+  const load = async () => (await import('./operations.service')).operationsService;
+
+  // The demo store seeds sample tasks, so assert on what these tests created.
+  const storedWithSource = (sourceId: string) =>
+    JSON.parse(localStorage.getItem('productivity-demo-tasks') || '[]').filter(
+      (task: { sourceId?: string }) => task.sourceId === sourceId,
+    );
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem('token', 'demo-token');
+  });
+
+  const redTag = {
+    title: '5S red tag: A01 - Broken pallet',
+    sourceType: 'five_s_red_tag' as const,
+    sourceId: 'red-tag-9',
+    status: 'todo' as const,
+  };
+
+  it('raises one task per finding, however often the button is pressed', async () => {
+    // The server refuses a duplicate, so the demo workspace has to as well —
+    // otherwise the demo shows behaviour the product does not have.
+    const service = await load();
+    const first = await service.createTask(redTag);
+    const second = await service.createTask(redTag);
+
+    expect(second.id).toBe(first.id);
+    expect(storedWithSource('red-tag-9')).toHaveLength(1);
+  });
+
+  it('raises new work when the finding recurs after its task was finished', async () => {
+    await (await load()).createTask(redTag);
+    const stored = JSON.parse(localStorage.getItem('productivity-demo-tasks') || '[]');
+    localStorage.setItem(
+      'productivity-demo-tasks',
+      JSON.stringify(stored.map((task: { sourceId?: string }) =>
+        task.sourceId === 'red-tag-9' ? { ...task, status: 'done' } : task,
+      )),
+    );
+
+    await (await load()).createTask(redTag);
+
+    expect(storedWithSource('red-tag-9')).toHaveLength(2);
+  });
+
+  it('does not merge tasks that were typed by hand', async () => {
+    const service = await load();
+    // Reading first lets the demo store seed its samples, so the count below
+    // measures only what this test adds.
+    await service.getTasks();
+    const before = JSON.parse(localStorage.getItem('productivity-demo-tasks') || '[]').length;
+
+    await service.createTask({ title: 'Fix the printer', status: 'todo' });
+    await service.createTask({ title: 'Fix the printer', status: 'todo' });
+
+    const after = JSON.parse(localStorage.getItem('productivity-demo-tasks') || '[]').length;
+    expect(after - before).toBe(2);
+  });
+});

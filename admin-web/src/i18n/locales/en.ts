@@ -106,6 +106,11 @@ const en = {
     loadFailed: 'Could not load the task list.',
     saveFailed: 'Could not save the task.',
     statusFailed: 'Could not update the task status.',
+    source: {
+      five_s_red_tag: 'From a red tag',
+      audit_run: 'From an audit',
+      five_s_improvement: 'From a 5S improvement',
+    },
     status: {
       backlog: 'Backlog',
       todo: 'To do',

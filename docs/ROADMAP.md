@@ -14,9 +14,10 @@
 
 ## Next 5S Work
 
-- Make every finding a task. A red tag carries owner, due date and status but is
-  not a task, so 5S work appears in nobody's list. Same for an improvement
-  record's action plan and a failed audit answer.
+- Raise tasks from the improvement register too. Red tags and audits are linked
+  now; an improvement record's action plan is still free text.
+- Close the finding when its task is done. The link runs one way: a task knows
+  its red tag, but finishing the task does not close the tag.
 - Add photo support. There is no file upload anywhere in the backend, and every
   serious 5S tool is photo-first: the before shot is the evidence, the after
   shot is the proof. Without it an audit score is an opinion.
@@ -46,6 +47,10 @@
 
 ## Recently Completed Hardening
 
+- Linked work back to the finding that caused it. Tasks raised from a red tag or
+  an audit carry their source, show it on the kanban card, and the server raises
+  at most one open task per finding — the "Red-tag tasks" button used to double
+  the work every time it was pressed. See [DECISIONS.md](DECISIONS.md).
 - Closed the first joint of the 5S loop: an audit run now references the zone
   it audited, and submitting one writes the score, date and a frozen baseline
   onto that zone server-side. The floor plan can colour zones by audit

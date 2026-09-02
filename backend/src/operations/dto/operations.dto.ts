@@ -20,7 +20,7 @@ import { AssessmentStatus, AssessmentType } from '../entities/assessment-templat
 import { AuditCategory } from '../entities/audit-template.entity';
 import { ExpenseCategory, ExpenseStatus } from '../entities/expense.entity';
 import { ProjectStatus } from '../entities/project.entity';
-import { TaskStatus } from '../entities/task.entity';
+import { TaskSource, TaskStatus } from '../entities/task.entity';
 
 class ChecklistQuestionDto {
   @IsString()
@@ -252,6 +252,16 @@ export class CreateTaskDto extends OrganizationScopedDto {
   @IsOptional()
   @IsString()
   reporterId?: string;
+
+  /** What produced this task — a red tag, an audit run, an improvement record. */
+  @IsOptional()
+  @IsEnum(TaskSource)
+  sourceType?: TaskSource;
+
+  /** The record inside that source. Not a UUID: 5S ids live in the plan's JSON. */
+  @IsOptional()
+  @IsString()
+  sourceId?: string;
 
   @IsOptional()
   @IsEnum(TaskStatus)

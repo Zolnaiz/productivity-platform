@@ -1230,6 +1230,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               `Created: ${redTag.createdAt || 'Not recorded'}`,
             ].join('\n'),
             assigneeId: redTag.ownerId || zone.ownerId,
+            sourceType: 'five_s_red_tag',
+            sourceId: redTag.id,
             status: 'todo',
             priority: 'high',
             dueDate: redTag.dueDate || dueDate,
@@ -1247,6 +1249,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               `Standard: ${zone.standard || 'Not documented'}`,
             ].join('\n'),
             assigneeId: zone.ownerId,
+            sourceType: 'five_s_red_tag',
+            sourceId: zone.id,
             status: 'todo',
             priority: 'high',
             dueDate,
@@ -1256,7 +1260,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
         ),
       ]);
 
-      setActionMessage(`${taskCount} red-tag cleanup task(s) created.`);
+      setActionMessage(`${taskCount} red tag(s) now have a cleanup task.`);
     } catch {
       setActionMessage('Could not create red-tag cleanup tasks.');
     }
@@ -1282,8 +1286,10 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               `Owner: ${zone.ownerName || 'Unassigned'}`,
             ].join('\n'),
             assigneeId: zone.ownerId,
+            sourceType: 'audit_run',
+            sourceId: `due-${zone.id}`,
             status: 'todo',
-            priority: Number(zone.lastAuditScore || 100) < 85 ? 'high' : 'medium',
+            priority: Number(zone.lastAuditScore || 100) < AUDIT_PASSING_SCORE ? 'high' : 'medium',
             dueDate,
             estimatedHours: 1,
             actualHours: 0,

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { Project } from './entities/project.entity';
-import { WorkTask } from './entities/task.entity';
+import { TaskStatus, WorkTask } from './entities/task.entity';
 import { WorkLog } from './entities/work-log.entity';
 import { TimeEntry } from './entities/time-entry.entity';
 import { AuditTemplate } from './entities/audit-template.entity';
@@ -75,13 +75,44 @@ export class OperationsService {
     });
   }
 
-  createTask(payload: Partial<WorkTask>, user: CurrentUser) {
+  async createTask(payload: Partial<WorkTask>, user: CurrentUser) {
+    const organizationId = this.resolveOrganizationId(user, payload.organizationId);
+    const existing = await this.findOpenTaskForSource(payload, organizationId);
+
+    // A finding raises one task, not one per press of the button. Deduping
+    // here rather than in the browser means the mobile app gets it too.
+    if (existing) {
+      return existing;
+    }
+
     const task = this.tasks.create({
       ...payload,
-      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      organizationId,
       reporterId: payload.reporterId || user?.id,
     });
     return this.tasks.save(task);
+  }
+
+  /**
+   * The open task already raised for a finding, if there is one.
+   *
+   * Only unfinished tasks count: a red tag that comes back after its task was
+   * completed is a new occurrence and deserves new work, which is also the
+   * signal that a standard is not holding.
+   */
+  private findOpenTaskForSource(payload: Partial<WorkTask>, organizationId?: string) {
+    if (!payload.sourceType || !payload.sourceId) {
+      return Promise.resolve(null);
+    }
+
+    return this.tasks.findOne({
+      where: {
+        organizationId,
+        sourceType: payload.sourceType,
+        sourceId: payload.sourceId,
+        status: Not(TaskStatus.DONE),
+      },
+    });
   }
 
   async updateTask(id: string, payload: Partial<WorkTask>, user: CurrentUser) {

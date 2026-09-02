@@ -14,6 +14,9 @@ export interface Project {
   budget?: number;
 }
 
+/** What produced a task that was not typed by hand. */
+export type TaskSource = 'five_s_red_tag' | 'audit_run' | 'five_s_improvement';
+
 export interface WorkTask {
   id: string;
   organizationId?: string;
@@ -22,6 +25,12 @@ export interface WorkTask {
   projectId?: string;
   assigneeId?: string;
   reporterId?: string;
+  /**
+   * Where this task came from. The server raises at most one open task per
+   * source, so sending these makes "create tasks" safe to press twice.
+   */
+  sourceType?: TaskSource;
+  sourceId?: string;
   status: 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
   priority: string;
   dueDate?: string;

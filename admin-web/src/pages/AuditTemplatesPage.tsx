@@ -112,6 +112,10 @@ const AuditTemplatesPage: React.FC = () => {
     await operationsService.createTask({
       title: t('auditTemplates.correctiveTitle', { template: templateTitle, place }),
       description: t('auditTemplates.correctiveDescription', { score: run.score }),
+      // Linking the task to its run keeps the finding reachable from the work,
+      // and stops a second press of the button raising a duplicate.
+      sourceType: 'audit_run',
+      sourceId: run.id,
       status: 'todo',
       priority: run.score < URGENT_SCORE ? 'high' : 'medium',
       dueDate,

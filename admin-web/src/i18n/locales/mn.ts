@@ -106,6 +106,11 @@ const mn: Translations<typeof en> = {
     loadFailed: 'Ажлын жагсаалт ачаалж чадсангүй.',
     saveFailed: 'Ажил хадгалах үед алдаа гарлаа.',
     statusFailed: 'Ажлын төлөв шинэчлэх үед алдаа гарлаа.',
+    source: {
+      five_s_red_tag: 'Улаан шошгоос',
+      audit_run: 'Аудитаас',
+      five_s_improvement: '5S сайжруулалтаас',
+    },
     status: {
       backlog: 'Хүлээгдэж буй',
       todo: 'Хийх',

@@ -166,6 +166,13 @@ const TasksPage: React.FC = () => {
               {column.tasks.map((task) => (
                 <div key={task.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                   <div className="font-medium text-gray-900 dark:text-white">{task.title}</div>
+                  {/* Work raised by a finding says so, so nobody has to guess
+                      why a task they did not write appeared in their column. */}
+                  {task.sourceType && (
+                    <div className="mt-1 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                      {t(`tasks.source.${task.sourceType}`)}
+                    </div>
+                  )}
                   <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
                     <span>{task.priority}</span>
                     <span>{task.dueDate || '-'}</span>

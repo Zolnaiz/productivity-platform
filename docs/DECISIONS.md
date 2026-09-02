@@ -8,6 +8,33 @@ Newest first.
 
 ---
 
+## 2026-09-02 — A finding raises one task, and the task remembers the finding
+
+**Decision.** `WorkTask` carries `sourceType` and `sourceId`. Work raised from a
+red tag, an audit run or an improvement record records where it came from, and
+the server returns the existing open task rather than creating a second one for
+the same source.
+
+**Why.** A red tag already carries an owner, a due date and a status — it is a
+task wearing a different name — but it appeared in nobody's list. The floor plan
+had a "Red-tag tasks" button that created tasks with no link back, so pressing
+it twice doubled the work and no task said why it existed.
+
+**Consequences.**
+- Only unfinished tasks count as duplicates. A red tag that returns after its
+  task was completed raises new work, which is also the signal that a standard
+  is not holding.
+- The rule lives on the server so the mobile app inherits it, and is mirrored in
+  the demo workspace — otherwise the demo would show behaviour the product does
+  not have, and the demo is what most people see first.
+- `sourceId` is a plain string, not a foreign key: red tag and zone ids live in
+  the floor plan's JSON. A source can disappear and the task survives it.
+- A task typed by hand has no source and is never deduplicated.
+
+**Rules out.** Creating work from a finding without recording the link.
+
+---
+
 ## 2026-09-02 — An audit scores a zone, and the map reads the score
 
 **Decision.** `AuditRun` carries a `zoneId` referencing a zone on the
