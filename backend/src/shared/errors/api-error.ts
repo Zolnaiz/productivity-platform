@@ -31,6 +31,8 @@ export const ErrorCode = {
   AccessDenied: 'ACCESS_DENIED',
   ResourceNotFound: 'RESOURCE_NOT_FOUND',
   ValidationFailed: 'VALIDATION_FAILED',
+  UnsupportedFileType: 'UNSUPPORTED_FILE_TYPE',
+  FileTooLarge: 'FILE_TOO_LARGE',
   MetricsDisabled: 'METRICS_DISABLED',
   InternalError: 'INTERNAL_ERROR',
 } as const;
@@ -93,6 +95,14 @@ const definitions: Record<ErrorCode, ErrorDefinition> = {
   [ErrorCode.ValidationFailed]: {
     exception: BadRequestException,
     message: 'The submitted data is not valid',
+  },
+  [ErrorCode.UnsupportedFileType]: {
+    exception: BadRequestException,
+    message: 'Only photographs and PDF files can be attached',
+  },
+  [ErrorCode.FileTooLarge]: {
+    exception: BadRequestException,
+    message: 'The file is too large to attach',
   },
   [ErrorCode.MetricsDisabled]: {
     exception: NotFoundException,

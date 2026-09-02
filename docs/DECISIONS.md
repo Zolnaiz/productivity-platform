@@ -8,6 +8,38 @@ Newest first.
 
 ---
 
+## 2026-09-02 — Attachments are typed by their bytes and scoped by tenant
+
+**Decision.** Photographs and PDFs attach to any 5S record through one
+`attachments` table and one `PhotoEvidence` component. The server reads the
+file's real type from its first bytes, generates the storage key itself, and
+filters every read by organization.
+
+**Why.** There was no file support anywhere in the product, and 5S runs on
+evidence: a red tag is a claim until there is a picture of the item, and a fix
+is unproven until the after shot sits beside the before one. An audit score
+without photographs is an opinion.
+
+**Consequences.**
+- The declared `Content-Type` is a hint from the client and is trusted for
+  nothing. A PHP script or a Windows binary renamed `photo.jpg` is refused, and
+  nothing is written to disk when it is.
+- The storage key is a random id plus an extension taken from the sniffed type,
+  so no client-supplied text ever reaches the filesystem. The original filename
+  is kept as a label only, stripped of path separators and control characters.
+- Files are served with `Content-Disposition: attachment` and a sandboxing CSP,
+  so an upload cannot execute against a signed-in session on this origin.
+- Every read, list and delete is filtered by `organizationId`. One tenant
+  cannot reach another's photographs even holding a correct attachment id.
+- The demo workspace stores downscaled data URLs. It is not a file store and
+  does not pretend to be one, but the before/after pair works.
+- `owner_id` is a plain column: red tag and zone ids live in the floor plan's
+  JSON, so a foreign key is not available.
+
+**Rules out.** Trusting a client's filename or content type for anything.
+
+---
+
 ## 2026-09-02 — A finding raises one task, and the task remembers the finding
 
 **Decision.** `WorkTask` carries `sourceType` and `sourceId`. Work raised from a

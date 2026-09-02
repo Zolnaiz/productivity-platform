@@ -342,6 +342,19 @@ const en = {
    * and the browser words it. `unknown` covers a code this build has not
    * learned yet — an older client against a newer API.
    */
+  photos: {
+    before: 'Before',
+    after: 'After',
+    evidence: 'Evidence',
+    standard: 'Standard',
+    add: 'Add photo',
+    uploading: 'Uploading...',
+    shotAlt: '{{kind}} photo: {{name}}',
+    remove: 'Remove the {{kind}} photo',
+    removeTitle: 'Remove photo',
+    removeMessage: '{{name}} will be deleted. This cannot be undone.',
+    evidenceLabel: 'Photo evidence',
+  },
   errors: {
     AUTH_INVALID_CREDENTIALS: 'Email or password is incorrect.',
     AUTH_ACCOUNT_INACTIVE: 'This account has been deactivated. Contact your workspace admin.',
@@ -354,6 +367,8 @@ const en = {
     ACCESS_DENIED: 'You do not have access to this.',
     RESOURCE_NOT_FOUND: 'That record was not found. It may have been deleted.',
     VALIDATION_FAILED: 'Check the highlighted fields and try again.',
+    UNSUPPORTED_FILE_TYPE: 'Only photographs and PDF files can be attached.',
+    FILE_TOO_LARGE: 'That file is too large. Attach one under 12 MB.',
     METRICS_DISABLED: 'The metrics endpoint is switched off.',
     INTERNAL_ERROR: 'Something went wrong on the server. Try again in a moment.',
     offline: 'Could not reach the server. Check your connection and try again.',

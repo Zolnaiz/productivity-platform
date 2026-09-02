@@ -18,9 +18,10 @@
   now; an improvement record's action plan is still free text.
 - Close the finding when its task is done. The link runs one way: a task knows
   its red tag, but finishing the task does not close the tag.
-- Add photo support. There is no file upload anywhere in the backend, and every
-  serious 5S tool is photo-first: the before shot is the evidence, the after
-  shot is the proof. Without it an audit score is an opinion.
+- Attach photographs to audit answers too. Red tags and zone standards carry
+  them now; a failed checklist item still cannot show what was wrong.
+- Give production a real file store. Attachments write to `UPLOAD_DIR` on local
+  disk, which does not survive a container being replaced.
 - Show a zone's history when it is clicked: score trend, open findings, what was
   fixed last month. The data exists once runs reference zones.
 - Use `auditFrequency`, which every zone declares and nothing reads. A lapsed
@@ -47,6 +48,9 @@
 
 ## Recently Completed Hardening
 
+- Added photo evidence: a before/after pair on every red tag and a standard
+  photograph on every zone, with the file's real type read from its bytes and
+  every read scoped to one organization. See [DECISIONS.md](DECISIONS.md).
 - Linked work back to the finding that caused it. Tasks raised from a red tag or
   an audit carry their source, show it on the kanban card, and the server raises
   at most one open task per finding — the "Red-tag tasks" button used to double

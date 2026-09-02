@@ -29,8 +29,10 @@ import {
   Upload,
   UserCheck,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../common/Button';
 import Card from '../common/Card';
+import PhotoEvidence from '../common/PhotoEvidence';
 import { fiveSLayoutService } from '../../services/fiveSLayout.service';
 import { operationsService } from '../../services/operations.service';
 import { peopleService } from '../../services/people.service';
@@ -479,6 +481,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
    * laying the map out. 'condition' paints it by its last audit score, which
    * is what a manager wants: one glance showing where to walk today.
    */
+  const { t } = useTranslation();
   const [colorMode, setColorMode] = useState<'plan' | 'condition'>('plan');
   const [selectedZoneId, setSelectedZoneId] = useState('');
   const [selectedObjectId, setSelectedObjectId] = useState('');
@@ -2545,6 +2548,17 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                             onChange={(event) => updateSelectedZoneRedTag(redTag.id, { disposition: event.target.value })}
                           />
                         </label>
+                        <div className="mt-3">
+                          {/* A red tag is a claim until there is a picture of
+                              the item, and a fix is unproven until the after
+                              shot sits beside the before one. */}
+                          <PhotoEvidence
+                            ownerType="five_s_red_tag"
+                            ownerId={redTag.id}
+                            kinds={['before', 'after']}
+                            label={t('photos.evidenceLabel')}
+                          />
+                        </div>
                         {redTag.closedAt && <div className="mt-2 text-xs text-gray-500">Closed {redTag.closedAt}</div>}
                       </div>
                     ))}
@@ -2563,6 +2577,17 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     onChange={(event) => updateZone(selectedZone.id, { contents: event.target.value })}
                   />
                 </label>
+                <div className="space-y-2">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{t('photos.standard')}</div>
+                  {/* A written standard describes the state; the photograph is
+                      what an auditor actually compares the area against. */}
+                  <PhotoEvidence
+                    ownerType="five_s_zone"
+                    ownerId={selectedZone.id}
+                    kinds={['standard']}
+                    label={t('photos.standard')}
+                  />
+                </div>
                 <label className="block text-sm text-gray-600 dark:text-gray-400">
                   5S standard
                   <textarea

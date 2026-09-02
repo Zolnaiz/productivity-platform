@@ -28,6 +28,9 @@ export const envValidationSchema = Joi.object({
   DB_LOGGING: Joi.boolean().truthy('true').falsy('false').default(false),
   DB_MIGRATIONS_RUN: Joi.boolean().truthy('true').falsy('false').default(false),
   DB_SSL: Joi.boolean().truthy('true').falsy('false').default(false),
+  // Where attachment bytes are written. Relative paths resolve from the
+  // backend's working directory; give a real volume in production.
+  UPLOAD_DIR: Joi.string().default('./uploads'),
   JWT_SECRET: Joi.string().when('NODE_ENV', {
     is: 'production',
     then: Joi.string()

@@ -339,6 +339,19 @@ const mn: Translations<typeof en> = {
    * браузер үгчилнэ. `unknown` нь энэ хувилбарын мэдэхгүй код — хуучин
    * client шинэ API-тай харьцахад тохиолдоно.
    */
+  photos: {
+    before: 'Өмнө',
+    after: 'Дараа',
+    evidence: 'Нотолгоо',
+    standard: 'Стандарт',
+    add: 'Зураг нэмэх',
+    uploading: 'Байршуулж байна...',
+    shotAlt: '{{kind}} зураг: {{name}}',
+    remove: '{{kind}} зургийг устгах',
+    removeTitle: 'Зураг устгах',
+    removeMessage: '{{name}} устана. Үүнийг буцаах боломжгүй.',
+    evidenceLabel: 'Зургийн нотолгоо',
+  },
   errors: {
     AUTH_INVALID_CREDENTIALS: 'И-мэйл эсвэл нууц үг буруу байна.',
     AUTH_ACCOUNT_INACTIVE: 'Энэ бүртгэлийг идэвхгүй болгосон байна. Workspace-ийн админтай холбогдоно уу.',
@@ -351,6 +364,8 @@ const mn: Translations<typeof en> = {
     ACCESS_DENIED: 'Танд энэ хэсэгт хандах эрх байхгүй байна.',
     RESOURCE_NOT_FOUND: 'Тухайн бичлэг олдсонгүй. Устгагдсан байж болзошгүй.',
     VALIDATION_FAILED: 'Тэмдэглэсэн талбаруудыг шалгаад дахин оролдоно уу.',
+    UNSUPPORTED_FILE_TYPE: 'Зөвхөн зураг болон PDF файл хавсаргах боломжтой.',
+    FILE_TOO_LARGE: 'Файл хэт том байна. 12 MB-аас бага файл хавсаргана уу.',
     METRICS_DISABLED: 'Metrics эндпойнт унтраалттай байна.',
     INTERNAL_ERROR: 'Сервер дээр алдаа гарлаа. Хэсэг хүлээгээд дахин оролдоно уу.',
     offline: 'Сервер рүү холбогдож чадсангүй. Холболтоо шалгаад дахин оролдоно уу.',

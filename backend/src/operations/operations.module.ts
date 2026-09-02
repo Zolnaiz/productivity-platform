@@ -13,9 +13,12 @@ import { AssessmentResponse } from './entities/assessment-response.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
+import { Attachment } from './entities/attachment.entity';
 import { OperationsController } from './operations.controller';
 import { OperationsService } from './operations.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
+import { AttachmentsController } from './attachments.controller';
+import { AttachmentsService } from './attachments.service';
 
 @Module({
   imports: [
@@ -38,10 +41,11 @@ import { OperationsAuthGuard } from './guards/operations-auth.guard';
       ExpenseItem,
       DailyGoal,
       FiveSLayout,
+      Attachment,
     ]),
   ],
-  controllers: [OperationsController],
-  providers: [OperationsService, OperationsAuthGuard],
-  exports: [OperationsService],
+  controllers: [OperationsController, AttachmentsController],
+  providers: [OperationsService, AttachmentsService, OperationsAuthGuard],
+  exports: [OperationsService, AttachmentsService],
 })
 export class OperationsModule {}
