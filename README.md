@@ -180,6 +180,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Frontend operations mutations strip client-owned `id` and `organizationId` before real backend calls.
 - Frontend demo/local storage data recovers from corrupted browser storage instead of crashing the app.
 - Frontend module pages use explicit loading and empty states for operations, admin, people, quality, reports, and personal-productivity flows.
+- Charts expose their figures as a table, so the values are available to screen readers and to anyone who prefers to read them.
 - Production Docker config validates required secrets before startup and includes the `admin-web` static container.
 - Auth responses are normalized between backend JWT contracts and frontend role guards.
 - JWT lifetime and refresh secret settings are read through validated backend configuration.
@@ -187,7 +188,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 81 passing
-- Frontend tests: 122 passing
+- Frontend tests: 126 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing
 - Frontend lint/build/audit passing

@@ -174,6 +174,12 @@ const en = {
     emptyTitle: 'No departments yet',
     emptyDescription: 'Create departments so users, reports and audits can be grouped by team.',
   },
+  charts: {
+    showTable: 'Show as table',
+    showChart: 'Show as chart',
+    category: 'Category',
+    value: 'Value',
+  },
   analytics: {
     title: 'Analytics',
     subtitle: 'Productivity, project progress, task completion, assessment scores, and department workload.',
@@ -193,6 +199,10 @@ const en = {
     members: 'Members',
     responses: 'Responses',
     focusArea: 'Focus area',
+    project: 'Project',
+    progress: 'Progress',
+    status: 'Status',
+    tasks: 'Tasks',
     noProjectsTitle: 'No project data yet',
     noProjectsDescription: 'Project progress analytics will appear after projects are created.',
     noTasksTitle: 'No task data yet',

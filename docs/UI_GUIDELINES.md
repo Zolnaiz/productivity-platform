@@ -139,6 +139,12 @@ hue; the ordinal ramp only for genuinely ordered categories; direct-label the
 values; keep labels in ink colours; run the validator against both card
 surfaces.
 
+Every chart carries a table of the same figures, and the chart itself is
+`aria-hidden` — so the numbers are read once, from the table, rather than as
+loose SVG text. A "Show as table" toggle switches which one is visible. Name the
+measure with `valueLabel`: a column headed "Value" tells a reader nothing that
+"Progress" or "Tasks" would not.
+
 ## Dark mode
 
 Every colour needs its dark counterpart — `dark:` on borders, backgrounds and

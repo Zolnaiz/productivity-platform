@@ -110,7 +110,13 @@ const AnalyticsPage: React.FC = () => {
       <div className="grid gap-6 xl:grid-cols-2">
         <Card title={t('analytics.projectProgress')} subtitle={t('analytics.projectProgressSubtitle')}>
           {projectProgress.length ? (
-            <HorizontalBarChart data={projectProgress} unit="%" maxValue={100} />
+            <HorizontalBarChart
+              data={projectProgress}
+              unit="%"
+              maxValue={100}
+              categoryLabel={t('analytics.project')}
+              valueLabel={t('analytics.progress')}
+            />
           ) : (
             <EmptyState
               icon={BarChart3}
@@ -122,7 +128,14 @@ const AnalyticsPage: React.FC = () => {
 
         <Card title={t('analytics.taskStatusMix')} subtitle={t('analytics.taskStatusSubtitle')}>
           {tasks.length ? (
-            <HorizontalBarChart data={taskStatusMix} colorMode="ordinal" labelWidth={110} allowDecimals={false} />
+            <HorizontalBarChart
+              data={taskStatusMix}
+              colorMode="ordinal"
+              labelWidth={110}
+              allowDecimals={false}
+              categoryLabel={t('analytics.status')}
+              valueLabel={t('analytics.tasks')}
+            />
           ) : (
             <EmptyState
               icon={BarChart3}

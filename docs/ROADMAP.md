@@ -15,9 +15,6 @@
 ## Next Frontend Work
 
 - Add visual regression screenshots for the polished module pages.
-- Give the charts a table view. Values are directly labelled today, so nothing is
-  hover-only, but a table twin is still the accessible equivalent for a reader
-  who cannot use the chart at all.
 - Move the 5S guideline register content out of `FiveSGuidelineRegisters.tsx`.
   Roughly a hundred Mongolian strings are hardcoded there. They are not UI copy
   — they are one organization's 5S standard — so they belong in seeded
@@ -34,6 +31,9 @@
 
 ## Recently Completed Hardening
 
+- Gave the charts a table view. The figures are always in the accessibility
+  tree, the chart itself is hidden from it, and a toggle switches the visual
+  presentation for anyone who would rather read the numbers.
 - Confirmed the remaining actions that destroy or withdraw saved work: the two
   5S guideline register tables, and publishing or archiving an assessment
   template. Template status changes also report failure instead of rejecting

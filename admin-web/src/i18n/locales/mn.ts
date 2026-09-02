@@ -174,6 +174,12 @@ const mn: Translations<typeof en> = {
     emptyTitle: 'Одоогоор хэлтэс алга',
     emptyDescription: 'Хэлтэс үүсгэснээр хэрэглэгч, тайлан, аудитыг багаар бүлэглэх боломжтой.',
   },
+  charts: {
+    showTable: 'Хүснэгтээр харах',
+    showChart: 'Графикаар харах',
+    category: 'Ангилал',
+    value: 'Утга',
+  },
   analytics: {
     title: 'Шинжилгээ',
     subtitle: 'Бүтээмж, төслийн явц, ажлын гүйцэтгэл, үнэлгээний оноо, хэлтсийн ачаалал.',
@@ -193,6 +199,10 @@ const mn: Translations<typeof en> = {
     members: 'Гишүүд',
     responses: 'Хариултууд',
     focusArea: 'Чиглэл',
+    project: 'Төсөл',
+    progress: 'Явц',
+    status: 'Төлөв',
+    tasks: 'Ажлууд',
     noProjectsTitle: 'Төслийн өгөгдөл алга',
     noProjectsDescription: 'Төсөл үүсгэсний дараа төслийн явцын шинжилгээ гарч ирнэ.',
     noTasksTitle: 'Ажлын өгөгдөл алга',
