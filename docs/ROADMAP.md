@@ -23,14 +23,26 @@
 ## Next Mobile Work
 
 - Run `powershell -ExecutionPolicy Bypass -File .\scripts\mobile-verify.ps1`
-  after each change; `flutter analyze` is clean as of 2026-09-01.
-- Add the first Flutter tests. `mobile-flutter` has no test directory, so the
-  mobile workspace is the only one of the three without coverage.
+  after each change; it runs analyze and the tests, and both are clean as of
+  2026-09-02.
+- Extend the mobile tests past the pure logic. Providers, the API service and
+  the screens have no coverage; `auth_provider` is the next one worth having,
+  since login is the path every user takes.
 - Build Phase 1 screens against the real API: login, my tasks, calendar, work
   log, clock in/out.
 
 ## Recently Completed Hardening
 
+- Gave `mobile-flutter` its first tests (40), covering the validators the login,
+  register and profile screens call, the user model's API parsing, and the date
+  formatting the profile screen uses. They found two defects, both fixed:
+  `validateName` rejected every Cyrillic name, so no Mongolian user could
+  complete registration or edit their profile; and `initials` threw a
+  `RangeError` on a name with a double or trailing space, or on the empty user
+  an empty API response produces, crashing the profile avatar.
+- Deleted `mobile-flutter/lib/utils/formatters.dart`. Nothing imported it, and
+  it carried credit-card and SSN masking helpers for a product that handles
+  neither.
 - Gave the charts a table view. The figures are always in the accessibility
   tree, the chart itself is hidden from it, and a toggle switches the visual
   presentation for anyone who would rather read the numbers.

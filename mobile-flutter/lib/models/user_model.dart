@@ -134,14 +134,22 @@ class User {
   String? get profileImageUrl => avatarUrl;
   DateTime? get lastLogin => lastLoginAt;
 
+  /// Letters for the avatar. Drawn on every visit to the profile screen, so it
+  /// must not throw: splitting on a space yields empty parts for a double or
+  /// trailing space, and reading character zero of one used to crash the
+  /// screen. An empty API response produces exactly such a user.
   String get initials {
-    if (fullName.isNotEmpty) {
-      final parts = fullName.split(' ');
-      if (parts.length > 1) {
-        return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-      }
-      return fullName[0].toUpperCase();
+    final words = fullName.split(' ').where((word) => word.isNotEmpty).toList();
+
+    if (words.length > 1) {
+      return '${words[0][0]}${words[1][0]}'.toUpperCase();
     }
-    return username[0].toUpperCase();
+
+    if (words.length == 1) {
+      return words.first[0].toUpperCase();
+    }
+
+    final name = username.trim();
+    return name.isEmpty ? '?' : name[0].toUpperCase();
   }
 }
