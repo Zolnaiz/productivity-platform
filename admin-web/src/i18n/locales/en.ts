@@ -398,6 +398,12 @@ const en = {
   fiveS: {
     title: '5S Setup',
     subtitle: 'Map office and work areas, label each zone, assign responsible owners, and define what belongs there.',
+    deleteImprovement: 'Delete improvement row',
+    deleteImprovementMessage:
+      'This improvement record and everything typed into it will be removed. This cannot be undone.',
+    deleteImplementationCard: 'Delete implementation card',
+    deleteImplementationCardMessage:
+      'This implementation card and everything typed into it will be removed. This cannot be undone.',
   },
   notifications: {
     title: 'Notifications',
@@ -519,6 +525,18 @@ const en = {
     text: 'Text',
     publish: 'Publish',
     archive: 'Archive',
+    archiveTitle: 'Archive template',
+    archiveMessage:
+      'It will stop being offered for new assessments. Existing responses are kept, and you can publish it again later.',
+    publishTitle: 'Publish template',
+    publishMessage: 'It becomes available for people to fill in. You can archive it again later.',
+    statusFailed: 'Could not change the template status.',
+    templateQuestions: '{{count}} questions',
+    noMatchTitle: 'No templates match this filter',
+    noMatchDescription: 'Change the filter to review other checklist templates.',
+    emptyTitle: 'No assessment templates yet',
+    emptyDescription:
+      'Create templates for inspections, quality feedback, safety checks, and operational audits.',
   },
   responses: {
     title: 'Responses',

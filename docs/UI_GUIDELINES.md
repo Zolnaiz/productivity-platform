@@ -98,12 +98,25 @@ styling with text fields, and for link-styled actions inside a table row.
 
 ## Destructive actions
 
-Anything that destroys server data confirms first, through `ConfirmDialog` with
+Anything that destroys saved work confirms first, through `ConfirmDialog` with
 `destructive`. Name the record in the message and say what is lost. Disable the
 confirm button while the request is in flight so a double click cannot fire two
 deletes.
 
-Actions with a real undo — the 5S canvas — do not need a dialog.
+Two kinds of action confirm *without* `destructive`, because they change who can
+reach something rather than destroying it — publishing a template, archiving
+one. Say what changes and that it can be changed back.
+
+Two kinds do not confirm at all:
+
+- **Actions with a real undo.** The 5S canvas keeps fifty steps of history, so a
+  dialog on every delete would be noise.
+- **Edits to something not yet saved.** Removing a question while building a
+  template changes a draft in memory; re-adding it is the undo.
+
+The test is whether a misclick loses work the person cannot get back. A row in
+the 5S guideline registers is written to storage as it is typed and has no
+history, so it confirms; the same trash icon on the canvas does not.
 
 ## Copy
 

@@ -9,8 +9,10 @@ import {
   Tag,
   Trash2,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../common/Button';
 import Card from '../common/Card';
+import ConfirmDialog from '../common/ConfirmDialog';
 import { fiveSGuidelineService } from '../../services/fiveSGuideline.service';
 import {
   FiveSAssessmentScore,
@@ -204,9 +206,14 @@ const downloadCsv = (filename: string, headers: string[], rows: Array<Array<stri
   URL.revokeObjectURL(url);
 };
 
+/** Which row the trash icon was clicked on, and which register it belongs to. */
+type PendingRemoval = { kind: 'improvement' | 'implementationCard'; id: string };
+
 const FiveSGuidelineRegisters: React.FC = () => {
+  const { t } = useTranslation();
   const [state, setState] = useState<FiveSGuidelineState>(() => fiveSGuidelineService.getState());
   const [actionMessage, setActionMessage] = useState('');
+  const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(null);
 
   const scoreById = useMemo(
     () => new Map(state.assessmentScores.map((score) => [score.id, score])),
@@ -256,6 +263,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
       ...current,
       improvements: current.improvements.filter((item) => item.id !== id),
     }));
+    setActionMessage('5S improvement row removed.');
   };
 
   const addImplementationCard = () => {
@@ -278,6 +286,21 @@ const FiveSGuidelineRegisters: React.FC = () => {
       ...current,
       implementationCards: current.implementationCards.filter((item) => item.id !== id),
     }));
+    setActionMessage('1C/2C/3C implementation card removed.');
+  };
+
+  // A row is written to storage the moment it changes and there is no undo
+  // here, unlike the canvas — so a typed-in record is confirmed before it goes.
+  const confirmRemoval = () => {
+    if (!pendingRemoval) return;
+
+    if (pendingRemoval.kind === 'improvement') {
+      removeImprovement(pendingRemoval.id);
+    } else {
+      removeImplementationCard(pendingRemoval.id);
+    }
+
+    setPendingRemoval(null);
   };
 
   const updateAssessmentScore = (id: string, patch: Partial<FiveSAssessmentScore>) => {
@@ -507,7 +530,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
                     </select>
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <Button variant="ghost" size="sm" icon={Trash2} onClick={() => removeImprovement(item.id)} aria-label="Delete improvement row" type="button" />
+                    <Button variant="ghost" size="sm" icon={Trash2} onClick={() => setPendingRemoval({ kind: 'improvement', id: item.id })} aria-label={t('fiveS.deleteImprovement')} type="button" />
                   </td>
                 </tr>
               ))}
@@ -596,7 +619,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
                     </select>
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <Button variant="ghost" size="sm" icon={Trash2} onClick={() => removeImplementationCard(item.id)} aria-label="Delete implementation card" type="button" />
+                    <Button variant="ghost" size="sm" icon={Trash2} onClick={() => setPendingRemoval({ kind: 'implementationCard', id: item.id })} aria-label={t('fiveS.deleteImplementationCard')} type="button" />
                   </td>
                 </tr>
               ))}
@@ -740,6 +763,25 @@ const FiveSGuidelineRegisters: React.FC = () => {
           ))}
         </div>
       </Card>
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingRemoval)}
+        title={
+          pendingRemoval?.kind === 'implementationCard'
+            ? t('fiveS.deleteImplementationCard')
+            : t('fiveS.deleteImprovement')
+        }
+        message={
+          pendingRemoval?.kind === 'implementationCard'
+            ? t('fiveS.deleteImplementationCardMessage')
+            : t('fiveS.deleteImprovementMessage')
+        }
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        onConfirm={confirmRemoval}
+        onCancel={() => setPendingRemoval(null)}
+      />
     </div>
   );
 };

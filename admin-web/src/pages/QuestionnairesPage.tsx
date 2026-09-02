@@ -3,11 +3,13 @@ import { ClipboardList, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Button from "../components/common/Button";
 import Card from "../components/common/Card";
+import ConfirmDialog from "../components/common/ConfirmDialog";
 import EmptyState from "../components/common/EmptyState";
 import Input from "../components/common/Input";
 import Select from "../components/common/Select";
 import Textarea from "../components/common/Textarea";
 import { assessmentService } from "../services/assessment.service";
+import { apiErrorMessage } from "../i18n/apiError";
 import {
   AssessmentQuestion,
   AssessmentTemplate,
@@ -96,6 +98,12 @@ const QuestionnairesPage: React.FC = () => {
   const [templates, setTemplates] = useState<AssessmentTemplate[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<{
+    template: AssessmentTemplate;
+    status: AssessmentTemplate["status"];
+  } | null>(null);
+  const [savingStatus, setSavingStatus] = useState(false);
   const [draft, setDraft] = useState({
     title: "",
     description: "",
@@ -156,16 +164,30 @@ const QuestionnairesPage: React.FC = () => {
     });
   };
 
+  // Publishing opens a template to everyone; archiving withdraws one people may
+  // be part-way through. Both are reversible, so they confirm without the
+  // destructive styling.
   const updateStatus = async (
     template: AssessmentTemplate,
     status: AssessmentTemplate["status"],
   ) => {
-    const updated = await assessmentService.updateTemplate(template.id, {
-      status,
-    });
-    setTemplates((current) =>
-      current.map((item) => (item.id === template.id ? updated : item)),
-    );
+    setSavingStatus(true);
+    setStatusError(null);
+
+    try {
+      const updated = await assessmentService.updateTemplate(template.id, {
+        status,
+      });
+      setTemplates((current) =>
+        current.map((item) => (item.id === template.id ? updated : item)),
+      );
+      setPendingStatus(null);
+    } catch (error) {
+      setStatusError(apiErrorMessage(error, t));
+      setPendingStatus(null);
+    } finally {
+      setSavingStatus(false);
+    }
   };
 
   const applyPreset = (preset: (typeof templatePresets)[number]) => {
@@ -231,6 +253,12 @@ const QuestionnairesPage: React.FC = () => {
           <option value="safety">{t("assessments.safety")}</option>
         </Select>
       </div>
+
+      {statusError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+          {statusError}
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
@@ -453,14 +481,18 @@ const QuestionnairesPage: React.FC = () => {
                     {template.industry}
                   </span>
                   <span className="rounded-full bg-gray-50 px-2 py-1 text-gray-600 dark:bg-gray-900 dark:text-gray-300">
-                    {template.questions.length} questions
+                    {t("assessments.templateQuestions", {
+                      count: template.questions.length,
+                    })}
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {template.status !== "published" && (
                     <button
                       className="text-sm font-medium text-green-600"
-                      onClick={() => updateStatus(template, "published")}
+                      onClick={() =>
+                        setPendingStatus({ template, status: "published" })
+                      }
                       type="button"
                     >
                       {t("assessments.publish")}
@@ -469,7 +501,9 @@ const QuestionnairesPage: React.FC = () => {
                   {template.status !== "archived" && (
                     <button
                       className="text-sm font-medium text-gray-600"
-                      onClick={() => updateStatus(template, "archived")}
+                      onClick={() =>
+                        setPendingStatus({ template, status: "archived" })
+                      }
                       type="button"
                     >
                       {t("assessments.archive")}
@@ -484,17 +518,48 @@ const QuestionnairesPage: React.FC = () => {
             icon={ClipboardList}
             title={
               templates.length
-                ? "No templates match this filter"
-                : "No assessment templates yet"
+                ? t("assessments.noMatchTitle")
+                : t("assessments.emptyTitle")
             }
             description={
               templates.length
-                ? "Change the filter to review other checklist templates."
-                : "Create templates for inspections, quality feedback, safety checks, and operational audits."
+                ? t("assessments.noMatchDescription")
+                : t("assessments.emptyDescription")
             }
           />
         )}
       </Card>
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingStatus)}
+        title={
+          pendingStatus?.status === "archived"
+            ? t("assessments.archiveTitle")
+            : t("assessments.publishTitle")
+        }
+        message={
+          <>
+            <strong className="text-gray-900 dark:text-white">
+              {pendingStatus?.template.title}
+            </strong>{" "}
+            {pendingStatus?.status === "archived"
+              ? t("assessments.archiveMessage")
+              : t("assessments.publishMessage")}
+          </>
+        }
+        confirmLabel={
+          pendingStatus?.status === "archived"
+            ? t("assessments.archive")
+            : t("assessments.publish")
+        }
+        cancelLabel={t("common.cancel")}
+        loading={savingStatus}
+        onConfirm={() =>
+          pendingStatus &&
+          updateStatus(pendingStatus.template, pendingStatus.status)
+        }
+        onCancel={() => setPendingStatus(null)}
+      />
     </div>
   );
 };

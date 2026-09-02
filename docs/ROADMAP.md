@@ -15,9 +15,6 @@
 ## Next Frontend Work
 
 - Add visual regression screenshots for the polished module pages.
-- Extend `ConfirmDialog` to the remaining destructive actions. Only project
-  deletion is confirmed so far; the register rows in the 5S guideline tables and
-  template archiving are still one click.
 - Give the charts a table view. Values are directly labelled today, so nothing is
   hover-only, but a table twin is still the accessible equivalent for a reader
   who cannot use the chart at all.
@@ -37,6 +34,11 @@
 
 ## Recently Completed Hardening
 
+- Confirmed the remaining actions that destroy or withdraw saved work: the two
+  5S guideline register tables, and publishing or archiving an assessment
+  template. Template status changes also report failure instead of rejecting
+  silently. The 5S canvas keeps its one-click delete, because it has undo, and
+  removing a question from an unsaved draft stays immediate.
 - Gave the API stable error codes and translated them in the browser, so a
   failure is reported in the workspace language instead of English prose. Fixed
   the sign-in path, which reported "check that the backend API is running" for
