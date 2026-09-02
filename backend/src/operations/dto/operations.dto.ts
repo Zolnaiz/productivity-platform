@@ -440,6 +440,11 @@ export class CreateAuditRunDto extends OrganizationScopedDto {
   @IsUUID()
   projectId?: string;
 
+  /** Zone ids come from the floor plan JSON, not the database, so not a UUID. */
+  @IsOptional()
+  @IsString()
+  zoneId?: string;
+
   @IsOptional()
   @IsString()
   location?: string;

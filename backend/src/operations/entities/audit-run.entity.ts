@@ -18,6 +18,17 @@ export class AuditRun extends BaseEntity {
   @Column({ type: 'uuid', name: 'project_id', nullable: true })
   projectId?: string;
 
+  /**
+   * The 5S zone this run audited, as an id from the organization's floor plan.
+   *
+   * `location` was free text, so a score could never find its way back to the
+   * map. With a real reference, submitting a run updates the zone's condition
+   * and the floor plan becomes a live status board rather than a drawing.
+   */
+  @Column({ name: 'zone_id', nullable: true })
+  zoneId?: string;
+
+  /** Free-text place, for audits that are not tied to a mapped zone. */
   @Column({ nullable: true })
   location?: string;
 

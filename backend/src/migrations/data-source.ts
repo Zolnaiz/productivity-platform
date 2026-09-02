@@ -19,6 +19,12 @@ export default new DataSource({
   database: process.env.DB_DATABASE || 'questionnaire_db',
   ssl: toBoolean(process.env.DB_SSL, false),
   entities: [],
+  // Only the operations-platform migrations run. The two 1700000000xxx files
+  // belong to the legacy questionnaire schema and are deliberately excluded.
+  //
+  // These are filename globs, so a migration whose name matches neither pattern
+  // is silently never applied — which is how the 5S layout tables went missing
+  // from every real database. Name new migrations *Operations* or *Runtime*.
   migrations: ['src/migrations/*Runtime*.ts', 'src/migrations/*Operations*.ts'],
   synchronize: false,
   logging: toBoolean(process.env.DB_LOGGING, false),

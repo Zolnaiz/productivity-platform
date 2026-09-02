@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chartTheme, ordinalRamp, seriesHue } from './palette';
+import { auditBandFor, auditBands, chartTheme, ordinalRamp, seriesHue } from './palette';
 
 // Relative luminance per WCAG, used to assert the ramp really reads light→dark
 // and that marks stay visible against the surface they render on.
@@ -60,5 +60,32 @@ describe('chart palette', () => {
       expect(inkValues).not.toContain(theme.series);
       theme.ordinal.forEach((step) => expect(inkValues).not.toContain(step));
     });
+  });
+});
+
+describe('audit condition bands', () => {
+  it('places a score in the band a 5S practitioner would read it in', () => {
+    expect(auditBandFor(100)).toBe('good');
+    expect(auditBandFor(85)).toBe('good');
+    expect(auditBandFor(84)).toBe('watch');
+    expect(auditBandFor(70)).toBe('watch');
+    expect(auditBandFor(69)).toBe('poor');
+    expect(auditBandFor(0)).toBe('poor');
+  });
+
+  it('treats a zone with no audit as unknown, not as failing', () => {
+    // Absence of a score is absence of data. Painting it red would invent a
+    // finding nobody made.
+    expect(auditBandFor(undefined)).toBe('none');
+    expect(auditBandFor(Number.NaN)).toBe('none');
+  });
+
+  it('keeps a real zero as a score rather than as missing data', () => {
+    expect(auditBandFor(0)).not.toBe('none');
+  });
+
+  it('gives every band a distinct colour', () => {
+    const values = Object.values(auditBands);
+    expect(new Set(values).size).toBe(values.length);
   });
 });

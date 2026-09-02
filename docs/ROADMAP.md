@@ -12,6 +12,19 @@
   error messages, this is organization data rather than UI copy, so it belongs
   in the seed per organization rather than in the locale files.
 
+## Next 5S Work
+
+- Make every finding a task. A red tag carries owner, due date and status but is
+  not a task, so 5S work appears in nobody's list. Same for an improvement
+  record's action plan and a failed audit answer.
+- Add photo support. There is no file upload anywhere in the backend, and every
+  serious 5S tool is photo-first: the before shot is the evidence, the after
+  shot is the proof. Without it an audit score is an opinion.
+- Show a zone's history when it is clicked: score trend, open findings, what was
+  fixed last month. The data exists once runs reference zones.
+- Use `auditFrequency`, which every zone declares and nothing reads. A lapsed
+  zone should mark itself on the map and raise its own audit.
+
 ## Next Frontend Work
 
 - Add visual regression screenshots for the polished module pages.
@@ -33,6 +46,13 @@
 
 ## Recently Completed Hardening
 
+- Closed the first joint of the 5S loop: an audit run now references the zone
+  it audited, and submitting one writes the score, date and a frozen baseline
+  onto that zone server-side. The floor plan can colour zones by audit
+  condition, so the map shows measured state rather than chosen colours. See
+  [DECISIONS.md](DECISIONS.md).
+- Fixed the migration glob, which silently skipped both 5S layout migrations —
+  `five_s_layouts` was never created in any real database.
 - Gave `mobile-flutter` its first tests (40), covering the validators the login,
   register and profile screens call, the user model's API parsing, and the date
   formatting the profile screen uses. They found two defects, both fixed:

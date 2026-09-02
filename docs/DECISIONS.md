@@ -8,6 +8,60 @@ Newest first.
 
 ---
 
+## 2026-09-02 — An audit scores a zone, and the map reads the score
+
+**Decision.** `AuditRun` carries a `zoneId` referencing a zone on the
+organization's 5S floor plan. Submitting a non-draft run writes that score and
+date onto the zone, server-side, and freezes the first score as a baseline. The
+floor plan can then paint zones by condition instead of by a chosen colour.
+
+**Why.** The four objects of a lean cycle — zone, finding, action, verification
+— all existed, but nothing joined them. `AuditRun.location` was free text, so a
+score could never be matched back to a place. The client worked around this by
+parsing the string (`location.split('-')[0]`) and comparing it to a zone code,
+which silently did nothing whenever someone typed the location differently, and
+was a read-modify-write of the whole plan that could overwrite a concurrent
+edit. Fixing it in the browser would also have left the mobile app out.
+
+**Consequences.**
+- The audit form picks a zone rather than typing a place, so the match cannot
+  fail. `location` remains for audits of places not on the map, and so a run
+  still reads sensibly after a zone is renamed or deleted.
+- Draft runs do not touch the map: a half-finished checklist should not repaint
+  it. A run whose zone has been deleted still records — the audit is history
+  even when the place is gone.
+- The condition palette is a status scale, not a sequential ramp, because
+  practitioners read scores in bands. Validated against the map surface (white
+  in both themes) and never the only signal: every zone prints its score.
+- Zone ids live in the layout's JSON rather than a table, so `zoneId` is a
+  string, not a UUID foreign key. A deleted zone is therefore possible and is
+  handled rather than prevented.
+
+**Rules out.** Matching a record to a place by parsing its display text.
+
+---
+
+## 2026-09-02 — Migrations must be named for the glob that loads them
+
+**Decision.** Every operations-platform migration filename contains
+`Operations` or `Runtime`, which is what `data-source.ts` globs for.
+
+**Why.** The two 5S layout migrations were named `CreateFiveSLayoutsTable` and
+`AddFiveSLayoutBackgroundFields`, matching neither pattern, so they never ran.
+`five_s_layouts` was missing from every real database — the flagship feature
+had no table, and the runtime smoke did not catch it because it only exercises
+projects.
+
+**Consequences.**
+- Renaming a migration file is safe: TypeORM records the class name, which did
+  not change.
+- The legacy `1700000000xxx` migrations remain deliberately excluded; they
+  belong to the questionnaire schema this project grew out of.
+
+**Rules out.** Adding a migration whose filename matches neither pattern.
+
+---
+
 ## 2026-09-02 — The API names failures with a code; the client supplies the words
 
 **Decision.** Every error response carries an `errorCode` — a stable identifier

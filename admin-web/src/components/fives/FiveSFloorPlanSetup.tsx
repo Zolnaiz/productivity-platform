@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AUDIT_PASSING_SCORE,
+  AUDIT_URGENT_SCORE,
+  auditBandFor,
+  auditBands,
+} from '../charts/palette';
+import {
   AlertTriangle,
   ArrowRight,
   CalendarCheck,
@@ -468,6 +474,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 }) => {
   const [plan, setPlan] = useState<FiveSLayoutPlan | null>(null);
   const [users, setUsers] = useState<TeamUser[]>([]);
+  /**
+   * 'plan' paints each zone the colour someone chose for it — right while
+   * laying the map out. 'condition' paints it by its last audit score, which
+   * is what a manager wants: one glance showing where to walk today.
+   */
+  const [colorMode, setColorMode] = useState<'plan' | 'condition'>('plan');
   const [selectedZoneId, setSelectedZoneId] = useState('');
   const [selectedObjectId, setSelectedObjectId] = useState('');
   const [statusFilter, setStatusFilter] = useState<ZoneStatusFilter>('all');
@@ -1658,7 +1670,38 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             />
             Grid
           </label>
+          <label className="flex items-center gap-2 self-end rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 dark:border-gray-700 dark:text-gray-300">
+            <input
+              className="h-4 w-4 rounded border-gray-300 text-blue-600"
+              type="checkbox"
+              checked={colorMode === 'condition'}
+              onChange={(event) => setColorMode(event.target.checked ? 'condition' : 'plan')}
+            />
+            Colour by audit score
+          </label>
         </div>
+
+        {colorMode === 'condition' && (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:text-gray-300">
+            {(
+              [
+                ['good', `Passing (${AUDIT_PASSING_SCORE}%+)`],
+                ['watch', `Below pass (${AUDIT_URGENT_SCORE}–${AUDIT_PASSING_SCORE - 1}%)`],
+                ['poor', `Needs attention (under ${AUDIT_URGENT_SCORE}%)`],
+                ['none', 'Not audited yet'],
+              ] as const
+            ).map(([band, label]) => (
+              <span key={band} className="flex items-center gap-2">
+                <span
+                  className="h-3 w-3 rounded-full"
+                  style={{ backgroundColor: auditBands[band] }}
+                  aria-hidden="true"
+                />
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className={`grid gap-4 md:grid-cols-3 ${showAuditControls ? 'xl:grid-cols-7' : 'xl:grid-cols-5'}`}>
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
@@ -2090,6 +2133,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               {plan.zones.map((zone) => {
                 const selected = zone.id === selectedZoneId;
                 const focused = filteredZoneIds.has(zone.id);
+                // In condition mode the colour carries the audit score, so it
+                // stops being decoration and starts being the reading.
+                const paint =
+                  colorMode === 'condition'
+                    ? auditBands[auditBandFor(zone.lastAuditScore)]
+                    : zone.color;
                 return (
                   <g key={zone.id} opacity={focused ? 1 : 0.22}>
                     <rect
@@ -2098,14 +2147,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       width={zone.width}
                       height={zone.height}
                       rx="8"
-                      fill={`${zone.color}24`}
-                      stroke={selected ? '#111827' : zone.color}
+                      fill={`${paint}24`}
+                      stroke={selected ? '#111827' : paint}
                       strokeWidth={selected ? 3 : 2}
                       strokeDasharray={selected ? '0' : '8 6'}
                       className="cursor-move"
                       onPointerDown={(event) => handleZonePointerDown(event, zone)}
                     />
-                    <circle cx={zone.x + 24} cy={zone.y + 24} r="18" fill={zone.color} />
+                    <circle cx={zone.x + 24} cy={zone.y + 24} r="18" fill={paint} />
                     <text
                       x={zone.x + 24}
                       y={zone.y + 29}
@@ -2122,7 +2171,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     </text>
                     <text x={zone.x + 18} y={zone.y + zone.height - 18} className="fill-gray-700 text-[12px]">
                       {stageLabels[zone.stage]}
-                      {showAuditControls && zone.lastAuditScore !== undefined ? ` / ${zone.lastAuditScore}%` : ''}
+                      {/* The score is printed whenever it exists, so colour is
+                          never the only thing carrying the reading. */}
+                      {zone.lastAuditScore !== undefined ? ` / ${zone.lastAuditScore}%` : ''}
                     </text>
                     {getRedTagCount(zone) > 0 && (
                       <g>

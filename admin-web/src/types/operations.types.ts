@@ -77,6 +77,9 @@ export interface AuditRun {
   templateId: string;
   auditorId?: string;
   projectId?: string;
+  /** The 5S zone audited. The server writes this run's score onto that zone. */
+  zoneId?: string;
+  /** Human-readable place, kept so a run still reads well if the zone is gone. */
   location?: string;
   answers: Array<{
     questionId: string;

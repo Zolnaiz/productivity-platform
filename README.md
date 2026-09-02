@@ -161,6 +161,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Swagger is disabled in production unless `ENABLE_SWAGGER=true`.
 - Public operations access is disabled by default.
 - Operations API data is scoped by `organizationId`.
+- Submitting an audit run writes its score onto the referenced 5S zone, so the area map shows measured condition rather than chosen colours.
 - Operations updates preserve the original organization scope and ignore payload attempts to move records across organizations.
 - Operations API supports scoped project soft-delete and the runtime smoke cleans up its write test project.
 - Runtime PostgreSQL smoke uses a seeded organization/user and validates real `/auth/login` JWT flow before exercising operations writes.
@@ -187,8 +188,8 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 81 passing
-- Frontend tests: 126 passing
+- Backend tests: 88 passing
+- Frontend tests: 130 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

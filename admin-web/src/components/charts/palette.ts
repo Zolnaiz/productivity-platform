@@ -31,6 +31,42 @@ export const ordinalRamp = {
   dark: ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf'],
 } as const;
 
+/**
+ * Condition bands for a 5S audit score, used to colour zones on the area map.
+ *
+ * A score is not a magnitude to be ramped — practitioners read it in bands, so
+ * this is a status scale, not a sequential one. Validated as a categorical set
+ * against the map surface, which is white in both themes:
+ *
+ *   CVD separation   worst adjacent pair ΔE 19.9 (protan), 30.4 (tritan)
+ *   normal vision    worst adjacent pair ΔE 29.1
+ *
+ * Never the only signal: the zone prints its score as text beside the colour,
+ * and `auditBandLabel` names the band for anyone who cannot use either.
+ */
+export const auditBands = {
+  /** At or above the 5S pass mark. */
+  good: '#0d7f56',
+  /** Below the pass mark — corrective work is already raised. */
+  watch: '#e0a800',
+  /** Well below. Needs attention this week, not next. */
+  poor: '#9e1f1a',
+  /** Never audited. Absence of data, not a bad result — so no band colour. */
+  none: '#8a8d91',
+} as const;
+
+export const AUDIT_PASSING_SCORE = 85;
+export const AUDIT_URGENT_SCORE = 70;
+
+export type AuditBand = keyof typeof auditBands;
+
+export const auditBandFor = (score?: number): AuditBand => {
+  if (score === undefined || score === null || Number.isNaN(score)) return 'none';
+  if (score >= AUDIT_PASSING_SCORE) return 'good';
+  if (score >= AUDIT_URGENT_SCORE) return 'watch';
+  return 'poor';
+};
+
 /** Chrome and ink. Labels never wear a series colour. */
 export const chartInk = {
   light: {

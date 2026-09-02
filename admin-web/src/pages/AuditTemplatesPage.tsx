@@ -7,15 +7,25 @@ import Select from '../components/common/Select';
 import { fiveSLayoutService } from '../services/fiveSLayout.service';
 import { operationsService } from '../services/operations.service';
 import { AuditRun, AuditTemplate } from '../types/operations.types';
+import { FiveSZone } from '../types/fiveS.types';
 
 type Answers = Record<string, string>;
+
+/**
+ * A run below this score raises corrective work. 85 is the common 5S pass mark;
+ * below 70 the area needs attention this week rather than next.
+ */
+const PASSING_SCORE = 85;
+const URGENT_SCORE = 70;
+const CORRECTIVE_DUE_DAYS = 7;
 
 const AuditTemplatesPage: React.FC = () => {
   const { t } = useTranslation();
   const [templates, setTemplates] = useState<AuditTemplate[]>([]);
   const [runs, setRuns] = useState<AuditRun[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
-  const [location, setLocation] = useState('');
+  const [zoneId, setZoneId] = useState('');
+  const [zones, setZones] = useState<FiveSZone[]>([]);
   const [answers, setAnswers] = useState<Answers>({});
   const [actionMessage, setActionMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -28,15 +38,17 @@ const AuditTemplatesPage: React.FC = () => {
 
     const loadAudits = async () => {
       try {
-        const [templateItems, runItems] = await Promise.all([
+        const [templateItems, runItems, plan] = await Promise.all([
           operationsService.getAuditTemplates(),
           operationsService.getAuditRuns(),
+          fiveSLayoutService.getPlan(),
         ]);
 
         if (!active) return;
         setTemplates(templateItems);
         setSelectedTemplateId(templateItems[0]?.id || '');
         setRuns(runItems);
+        setZones(plan.zones);
       } catch {
         if (active) setError(t('auditTemplates.loadFailed'));
       } finally {
@@ -92,53 +104,38 @@ const AuditTemplatesPage: React.FC = () => {
     return possible ? Math.round((earned / possible) * 100) : 0;
   }, [answers, selectedTemplate]);
 
-  const createCorrectiveTask = async (run: AuditRun, templateTitle: string) => {
-    const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const createCorrectiveTask = async (run: AuditRun, templateTitle: string, place: string) => {
+    const dueDate = new Date(Date.now() + CORRECTIVE_DUE_DAYS * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+
     await operationsService.createTask({
-      title: `Corrective action: ${templateTitle} at ${run.location || 'audit location'}`,
-      description: `Audit score was ${run.score}%. Review failed checklist items and record improvement work.`,
+      title: t('auditTemplates.correctiveTitle', { template: templateTitle, place }),
+      description: t('auditTemplates.correctiveDescription', { score: run.score }),
       status: 'todo',
-      priority: run.score < 70 ? 'high' : 'medium',
+      priority: run.score < URGENT_SCORE ? 'high' : 'medium',
       dueDate,
       estimatedHours: 2,
       actualHours: 0,
     });
-    setActionMessage(`Corrective action task created for ${run.location || templateTitle}.`);
+
+    setActionMessage(t('auditTemplates.correctiveCreated', { place }));
   };
 
-  const updateFloorPlanAuditScore = async (run: AuditRun) => {
-    const zoneCode = run.location?.split('-')[0]?.trim();
-    if (!zoneCode) return false;
-
-    const plan = await fiveSLayoutService.getPlan();
-    let matched = false;
-    const zones = plan.zones.map((zone) => {
-      if (zone.code !== zoneCode) return zone;
-      matched = true;
-      return {
-        ...zone,
-        lastAuditScore: run.score,
-        lastAuditAt: new Date().toISOString().slice(0, 10),
-      };
-    });
-
-    if (!matched) return false;
-
-    await fiveSLayoutService.savePlan({
-      ...plan,
-      zones,
-    });
-    return true;
-  };
 
   const submitAudit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedTemplate) return;
 
+    const zone = zones.find((item) => item.id === zoneId);
+
     const auditRun: AuditRun = {
       id: `local-audit-${Date.now()}`,
       templateId: selectedTemplate.id,
-      location,
+      zoneId: zoneId || undefined,
+      // Kept for audits of places that are not on the map, and so a run still
+      // reads sensibly in a list once a zone has been renamed or removed.
+      location: zone ? `${zone.code} - ${zone.name}` : undefined,
       score,
       status: 'submitted',
       answers: selectedTemplate.questions.map((question) => ({
@@ -154,16 +151,19 @@ const AuditTemplatesPage: React.FC = () => {
 
     setRuns((current) => [auditRun, ...current]);
     setAnswers({});
-    setLocation('');
+    setZoneId('');
+
+    const place = auditRun.location || selectedTemplate.title;
+
+    // The server writes the score onto the zone, so the map updates even when
+    // the audit is submitted from the mobile app or a second browser.
     await operationsService.createAuditRun(auditRun);
-    const scoreSynced = await updateFloorPlanAuditScore(auditRun);
-    if (auditRun.score < 85) {
-      await createCorrectiveTask(auditRun, selectedTemplate.title);
+
+    if (auditRun.score < PASSING_SCORE) {
+      await createCorrectiveTask(auditRun, selectedTemplate.title, place);
     } else {
       setActionMessage(
-        scoreSynced
-          ? 'Audit submitted. Zone score updated on the 5S area map.'
-          : 'Audit submitted. No corrective action needed.',
+        zone ? t('auditTemplates.zoneScoreUpdated', { place }) : t('auditTemplates.submitted'),
       );
     }
   };
@@ -224,12 +224,19 @@ const AuditTemplatesPage: React.FC = () => {
                   </option>
                 ))}
               </Select>
-              <Input
-                label={t('auditTemplates.location')}
-                placeholder={t('auditTemplates.locationPlaceholder')}
-                value={location}
-                onChange={(event) => setLocation(event.target.value)}
-              />
+              <Select
+                label={t('auditTemplates.zone')}
+                value={zoneId}
+                onChange={(event) => setZoneId(event.target.value)}
+                helperText={t('auditTemplates.zoneHint')}
+              >
+                <option value="">{t('auditTemplates.noZone')}</option>
+                {zones.map((zone) => (
+                  <option key={zone.id} value={zone.id}>
+                    {zone.code} - {zone.name}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
@@ -370,17 +377,25 @@ const AuditTemplatesPage: React.FC = () => {
                         <div className="font-medium text-gray-900 dark:text-white">
                           {template?.title || 'Audit run'}
                         </div>
-                        <div className="text-sm text-gray-500">{run.location || 'No location'}</div>
+                        <div className="text-sm text-gray-500">
+                          {run.location || t('auditTemplates.noZone')}
+                        </div>
                       </div>
                       <div className="text-lg font-semibold text-blue-600">{run.score}%</div>
                     </div>
-                    {run.score < 85 && (
+                    {run.score < PASSING_SCORE && (
                       <Button
                         className="mt-3 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950/30"
                         variant="outline"
                         size="sm"
                         type="button"
-                        onClick={() => createCorrectiveTask(run, template?.title || 'Audit run')}
+                        onClick={() =>
+                          createCorrectiveTask(
+                            run,
+                            template?.title || t('auditTemplates.auditRuns'),
+                            run.location || t('auditTemplates.noZone'),
+                          )
+                        }
                       >
                         {t('auditTemplates.createCorrectiveTask')}
                       </Button>

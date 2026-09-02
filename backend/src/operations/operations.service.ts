@@ -226,14 +226,68 @@ export class OperationsService {
     });
   }
 
-  createAuditRun(payload: Partial<AuditRun>, user: CurrentUser) {
+  async createAuditRun(payload: Partial<AuditRun>, user: CurrentUser) {
     const run = this.auditRuns.create({
       ...payload,
       organizationId: this.resolveOrganizationId(user, payload.organizationId),
       auditorId: payload.auditorId || user?.id,
       answers: payload.answers || [],
     });
-    return this.auditRuns.save(run);
+
+    const saved = await this.auditRuns.save(run);
+    await this.applyAuditScoreToZone(saved, user);
+
+    return saved;
+  }
+
+  /**
+   * Writes a finished run's score onto the zone it audited.
+   *
+   * This is the joint that closes the 5S loop: the floor plan already carried
+   * `lastAuditScore` and `lastAuditAt` fields, but nothing ever set them, so a
+   * zone's colour meant whatever someone typed rather than measured condition.
+   *
+   * Draft runs are ignored — a half-finished checklist should not repaint the
+   * map. A run whose zone is no longer on the plan is ignored too, rather than
+   * failing the submission: the audit itself is still valid history.
+   */
+  private async applyAuditScoreToZone(run: AuditRun, user: CurrentUser) {
+    if (!run.zoneId || run.status === 'draft') {
+      return;
+    }
+
+    const layout = await this.fiveSLayouts.findOne({ where: this.organizationWhere(user) });
+
+    if (!layout) {
+      return;
+    }
+
+    const auditedAt = (run.createdAt ?? new Date()).toISOString();
+    let matched = false;
+
+    const zones = layout.zones.map((zone) => {
+      if (zone.id !== run.zoneId) {
+        return zone;
+      }
+
+      matched = true;
+      return {
+        ...zone,
+        lastAuditScore: Number(run.score) || 0,
+        lastAuditAt: auditedAt,
+        // The first score a zone receives becomes its baseline, so later
+        // improvement is measurable rather than merely visible.
+        baselineScore: zone.baselineScore ?? (Number(run.score) || 0),
+        baselineAt: zone.baselineAt ?? auditedAt,
+      };
+    });
+
+    if (!matched) {
+      return;
+    }
+
+    layout.zones = zones;
+    await this.fiveSLayouts.save(layout);
   }
 
   findAssessmentTemplates(user: CurrentUser) {

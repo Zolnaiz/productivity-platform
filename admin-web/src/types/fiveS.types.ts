@@ -48,6 +48,12 @@ export interface FiveSZone {
   auditFrequency: 'daily' | 'weekly' | 'monthly';
   lastAuditScore?: number;
   lastAuditAt?: string;
+  /**
+   * The first score this zone ever received. Frozen by the server so later
+   * improvement is measurable rather than merely visible.
+   */
+  baselineScore?: number;
+  baselineAt?: string;
   redTagCount?: number;
   redTags?: FiveSRedTag[];
   lastCleanedAt?: string;
