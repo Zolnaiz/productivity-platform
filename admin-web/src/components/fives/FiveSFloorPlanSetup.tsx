@@ -33,6 +33,8 @@ import { useTranslation } from 'react-i18next';
 import Button from '../common/Button';
 import Card from '../common/Card';
 import PhotoEvidence from '../common/PhotoEvidence';
+import ZoneHistory from './ZoneHistory';
+import { formatLocalDate, getAuditDueDate, getDaysUntilDate, isAuditDue } from './auditSchedule';
 import { fiveSLayoutService } from '../../services/fiveSLayout.service';
 import { operationsService } from '../../services/operations.service';
 import { peopleService } from '../../services/people.service';
@@ -209,38 +211,7 @@ const escapeHtml = (value: string | number | undefined) =>
 
 const escapeCsvCell = (value: string | number | undefined) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
-const auditFrequencyDays: Record<FiveSZone['auditFrequency'], number> = {
-  daily: 1,
-  weekly: 7,
-  monthly: 30,
-};
-
-const formatLocalDate = (date = new Date()) => {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
-};
-
-const addDaysToDate = (dateValue: string, days: number) => {
-  const date = new Date(`${dateValue}T00:00:00`);
-  date.setDate(date.getDate() + days);
-  return formatLocalDate(date);
-};
-
-const getAuditDueDate = (zone: FiveSZone) =>
-  zone.lastAuditAt ? addDaysToDate(zone.lastAuditAt, auditFrequencyDays[zone.auditFrequency]) : '';
-
-const isAuditDue = (zone: FiveSZone, today = formatLocalDate()) => {
-  const dueDate = getAuditDueDate(zone);
-  return !dueDate || dueDate <= today;
-};
-
 type AuditWalkStatus = 'overdue' | 'due_today' | 'upcoming' | 'scheduled';
-
-const getDaysUntilDate = (dateValue: string, today = formatLocalDate()) => {
-  const target = new Date(`${dateValue}T00:00:00`);
-  const current = new Date(`${today}T00:00:00`);
-  return Math.round((target.getTime() - current.getTime()) / 86400000);
-};
 
 const getAuditWalkStatus = (zone: FiveSZone, today = formatLocalDate()) => {
   const dueDate = getAuditDueDate(zone);
@@ -2585,6 +2556,10 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     onChange={(event) => updateZone(selectedZone.id, { contents: event.target.value })}
                   />
                 </label>
+                {/* How the area has actually been scoring. Audit runs reference
+                    their zone, so this history exists for the first time. */}
+                <ZoneHistory zone={selectedZone} />
+
                 <div className="space-y-2">
                   <div className="text-sm text-gray-600 dark:text-gray-400">{t('photos.standard')}</div>
                   {/* A written standard describes the state; the photograph is

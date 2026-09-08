@@ -320,3 +320,60 @@ describe('finishing a task closes its red tag, in demo mode', () => {
     await expect((await load()).updateTask(task.id, { status: 'done' })).resolves.toBeTruthy();
   });
 });
+
+describe('submitting an audit updates the zone, in demo mode', () => {
+  const load = async () => (await import('./operations.service')).operationsService;
+  const layoutKey = 'productivity-demo-5s-layout';
+
+  const zone = () => JSON.parse(localStorage.getItem(layoutKey) || '{}').zones?.[0];
+
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem(layoutKey, JSON.stringify({ zones: [{ id: 'zone-1', code: 'A01' }] }));
+  });
+
+  const submit = async (score: number, over: Record<string, unknown> = {}) =>
+    (await load()).createAuditRun({
+      templateId: 't-1',
+      zoneId: 'zone-1',
+      score,
+      status: 'submitted',
+      answers: [],
+      ...over,
+    });
+
+  it('writes the score onto the zone the audit named', async () => {
+    await submit(82);
+
+    expect(zone().lastAuditScore).toBe(82);
+    expect(zone().lastAuditAt).toEqual(expect.any(String));
+  });
+
+  it('keeps the first score as the baseline', async () => {
+    await submit(55);
+    await submit(88);
+
+    expect(zone().baselineScore).toBe(55);
+    expect(zone().lastAuditScore).toBe(88);
+  });
+
+  it('ignores a draft, so a half-finished checklist does not repaint the map', async () => {
+    await submit(20, { status: 'draft' });
+
+    expect(zone().lastAuditScore).toBeUndefined();
+  });
+
+  it('ignores an audit that names no zone', async () => {
+    await submit(70, { zoneId: undefined, location: 'Warehouse' });
+
+    expect(zone().lastAuditScore).toBeUndefined();
+  });
+
+  it('still records the audit when its zone has gone from the plan', async () => {
+    const run = await submit(70, { zoneId: 'deleted-zone' });
+
+    expect(run).toBeTruthy();
+    expect(zone().lastAuditScore).toBeUndefined();
+  });
+});

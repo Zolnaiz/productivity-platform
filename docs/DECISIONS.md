@@ -8,6 +8,54 @@ Newest first.
 
 ---
 
+## 2026-09-08 — A demo mirror for every server rule a screen depends on
+
+**Decision.** Rules the API enforces that a page's behaviour depends on are
+mirrored in `services/operations.service.ts`, grouped together and each one
+naming the server method it stands in for.
+
+**Why.** Three server-side rules in a row shipped without one, and each time the
+demo workspace quietly did less than the product: pressing "Red-tag tasks" twice
+doubled the work, finishing a task left its red tag open, and submitting an
+audit did not move the score onto the map. None of it failed loudly.
+
+The demo workspace never reaches the API, and it is what most people see first —
+including anyone reviewing this project. A demo that behaves differently from
+the product is worse than no demo, because it is believed.
+
+**Consequences.**
+- Adding a rule to `OperationsService` means asking whether a screen depends on
+  it, and mirroring it if so.
+- Demo records are stamped with `createdAt`, because the server stamps it and
+  anything showing when a record was made otherwise renders a dash.
+
+**Rules out.** A server-side rule whose absence in demo mode is only discovered
+by using the demo.
+
+---
+
+## 2026-09-08 — Audit-cycle dates are their own tested module
+
+**Decision.** `components/fives/auditSchedule.ts` holds the calendar arithmetic
+for the audit cycle, and tolerates both a date and a full timestamp.
+
+**Why.** `lastAuditAt` was a plain date in seeded plans and became a timestamp
+once the server started writing it. `addDaysToDate` concatenated `T00:00:00`
+onto whatever it was given, so a timestamp produced an invalid date and the
+`toISOString()` that followed threw — crashing the entire floor plan the first
+time a real audit scored a zone. The helpers were private to a 3,000-line
+component and nothing exercised them.
+
+**Consequences.**
+- A zone whose last-audit date cannot be read is treated as due, which is the
+  safe default: if we cannot tell when it was last checked, check it.
+- The module is pure and has its own tests, including the month, year and
+  timezone boundaries that date arithmetic gets wrong.
+
+**Rules out.** Date arithmetic buried in a component where no test can reach it.
+
+---
+
 ## 2026-09-08 — Finishing the work closes the finding, but does not decide it
 
 **Decision.** When a task raised from a red tag is completed, the server sets

@@ -175,3 +175,29 @@ describe('audit runs update the zone they audited', () => {
     });
   });
 });
+
+describe('reading a zone audit history', () => {
+  it('narrows to one zone when the map asks for it', async () => {
+    const { service, repositories } = createService();
+    repositories.auditRuns.find.mockResolvedValue([]);
+
+    await service.findAuditRuns(user, 'zone-a');
+
+    expect(repositories.auditRuns.find).toHaveBeenCalledWith({
+      where: { organizationId: 'org-1', zoneId: 'zone-a' },
+      order: { createdAt: 'DESC' },
+    });
+  });
+
+  it('returns the whole organization history when no zone is named', async () => {
+    const { service, repositories } = createService();
+    repositories.auditRuns.find.mockResolvedValue([]);
+
+    await service.findAuditRuns(user);
+
+    expect(repositories.auditRuns.find).toHaveBeenCalledWith({
+      where: { organizationId: 'org-1' },
+      order: { createdAt: 'DESC' },
+    });
+  });
+});

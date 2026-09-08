@@ -380,18 +380,18 @@ const writeDemo = <T>(key: DemoKey, items: T[]) => {
 
 const createDemo = <T extends { id: string }>(key: DemoKey, data: Partial<T>) => {
   const items = readDemo<T>(key);
-  const item = { ...data, id: data.id || localId() } as T;
+  // The server stamps createdAt; the demo store has to as well, or anything
+  // that shows when a record was made renders a dash.
+  const item = {
+    createdAt: new Date().toISOString(),
+    ...data,
+    id: data.id || localId(),
+  } as unknown as T;
   writeDemo(key, [item, ...items]);
   return item;
 };
 
-/**
- * The open task already raised for a finding, if there is one.
- *
- * The server refuses to raise a second task for the same finding, so the demo
- * workspace has to do it too — otherwise the demo shows behaviour the product
- * does not have, and pressing "red-tag tasks" twice appears to double the work.
- */
+/** Mirrors `OperationsService.findOpenTaskForSource`. */
 const findOpenDemoTaskForSource = (data: Partial<WorkTask>) => {
   if (!data.sourceType || !data.sourceId) return undefined;
 
@@ -404,47 +404,87 @@ const findOpenDemoTaskForSource = (data: Partial<WorkTask>) => {
 const layoutStorageKey = 'productivity-demo-5s-layout';
 
 /**
- * Closes the red tag a finished task was raised from.
+ * Demo mirrors of rules the server enforces.
  *
- * The server does this on the real path; the demo workspace has to as well, or
- * clearing an item leaves the tag open on the map and the demo shows a loop
- * that does not close.
+ * The demo workspace never reaches the API, so any rule a page depends on has
+ * to exist here too. Leaving one out does not fail loudly — the screen simply
+ * does less than the product does, and the demo is what most people see first.
+ *
+ * Each mirror below names the server method it stands in for.
  */
+const readDemoPlan = (): Record<string, any> | null => {
+  try {
+    return JSON.parse(localStorage.getItem(layoutStorageKey) || 'null');
+  } catch {
+    return null;
+  }
+};
+
+const writeDemoPlan = (plan: Record<string, any>) => {
+  try {
+    localStorage.setItem(layoutStorageKey, JSON.stringify(plan));
+  } catch {
+    // A full or unwritable store is not a reason to fail the action.
+  }
+};
+
+/** Mirrors `OperationsService.applyAuditScoreToZone`. */
+const applyDemoAuditScoreToZone = (run: Partial<AuditRun> | undefined) => {
+  if (!run?.zoneId || run.status === 'draft') return;
+
+  const plan = readDemoPlan();
+  if (!plan?.zones) return;
+
+  const auditedAt = new Date().toISOString();
+  let matched = false;
+
+  plan.zones = plan.zones.map((zone: Record<string, any>) => {
+    if (zone.id !== run.zoneId) return zone;
+
+    matched = true;
+    const score = Number(run.score) || 0;
+
+    return {
+      ...zone,
+      lastAuditScore: score,
+      lastAuditAt: auditedAt,
+      baselineScore: zone.baselineScore ?? score,
+      baselineAt: zone.baselineAt ?? auditedAt,
+    };
+  });
+
+  if (matched) writeDemoPlan(plan);
+};
+
+/** Mirrors `OperationsService.closeFindingForCompletedTask`. */
 const closeDemoFindingForTask = (task: Partial<WorkTask> | undefined) => {
   if (task?.status !== 'done' || task.sourceType !== 'five_s_red_tag' || !task.sourceId) {
     return;
   }
 
-  try {
-    const plan = JSON.parse(localStorage.getItem(layoutStorageKey) || 'null');
+  const plan = readDemoPlan();
+  if (!plan?.zones) return;
 
-    if (!plan?.zones) return;
+  const closedAt = new Date().toISOString();
+  let matched = false;
 
-    const closedAt = new Date().toISOString();
-    let matched = false;
+  plan.zones = plan.zones.map((zone: Record<string, any>) => {
+    if (!Array.isArray(zone.redTags)) return zone;
 
-    plan.zones = plan.zones.map((zone: Record<string, any>) => {
-      if (!Array.isArray(zone.redTags)) return zone;
+    let changed = false;
+    const redTags = zone.redTags.map((redTag: Record<string, any>) => {
+      if (redTag.id !== task.sourceId || redTag.closedAt) return redTag;
 
-      let changed = false;
-      const redTags = zone.redTags.map((redTag: Record<string, any>) => {
-        if (redTag.id !== task.sourceId || redTag.closedAt) return redTag;
-
-        changed = true;
-        matched = true;
-        // Only `closedAt`. Disposed or returned is a decision somebody makes.
-        return { ...redTag, closedAt };
-      });
-
-      return changed ? { ...zone, redTags } : zone;
+      changed = true;
+      matched = true;
+      // Only `closedAt`. Disposed or returned is a decision somebody makes.
+      return { ...redTag, closedAt };
     });
 
-    if (matched) {
-      localStorage.setItem(layoutStorageKey, JSON.stringify(plan));
-    }
-  } catch {
-    // A corrupted demo plan is not a reason to fail finishing the task.
-  }
+    return changed ? { ...zone, redTags } : zone;
+  });
+
+  if (matched) writeDemoPlan(plan);
 };
 
 const updateDemo = <T extends { id: string }>(key: DemoKey, id: string, data: Partial<T>) => {
@@ -624,11 +664,21 @@ export const operationsService = {
     isDemoMode()
       ? Promise.resolve(createDemo<AuditTemplate>('auditTemplates', data))
       : post<AuditTemplate>('/audit-templates', withoutClientScopedFields(data)),
-  getAuditRuns: () => fallback<AuditRun[]>(() => get('/audit-runs'), readDemo<AuditRun>('auditRuns')),
-  createAuditRun: (data: Partial<AuditRun>) =>
-    isDemoMode()
-      ? Promise.resolve(createDemo<AuditRun>('auditRuns', data))
-      : post<AuditRun>('/audit-runs', withoutClientScopedFields(data)),
+  getAuditRuns: (zoneId?: string) =>
+    fallback<AuditRun[]>(
+      () => get('/audit-runs', zoneId ? { zoneId } : undefined),
+      readDemo<AuditRun>('auditRuns').filter((run) => !zoneId || run.zoneId === zoneId),
+    ),
+  createAuditRun: (data: Partial<AuditRun>) => {
+    if (!isDemoMode()) {
+      return post<AuditRun>('/audit-runs', withoutClientScopedFields(data));
+    }
+
+    const run = createDemo<AuditRun>('auditRuns', data);
+    applyDemoAuditScoreToZone(run);
+
+    return Promise.resolve(run);
+  },
   getCalendarEvents: async () => {
     const [projects, tasks, auditRuns] = await Promise.all([
       operationsService.getProjects(),

@@ -145,8 +145,8 @@ export class OperationsController {
   }
 
   @Get('audit-runs')
-  findAuditRuns(@Request() req) {
-    return this.operationsService.findAuditRuns(req.user);
+  findAuditRuns(@Request() req, @Query('zoneId') zoneId?: string) {
+    return this.operationsService.findAuditRuns(req.user, zoneId);
   }
 
   @Post('audit-runs')

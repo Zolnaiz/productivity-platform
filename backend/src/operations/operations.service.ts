@@ -310,9 +310,18 @@ export class OperationsService {
     return this.auditTemplates.save(template);
   }
 
-  findAuditRuns(user: CurrentUser) {
+  /**
+   * Audit history, newest first.
+   *
+   * `zoneId` narrows it to one place on the floor plan, which is what the map
+   * asks for when somebody opens a zone: how has this area been scoring, and
+   * against what baseline.
+   */
+  findAuditRuns(user: CurrentUser, zoneId?: string) {
+    const where = this.organizationWhere(user);
+
     return this.auditRuns.find({
-      where: this.organizationWhere(user),
+      where: zoneId ? { ...where, zoneId } : where,
       order: { createdAt: 'DESC' },
     });
   }

@@ -25,8 +25,6 @@
   them now; a failed checklist item still cannot show what was wrong.
 - Give production a real file store. Attachments write to `UPLOAD_DIR` on local
   disk, which does not survive a container being replaced.
-- Show a zone's history when it is clicked: score trend, open findings, what was
-  fixed last month. The data exists once runs reference zones.
 - Use `auditFrequency`, which every zone declares and nothing reads. A lapsed
   zone should mark itself on the map and raise its own audit.
 
@@ -51,6 +49,15 @@
 
 ## Recently Completed Hardening
 
+- Gave every zone an audit history: latest score against a frozen baseline, the
+  change between them, open red tags, and the dated scores behind it. Deliberately
+  not a chart — a trend line through three audits claims a precision the data
+  does not have.
+- Mirrored the audit-score rule in the demo workspace, and grouped the demo
+  mirrors so the next server rule is not forgotten. See [DECISIONS.md](DECISIONS.md).
+- Fixed a crash that took down the whole floor plan the first time a real audit
+  scored a zone: audit-cycle date arithmetic could not read the timestamp the
+  server writes. It now lives in a tested module.
 - Closed the last joint of the 5S loop: finishing a task raised from a red tag
   marks the tag finished, so the map stops reporting a problem somebody already
   fixed. See [DECISIONS.md](DECISIONS.md).

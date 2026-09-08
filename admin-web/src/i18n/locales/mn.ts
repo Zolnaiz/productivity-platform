@@ -339,6 +339,18 @@ const mn: Translations<typeof en> = {
    * браузер үгчилнэ. `unknown` нь энэ хувилбарын мэдэхгүй код — хуучин
    * client шинэ API-тай харьцахад тохиолдоно.
    */
+  zoneHistory: {
+    title: 'Аудитын түүх',
+    latest: 'Сүүлийн',
+    baseline: 'Суурь',
+    improved: 'Суурьтай харьцуулахад {{points}} оноогоор дээшилсэн',
+    declined: 'Суурьтай харьцуулахад {{points}} оноогоор буурсан',
+    neverAudited: 'Энэ талбайд хараахан аудит хийгээгүй байна.',
+    openFindings: 'Нээлттэй {{count}} улаан шошго',
+    date: 'Огноо',
+    score: 'Оноо',
+    tableCaption: '{{zone}}-н аудитын оноо, шинэ нь эхэнд',
+  },
   photos: {
     before: 'Өмнө',
     after: 'Дараа',

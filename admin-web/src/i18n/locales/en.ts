@@ -342,6 +342,18 @@ const en = {
    * and the browser words it. `unknown` covers a code this build has not
    * learned yet — an older client against a newer API.
    */
+  zoneHistory: {
+    title: 'Audit history',
+    latest: 'Latest',
+    baseline: 'Baseline',
+    improved: 'Up {{points}} points since the baseline',
+    declined: 'Down {{points}} points since the baseline',
+    neverAudited: 'This area has not been audited yet.',
+    openFindings: '{{count}} open red tag(s)',
+    date: 'Date',
+    score: 'Score',
+    tableCaption: 'Audit scores for {{zone}}, newest first',
+  },
   photos: {
     before: 'Before',
     after: 'After',
