@@ -8,6 +8,36 @@ Newest first.
 
 ---
 
+## 2026-09-08 — A team is formed by invitation, and the token is a credential
+
+**Decision.** An owner, admin or manager invites someone by email and role. The
+API returns a raw token once; only its SHA-256 is stored. Accepting the token
+creates a user inside the inviting organization, at the invited address.
+
+**Why.** Every registration created a brand-new organization, and no endpoint
+could add a second person to an existing one. A platform for organizing a
+team's work, on which a team could not be formed.
+
+**Consequences.**
+- The token grants membership, so it is handled like a credential: 32 random
+  bytes, stored hashed, compared in constant time, expiring after 14 days, and
+  usable once.
+- The address is fixed by the invitation. A forwarded link cannot be used to
+  join under a different identity.
+- An invitation cannot hand out a role its sender could not assign — otherwise
+  it would be a way around the role hierarchy.
+- Re-inviting the same person replaces the pending invitation, so one seat
+  never has two valid tokens.
+- The public preview endpoint returns only the address and role. A valid token
+  must not become a way to read an organization's data.
+- Delivery is not built. The inviter shares the link themselves; an email
+  transport can layer on later without changing any of the above.
+
+**Rules out.** Joining an organization by any route that does not prove an
+invitation was issued for that address.
+
+---
+
 ## 2026-09-08 — The audit cycle runs itself
 
 **Decision.** A daily job raises the 5S audits whose frequency has come round,

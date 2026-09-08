@@ -161,6 +161,8 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Swagger is disabled in production unless `ENABLE_SWAGGER=true`.
 - Public operations access is disabled by default.
 - Operations API data is scoped by `organizationId`.
+- Joining an organization requires an invitation issued for that address; tokens are 32 random bytes, stored only as a SHA-256 hash, single-use, and expire after 14 days.
+- An invitation cannot grant a role its sender could not assign.
 - Submitting an audit run writes its score onto the referenced 5S zone, so the area map shows measured condition rather than chosen colours.
 - Tasks raised from a 5S finding record their source, and the API raises at most one open task per finding rather than duplicating work.
 - Attachment uploads are typed by sniffing their bytes, stored under a server-generated key, served with `Content-Disposition: attachment` and a sandboxing CSP, and scoped by `organizationId` on every read.
@@ -191,7 +193,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 156 passing
+- Backend tests: 183 passing
 - Frontend tests: 174 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues

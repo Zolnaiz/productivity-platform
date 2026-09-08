@@ -29,6 +29,9 @@ export const ErrorCode = {
   AuthTokenMissing: 'AUTH_TOKEN_MISSING',
   AuthOrganizationRequired: 'AUTH_ORGANIZATION_REQUIRED',
   AccessDenied: 'ACCESS_DENIED',
+  InvitationInvalid: 'INVITATION_INVALID',
+  InvitationExpired: 'INVITATION_EXPIRED',
+  InvitationUsed: 'INVITATION_USED',
   ResourceNotFound: 'RESOURCE_NOT_FOUND',
   ValidationFailed: 'VALIDATION_FAILED',
   UnsupportedFileType: 'UNSUPPORTED_FILE_TYPE',
@@ -87,6 +90,18 @@ const definitions: Record<ErrorCode, ErrorDefinition> = {
   [ErrorCode.AccessDenied]: {
     exception: ForbiddenException,
     message: 'You do not have access to this resource',
+  },
+  [ErrorCode.InvitationInvalid]: {
+    exception: NotFoundException,
+    message: 'This invitation link is not valid',
+  },
+  [ErrorCode.InvitationExpired]: {
+    exception: ConflictException,
+    message: 'This invitation has expired',
+  },
+  [ErrorCode.InvitationUsed]: {
+    exception: ConflictException,
+    message: 'This invitation has already been used',
   },
   [ErrorCode.ResourceNotFound]: {
     exception: NotFoundException,

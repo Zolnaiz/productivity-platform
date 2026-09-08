@@ -2,6 +2,11 @@
 
 ## Next Backend Work
 
+- Expose a users API scoped to the organization, so the Users and Departments
+  screens can come off browser storage. Invitations create members; nothing
+  lists or manages them yet.
+- Deliver invitations. The API issues the token and the inviter shares it by
+  hand; there is no email transport.
 - Add browser-driven API smoke automation for login, dashboard load, and core module navigation.
 - Decide whether runtime auth tables should remain as dedicated operations-platform migrations or be merged into the legacy initial migration set before first production deployment.
 - Decide what to do with the legacy modules. `expenses`, `reports`,
@@ -49,6 +54,9 @@
 
 ## Recently Completed Hardening
 
+- Made it possible to form a team: invitations by email and role, accepted into
+  the inviting organization. Every registration used to create a brand-new
+  organization with no way to add a second person. See [DECISIONS.md](DECISIONS.md).
 - Made the audit cycle run itself. A daily job raises the audits each zone's
   declared frequency calls for, deduping against the manual button. `auditFrequency`
   was declared on every zone and read by nothing. See [DECISIONS.md](DECISIONS.md).
