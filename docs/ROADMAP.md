@@ -25,8 +25,8 @@
   them now; a failed checklist item still cannot show what was wrong.
 - Give production a real file store. Attachments write to `UPLOAD_DIR` on local
   disk, which does not survive a container being replaced.
-- Use `auditFrequency`, which every zone declares and nothing reads. A lapsed
-  zone should mark itself on the map and raise its own audit.
+- Tell somebody when an audit is raised. The scheduler creates the work; nobody
+  is notified, so it is still found rather than delivered.
 
 ## Next Frontend Work
 
@@ -49,6 +49,11 @@
 
 ## Recently Completed Hardening
 
+- Made the audit cycle run itself. A daily job raises the audits each zone's
+  declared frequency calls for, deduping against the manual button. `auditFrequency`
+  was declared on every zone and read by nothing. See [DECISIONS.md](DECISIONS.md).
+- Added a module-graph test. No backend spec had ever exercised dependency
+  injection, so a misregistered provider would only have failed at startup.
 - Gave every zone an audit history: latest score against a frozen baseline, the
   change between them, open red tags, and the dated scores behind it. Deliberately
   not a chart — a trend line through three audits claims a precision the data

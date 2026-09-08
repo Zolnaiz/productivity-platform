@@ -31,6 +31,10 @@ export const envValidationSchema = Joi.object({
   // Where attachment bytes are written. Relative paths resolve from the
   // backend's working directory; give a real volume in production.
   UPLOAD_DIR: Joi.string().default('./uploads'),
+  // The daily job that raises 5S audits whose frequency has come round. On by
+  // default: a zone declaring a weekly audit should get one without anyone
+  // remembering to press a button.
+  ENABLE_AUDIT_SCHEDULER: Joi.boolean().truthy('true').falsy('false').default(true),
   JWT_SECRET: Joi.string().when('NODE_ENV', {
     is: 'production',
     then: Joi.string()

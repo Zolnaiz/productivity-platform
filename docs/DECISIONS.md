@@ -8,6 +8,56 @@ Newest first.
 
 ---
 
+## 2026-09-08 — The audit cycle runs itself
+
+**Decision.** A daily job raises the 5S audits whose frequency has come round,
+using the `auditFrequency` every zone already declares. It creates work through
+`OperationsService.createTask` with the same dedupe key the web app's manual
+button uses, so the two cannot both raise the same audit.
+
+**Why.** `ScheduleModule.forRoot()` was registered in `app.module.ts` and
+nothing used it, and every zone declared daily, weekly or monthly while nothing
+on the server read it. The map could show a zone as overdue, but only once
+somebody opened the page and pressed a button — and a 5S programme that depends
+on being remembered is the one that lapses.
+
+**Consequences.**
+- Running twice in a day, or on two instances at once, raises nothing extra:
+  the scheduler deliberately does not check for an existing task itself, so
+  there is one dedupe rule in one place.
+- Each layout belongs to one organization, so iterating layouts scopes the work
+  without that having to be remembered per query.
+- A zone with no readable last-audit date is treated as due. If we cannot tell
+  when it was last checked, it should be checked.
+- `ENABLE_AUDIT_SCHEDULER` turns it off; it defaults on, because a zone
+  declaring a weekly audit should get one.
+- The due-date rules are duplicated in the browser. They run in different
+  places and nothing packages code between the two workspaces; the server copy
+  decides what happens, the browser copy only decides what is drawn.
+
+**Rules out.** A recurring obligation the product describes but never performs.
+
+---
+
+## 2026-09-08 — One test builds the module graph
+
+**Decision.** `operations.module.spec.ts` compiles the module's controllers and
+providers through Nest's testing module, with the repositories stubbed.
+
+**Why.** Every other backend spec constructs services by hand with `new`, so
+nothing ever exercised dependency injection. A provider that is declared but
+not registered, or whose dependency the module does not supply, compiles,
+passes the whole suite, and fails only when the application starts. Adding the
+scheduler was exactly that risk — and the first run of this test caught a real
+gap, that the guarded controllers need `JwtService` in the graph.
+
+**Consequences.** It is the cheapest check that the app can boot. Adding a
+provider means adding it here too, which is the point.
+
+**Rules out.** Discovering a broken dependency graph at startup.
+
+---
+
 ## 2026-09-08 — A demo mirror for every server rule a screen depends on
 
 **Decision.** Rules the API enforces that a page's behaviour depends on are

@@ -173,6 +173,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Backend unexpected errors return a generic client message while detailed exception data stays in logs.
 - Backend error responses carry a stable `errorCode` so clients can report failures in the user's own language; the frontend translates it and never displays the API's English text.
 - A 401 from an auth endpoint is reported to the caller rather than treated as an expired session, so a rejected sign-in explains itself instead of reloading the page.
+- A daily job raises the 5S audits each zone's declared frequency calls for; `ENABLE_AUDIT_SCHEDULER=false` turns it off.
 - Backend exposes Prometheus-compatible metrics at `/api/metrics` only when `ENABLE_METRICS=true`.
 - Unused Socket.IO dependencies were removed and backend `js-yaml` is pinned through overrides to keep dependency audits clean.
 - PostgreSQL backup/restore guidance is documented for Docker and non-Docker environments.
@@ -190,7 +191,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 133 passing
+- Backend tests: 156 passing
 - Frontend tests: 174 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
