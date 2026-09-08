@@ -291,7 +291,15 @@ const getAuditWalkStatus = (zone: FiveSZone, today = formatLocalDate()) => {
   };
 };
 
-const isOpenRedTag = (redTag: FiveSRedTag) => redTag.status === 'open' || redTag.status === 'review';
+/**
+ * A tag still needing attention.
+ *
+ * `closedAt` is set when the cleanup task is finished, before anyone has
+ * recorded whether the item was disposed of or returned — so a tag can be
+ * finished while its status is still 'open'.
+ */
+const isOpenRedTag = (redTag: FiveSRedTag) =>
+  !redTag.closedAt && (redTag.status === 'open' || redTag.status === 'review');
 
 const getRedTagCount = (zone: FiveSZone) =>
   zone.redTags?.length ? zone.redTags.filter(isOpenRedTag).length : zone.redTagCount || 0;

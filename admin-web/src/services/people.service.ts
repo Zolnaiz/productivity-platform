@@ -1,3 +1,4 @@
+import { localId } from './api';
 import { Department, TeamUser } from '../types/people.types';
 
 type PeopleKey = 'departments' | 'users';
@@ -84,7 +85,7 @@ const write = <T>(key: PeopleKey, items: T[]) => {
 };
 
 const create = <T extends { id: string }>(key: PeopleKey, data: Omit<T, 'id'>) => {
-  const item = { ...data, id: `local-${Date.now()}` } as T;
+  const item = { ...data, id: localId() } as T;
   write(key, [item, ...read<T>(key)]);
   return item;
 };

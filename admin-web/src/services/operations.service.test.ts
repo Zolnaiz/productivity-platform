@@ -256,3 +256,67 @@ describe('tasks raised from a finding, in demo mode', () => {
     expect(after - before).toBe(2);
   });
 });
+
+describe('finishing a task closes its red tag, in demo mode', () => {
+  const load = async () => (await import('./operations.service')).operationsService;
+  const layoutKey = 'productivity-demo-5s-layout';
+
+  const planWith = (status: string) => ({
+    zones: [
+      { id: 'zone-1', redTags: [] },
+      { id: 'zone-2', redTags: [{ id: 'red-tag-9', title: 'Broken pallet', status }] },
+    ],
+  });
+
+  const tagStatus = () =>
+    JSON.parse(localStorage.getItem(layoutKey) || '{}').zones?.[1]?.redTags?.[0];
+
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem(layoutKey, JSON.stringify(planWith('open')));
+  });
+
+  const raiseTask = async () =>
+    (await load()).createTask({
+      title: '5S red tag: Broken pallet',
+      sourceType: 'five_s_red_tag',
+      sourceId: 'red-tag-9',
+      status: 'todo',
+    });
+
+  it('closes the tag on the map when the work is finished', async () => {
+    const task = await raiseTask();
+
+    await (await load()).updateTask(task.id, { status: 'done' });
+
+    expect(tagStatus().closedAt).toEqual(expect.any(String));
+    // The disposition is a decision somebody makes in the holding-area review,
+    // so finishing the task must not guess at it.
+    expect(tagStatus().status).toBe('open');
+  });
+
+  it('leaves the tag open while the work is still in progress', async () => {
+    const task = await raiseTask();
+
+    await (await load()).updateTask(task.id, { status: 'in_progress' });
+
+    expect(tagStatus().closedAt).toBeUndefined();
+  });
+
+  it('does not touch the map for a task nobody raised from a finding', async () => {
+    const service = await load();
+    const task = await service.createTask({ title: 'Fix the printer', status: 'todo' });
+
+    await service.updateTask(task.id, { status: 'done' });
+
+    expect(tagStatus().closedAt).toBeUndefined();
+  });
+
+  it('survives a corrupted plan rather than failing the task', async () => {
+    localStorage.setItem(layoutKey, 'not json');
+    const task = await raiseTask();
+
+    await expect((await load()).updateTask(task.id, { status: 'done' })).resolves.toBeTruthy();
+  });
+});

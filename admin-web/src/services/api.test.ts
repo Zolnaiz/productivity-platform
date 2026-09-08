@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   api,
   createRequestId,
+  localId,
   getStoredAccessToken,
   isDemoEnabled,
   isDemoMode,
@@ -166,5 +167,34 @@ describe('401 handling', () => {
     await expect(post('/operations/projects', {})).rejects.toBeTruthy();
     expect(localStorage.getItem('token')).toBeNull();
     expect(navigatedTo).toBe('/login');
+  });
+});
+
+describe('localId', () => {
+  it('is unique across records created in the same millisecond', () => {
+    // The "Red-tag tasks" button raises one task per open tag in a single
+    // pass. With Date.now() alone they collided, so updating one silently
+    // updated every other created alongside it.
+    const ids = Array.from({ length: 500 }, () => localId());
+
+    expect(new Set(ids).size).toBe(500);
+  });
+
+  it('keeps the prefix it was given', () => {
+    expect(localId('local-expense')).toMatch(/^local-expense-/);
+    expect(localId()).toMatch(/^local-/);
+  });
+
+  it('stays unique without crypto.randomUUID', () => {
+    const original = globalThis.crypto.randomUUID;
+    // @ts-expect-error deliberately removing the fast path
+    globalThis.crypto.randomUUID = undefined;
+
+    try {
+      const ids = Array.from({ length: 500 }, () => localId());
+      expect(new Set(ids).size).toBe(500);
+    } finally {
+      globalThis.crypto.randomUUID = original;
+    }
   });
 });

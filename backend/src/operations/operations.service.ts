@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
 import { Project } from './entities/project.entity';
-import { TaskStatus, WorkTask } from './entities/task.entity';
+import { TaskSource, TaskStatus, WorkTask } from './entities/task.entity';
 import { WorkLog } from './entities/work-log.entity';
 import { TimeEntry } from './entities/time-entry.entity';
 import { AuditTemplate } from './entities/audit-template.entity';
@@ -118,7 +118,67 @@ export class OperationsService {
   async updateTask(id: string, payload: Partial<WorkTask>, user: CurrentUser) {
     const task = await this.findOneScoped(this.tasks, id, user, 'Task');
     this.assignWithoutOrganizationChange(task, payload);
-    return this.tasks.save(task);
+
+    const saved = await this.tasks.save(task);
+    await this.closeFindingForCompletedTask(saved, user);
+
+    return saved;
+  }
+
+  /**
+   * Closes the red tag a finished task was raised from.
+   *
+   * This is the last joint of the 5S loop. Without it the link ran one way —
+   * work knew its finding, but clearing the item left the tag open for ever,
+   * so the map kept reporting a problem somebody had already fixed.
+   *
+   * Only red tags close. A task raised from an audit is verified by the next
+   * audit, not by someone ticking it off.
+   */
+  private async closeFindingForCompletedTask(task: WorkTask, user: CurrentUser) {
+    if (task.status !== TaskStatus.DONE || task.sourceType !== TaskSource.RED_TAG || !task.sourceId) {
+      return;
+    }
+
+    const layout = await this.fiveSLayouts.findOne({ where: this.organizationWhere(user) });
+
+    if (!layout) {
+      return;
+    }
+
+    const closedAt = new Date().toISOString();
+    let matched = false;
+
+    const zones = layout.zones.map((zone) => {
+      if (!Array.isArray(zone.redTags)) {
+        return zone;
+      }
+
+      let changed = false;
+      const redTags = zone.redTags.map((redTag: Record<string, any>) => {
+        if (redTag.id !== task.sourceId || redTag.closedAt) {
+          return redTag;
+        }
+
+        changed = true;
+        matched = true;
+        // Only `closedAt` is set. Whether the item was disposed of or returned
+        // is a decision somebody makes in the holding-area review; finishing
+        // the cleanup task says the work happened, not which way it went.
+        return { ...redTag, closedAt };
+      });
+
+      // Only the zone holding the tag is rewritten; the rest keep their
+      // identity, so an unrelated concurrent edit has less to collide with.
+      return changed ? { ...zone, redTags } : zone;
+    });
+
+    if (!matched) {
+      return;
+    }
+
+    layout.zones = zones;
+    await this.fiveSLayouts.save(layout);
   }
 
   findWorkLogs(user: CurrentUser) {

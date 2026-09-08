@@ -16,8 +16,11 @@
 
 - Raise tasks from the improvement register too. Red tags and audits are linked
   now; an improvement record's action plan is still free text.
-- Close the finding when its task is done. The link runs one way: a task knows
-  its red tag, but finishing the task does not close the tag.
+- Record the disposition when a tag is closed. `closedAt` is set automatically;
+  whether the item was disposed of or returned still has to be filed by hand,
+  and nothing prompts for it.
+- Add the red-tag holding area: a place tagged items wait one to two months
+  with an expiry that chases someone. Standard practice, still absent.
 - Attach photographs to audit answers too. Red tags and zone standards carry
   them now; a failed checklist item still cannot show what was wrong.
 - Give production a real file store. Attachments write to `UPLOAD_DIR` on local
@@ -48,6 +51,12 @@
 
 ## Recently Completed Hardening
 
+- Closed the last joint of the 5S loop: finishing a task raised from a red tag
+  marks the tag finished, so the map stops reporting a problem somebody already
+  fixed. See [DECISIONS.md](DECISIONS.md).
+- Gave demo records collision-free ids. Eight services generated ids from
+  `Date.now()`, so records created in one pass shared an id and updating one
+  rewrote the others.
 - Added photo evidence: a before/after pair on every red tag and a standard
   photograph on every zone, with the file's real type read from its bytes and
   every read scoped to one organization. See [DECISIONS.md](DECISIONS.md).

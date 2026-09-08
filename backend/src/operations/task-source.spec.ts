@@ -122,3 +122,121 @@ describe('tasks created from a finding', () => {
     expect(repositories.tasks.save).toHaveBeenCalled();
   });
 });
+
+const layoutWith = (redTags: Array<Record<string, any>>) => ({
+  id: 'layout-1',
+  organizationId: 'org-1',
+  zones: [
+    { id: 'zone-1', code: 'A01', redTags: [] },
+    { id: 'zone-2', code: 'A02', redTags },
+  ],
+  objects: [],
+});
+
+/**
+ * The last joint of the 5S loop. Without it the link ran one way: work knew
+ * its finding, but clearing the item left the tag open for ever, so the map
+ * kept reporting a problem somebody had already fixed.
+ */
+describe('finishing a task closes the finding it came from', () => {
+  const openTag = { id: 'red-tag-9', title: 'Broken pallet', status: 'open' };
+
+  const finishTask = async (
+    service: OperationsService,
+    repositories: Record<string, any>,
+    overrides: Record<string, unknown> = {},
+  ) => {
+    repositories.tasks.findOne.mockResolvedValue({
+      id: 'task-1',
+      organizationId: 'org-1',
+      sourceType: TaskSource.RED_TAG,
+      sourceId: 'red-tag-9',
+      status: TaskStatus.TODO,
+      ...overrides,
+    });
+
+    return service.updateTask('task-1', { status: TaskStatus.DONE } as any, user);
+  };
+
+  it('closes the red tag and records when', async () => {
+    const { service, repositories } = createService();
+    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([openTag]));
+
+    await finishTask(service, repositories);
+
+    const saved = repositories.fiveSLayouts.save.mock.calls[0][0];
+    expect(saved.zones[1].redTags[0].closedAt).toEqual(expect.any(String));
+  });
+
+  it('leaves the disposition alone, because nobody has decided it yet', () => {
+    // 'disposed' and 'returned' are real decisions made in the holding-area
+    // review. Finishing the cleanup task says the work happened, not which
+    // way the item went.
+    expect(openTag.status).toBe('open');
+  });
+
+  it('leaves the other tags in the zone alone', async () => {
+    const { service, repositories } = createService();
+    const other = { id: 'red-tag-other', status: 'open' };
+    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([openTag, other]));
+
+    await finishTask(service, repositories);
+
+    const saved = repositories.fiveSLayouts.save.mock.calls[0][0];
+    expect(saved.zones[1].redTags[1].closedAt).toBeUndefined();
+  });
+
+  it('does nothing while the task is still open', async () => {
+    const { service, repositories } = createService();
+    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([openTag]));
+    repositories.tasks.findOne.mockResolvedValue({
+      id: 'task-1',
+      organizationId: 'org-1',
+      sourceType: TaskSource.RED_TAG,
+      sourceId: 'red-tag-9',
+      status: TaskStatus.TODO,
+    });
+
+    await service.updateTask('task-1', { status: TaskStatus.IN_PROGRESS } as any, user);
+
+    expect(repositories.fiveSLayouts.save).not.toHaveBeenCalled();
+  });
+
+  it('does not touch the map for a task nobody raised from a finding', async () => {
+    const { service, repositories } = createService();
+
+    await finishTask(service, repositories, { sourceType: undefined, sourceId: undefined });
+
+    expect(repositories.fiveSLayouts.findOne).not.toHaveBeenCalled();
+  });
+
+  it('leaves audit follow-up work to the next audit rather than closing anything', async () => {
+    const { service, repositories } = createService();
+    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([openTag]));
+
+    await finishTask(service, repositories, { sourceType: TaskSource.AUDIT_RUN, sourceId: 'run-1' });
+
+    expect(repositories.fiveSLayouts.findOne).not.toHaveBeenCalled();
+  });
+
+  it('does not rewrite a tag that was already closed', async () => {
+    const { service, repositories } = createService();
+    repositories.fiveSLayouts.findOne.mockResolvedValue(
+      layoutWith([{ ...openTag, closedAt: '2026-01-01T00:00:00.000Z' }]),
+    );
+
+    await finishTask(service, repositories);
+
+    expect(repositories.fiveSLayouts.save).not.toHaveBeenCalled();
+  });
+
+  it('still finishes the task when its tag has been deleted from the plan', async () => {
+    const { service, repositories } = createService();
+    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([{ id: 'someone-else', status: 'open' }]));
+
+    const result = await finishTask(service, repositories);
+
+    expect(result).toBeTruthy();
+    expect(repositories.fiveSLayouts.save).not.toHaveBeenCalled();
+  });
+});

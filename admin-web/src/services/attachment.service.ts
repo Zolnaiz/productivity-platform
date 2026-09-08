@@ -1,4 +1,4 @@
-import { api, isDemoMode } from './api';
+import { api, isDemoMode, localId } from './api';
 
 export type AttachmentOwner =
   | 'five_s_red_tag'
@@ -98,7 +98,7 @@ export const attachmentService = {
   ): Promise<Attachment> => {
     if (isDemoMode()) {
       const item = {
-        id: `local-attachment-${Date.now()}`,
+        id: localId('local-attachment'),
         ownerType: target.ownerType,
         ownerId: target.ownerId,
         kind: target.kind ?? 'evidence',

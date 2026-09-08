@@ -1,3 +1,4 @@
+import { localId } from './api';
 import { AuditLogEntry, WorkspaceProfile, WorkspaceSettings } from '../types/admin.types';
 
 const profileKey = 'productivity-demo-workspace-profile';
@@ -77,7 +78,7 @@ const appendAuditLog = (entry: Omit<AuditLogEntry, 'id' | 'createdAt'>) => {
   const logs = readObject<AuditLogEntry[]>(auditLogKey, defaultAuditLog);
   const item: AuditLogEntry = {
     ...entry,
-    id: `local-${Date.now()}`,
+    id: localId(),
     createdAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
   };
   writeObject(auditLogKey, [item, ...logs]);

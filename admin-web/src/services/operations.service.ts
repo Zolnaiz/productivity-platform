@@ -1,4 +1,4 @@
-import { del, get, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
+import { del, get, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
 import {
   AuditTemplate,
   AuditRun,
@@ -380,7 +380,7 @@ const writeDemo = <T>(key: DemoKey, items: T[]) => {
 
 const createDemo = <T extends { id: string }>(key: DemoKey, data: Partial<T>) => {
   const items = readDemo<T>(key);
-  const item = { ...data, id: data.id || `local-${Date.now()}` } as T;
+  const item = { ...data, id: data.id || localId() } as T;
   writeDemo(key, [item, ...items]);
   return item;
 };
@@ -399,6 +399,52 @@ const findOpenDemoTaskForSource = (data: Partial<WorkTask>) => {
     (task) =>
       task.sourceType === data.sourceType && task.sourceId === data.sourceId && task.status !== 'done',
   );
+};
+
+const layoutStorageKey = 'productivity-demo-5s-layout';
+
+/**
+ * Closes the red tag a finished task was raised from.
+ *
+ * The server does this on the real path; the demo workspace has to as well, or
+ * clearing an item leaves the tag open on the map and the demo shows a loop
+ * that does not close.
+ */
+const closeDemoFindingForTask = (task: Partial<WorkTask> | undefined) => {
+  if (task?.status !== 'done' || task.sourceType !== 'five_s_red_tag' || !task.sourceId) {
+    return;
+  }
+
+  try {
+    const plan = JSON.parse(localStorage.getItem(layoutStorageKey) || 'null');
+
+    if (!plan?.zones) return;
+
+    const closedAt = new Date().toISOString();
+    let matched = false;
+
+    plan.zones = plan.zones.map((zone: Record<string, any>) => {
+      if (!Array.isArray(zone.redTags)) return zone;
+
+      let changed = false;
+      const redTags = zone.redTags.map((redTag: Record<string, any>) => {
+        if (redTag.id !== task.sourceId || redTag.closedAt) return redTag;
+
+        changed = true;
+        matched = true;
+        // Only `closedAt`. Disposed or returned is a decision somebody makes.
+        return { ...redTag, closedAt };
+      });
+
+      return changed ? { ...zone, redTags } : zone;
+    });
+
+    if (matched) {
+      localStorage.setItem(layoutStorageKey, JSON.stringify(plan));
+    }
+  } catch {
+    // A corrupted demo plan is not a reason to fail finishing the task.
+  }
 };
 
 const updateDemo = <T extends { id: string }>(key: DemoKey, id: string, data: Partial<T>) => {
@@ -552,10 +598,16 @@ export const operationsService = {
     isDemoMode()
       ? Promise.resolve(findOpenDemoTaskForSource(data) ?? createDemo<WorkTask>('tasks', data))
       : post<WorkTask>('/tasks', withoutClientScopedFields(data)),
-  updateTask: (id: string, data: Partial<WorkTask>) =>
-    isDemoMode()
-      ? Promise.resolve(updateDemo<WorkTask>('tasks', id, data))
-      : patch<WorkTask>(`/tasks/${id}`, withoutClientScopedFields(data)),
+  updateTask: (id: string, data: Partial<WorkTask>) => {
+    if (!isDemoMode()) {
+      return patch<WorkTask>(`/tasks/${id}`, withoutClientScopedFields(data));
+    }
+
+    const updated = updateDemo<WorkTask>('tasks', id, data);
+    closeDemoFindingForTask(updated);
+
+    return Promise.resolve(updated);
+  },
   getWorkLogs: () => fallback<WorkLog[]>(() => get('/work-logs'), readDemo<WorkLog>('workLogs')),
   createWorkLog: (data: Partial<WorkLog>) =>
     isDemoMode()

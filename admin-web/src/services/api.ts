@@ -43,6 +43,22 @@ export const normalizeTokenResponse = (response: any) => {
   };
 };
 
+/**
+ * A unique id for a record created in the demo workspace.
+ *
+ * `Date.now()` alone is not unique: creating several records in one pass — the
+ * "Red-tag tasks" button raises one per open tag — produced colliding ids, so
+ * updating one record silently updated every other created in the same
+ * millisecond.
+ */
+export const localId = (prefix = 'local') => {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return `${prefix}-${globalThis.crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 export const createRequestId = () => {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
     return globalThis.crypto.randomUUID();

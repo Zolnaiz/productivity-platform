@@ -8,6 +8,58 @@ Newest first.
 
 ---
 
+## 2026-09-08 — Finishing the work closes the finding, but does not decide it
+
+**Decision.** When a task raised from a red tag is completed, the server sets
+`closedAt` on that tag. It does not change the tag's status, and a tag with
+`closedAt` no longer counts as open on the map.
+
+**Why.** This is the last joint of the 5S loop. The link ran one way — work knew
+its finding, but clearing the item left the tag open for ever, so the map kept
+reporting a problem somebody had already fixed.
+
+Setting a status was the first attempt and was wrong. A red tag's vocabulary is
+`open | review | disposed | returned`; "closed" is not one of them, and the two
+terminal values are real decisions — was the item scrapped, or put back where it
+belongs — made in the holding-area review. Finishing the cleanup task says the
+work happened, not which way it went. Inventing a fifth status also left the
+status select with nothing selected.
+
+**Consequences.**
+- `isOpenRedTag` checks `closedAt` as well as status, so the open count falls
+  when the work is done rather than when someone remembers to file a
+  disposition.
+- Only red tags close this way. A task raised from an audit is verified by the
+  next audit, not by someone ticking it off.
+- A task whose tag has been deleted from the plan still completes.
+
+**Rules out.** Adding a value to a domain vocabulary to make a mechanism fit.
+
+---
+
+## 2026-09-08 — Demo records get a collision-free id
+
+**Decision.** Every record created in the demo workspace takes its id from
+`localId()` in `services/api.ts`, which prefers `crypto.randomUUID`.
+
+**Why.** Eight services each generated `local-${Date.now()}`. The "Red-tag
+tasks" button raises one task per open tag in a single pass, so all eight
+landed in the same millisecond with the same id: of eleven demo tasks, only
+five ids were distinct. `updateDemo` matches by id, so finishing one task
+rewrote every task created alongside it — which is how a red tag other than the
+one being cleared ended up closing.
+
+**Consequences.**
+- The demo workspace is the first thing most people see, including anyone
+  reviewing this project. A bug that only appears when several records are
+  created at once is exactly the kind a demo surfaces and a test suite misses.
+- `api.test.ts` asserts 500 ids in a tight loop are distinct, with and without
+  `crypto.randomUUID`.
+
+**Rules out.** A timestamp as an identifier.
+
+---
+
 ## 2026-09-02 — Attachments are typed by their bytes and scoped by tenant
 
 **Decision.** Photographs and PDFs attach to any 5S record through one
