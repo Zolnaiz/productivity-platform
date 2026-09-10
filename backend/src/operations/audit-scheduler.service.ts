@@ -6,7 +6,15 @@ import { Repository } from 'typeorm';
 import { FiveSLayout } from './entities/five-s-layout.entity';
 import { TaskSource } from './entities/task.entity';
 import { OperationsService } from './operations.service';
-import { auditDueDate, auditTaskSourceId, isAuditDue, SchedulableZone } from './audit-schedule';
+import {
+  auditDueDate,
+  auditTaskSourceId,
+  HeldRedTag,
+  holdTaskSourceId,
+  isAuditDue,
+  isHoldExpired,
+  SchedulableZone,
+} from './audit-schedule';
 
 /**
  * Raises the audits a 5S programme is supposed to run.
@@ -39,6 +47,7 @@ export class AuditSchedulerService {
     const today = new Date().toISOString().slice(0, 10);
     const layouts = await this.layouts.find();
     let due = 0;
+    let expired = 0;
 
     for (const layout of layouts) {
       // A layout belongs to one organization, so scoping falls out of the
@@ -55,11 +64,63 @@ export class AuditSchedulerService {
         await this.ensureAuditTask(zone, layout.organizationId, today);
         due += 1;
       }
+
+      expired += await this.ensureHoldDecisionTasks(layout, today);
     }
 
     if (due) {
       this.logger.log(`Ensured audit tasks for ${due} due 5S zone(s)`);
     }
+
+    if (expired) {
+      this.logger.log(`Ensured decision tasks for ${expired} expired red-tag hold(s)`);
+    }
+  }
+
+  /**
+   * Chases items whose stay in the holding area has run out.
+   *
+   * The point of the holding area is the wait: if nobody needed the item in a
+   * month, that is the answer. But a list somebody has to remember to open is
+   * how items go in and never come out.
+   */
+  private async ensureHoldDecisionTasks(layout: FiveSLayout, today: string) {
+    let raised = 0;
+
+    for (const zone of (layout.zones ?? []) as SchedulableZone & { redTags?: HeldRedTag[] }[]) {
+      const area = zone as SchedulableZone & { redTags?: HeldRedTag[] };
+
+      for (const redTag of area.redTags ?? []) {
+        if (!redTag.id || !isHoldExpired(redTag, today)) {
+          continue;
+        }
+
+        const place = [area.code, area.name].filter(Boolean).join(' - ') || area.id;
+
+        await this.operations.createTask(
+          {
+            title: `Red-tag decision due: ${redTag.title ?? 'tagged item'}`,
+            description: [
+              `Area: ${place}`,
+              `Held since: ${redTag.heldAt ? redTag.heldAt.slice(0, 10) : 'not recorded'}`,
+              'Decide whether the item is disposed of or returned to the area.',
+            ].join('\n'),
+            assigneeId: area.ownerId,
+            sourceType: TaskSource.RED_TAG,
+            sourceId: holdTaskSourceId(redTag.id),
+            priority: 'medium',
+            dueDate: today,
+            estimatedHours: 1,
+            actualHours: 0,
+          } as never,
+          { organizationId: layout.organizationId },
+        );
+
+        raised += 1;
+      }
+    }
+
+    return raised;
   }
 
   /**

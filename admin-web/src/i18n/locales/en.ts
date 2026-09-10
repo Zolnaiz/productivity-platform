@@ -342,6 +342,18 @@ const en = {
    * and the browser words it. `unknown` covers a code this build has not
    * learned yet — an older client against a newer API.
    */
+  holdingArea: {
+    title: 'Red-tag holding area',
+    subtitle: 'Tagged items wait {{days}} days here. If nobody needs one in that time, that is the answer.',
+    emptyTitle: 'Nothing is waiting',
+    emptyDescription: 'Move a red-tagged item to review and it will appear here with a clock on it.',
+    daysLeft: '{{days}} days left',
+    dueNow: 'Decision due now',
+    overdueBy: 'Decision overdue by {{days}} days',
+    overdueCount: '{{count}} awaiting a decision',
+    returnItem: 'Return to the area',
+    disposeItem: 'Dispose of it',
+  },
   zoneHistory: {
     title: 'Audit history',
     latest: 'Latest',

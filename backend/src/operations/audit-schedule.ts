@@ -67,3 +67,37 @@ export const isAuditDue = (zone: SchedulableZone, today: string): boolean => {
 
 /** The dedupe key for the task a due zone raises. Shared with the web app. */
 export const auditTaskSourceId = (zoneId: string) => `due-${zoneId}`;
+
+/** How long a red-tagged item waits in the holding area before a decision. */
+export const HOLD_PERIOD_DAYS = 30;
+
+export interface HeldRedTag {
+  id?: string;
+  title?: string;
+  status?: string;
+  heldAt?: string;
+  holdUntil?: string;
+  closedAt?: string;
+}
+
+/**
+ * Whether an item's stay in the holding area has run out.
+ *
+ * Status `review` is the holding area. An item held before these dates existed
+ * has no `holdUntil` and is treated as due, so it is chased rather than left
+ * waiting for ever.
+ */
+export const isHoldExpired = (redTag: HeldRedTag, today: string): boolean => {
+  if (redTag.status !== 'review' || redTag.closedAt) {
+    return false;
+  }
+
+  if (!redTag.holdUntil) {
+    return true;
+  }
+
+  return toCalendarDay(redTag.holdUntil) <= toCalendarDay(today);
+};
+
+/** The dedupe key for the decision task an expired hold raises. */
+export const holdTaskSourceId = (redTagId: string) => `hold-${redTagId}`;

@@ -36,6 +36,15 @@ export interface FiveSRedTag {
   ownerName?: string;
   dueDate?: string;
   createdAt?: string;
+  /**
+   * When the item was moved to the red-tag holding area.
+   *
+   * In practice a tagged item is taken out of the work area and parked
+   * somewhere visible for a month or two while its use is watched. Status
+   * `review` is that state; these dates say how long it has left.
+   */
+  heldAt?: string;
+  holdUntil?: string;
   closedAt?: string;
 }
 

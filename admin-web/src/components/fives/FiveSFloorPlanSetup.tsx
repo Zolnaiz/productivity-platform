@@ -34,6 +34,8 @@ import Button from '../common/Button';
 import Card from '../common/Card';
 import PhotoEvidence from '../common/PhotoEvidence';
 import ZoneHistory from './ZoneHistory';
+import HoldingArea from './HoldingArea';
+import { holdDatesFor } from './holdingRules';
 import { formatLocalDate, getAuditDueDate, getDaysUntilDate, isAuditDue } from './auditSchedule';
 import { fiveSLayoutService } from '../../services/fiveSLayout.service';
 import { operationsService } from '../../services/operations.service';
@@ -1098,6 +1100,31 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     });
   };
 
+  /**
+   * Records the decision made in the holding-area review.
+   *
+   * Works on any zone, not just the selected one — the list is organization
+   * wide, and making someone select a zone first would be busywork.
+   */
+  const decideHeldItem = (zoneId: string, redTagId: string, status: FiveSRedTag['status']) => {
+    const zone = plan?.zones.find((item) => item.id === zoneId);
+    if (!zone) return;
+
+    updateZone(zone.id, {
+      redTags: (zone.redTags || []).map((redTag) =>
+        redTag.id === redTagId
+          ? { ...redTag, status, closedAt: redTag.closedAt || formatLocalDate() }
+          : redTag,
+      ),
+    });
+
+    setActionMessage(
+      status === 'disposed'
+        ? `Disposed of an item held in ${zone.code}.`
+        : `Returned an item held in ${zone.code}.`,
+    );
+  };
+
   const handleOwnerChange = (ownerId: string) => {
     if (!selectedZone) return;
     const owner = users.find((user) => user.id === ownerId);
@@ -1185,6 +1212,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
       if (isTerminal(patch.status)) {
         return { ...next, closedAt: next.closedAt || formatLocalDate() };
+      }
+
+      // Moving an item to review means it has gone to the holding area, and
+      // the wait is the whole point — so the clock starts here.
+      if (patch.status === 'review') {
+        return { ...next, ...(holdDatesFor(next) ?? {}) };
       }
 
       // Moving a tag back from a terminal status is a deliberate reopen.
@@ -2709,6 +2742,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 {/* How the area has actually been scoring. Audit runs reference
                     their zone, so this history exists for the first time. */}
                 <ZoneHistory zone={selectedZone} />
+
+                <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <HoldingArea
+                    zones={plan.zones}
+                    onDecide={decideHeldItem}
+                    onSelectZone={setSelectedZoneId}
+                  />
+                </div>
 
                 <div className="space-y-2">
                   <div className="text-sm text-gray-600 dark:text-gray-400">{t('photos.standard')}</div>

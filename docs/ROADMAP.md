@@ -19,8 +19,6 @@
 
 ## Next 5S Work
 
-- Add the red-tag holding area: a place tagged items wait one to two months
-  with an expiry that chases someone. Standard practice, still absent.
 - Layered audits — the same zone checked at three tiers, operator daily,
   supervisor weekly, manager monthly. Gives the four roles real work.
 - A printable QR code per zone, so scanning the zone label on a phone opens
@@ -66,6 +64,10 @@
 
 ## Recently Completed Hardening
 
+- Built the red-tag holding area: tagged items wait 30 days with a clock, a
+  panel lists what is waiting most-urgent-first, and the daily job chases a
+  decision once a hold runs out. The wait is what makes red-tagging evidence
+  rather than opinion. See [DECISIONS.md](DECISIONS.md).
 - Gave red tags a position on the floor plan. A tag is now a numbered pin
   inside its zone, draggable but clamped to that zone — "the pallet by the north
   door" is a different finding from "the pallet by the bench".

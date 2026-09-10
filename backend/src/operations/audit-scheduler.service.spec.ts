@@ -146,3 +146,80 @@ describe('the daily audit scheduler', () => {
     expect(new Set(sourceIds).size).toBe(1);
   });
 });
+
+describe('chasing expired red-tag holds', () => {
+  beforeEach(() => {
+    jest.spyOn(Logger.prototype, 'log').mockImplementation();
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  const today = new Date().toISOString().slice(0, 10);
+  const heldZone = (redTags: Array<Record<string, unknown>>) => ({
+    ...zone({ lastAuditAt: today, auditFrequency: 'monthly' }),
+    redTags,
+  });
+
+  const decisionCalls = (operations: { createTask: jest.Mock }) =>
+    operations.createTask.mock.calls.filter(([payload]) => payload.sourceId?.startsWith('hold-'));
+
+  it('raises a decision task once the hold has run out', async () => {
+    const { service, operations } = createService([
+      {
+        organizationId: 'org-1',
+        zones: [
+          heldZone([
+            { id: 'red-tag-1', title: 'Broken pallet', status: 'review', holdUntil: '2020-01-01' },
+          ]),
+        ],
+      },
+    ]);
+
+    await service.raiseDueAudits();
+
+    const [payload, user] = decisionCalls(operations)[0];
+    expect(payload.title).toBe('Red-tag decision due: Broken pallet');
+    expect(payload.sourceId).toBe('hold-red-tag-1');
+    expect(user).toEqual({ organizationId: 'org-1' });
+  });
+
+  it('leaves an item alone while it is still waiting', async () => {
+    const future = new Date(Date.now() + 20 * 86400000).toISOString().slice(0, 10);
+    const { service, operations } = createService([
+      {
+        organizationId: 'org-1',
+        zones: [heldZone([{ id: 'red-tag-1', status: 'review', holdUntil: future }])],
+      },
+    ]);
+
+    await service.raiseDueAudits();
+
+    expect(decisionCalls(operations)).toHaveLength(0);
+  });
+
+  it('ignores items that are not in the holding area', async () => {
+    const { service, operations } = createService([
+      {
+        organizationId: 'org-1',
+        zones: [
+          heldZone([
+            { id: 'a', status: 'open' },
+            { id: 'b', status: 'disposed', holdUntil: '2020-01-01' },
+          ]),
+        ],
+      },
+    ]);
+
+    await service.raiseDueAudits();
+
+    expect(decisionCalls(operations)).toHaveLength(0);
+  });
+
+  it('copes with a zone that has no red tags', async () => {
+    const { service } = createService([
+      { organizationId: 'org-1', zones: [zone({ lastAuditAt: today, auditFrequency: 'monthly' })] },
+    ]);
+
+    await expect(service.raiseDueAudits()).resolves.toBeUndefined();
+  });
+});

@@ -8,6 +8,37 @@ Newest first.
 
 ---
 
+## 2026-09-10 — The holding area is a state, not a new record
+
+**Decision.** A red tag with status `review` is in the holding area. Entering
+that state starts a 30-day clock (`heldAt`, `holdUntil`); `disposed` and
+`returned` are the two ways out. A panel lists what is waiting, most urgent
+first, and the daily job raises a decision task once a hold runs out.
+
+**Why.** Red-tagging is only evidence because of the wait: an item sits out of
+the way for a month, and if nobody misses it, that is the answer. The product
+had the tags but not the wait, so "we can probably throw this out" stayed an
+opinion.
+
+The existing vocabulary already described this — `open` is still in place,
+`review` is waiting, `disposed` and `returned` are the outcomes. Adding a
+"holding" status would have repeated the mistake of inventing a fifth value to
+make a mechanism fit.
+
+**Consequences.**
+- Re-saving a held item does not restart its clock; only entering `review`
+  sets the dates, and only when they are absent.
+- An item held before these dates existed has no `holdUntil` and is treated as
+  due now, so it is chased rather than left waiting for ever.
+- "Overdue by 0 days" is not a sentence anyone means: an item whose hold has
+  just run out reads as due now.
+- The scheduler chases expired holds under a `hold-` source key, distinct from
+  the `due-` key an audit uses, so the two never dedupe against each other.
+
+**Rules out.** A holding area that is a list somebody has to remember to open.
+
+---
+
 ## 2026-09-08 — A team is formed by invitation, and the token is a credential
 
 **Decision.** An owner, admin or manager invites someone by email and role. The

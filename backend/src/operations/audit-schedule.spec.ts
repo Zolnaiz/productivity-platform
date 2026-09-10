@@ -1,4 +1,11 @@
-import { auditDueDate, auditTaskSourceId, isAuditDue, toCalendarDay } from './audit-schedule';
+import {
+  auditDueDate,
+  auditTaskSourceId,
+  holdTaskSourceId,
+  isAuditDue,
+  isHoldExpired,
+  toCalendarDay,
+} from './audit-schedule';
 
 const zone = (over: Record<string, unknown> = {}) => ({
   id: 'zone-1',
@@ -75,5 +82,47 @@ describe('auditTaskSourceId', () => {
   it('matches the key the web app manual button uses', () => {
     // If these drift, the scheduler and the button both raise the same audit.
     expect(auditTaskSourceId('zone-1')).toBe('due-zone-1');
+  });
+});
+
+describe('isHoldExpired', () => {
+  const held = (over: Record<string, unknown> = {}) => ({
+    id: 'red-tag-1',
+    status: 'review',
+    heldAt: '2026-08-01',
+    holdUntil: '2026-08-31',
+    ...over,
+  });
+
+  it('expires on the day the hold runs out, not before', () => {
+    expect(isHoldExpired(held(), '2026-08-30')).toBe(false);
+    expect(isHoldExpired(held(), '2026-08-31')).toBe(true);
+    expect(isHoldExpired(held(), '2026-09-15')).toBe(true);
+  });
+
+  it('ignores an item that is not in the holding area', () => {
+    expect(isHoldExpired(held({ status: 'open' }), '2026-09-15')).toBe(false);
+    expect(isHoldExpired(held({ status: 'disposed' }), '2026-09-15')).toBe(false);
+  });
+
+  it('ignores an item whose work is already finished', () => {
+    expect(isHoldExpired(held({ closedAt: '2026-08-10' }), '2026-09-15')).toBe(false);
+  });
+
+  it('chases an item held before hold dates existed', () => {
+    // Otherwise it waits for ever, which is the failure the holding area has.
+    expect(isHoldExpired(held({ holdUntil: undefined }), '2026-09-15')).toBe(true);
+  });
+
+  it('accepts a timestamp on either side', () => {
+    expect(isHoldExpired(held({ holdUntil: '2026-08-31T00:00:00.000Z' }), '2026-09-01T22:00:00.000Z')).toBe(
+      true,
+    );
+  });
+});
+
+describe('holdTaskSourceId', () => {
+  it('does not collide with the audit-due key for the same id', () => {
+    expect(holdTaskSourceId('x')).not.toBe(auditTaskSourceId('x'));
   });
 });
