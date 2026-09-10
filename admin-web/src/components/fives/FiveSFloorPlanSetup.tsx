@@ -104,6 +104,9 @@ const zoneStatusOptions: Array<{ value: ZoneStatusFilter; label: string }> = [
   { value: 'unassigned', label: 'Unassigned' },
 ];
 
+const redTagStatusLabel = (status: FiveSRedTag['status']) =>
+  redTagStatusOptions.find((option) => option.value === status)?.label ?? status;
+
 const redTagStatusOptions: Array<{ value: FiveSRedTag['status']; label: string }> = [
   { value: 'open', label: 'Open' },
   { value: 'review', label: 'Review' },
@@ -212,6 +215,33 @@ const escapeHtml = (value: string | number | undefined) =>
 const escapeCsvCell = (value: string | number | undefined) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
 type AuditWalkStatus = 'overdue' | 'due_today' | 'upcoming' | 'scheduled';
+
+/** Radius of a red-tag pin on the canvas. */
+export const PIN_RADIUS = 11;
+
+/**
+ * Where a new pin goes, and where an old one sits.
+ *
+ * Tags recorded before pins existed have no position. Rather than piling them
+ * on one spot, they are laid out along a line inside their zone so each is
+ * separately grabbable, and dragging one commits its real place.
+ */
+export const nextPinSpot = (zone: FiveSZone, index: number) => {
+  const step = PIN_RADIUS * 2 + 6;
+  const usable = Math.max(zone.width - PIN_RADIUS * 2 - 12, step);
+  const perRow = Math.max(1, Math.floor(usable / step));
+
+  return {
+    x: Math.round(zone.x + PIN_RADIUS + 10 + (index % perRow) * step),
+    y: Math.round(zone.y + zone.height - PIN_RADIUS - 10 - Math.floor(index / perRow) * step),
+  };
+};
+
+/** A pin's drawn position: its own if it has one, otherwise a laid-out spot. */
+export const pinPosition = (zone: FiveSZone, redTag: FiveSRedTag, index: number) =>
+  redTag.x !== undefined && redTag.y !== undefined
+    ? { x: redTag.x, y: redTag.y }
+    : nextPinSpot(zone, index);
 
 const getAuditWalkStatus = (zone: FiveSZone, today = formatLocalDate()) => {
   const dueDate = getAuditDueDate(zone);
@@ -442,6 +472,29 @@ const getPointerPoint = (event: React.PointerEvent<SVGSVGElement>) => {
   };
 };
 
+/** Canvas coordinates of a pointer event, measured against the canvas itself. */
+const pointOnCanvas = (svg: SVGSVGElement, event: { clientX: number; clientY: number }) => {
+  const rect = svg.getBoundingClientRect();
+  return {
+    x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
+    y: ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT,
+  };
+};
+
+/**
+ * Pointer capture, where it exists.
+ *
+ * jsdom has no `setPointerCapture`, and a real browser can throw when the
+ * pointer is already gone. Neither is a reason to abandon the drag.
+ */
+const capturePointer = (event: React.PointerEvent<Element>) => {
+  try {
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  } catch {
+    // The drag still works from the canvas-level move handler.
+  }
+};
+
 interface FiveSFloorPlanSetupProps {
   onAuditZoneSelect?: (location: string) => void;
   refreshKey?: number;
@@ -471,6 +524,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const [drag, setDrag] = useState<
     | { kind: 'zone'; zoneId: string; offsetX: number; offsetY: number }
     | { kind: 'object'; objectId: string; offsetX: number; offsetY: number }
+    | { kind: 'redTag'; zoneId: string; redTagId: string; offsetX: number; offsetY: number }
     | null
   >(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -951,6 +1005,32 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     });
   };
 
+  const handleRedTagPointerDown = (
+    event: React.PointerEvent<SVGGElement>,
+    zone: FiveSZone,
+    redTag: FiveSRedTag,
+    index: number,
+  ) => {
+    if (!svgRef.current) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    capturePointer(event);
+
+    const point = pointOnCanvas(svgRef.current, event);
+    const spot = pinPosition(zone, redTag, index);
+
+    setSelectedZoneId(zone.id);
+    setSelectedObjectId('');
+    setDrag({
+      kind: 'redTag',
+      zoneId: zone.id,
+      redTagId: redTag.id,
+      offsetX: point.x - spot.x,
+      offsetY: point.y - spot.y,
+    });
+  };
+
   const handleObjectPointerDown = (event: React.PointerEvent<SVGGElement>, object: FloorPlanObject) => {
     if (!svgRef.current) return;
 
@@ -984,6 +1064,27 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       updateZone(zone.id, {
         x: Math.round(clamp(point.x - drag.offsetX, 12, CANVAS_WIDTH - zone.width - 12)),
         y: Math.round(clamp(point.y - drag.offsetY, 12, CANVAS_HEIGHT - zone.height - 12)),
+      });
+      return;
+    }
+
+    if (drag.kind === 'redTag') {
+      const zone = plan.zones.find((item) => item.id === drag.zoneId);
+      if (!zone) return;
+
+      // A tag's position means "where in this area", so a pin cannot be
+      // dragged out of the zone it belongs to.
+      const x = Math.round(
+        clamp(point.x - drag.offsetX, zone.x + PIN_RADIUS, zone.x + zone.width - PIN_RADIUS),
+      );
+      const y = Math.round(
+        clamp(point.y - drag.offsetY, zone.y + PIN_RADIUS, zone.y + zone.height - PIN_RADIUS),
+      );
+
+      updateZone(zone.id, {
+        redTags: (zone.redTags || []).map((item) =>
+          item.id === drag.redTagId ? { ...item, x, y } : item,
+        ),
       });
       return;
     }
@@ -1046,11 +1147,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     if (!selectedZone) return;
 
     const redTags = selectedZone.redTags || [];
+    const spot = nextPinSpot(selectedZone, redTags.length);
     const redTag: FiveSRedTag = {
       id: `redtag-${Date.now()}`,
       title: 'New red-tag item',
       disposition: 'Decide disposition',
       status: 'open',
+      x: spot.x,
+      y: spot.y,
       ownerId: selectedZone.ownerId,
       ownerName: selectedZone.ownerName,
       dueDate: getDateFromToday(3),
@@ -1064,14 +1168,27 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const updateSelectedZoneRedTag = (redTagId: string, patch: Partial<FiveSRedTag>) => {
     if (!selectedZone) return;
 
+    const isTerminal = (status: FiveSRedTag['status']) =>
+      status === 'disposed' || status === 'returned';
+
     const redTags = (selectedZone.redTags || []).map((redTag) => {
       if (redTag.id !== redTagId) return redTag;
+
       const next = { ...redTag, ...patch };
-      const closed = next.status === 'disposed' || next.status === 'returned';
-      return {
-        ...next,
-        closedAt: closed ? next.closedAt || formatLocalDate() : '',
-      };
+
+      // `closedAt` is touched only when the status itself changes. Finishing
+      // the cleanup task sets it while the status is still 'open' — awaiting a
+      // disposition — and editing any other field must not wipe that.
+      if (patch.status === undefined) {
+        return next;
+      }
+
+      if (isTerminal(patch.status)) {
+        return { ...next, closedAt: next.closedAt || formatLocalDate() };
+      }
+
+      // Moving a tag back from a terminal status is a deliberate reopen.
+      return isTerminal(redTag.status) ? { ...next, closedAt: '' } : next;
     });
 
     updateZone(selectedZone.id, withSyncedRedTags(redTags));
@@ -2183,6 +2300,39 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                         </text>
                       </g>
                     )}
+                    {/*
+                      A pin per open red tag. Position is information — which
+                      corner of the area the item is actually in — so the tags
+                      are draggable within their own zone.
+                    */}
+                    {(zone.redTags || [])
+                      .map((redTag, index) => ({ redTag, spot: pinPosition(zone, redTag, index), index }))
+                      .filter(({ redTag }) => isOpenRedTag(redTag))
+                      .map(({ redTag, spot, index }) => (
+                        <g
+                          key={redTag.id}
+                          className="cursor-grab"
+                          onPointerDown={(event) => handleRedTagPointerDown(event, zone, redTag, index)}
+                        >
+                          <title>{`${redTag.title} - ${redTagStatusLabel(redTag.status)}`}</title>
+                          <circle
+                            cx={spot.x}
+                            cy={spot.y}
+                            r={PIN_RADIUS}
+                            fill={auditBands.poor}
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                          />
+                          <text
+                            x={spot.x}
+                            y={spot.y + 4}
+                            textAnchor="middle"
+                            className="fill-white text-[10px] font-semibold"
+                          >
+                            {index + 1}
+                          </text>
+                        </g>
+                      ))}
                     {showAuditControls && isAuditDue(zone) && (
                       <g>
                         <rect

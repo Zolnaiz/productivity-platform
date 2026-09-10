@@ -21,6 +21,15 @@ export type FiveSRedTagStatus = 'open' | 'review' | 'disposed' | 'returned';
 export interface FiveSRedTag {
   id: string;
   title: string;
+  /**
+   * Where on the floor plan the item is, in canvas coordinates.
+   *
+   * Position is information: "the pallet by the north door" is a different
+   * finding from "the pallet by the bench". Optional, because tags recorded
+   * before pins existed have none and are placed when first dragged.
+   */
+  x?: number;
+  y?: number;
   disposition: string;
   status: FiveSRedTagStatus;
   ownerId?: string;

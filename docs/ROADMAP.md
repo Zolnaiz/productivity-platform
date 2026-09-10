@@ -19,6 +19,18 @@
 
 ## Next 5S Work
 
+- Add the red-tag holding area: a place tagged items wait one to two months
+  with an expiry that chases someone. Standard practice, still absent.
+- Layered audits — the same zone checked at three tiers, operator daily,
+  supervisor weekly, manager monthly. Gives the four roles real work.
+- A printable QR code per zone, so scanning the zone label on a phone opens
+  that zone's checklist. This is what turns the mobile app into a tool.
+- Multi-floor and multi-site. `site` is a single string; real organizations
+  have buildings and floors.
+- Scale calibration for an imported blueprint, so drawn zones carry real
+  dimensions.
+- Floor plan versions, so an old audit still makes sense against the map of its
+  time.
 - Raise tasks from the improvement register too. Red tags and audits are linked
   now; an improvement record's action plan is still free text.
 - Record the disposition when a tag is closed. `closedAt` is set automatically;
@@ -54,6 +66,11 @@
 
 ## Recently Completed Hardening
 
+- Gave red tags a position on the floor plan. A tag is now a numbered pin
+  inside its zone, draggable but clamped to that zone — "the pallet by the north
+  door" is a different finding from "the pallet by the bench".
+- Stopped an edit to a red tag wiping the `closedAt` set when its cleanup task
+  was finished. `closedAt` now changes only when the status itself does.
 - Made it possible to form a team: invitations by email and role, accepted into
   the inviting organization. Every registration used to create a brand-new
   organization with no way to add a second person. See [DECISIONS.md](DECISIONS.md).
