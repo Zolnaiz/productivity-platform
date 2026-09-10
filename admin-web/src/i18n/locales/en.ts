@@ -342,6 +342,19 @@ const en = {
    * and the browser words it. `unknown` covers a code this build has not
    * learned yet — an older client against a newer API.
    */
+  auditTiers: {
+    title: 'Layered audits',
+    subtitle: 'Each layer partly checks that the layer below is happening.',
+    neverChecked: 'Never checked',
+    dueToday: 'Due today',
+    dueIn: 'Due in {{days}} days',
+    overdueBy: 'Overdue by {{days}} days',
+    frequency: {
+      daily: 'daily',
+      weekly: 'weekly',
+      monthly: 'monthly',
+    },
+  },
   holdingArea: {
     title: 'Red-tag holding area',
     subtitle: 'Tagged items wait {{days}} days here. If nobody needs one in that time, that is the answer.',
@@ -533,6 +546,9 @@ const en = {
     auditRuns: 'Audit runs',
     runAudit: 'Run audit',
     template: 'Template',
+    tier: 'Audit layer',
+    tierHint: 'Which layer this check was. Resets that layer’s clock.',
+    noTier: 'Not part of a layered audit',
     zone: '5S zone',
     zoneHint: 'The score is written onto this zone on the area map.',
     noZone: 'Not tied to a mapped zone',

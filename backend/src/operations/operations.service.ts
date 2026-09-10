@@ -371,13 +371,22 @@ export class OperationsService {
       }
 
       matched = true;
+      const score = Number(run.score) || 0;
+
+      // A layered audit resets its own tier's clock as well as the zone's
+      // overall condition, because the tiers run independently.
+      const tierAudits = run.tier
+        ? { ...(zone.tierAudits ?? {}), [String(run.tier)]: { lastAuditAt: auditedAt, lastAuditScore: score } }
+        : zone.tierAudits;
+
       return {
         ...zone,
-        lastAuditScore: Number(run.score) || 0,
+        ...(tierAudits ? { tierAudits } : {}),
+        lastAuditScore: score,
         lastAuditAt: auditedAt,
         // The first score a zone receives becomes its baseline, so later
         // improvement is measurable rather than merely visible.
-        baselineScore: zone.baselineScore ?? (Number(run.score) || 0),
+        baselineScore: zone.baselineScore ?? score,
         baselineAt: zone.baselineAt ?? auditedAt,
       };
     });

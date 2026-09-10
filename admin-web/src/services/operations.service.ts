@@ -444,8 +444,15 @@ const applyDemoAuditScoreToZone = (run: Partial<AuditRun> | undefined) => {
     matched = true;
     const score = Number(run.score) || 0;
 
+    // A layered audit resets its own layer's clock as well as the zone's
+    // overall condition, because the layers run independently.
+    const tierAudits = run.tier
+      ? { ...(zone.tierAudits ?? {}), [String(run.tier)]: { lastAuditAt: auditedAt, lastAuditScore: score } }
+      : zone.tierAudits;
+
     return {
       ...zone,
+      ...(tierAudits ? { tierAudits } : {}),
       lastAuditScore: score,
       lastAuditAt: auditedAt,
       baselineScore: zone.baselineScore ?? score,

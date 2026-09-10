@@ -8,6 +8,37 @@ Newest first.
 
 ---
 
+## 2026-09-10 — Layered audits run on their own clocks
+
+**Decision.** An organization declares its audit layers once on the layout —
+tier number, name, role, frequency. Every zone tracks what each layer last
+found in `tierAudits`, keyed by tier. The daily job raises one task per zone per
+layer that is due, under a key distinct per tier.
+
+**Why.** Layered process auditing is what stops a standard quietly lapsing: the
+operator looks every day, the supervisor every week, the manager every month,
+and each is partly checking that the layer below is happening. It is also what
+gives the four roles real work rather than only permissions.
+
+**Consequences.**
+- A single `lastAuditAt` per zone hid the thing worth seeing. A zone can be up
+  to date for the operator and long overdue for the manager, and the panel
+  reports each layer separately.
+- "Never checked at this layer" and "overdue" are shown as different things.
+  They are different situations and the difference is what a manager looks for.
+- Tiers are an organization's structure, not an area's, so they live on the
+  layout and apply to every zone. An organization that has configured none gets
+  sensible defaults rather than nothing.
+- Anything unrecognised in the stored tier list is dropped, and an entirely
+  broken list falls back to the defaults — a bad config should not stop audits.
+- `tier.role` cannot yet resolve to a person: there is no users API. The zone
+  owner carries the task and the layer is named in it.
+
+**Rules out.** Reporting one audit date for an area that several people are
+supposed to check at different rhythms.
+
+---
+
 ## 2026-09-10 — The holding area is a state, not a new record
 
 **Decision.** A red tag with status `review` is in the holding area. Entering

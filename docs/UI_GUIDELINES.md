@@ -151,6 +151,15 @@ Every colour needs its dark counterpart — `dark:` on borders, backgrounds and
 text. The shared components already handle it; hand-written markup must not
 forget it. Check both themes before calling a screen done.
 
+## File names
+
+A component and its logic module must not differ only in letter case.
+`AuditTiers.tsx` beside `auditTiers.ts` compiles on Windows and macOS but
+resolves unpredictably: TypeScript rejects it, and Vite serves whichever it
+cached first, which looks like a stale build rather than a naming problem. The
+convention here is `Thing.tsx` for the component and `thingRules.ts` for the
+logic it uses.
+
 ## Responsive
 
 Content stacks below `lg`. The page body must never scroll horizontally: wide

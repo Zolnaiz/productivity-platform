@@ -6,15 +6,16 @@ import { Repository } from 'typeorm';
 import { FiveSLayout } from './entities/five-s-layout.entity';
 import { TaskSource } from './entities/task.entity';
 import { OperationsService } from './operations.service';
+import { HeldRedTag, holdTaskSourceId, isHoldExpired, SchedulableZone } from './audit-schedule';
 import {
-  auditDueDate,
-  auditTaskSourceId,
-  HeldRedTag,
-  holdTaskSourceId,
-  isAuditDue,
-  isHoldExpired,
-  SchedulableZone,
-} from './audit-schedule';
+  AuditTier,
+  isTierDue,
+  readAuditTiers,
+  tierAuditOf,
+  tierDueDate,
+  TieredZone,
+  tierTaskSourceId,
+} from './audit-tiers';
 
 /**
  * Raises the audits a 5S programme is supposed to run.
@@ -56,13 +57,23 @@ export class AuditSchedulerService {
         continue;
       }
 
+      const tiers = readAuditTiers((layout as { auditTiers?: unknown }).auditTiers);
+
       for (const zone of (layout.zones ?? []) as SchedulableZone[]) {
-        if (!zone.id || !isAuditDue(zone, today)) {
+        if (!zone.id) {
           continue;
         }
 
-        await this.ensureAuditTask(zone, layout.organizationId, today);
-        due += 1;
+        // Each layer runs on its own clock, so a zone can be up to date for
+        // the operator and overdue for the manager at the same time.
+        for (const tier of tiers) {
+          if (!isTierDue(zone as TieredZone, tier, today)) {
+            continue;
+          }
+
+          await this.ensureTierAuditTask(zone, tier, layout.organizationId, today);
+          due += 1;
+        }
       }
 
       expired += await this.ensureHoldDecisionTasks(layout, today);
@@ -124,29 +135,39 @@ export class AuditSchedulerService {
   }
 
   /**
-   * Makes sure the zone has an open audit task.
+   * Makes sure this layer has an open audit task for this zone.
    *
    * `createTask` returns the existing open task for a source rather than
    * making a second one, so running twice in a day — or on two instances at
-   * once — raises nothing extra. The dedupe key matches the one the web app's
-   * manual button uses, so the two cannot both raise the same audit.
+   * once — raises nothing extra. The key is distinct per tier, so the
+   * operator's daily check and the supervisor's weekly one are two pieces of
+   * work rather than one that keeps getting reused.
    */
-  private async ensureAuditTask(zone: SchedulableZone, organizationId: string, today: string) {
+  private async ensureTierAuditTask(
+    zone: SchedulableZone,
+    tier: AuditTier,
+    organizationId: string,
+    today: string,
+  ) {
     const place = [zone.code, zone.name].filter(Boolean).join(' - ') || zone.id!;
-    const dueDate = auditDueDate(zone) || today;
+    const lastAt = tierAuditOf(zone as TieredZone, tier.tier).lastAuditAt;
+    const dueDate = tierDueDate(zone as TieredZone, tier) || today;
 
     await this.operations.createTask(
       {
-        title: `5S audit due: ${place}`,
+        title: `${tier.name} 5S audit due: ${place}`,
         description: [
-          `Frequency: ${zone.auditFrequency ?? 'weekly'}`,
-          `Last audit: ${zone.lastAuditAt ? zone.lastAuditAt.slice(0, 10) : 'never'}`,
+          `Layer: tier ${tier.tier} (${tier.name})`,
+          `Frequency: ${tier.frequency}`,
+          `Last checked at this layer: ${lastAt ? lastAt.slice(0, 10) : 'never'}`,
           `Due: ${dueDate}`,
         ].join('\n'),
+        // Until a users API exists there is nobody to resolve `tier.role` to,
+        // so the zone owner carries it and the layer is named in the task.
         assigneeId: zone.ownerId,
         sourceType: TaskSource.AUDIT_RUN,
-        sourceId: auditTaskSourceId(zone.id!),
-        priority: 'medium',
+        sourceId: tierTaskSourceId(zone.id!, tier.tier),
+        priority: tier.tier > 1 ? 'medium' : 'low',
         dueDate,
         estimatedHours: 1,
         actualHours: 0,

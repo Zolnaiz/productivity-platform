@@ -88,6 +88,8 @@ export interface AuditRun {
   projectId?: string;
   /** The 5S zone audited. The server writes this run's score onto that zone. */
   zoneId?: string;
+  /** Which layer of a layered audit this was. The server resets that clock. */
+  tier?: number;
   /** Human-readable place, kept so a run still reads well if the zone is gone. */
   location?: string;
   answers: Array<{

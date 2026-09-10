@@ -7,7 +7,8 @@ import Select from '../components/common/Select';
 import { fiveSLayoutService } from '../services/fiveSLayout.service';
 import { operationsService } from '../services/operations.service';
 import { AuditRun, AuditTemplate } from '../types/operations.types';
-import { FiveSZone } from '../types/fiveS.types';
+import { AuditTier, FiveSZone } from '../types/fiveS.types';
+import { readAuditTiers } from '../components/fives/tierRules';
 
 type Answers = Record<string, string>;
 
@@ -26,6 +27,8 @@ const AuditTemplatesPage: React.FC = () => {
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [zoneId, setZoneId] = useState('');
   const [zones, setZones] = useState<FiveSZone[]>([]);
+  const [tiers, setTiers] = useState<AuditTier[]>([]);
+  const [tier, setTier] = useState('');
   const [answers, setAnswers] = useState<Answers>({});
   const [actionMessage, setActionMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -49,6 +52,7 @@ const AuditTemplatesPage: React.FC = () => {
         setSelectedTemplateId(templateItems[0]?.id || '');
         setRuns(runItems);
         setZones(plan.zones);
+        setTiers(readAuditTiers(plan.auditTiers));
       } catch {
         if (active) setError(t('auditTemplates.loadFailed'));
       } finally {
@@ -137,6 +141,8 @@ const AuditTemplatesPage: React.FC = () => {
       id: `local-audit-${Date.now()}`,
       templateId: selectedTemplate.id,
       zoneId: zoneId || undefined,
+      // Which layer this check was. The server resets that layer's clock.
+      tier: tier ? Number(tier) : undefined,
       // Kept for audits of places that are not on the map, and so a run still
       // reads sensibly in a list once a zone has been renamed or removed.
       location: zone ? `${zone.code} - ${zone.name}` : undefined,
@@ -225,6 +231,19 @@ const AuditTemplatesPage: React.FC = () => {
                 {templates.map((template) => (
                   <option key={template.id} value={template.id}>
                     {template.title}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                label={t('auditTemplates.tier')}
+                value={tier}
+                onChange={(event) => setTier(event.target.value)}
+                helperText={t('auditTemplates.tierHint')}
+              >
+                <option value="">{t('auditTemplates.noTier')}</option>
+                {tiers.map((item) => (
+                  <option key={item.tier} value={item.tier}>
+                    {item.name}
                   </option>
                 ))}
               </Select>

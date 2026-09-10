@@ -455,6 +455,12 @@ export class CreateAuditRunDto extends OrganizationScopedDto {
   @IsString()
   zoneId?: string;
 
+  /** Which layer of the audit this was. Absent for an unlayered audit. */
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  tier?: number;
+
   @IsOptional()
   @IsString()
   location?: string;

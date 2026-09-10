@@ -70,6 +70,13 @@ export interface FiveSZone {
    * The first score this zone ever received. Frozen by the server so later
    * improvement is measurable rather than merely visible.
    */
+  /**
+   * What each layer of a layered audit last found here, keyed by tier number.
+   *
+   * The layers run on their own clocks, so a zone can be up to date for the
+   * operator and overdue for the manager at once.
+   */
+  tierAudits?: Record<string, { lastAuditAt?: string; lastAuditScore?: number }>;
   baselineScore?: number;
   baselineAt?: string;
   redTagCount?: number;
@@ -88,6 +95,15 @@ export interface FloorPlanObject {
   rotation?: number;
 }
 
+/** One layer of a layered process audit. Declared per organization. */
+export interface AuditTier {
+  tier: number;
+  name: string;
+  role?: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  templateId?: string;
+}
+
 export interface FiveSLayoutPlan {
   id: string;
   organizationId?: string;
@@ -97,6 +113,8 @@ export interface FiveSLayoutPlan {
   backgroundImage?: string;
   backgroundOpacity?: number;
   showGrid?: boolean;
+  /** Absent until an organization configures its own layers. */
+  auditTiers?: AuditTier[];
   zones: FiveSZone[];
   objects: FloorPlanObject[];
   createdAt?: string;

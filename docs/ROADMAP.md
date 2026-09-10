@@ -19,8 +19,10 @@
 
 ## Next 5S Work
 
-- Layered audits — the same zone checked at three tiers, operator daily,
-  supervisor weekly, manager monthly. Gives the four roles real work.
+- Let an organization edit its audit layers. The tiers are read from the layout
+  and default sensibly, but nothing in the interface changes them yet.
+- Assign a layered audit by role rather than to the zone owner. Needs the users
+  API.
 - A printable QR code per zone, so scanning the zone label on a phone opens
   that zone's checklist. This is what turns the mobile app into a tool.
 - Multi-floor and multi-site. `site` is a single string; real organizations
@@ -64,6 +66,9 @@
 
 ## Recently Completed Hardening
 
+- Added layered process audits: each layer runs on its own clock, the zone panel
+  reports every layer separately, and the daily job raises one task per layer
+  that is due. See [DECISIONS.md](DECISIONS.md).
 - Built the red-tag holding area: tagged items wait 30 days with a clock, a
   panel lists what is waiting most-urgent-first, and the daily job chases a
   decision once a hold runs out. The wait is what makes red-tagging evidence

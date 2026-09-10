@@ -34,6 +34,7 @@ import Button from '../common/Button';
 import Card from '../common/Card';
 import PhotoEvidence from '../common/PhotoEvidence';
 import ZoneHistory from './ZoneHistory';
+import AuditTiers from './AuditTiers';
 import HoldingArea from './HoldingArea';
 import { holdDatesFor } from './holdingRules';
 import { formatLocalDate, getAuditDueDate, getDaysUntilDate, isAuditDue } from './auditSchedule';
@@ -2742,6 +2743,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 {/* How the area has actually been scoring. Audit runs reference
                     their zone, so this history exists for the first time. */}
                 <ZoneHistory zone={selectedZone} />
+
+                <AuditTiers zone={selectedZone} tiers={plan.auditTiers} />
 
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                   <HoldingArea

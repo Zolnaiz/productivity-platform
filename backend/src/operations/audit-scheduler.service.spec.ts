@@ -25,12 +25,17 @@ const createService = (layouts: Array<Record<string, unknown>>, enabled = true) 
   return { service, operations, layoutRepository };
 };
 
-const longAgo = '2020-01-01';
+
+const tierIds = (operations: { createTask: jest.Mock }) =>
+  operations.createTask.mock.calls
+    .map(([payload]) => payload.sourceId)
+    .filter((id: string) => id?.startsWith('due-'));
 
 /**
- * Every zone declares whether it is checked daily, weekly or monthly, and
- * nothing on the server read it: the map could show a zone as overdue, but
- * only once somebody opened the page and pressed a button.
+ * Layered process audits: the same area is checked by the operator daily, the
+ * supervisor weekly and the manager monthly, each partly verifying that the
+ * layer below is happening. Nothing on the server acted on any of it — the map
+ * could show a zone as overdue, but only once somebody pressed a button.
  */
 describe('the daily audit scheduler', () => {
   beforeEach(() => {
@@ -41,60 +46,98 @@ describe('the daily audit scheduler', () => {
     jest.restoreAllMocks();
   });
 
-  it('raises a task for a zone whose audit has come round', async () => {
-    const { service, operations } = createService([
-      { organizationId: 'org-1', zones: [zone({ lastAuditAt: longAgo })] },
-    ]);
+  it('raises one task per layer for a zone nobody has checked', async () => {
+    const { service, operations } = createService([{ organizationId: 'org-1', zones: [zone()] }]);
 
     await service.raiseDueAudits();
 
-    expect(operations.createTask).toHaveBeenCalledTimes(1);
-    const [payload, user] = operations.createTask.mock.calls[0];
+    expect(tierIds(operations)).toEqual(['due-zone-1-t1', 'due-zone-1-t2', 'due-zone-1-t3']);
 
-    expect(payload.title).toBe('5S audit due: A01 - Reception');
+    const [payload, user] = operations.createTask.mock.calls[0];
+    expect(payload.title).toBe('Operator 5S audit due: A01 - Reception');
     expect(payload.sourceType).toBe(TaskSource.AUDIT_RUN);
-    expect(payload.sourceId).toBe('due-zone-1');
     expect(payload.assigneeId).toBe('user-owner');
     expect(user).toEqual({ organizationId: 'org-1' });
   });
 
-  it('leaves a zone alone until its frequency comes round', async () => {
+  it('runs the layers on their own clocks', async () => {
     const today = new Date().toISOString().slice(0, 10);
+    // Checked by the operator today; the supervisor and manager are still owed.
     const { service, operations } = createService([
-      { organizationId: 'org-1', zones: [zone({ lastAuditAt: today, auditFrequency: 'monthly' })] },
+      {
+        organizationId: 'org-1',
+        zones: [zone({ tierAudits: { '1': { lastAuditAt: today } } })],
+      },
     ]);
 
     await service.raiseDueAudits();
 
-    expect(operations.createTask).not.toHaveBeenCalled();
+    expect(tierIds(operations)).toEqual(['due-zone-1-t2', 'due-zone-1-t3']);
   });
 
-  it('audits a zone that has never been audited', async () => {
+  it('leaves a zone alone when every layer is up to date', async () => {
+    const today = new Date().toISOString().slice(0, 10);
     const { service, operations } = createService([
-      { organizationId: 'org-1', zones: [zone()] },
+      {
+        organizationId: 'org-1',
+        zones: [
+          zone({
+            tierAudits: {
+              '1': { lastAuditAt: today },
+              '2': { lastAuditAt: today },
+              '3': { lastAuditAt: today },
+            },
+          }),
+        ],
+      },
     ]);
 
     await service.raiseDueAudits();
 
-    expect(operations.createTask).toHaveBeenCalledTimes(1);
-    expect(operations.createTask.mock.calls[0][0].description).toContain('Last audit: never');
+    expect(tierIds(operations)).toEqual([]);
+  });
+
+  it('uses the layers an organization configured rather than the defaults', async () => {
+    const { service, operations } = createService([
+      {
+        organizationId: 'org-1',
+        auditTiers: [{ tier: 1, name: 'Shift lead', frequency: 'weekly' }],
+        zones: [zone()],
+      },
+    ]);
+
+    await service.raiseDueAudits();
+
+    expect(tierIds(operations)).toEqual(['due-zone-1-t1']);
+    expect(operations.createTask.mock.calls[0][0].title).toContain('Shift lead');
+  });
+
+  it('says a layer has never looked here rather than leaving it blank', async () => {
+    const { service, operations } = createService([{ organizationId: 'org-1', zones: [zone()] }]);
+
+    await service.raiseDueAudits();
+
+    expect(operations.createTask.mock.calls[0][0].description).toContain(
+      'Last checked at this layer: never',
+    );
   });
 
   it('keeps each organization work inside its own organization', async () => {
     const { service, operations } = createService([
-      { organizationId: 'org-1', zones: [zone({ lastAuditAt: longAgo })] },
-      { organizationId: 'org-2', zones: [zone({ id: 'zone-9', lastAuditAt: longAgo })] },
+      { organizationId: 'org-1', zones: [zone()] },
+      { organizationId: 'org-2', zones: [zone({ id: 'zone-9' })] },
     ]);
 
     await service.raiseDueAudits();
 
     const organizations = operations.createTask.mock.calls.map(([, user]) => user.organizationId);
-    expect(organizations).toEqual(['org-1', 'org-2']);
+    expect(new Set(organizations)).toEqual(new Set(['org-1', 'org-2']));
+    expect(organizations.filter((id: string) => id === 'org-1')).toHaveLength(3);
   });
 
   it('skips a layout with no organization rather than raising unscoped work', async () => {
     const { service, operations } = createService([
-      { organizationId: undefined, zones: [zone({ lastAuditAt: longAgo })] },
+      { organizationId: undefined, zones: [zone()] },
     ]);
 
     await service.raiseDueAudits();
@@ -104,7 +147,7 @@ describe('the daily audit scheduler', () => {
 
   it('skips a zone with no id, which nothing could dedupe against', async () => {
     const { service, operations } = createService([
-      { organizationId: 'org-1', zones: [zone({ id: undefined, lastAuditAt: longAgo })] },
+      { organizationId: 'org-1', zones: [zone({ id: undefined })] },
     ]);
 
     await service.raiseDueAudits();
@@ -121,7 +164,7 @@ describe('the daily audit scheduler', () => {
 
   it('does nothing when the scheduler is switched off', async () => {
     const { service, operations, layoutRepository } = createService(
-      [{ organizationId: 'org-1', zones: [zone({ lastAuditAt: longAgo })] }],
+      [{ organizationId: 'org-1', zones: [zone()] }],
       false,
     );
 
@@ -135,15 +178,15 @@ describe('the daily audit scheduler', () => {
     // The scheduler deliberately does not check for an existing task itself:
     // one rule, in one place, shared with the web app's manual button.
     const { service, operations } = createService([
-      { organizationId: 'org-1', zones: [zone({ lastAuditAt: longAgo })] },
+      { organizationId: 'org-1', zones: [zone()] },
     ]);
 
     await service.raiseDueAudits();
     await service.raiseDueAudits();
 
-    expect(operations.createTask).toHaveBeenCalledTimes(2);
-    const sourceIds = operations.createTask.mock.calls.map(([payload]) => payload.sourceId);
-    expect(new Set(sourceIds).size).toBe(1);
+    // Three layers, raised twice: six calls, three distinct pieces of work.
+    expect(operations.createTask).toHaveBeenCalledTimes(6);
+    expect(new Set(tierIds(operations)).size).toBe(3);
   });
 });
 

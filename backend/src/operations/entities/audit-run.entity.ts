@@ -28,6 +28,15 @@ export class AuditRun extends BaseEntity {
   @Column({ name: 'zone_id', nullable: true })
   zoneId?: string;
 
+  /**
+   * Which layer of the audit this was — operator, supervisor, manager.
+   *
+   * Layered audits run the same area on different clocks, so a run has to say
+   * which clock it just reset. Absent for an unlayered audit.
+   */
+  @Column({ type: 'int', nullable: true })
+  tier?: number;
+
   /** Free-text place, for audits that are not tied to a mapped zone. */
   @Column({ nullable: true })
   location?: string;
