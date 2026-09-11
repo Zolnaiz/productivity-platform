@@ -385,6 +385,7 @@ const en = {
     evidence: 'Evidence',
     standard: 'Standard',
     add: 'Add photo',
+    loadFailed: 'Could not load a photo.',
     uploading: 'Uploading...',
     shotAlt: '{{kind}} photo: {{name}}',
     remove: 'Remove the {{kind}} photo',

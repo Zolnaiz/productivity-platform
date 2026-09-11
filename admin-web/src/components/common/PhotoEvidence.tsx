@@ -41,6 +41,9 @@ const PhotoEvidence: React.FC<PhotoEvidenceProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState<AttachmentKind | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<Attachment | null>(null);
+  /** Object URLs by attachment id. Released when they stop being needed. */
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const previewsRef = useRef<Record<string, string>>({});
   const inputs = useRef<Partial<Record<AttachmentKind, HTMLInputElement | null>>>({});
 
   const load = useCallback(async () => {
@@ -55,6 +58,81 @@ const PhotoEvidence: React.FC<PhotoEvidenceProps> = ({
   useEffect(() => {
     void load();
   }, [load]);
+
+  /**
+   * Fetches each photo through the authenticated client.
+   *
+   * The endpoint needs a Bearer token, so the bytes cannot come from an
+   * `<img src>` pointed at it. Object URLs are revoked when the attachment
+   * they belong to goes away and when this component unmounts, because a
+   * leaked one holds the whole file in memory.
+   */
+  useEffect(() => {
+    let active = true;
+    const wanted = new Set(items.map((item) => item.id));
+
+    items.forEach((item) => {
+      if (previews[item.id]) return;
+
+      attachmentService
+        .loadFile(item)
+        .then((url) => {
+          if (!active) {
+            attachmentService.releaseFile(url);
+            return;
+          }
+
+          setPreviews((current) => {
+            if (current[item.id]) {
+              // A second load raced this one; keep the first and free this.
+              attachmentService.releaseFile(url);
+              return current;
+            }
+
+            return { ...current, [item.id]: url };
+          });
+        })
+        .catch(() => {
+          if (active) setError(t('photos.loadFailed'));
+        });
+    });
+
+    setPreviews((current) => {
+      const stale = Object.keys(current).filter((id) => !wanted.has(id));
+
+      if (!stale.length) return current;
+
+      const next = { ...current };
+      stale.forEach((id) => {
+        attachmentService.releaseFile(next[id]);
+        delete next[id];
+      });
+
+      return next;
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [items, previews, t]);
+
+  /**
+   * Releases everything still held when the component goes away.
+   *
+   * The cleanup runs once, so it cannot read `previews` from a closure — that
+   * would capture the empty object from the first render and free nothing.
+   * The ref is what the cleanup can still see.
+   */
+  useEffect(() => {
+    previewsRef.current = previews;
+  }, [previews]);
+
+  useEffect(
+    () => () => {
+      Object.values(previewsRef.current).forEach((url) => attachmentService.releaseFile(url));
+    },
+    [],
+  );
 
   const handleFile = async (kind: AttachmentKind, file: File | undefined) => {
     if (!file) return;
@@ -106,11 +184,20 @@ const PhotoEvidence: React.FC<PhotoEvidenceProps> = ({
 
               {shot ? (
                 <div className="space-y-2">
-                  <img
-                    src={attachmentService.fileUrl(shot)}
-                    alt={t('photos.shotAlt', { kind: t(`photos.${kind}`), name: shot.fileName })}
-                    className="h-32 w-full rounded-md object-cover"
-                  />
+                  {previews[shot.id] ? (
+                    <img
+                      src={previews[shot.id]}
+                      alt={t('photos.shotAlt', { kind: t(`photos.${kind}`), name: shot.fileName })}
+                      className="h-32 w-full rounded-md object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="flex h-32 w-full items-center justify-center rounded-md bg-gray-100 text-xs text-gray-500 dark:bg-gray-900 dark:text-gray-400"
+                      role="status"
+                    >
+                      {t('common.loading')}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate text-xs text-gray-500" title={shot.fileName}>
                       {shot.fileName}

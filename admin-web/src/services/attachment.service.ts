@@ -134,12 +134,31 @@ export const attachmentService = {
     await api.delete(`/attachments/${id}`);
   },
 
-  /** Where to point an `<img>`. Demo attachments carry their own data URL. */
-  fileUrl: (attachment: Attachment): string => {
+  /**
+   * A URL an `<img>` can display.
+   *
+   * The file endpoint is guarded by a Bearer token, and a plain `<img src>` is
+   * a browser request that carries no Authorization header — pointing one at
+   * the endpoint renders a broken image for every signed-in user. So the bytes
+   * come through the authenticated client and become an object URL, which the
+   * caller must release.
+   */
+  loadFile: async (attachment: Attachment): Promise<string> => {
     if (isDemoMode()) {
       return readDemo().find((item) => item.id === attachment.id)?.dataUrl || '';
     }
 
-    return `${api.defaults.baseURL}/attachments/${attachment.id}/file`;
+    const response = await api.get<Blob>(`/attachments/${attachment.id}/file`, {
+      responseType: 'blob',
+    });
+
+    return URL.createObjectURL(response.data);
+  },
+
+  /** Frees an object URL. A data URL from the demo store needs no release. */
+  releaseFile: (url: string) => {
+    if (url.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+    }
   },
 };

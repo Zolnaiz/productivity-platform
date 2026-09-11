@@ -20,6 +20,10 @@ type CurrentUser = {
   organizationId?: string;
 };
 
+/** Postgres unique-violation. Other drivers surface it differently. */
+const isUniqueViolation = (error: unknown) =>
+  typeof error === 'object' && error !== null && (error as { code?: string }).code === '23505';
+
 @Injectable()
 export class OperationsService {
   constructor(
@@ -90,7 +94,24 @@ export class OperationsService {
       organizationId,
       reporterId: payload.reporterId || user?.id,
     });
-    return this.tasks.save(task);
+
+    try {
+      return await this.tasks.save(task);
+    } catch (error) {
+      // The lookup above is a read before a write, so two callers can both
+      // pass it — two scheduler replicas at six, or a double-clicked button.
+      // A partial unique index makes the database the arbiter; losing that
+      // race means somebody else raised the work, which is the right outcome.
+      const raced = isUniqueViolation(error)
+        ? await this.findOpenTaskForSource(payload, organizationId)
+        : null;
+
+      if (raced) {
+        return raced;
+      }
+
+      throw error;
+    }
   }
 
   /**

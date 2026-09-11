@@ -240,3 +240,39 @@ describe('finishing a task closes the finding it came from', () => {
     expect(repositories.fiveSLayouts.save).not.toHaveBeenCalled();
   });
 });
+
+describe('two callers racing to raise the same work', () => {
+  const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
+
+  it('returns the task the other caller created rather than failing', async () => {
+    // The lookup is a read before a write, so two scheduler replicas at six —
+    // or a double-clicked button — can both pass it. A partial unique index
+    // makes the database the arbiter; losing the race is the right outcome.
+    const { service, repositories } = createService();
+    const winner = { id: 'task-winner', ...redTagTask, status: TaskStatus.TODO };
+
+    repositories.tasks.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(winner);
+    repositories.tasks.save.mockRejectedValueOnce(uniqueViolation);
+
+    await expect(service.createTask(redTagTask as any, user)).resolves.toBe(winner);
+  });
+
+  it('does not swallow a failure that is not a duplicate', async () => {
+    const { service, repositories } = createService();
+    const failure = Object.assign(new Error('connection lost'), { code: '08006' });
+    repositories.tasks.save.mockRejectedValueOnce(failure);
+
+    await expect(service.createTask(redTagTask as any, user)).rejects.toBe(failure);
+  });
+
+  it('rethrows when the row cannot be found after a duplicate', async () => {
+    // Nothing to hand back means something else is wrong; hiding it would
+    // report success for work that was never created.
+    const { service, repositories } = createService();
+    repositories.tasks.save.mockRejectedValueOnce(uniqueViolation);
+
+    await expect(service.createTask(redTagTask as any, user)).rejects.toBe(uniqueViolation);
+  });
+});

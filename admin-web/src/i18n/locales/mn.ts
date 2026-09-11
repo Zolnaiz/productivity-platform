@@ -382,6 +382,7 @@ const mn: Translations<typeof en> = {
     evidence: 'Нотолгоо',
     standard: 'Стандарт',
     add: 'Зураг нэмэх',
+    loadFailed: 'Зураг ачаалж чадсангүй.',
     uploading: 'Байршуулж байна...',
     shotAlt: '{{kind}} зураг: {{name}}',
     remove: '{{kind}} зургийг устгах',

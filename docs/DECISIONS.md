@@ -8,6 +8,81 @@ Newest first.
 
 ---
 
+## 2026-09-11 — A mapped column without a migration is a test failure
+
+**Decision.** `migrations/schema-coverage.spec.ts` fails when an entity maps a
+column no migration mentions, or when a live table has no migration at all.
+
+**Why.** `DB_SYNCHRONIZE` is false by default and forbidden in production, so a
+column TypeORM maps but nothing creates simply does not exist — and every read
+and write of that table fails with a missing column. It is invisible in
+development, where seeded demo data hides it, and total in production.
+
+This has now happened twice: the 5S layout migrations were named outside the
+loader's glob and never ran, and `audit_runs.tier` was mapped with no migration
+behind it. Both reached a pull request; the second was caught by review, not by
+anything in this repository.
+
+**Consequences.**
+- The check is deliberately crude — it asks only whether some migration
+  mentions the column name for that table. That is enough to catch a column
+  nobody wrote a migration for, which is the mistake actually being made, and
+  it does not pretend to verify types or constraints.
+- It was validated by deleting the `tier` migration and confirming the test
+  fails. A guard that has never been seen to fail is not a guard.
+
+**Rules out.** Shipping an entity change without the migration behind it.
+
+---
+
+## 2026-09-11 — The database enforces one open task per finding
+
+**Decision.** A partial unique index on `(organization_id, source_type,
+source_id)` where the task is unfinished. `createTask` still looks first, but
+treats a unique violation as "somebody else raised it" and returns theirs.
+
+**Why.** The rule was a read followed by a write, which two callers can both
+pass before either commits — two scheduler replicas firing at six, or a
+double-clicked button. The index that existed was not unique, so the invariant
+the service claimed, and the docs asserted, was never actually held.
+
+**Consequences.**
+- The index is partial: a task occupies its finding's slot only while it is
+  unfinished. Once done it leaves the index and a recurring finding can raise
+  new work, which is the behaviour the rule is meant to have.
+- The migration closes pre-existing duplicates before creating the index,
+  keeping the newest of each group.
+- Only `23505` is treated this way. Any other failure is rethrown, because
+  reporting success for work that was never created is worse than an error.
+
+**Rules out.** Claiming an invariant the database does not enforce.
+
+---
+
+## 2026-09-11 — Authenticated files are fetched, not linked
+
+**Decision.** `PhotoEvidence` fetches attachment bytes through the API client
+and renders an object URL, releasing it when the attachment goes away or the
+component unmounts.
+
+**Why.** The file endpoint is guarded by a Bearer token, and `<img src>` is a
+plain browser request that carries no Authorization header. Pointing one at the
+endpoint renders a broken image for every signed-in user. It passed local
+checking because that was done in the demo workspace, where attachments are
+data URLs — the inverse of the demo-divergence problem already recorded here.
+
+**Consequences.**
+- Object URLs are tracked in a ref as well as state. The unmount cleanup runs
+  once, so reading state through its closure would capture the empty first
+  render and free nothing — a leak that holds whole files in memory. A test
+  asserts the release actually happens.
+- A photo that cannot be fetched says so instead of showing a broken image.
+
+**Rules out.** Putting a guarded endpoint in the `src` of an element the
+browser fetches on its own.
+
+---
+
 ## 2026-09-10 — Layered audits run on their own clocks
 
 **Decision.** An organization declares its audit layers once on the layout —
