@@ -162,7 +162,10 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Public operations access is disabled by default.
 - Operations API data is scoped by `organizationId`.
 - Joining an organization requires an invitation issued for that address; tokens are 32 random bytes, stored only as a SHA-256 hash, single-use, and expire after 14 days.
-- An invitation cannot grant a role its sender could not assign.
+- Roles and permissions come from one table (`backend/src/shared/roles.ts`). Nobody can assign their own role or above it, so no API path produces a second super admin; an invitation cannot grant a role its sender could not assign; and changing somebody's role requires that their current role is one the caller could have granted.
+- Every operations and user route names the permission it needs, and `PermissionsGuard` refuses the request when the caller's role does not carry it. A viewer can read the plant and cannot change it. A test walks the controllers and fails when a route names no permission, or names one the table does not define.
+- Editing a member cannot change their role, organization, active flag or password. Each of those has its own route with its own check; sending one to the edit endpoint is rejected rather than silently dropped.
+- The client asks `GET /users/profile/permissions` to decide which controls to draw, and is answered from the same table the server enforces with.
 - Submitting an audit run writes its score onto the referenced 5S zone, so the area map shows measured condition rather than chosen colours.
 - Tasks raised from a 5S finding record their source, and the API raises at most one open task per finding rather than duplicating work.
 - Attachment uploads are typed by sniffing their bytes, stored under a server-generated key, served with `Content-Disposition: attachment` and a sandboxing CSP, and scoped by `organizationId` on every read. Clients fetch them through the authenticated API rather than linking the guarded endpoint.
@@ -193,7 +196,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 229 passing
+- Backend tests: 322 passing
 - Frontend tests: 217 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues

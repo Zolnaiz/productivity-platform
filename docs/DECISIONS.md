@@ -586,6 +586,67 @@ work, and every edit wrote straight through to storage with nothing to undo it.
 
 ---
 
+## 2026-09-14 — One role table, and permissions the server actually enforces
+
+**Decision.** `backend/src/shared/roles.ts` holds two tables and nothing else
+holds either of them: which roles a role may hand out, and what each role may
+do. Routes name a permission with `@RequirePermission`; `PermissionsGuard`
+refuses the request when the caller's role does not carry it. The client asks
+`GET /users/profile/permissions` to decide what to draw, and gets the same
+table.
+
+**Why.** Three separate copies of "who may do what" existed and all three
+disagreed with each other and with the code.
+
+- The role hierarchy was written twice. `invitations.service.ts` covered all
+  six roles; `users.service.ts` covered four. So an organization admin could
+  *invite* a manager but could not *promote* a colleague to manager, and
+  `manager` and `viewer` could be invited into roles that then granted them
+  nothing.
+- The permission list in `users.service.ts` named questionnaires, responses and
+  expenses — two of which are modules this system does not have — and was read
+  by nobody. Every operations route was guarded by `OperationsAuthGuard` alone,
+  which checks only that the caller is signed in and has an organization. A
+  `viewer` could delete a project; a `user` could rewrite the audit templates
+  the whole plant is scored against. The client hid those controls, which is
+  not the same as the server refusing the request.
+- `UsersController` named roles directly, `@Roles(SUPER_ADMIN,
+  ORGANIZATION_ADMIN)`. The seeded workspace owner is an `admin`, so the owner
+  could not list their own team.
+
+**Consequences.**
+- `UpdateUserDto` no longer carries `role`, `organizationId`, `isActive` or
+  `password`. It carried all four while `PATCH /users/:id` did
+  `Object.assign(user, dto)` and `checkUserAccess` let anybody reach their own
+  record — so any signed-in account could promote itself to super admin, or
+  move itself into another tenant, in one request. Each of those four now has
+  its own route with its own check. The global pipe runs
+  `forbidNonWhitelisted`, so sending one is a 400 rather than a silent drop,
+  and `UsersService` filters to an explicit field list as well, because it is
+  also called from inside the application where no pipe runs.
+- Nobody can assign their own role. There is therefore no path through the API
+  to a second super admin; that seat comes from seeding. `changeRole` also
+  refuses to act on the caller themselves, and refuses to change a member whose
+  current role the caller could not have granted — without that last check an
+  administrator could not promote past themselves but could demote the person
+  above them, which comes to the same thing.
+- `route-permissions.spec.ts` walks both operations controllers and fails when
+  a route names no permission or names one the table does not define. Adding a
+  route without deciding who may call it is now a failing test rather than an
+  open endpoint.
+- `ALLOW_PUBLIC_OPERATIONS` is interpreted in one place: `OperationsAuthGuard`
+  marks the request it let through anonymously, and `PermissionsGuard` reads
+  the mark rather than the flag.
+- `OrganizationsModule` is still not registered in `AppModule`, so its routes
+  do not exist. That is left as it was — wiring an unreviewed CRUD surface into
+  the app graph is a separate decision, not a side effect of this one.
+
+**Rules out.** A second list of roles or permissions anywhere. A route that
+changes data without naming the permission it needs. Putting a privilege field
+back into an edit DTO.
+
+---
+
 ## Template for new entries
 
 ```

@@ -15,6 +15,12 @@ type JwtPayload = {
 };
 
 type RequestWithUser = Request & {
+  /**
+   * Set when `ALLOW_PUBLIC_OPERATIONS` let an unauthenticated request through.
+   * `PermissionsGuard` reads it rather than the flag, so the development
+   * switch is interpreted in exactly one place.
+   */
+  anonymousOperations?: boolean;
   user?: {
     id?: string;
     email?: string;
@@ -40,6 +46,7 @@ export class OperationsAuthGuard implements CanActivate {
 
     if (!authHeader) {
       if (allowPublicOperations) {
+        request.anonymousOperations = true;
         return true;
       }
 

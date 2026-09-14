@@ -4,6 +4,7 @@ import { IsNull, LessThan, MoreThan, Repository } from 'typeorm';
 import { Invitation } from './entities/invitation.entity';
 import { UsersService } from '../users/users.service';
 import { UserRole } from '../shared/constants';
+import { canAssignRole } from '../shared/roles';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import {
   createInvitationToken,
@@ -19,18 +20,6 @@ interface Inviter {
   role?: string;
 }
 
-/**
- * Roles each role may hand out.
- *
- * An invitation must not be a way around the role hierarchy: someone who
- * cannot promote a colleague to admin must not be able to invite one either.
- */
-const assignableRoles: Record<string, UserRole[]> = {
-  [UserRole.SUPER_ADMIN]: [UserRole.ORGANIZATION_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.USER, UserRole.VIEWER],
-  [UserRole.ORGANIZATION_ADMIN]: [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER, UserRole.VIEWER],
-  [UserRole.ADMIN]: [UserRole.MANAGER, UserRole.USER, UserRole.VIEWER],
-  [UserRole.MANAGER]: [UserRole.USER, UserRole.VIEWER],
-};
 
 @Injectable()
 export class InvitationsService {
@@ -59,7 +48,9 @@ export class InvitationsService {
     const organizationId = this.requireOrganization(inviter);
     const address = normalizeEmail(email);
 
-    if (!assignableRoles[inviter.role ?? '']?.includes(role)) {
+    // The same table that governs changing an existing member's role: an
+    // invitation must not be a way around the hierarchy.
+    if (!canAssignRole(inviter.role, role)) {
       throw apiError(ErrorCode.AccessDenied, 'role');
     }
 

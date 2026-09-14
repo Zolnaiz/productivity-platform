@@ -20,6 +20,7 @@ import { AuditSchedulerService } from './audit-scheduler.service';
 import { OperationsController } from './operations.controller';
 import { OperationsService } from './operations.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
+import { PermissionsGuard } from '../shared/guards/permissions.guard';
 
 const entities = [
   Project,
@@ -57,6 +58,7 @@ describe('OperationsModule wiring', () => {
         // The controllers are guarded, so the guard and its JwtService are
         // part of the graph the application actually builds.
         OperationsAuthGuard,
+        PermissionsGuard,
         { provide: JwtService, useValue: { verify: jest.fn() } },
         { provide: ConfigService, useValue: { get: jest.fn(() => undefined) } },
         ...entities.map((entity) => ({

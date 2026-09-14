@@ -8,6 +8,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './shared/database/database.module';
 import { OperationsModule } from './operations/operations.module';
+import { UsersModule } from './users/users.module';
 import { envValidationSchema } from './shared/config/env.validation';
 import { MetricsService } from './shared/metrics/metrics.service';
 
@@ -32,6 +33,7 @@ import { MetricsService } from './shared/metrics/metrics.service';
     }),
     DatabaseModule,
     AuthModule,
+    UsersModule,
     OperationsModule,
   ],
   controllers: [AppController],

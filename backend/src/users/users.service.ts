@@ -13,6 +13,7 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole, PaginationParams } from '../shared/constants';
+import { canAssignRole, permissionsFor } from '../shared/roles';
 
 @Injectable()
 export class UsersService {
@@ -49,7 +50,12 @@ export class UsersService {
     organizationId?: string,
     userRole?: UserRole,
   ) {
-    const { page, limit, search, role } = params;
+    // Callers inside the application pass a plain object; the controller
+    // passes a validated DTO. Defaulting here keeps an undefined page from
+    // turning the offset into NaN and returning an empty list.
+    const page = Math.max(1, params.page ?? 1);
+    const limit = Math.min(100, Math.max(1, params.limit ?? 20));
+    const { search, role } = params;
     const skip = (page - 1) * limit;
 
     const query = this.usersRepository
@@ -71,8 +77,10 @@ export class UsersService {
 
     // Search
     if (search) {
+      // ILIKE, not LIKE: PostgreSQL compares case-sensitively, so searching
+      // for a colleague by the lower-case start of their name found nobody.
       query.andWhere(
-        '(user.email LIKE :search OR user.firstName LIKE :search OR user.lastName LIKE :search)',
+        '(user.email ILIKE :search OR user.firstName ILIKE :search OR user.lastName ILIKE :search)',
         { search: `%${search}%` },
       );
     }
@@ -128,61 +136,55 @@ export class UsersService {
     });
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto, currentUser: any) {
-    const user = await this.findOne(id, currentUser);
+  /**
+   * The details of a member. Nothing here decides what they can do.
+   *
+   * `UpdateUserDto` deliberately has no `role`, `organizationId`, `isActive`
+   * or `password`; this list is the second lock, because the service is also
+   * called from inside the application where no validation pipe runs. A field
+   * reaching here that is not on the list is ignored rather than assigned.
+   */
+  private static readonly editableFields = [
+    'firstName',
+    'lastName',
+    'email',
+    'phone',
+    'position',
+    'profileImageUrl',
+  ] as const;
 
-    // Check if email is being changed and if it's already taken
+  private async applyEdit(user: User, updateUserDto: UpdateUserDto) {
     if (updateUserDto.email && updateUserDto.email !== user.email) {
       const existingUser = await this.findByEmail(updateUserDto.email);
-      if (existingUser && existingUser.id !== id) {
+      if (existingUser && existingUser.id !== user.id) {
         throw new ConflictException('Email already in use');
       }
     }
 
-    // Hash password if provided
-    if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+    for (const field of UsersService.editableFields) {
+      const value = updateUserDto[field];
+      if (value !== undefined) {
+        user[field] = value;
+      }
     }
 
-    // Update user
-    Object.assign(user, updateUserDto);
     return this.usersRepository.save(user);
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto, currentUser: any) {
+    const user = await this.findOne(id, currentUser);
+
+    return this.applyEdit(user, updateUserDto);
   }
 
   async updateProfile(userId: string, updateUserDto: UpdateUserDto) {
     const user = await this.findById(userId);
-    
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    // Users can only update certain fields in their profile
-    const allowedFields = [
-      'firstName',
-      'lastName',
-      'phone',
-      'position',
-      'profileImageUrl',
-    ];
-
-    const filteredUpdate: Partial<User> = {};
-    for (const field of allowedFields) {
-      if (updateUserDto[field] !== undefined) {
-        filteredUpdate[field] = updateUserDto[field];
-      }
-    }
-
-    // Check if email is being changed
-    if (updateUserDto.email && updateUserDto.email !== user.email) {
-      const existingUser = await this.findByEmail(updateUserDto.email);
-      if (existingUser && existingUser.id !== userId) {
-        throw new ConflictException('Email already in use');
-      }
-      filteredUpdate.email = updateUserDto.email;
-    }
-
-    Object.assign(user, filteredUpdate);
-    return this.usersRepository.save(user);
+    return this.applyEdit(user, updateUserDto);
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
@@ -216,10 +218,29 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
+  /**
+   * Puts a removed member back.
+   *
+   * `remove` soft-deletes, and TypeORM hides soft-deleted rows from every
+   * ordinary find — so looking the member up the usual way reported them as
+   * missing and there was no way back in. The row has to be asked for
+   * explicitly, and the delete mark cleared along with the flag.
+   */
   async activate(id: string, currentUser: any) {
-    const user = await this.findOne(id, currentUser);
-    
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      relations: ['organization'],
+      withDeleted: true,
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    this.checkUserAccess(user, currentUser);
+
     user.isActive = true;
+    user.deletedAt = null;
     return this.usersRepository.save(user);
   }
 
@@ -261,12 +282,28 @@ export class UsersService {
     };
   }
 
+  /**
+   * Moves a member to another role.
+   *
+   * Three things have to hold: you are not editing yourself, the role you are
+   * granting is one you may grant, and the role the member holds *now* is one
+   * you may grant. The last is the one that is easy to miss — without it an
+   * administrator could not promote a colleague past themselves but could
+   * demote the person above them, which comes to the same thing.
+   */
   async changeRole(id: string, role: UserRole, currentUser: any) {
     const user = await this.findOne(id, currentUser);
 
-    // Check if current user can assign this role
-    if (!this.canAssignRole(currentUser.role, role)) {
+    if (user.id === currentUser.id) {
+      throw new ForbiddenException('Cannot change your own role');
+    }
+
+    if (!canAssignRole(currentUser.role, role)) {
       throw new ForbiddenException('You cannot assign this role');
+    }
+
+    if (!canAssignRole(currentUser.role, user.role)) {
+      throw new ForbiddenException('You cannot change this role');
     }
 
     user.role = role;
@@ -303,109 +340,25 @@ export class UsersService {
       return;
     }
 
-    // Regular users can only access themselves
-    if (currentUser.role === UserRole.USER && user.id === currentUser.id) {
+    // Anybody may reach their own record, whatever their role. Checking for
+    // one specific role here locked managers and viewers out of themselves.
+    if (user.id === currentUser.id) {
       return;
     }
 
     throw new ForbiddenException('Access denied');
   }
 
+  /**
+   * What this role may do.
+   *
+   * The list comes from `shared/roles.ts`, which is also what
+   * `PermissionsGuard` enforces — so the capabilities the client is told about
+   * are the same ones the server will actually allow. Before, this was a
+   * hand-written second list that named questionnaires and responses, modules
+   * this system does not have.
+   */
   private getRolePermissions(role: UserRole): string[] {
-    const permissions = {
-      [UserRole.SUPER_ADMIN]: [
-        'users:read',
-        'users:create',
-        'users:update',
-        'users:delete',
-        'organizations:read',
-        'organizations:create',
-        'organizations:update',
-        'organizations:delete',
-        'questionnaires:read',
-        'questionnaires:create',
-        'questionnaires:update',
-        'questionnaires:delete',
-        'responses:read',
-        'responses:create',
-        'responses:update',
-        'responses:delete',
-        'expenses:read',
-        'expenses:create',
-        'expenses:update',
-        'expenses:delete',
-        'reports:read',
-        'reports:create',
-        'reports:update',
-        'reports:delete',
-      ],
-      [UserRole.ORGANIZATION_ADMIN]: [
-        'users:read',
-        'users:create',
-        'users:update',
-        'users:delete',
-        'questionnaires:read',
-        'questionnaires:create',
-        'questionnaires:update',
-        'questionnaires:delete',
-        'responses:read',
-        'responses:create',
-        'responses:update',
-        'responses:delete',
-        'expenses:read',
-        'expenses:create',
-        'expenses:update',
-        'expenses:delete',
-        'reports:read',
-        'reports:create',
-        'reports:update',
-        'reports:delete',
-      ],
-      [UserRole.ADMIN]: [
-        'users:read',
-        'users:create',
-        'users:update',
-        'users:delete',
-        'questionnaires:read',
-        'questionnaires:create',
-        'questionnaires:update',
-        'questionnaires:delete',
-        'responses:read',
-        'responses:create',
-        'responses:update',
-        'responses:delete',
-        'expenses:read',
-        'expenses:create',
-        'expenses:update',
-        'expenses:delete',
-        'reports:read',
-        'reports:create',
-        'reports:update',
-        'reports:delete',
-      ],
-      [UserRole.USER]: [
-        'questionnaires:read',
-        'questionnaires:create',
-        'responses:read',
-        'responses:create',
-        'expenses:read',
-        'expenses:create',
-        'reports:read',
-        'reports:create',
-      ],
-    };
-
-    return permissions[role] || [];
-  }
-
-  private canAssignRole(currentUserRole: UserRole, targetRole: UserRole): boolean {
-    const roleHierarchy = {
-      [UserRole.SUPER_ADMIN]: [UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN, UserRole.ADMIN, UserRole.USER],
-      [UserRole.ORGANIZATION_ADMIN]: [UserRole.ORGANIZATION_ADMIN, UserRole.ADMIN, UserRole.USER],
-      [UserRole.ADMIN]: [UserRole.ADMIN, UserRole.USER],
-      [UserRole.USER]: [],
-    };
-
-    return roleHierarchy[currentUserRole]?.includes(targetRole) || false;
+    return permissionsFor(role);
   }
 }

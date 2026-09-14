@@ -21,15 +21,18 @@ import { AttachmentsService, UploadedAttachment } from './attachments.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
 import { MAX_ATTACHMENT_BYTES, parseAttachmentTarget } from './attachment-storage';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
+import { RequirePermission } from '../shared/decorators/permissions.decorator';
+import { PermissionsGuard } from '../shared/guards/permissions.guard';
 
 @ApiTags('attachments')
 @ApiBearerAuth()
-@UseGuards(OperationsAuthGuard)
+@UseGuards(OperationsAuthGuard, PermissionsGuard)
 @Controller('attachments')
 export class AttachmentsController {
   constructor(private readonly attachments: AttachmentsService) {}
 
   @Post()
+  @RequirePermission('attachments:create')
   @UseInterceptors(
     FileInterceptor('file', {
       // Held in memory so the bytes can be sniffed before anything is written.
@@ -49,6 +52,7 @@ export class AttachmentsController {
   }
 
   @Get()
+  @RequirePermission('attachments:read')
   list(
     @Query('ownerType') ownerType: string,
     @Query('ownerId') ownerId: string,
@@ -67,6 +71,7 @@ export class AttachmentsController {
    * cannot become a script running against a signed-in session.
    */
   @Get(':id/file')
+  @RequirePermission('attachments:read')
   @Header('Cache-Control', 'private, max-age=3600')
   @Header('Content-Security-Policy', "default-src 'none'; sandbox")
   @Header('X-Content-Type-Options', 'nosniff')
@@ -86,6 +91,7 @@ export class AttachmentsController {
   }
 
   @Delete(':id')
+  @RequirePermission('attachments:delete')
   remove(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Request() request: { user?: { id?: string; organizationId?: string } },

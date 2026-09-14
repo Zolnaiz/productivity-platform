@@ -20,6 +20,7 @@ import { OperationsAuthGuard } from './guards/operations-auth.guard';
 import { AttachmentsController } from './attachments.controller';
 import { AttachmentsService } from './attachments.service';
 import { AuditSchedulerService } from './audit-scheduler.service';
+import { PermissionsGuard } from '../shared/guards/permissions.guard';
 
 @Module({
   imports: [
@@ -46,7 +47,13 @@ import { AuditSchedulerService } from './audit-scheduler.service';
     ]),
   ],
   controllers: [OperationsController, AttachmentsController],
-  providers: [OperationsService, AttachmentsService, AuditSchedulerService, OperationsAuthGuard],
+  providers: [
+    OperationsService,
+    AttachmentsService,
+    AuditSchedulerService,
+    OperationsAuthGuard,
+    PermissionsGuard,
+  ],
   exports: [OperationsService, AttachmentsService],
 })
 export class OperationsModule {}
