@@ -1,6 +1,19 @@
 import { IsString, MinLength, MaxLength, IsOptional, IsBoolean, IsUrl, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * What an organization may change about itself.
+ *
+ * `isActive` and `features` are absent on purpose. Nothing reads either one
+ * today, but they are the organization-level equivalent of putting `role` in
+ * the user edit DTO: one decides whether the tenant exists, the other what it
+ * is entitled to, and the tenant is the last party who should set them. With
+ * the cross-organization routes gone there is also no way back from an
+ * organization deactivating itself.
+ *
+ * `settings` stays — timezone, language and the close day are the
+ * organization's own business.
+ */
 export class UpdateOrganizationDto {
   @ApiProperty({
     example: 'Acme Inc.',
@@ -68,15 +81,6 @@ export class UpdateOrganizationDto {
   @IsString()
   address?: string;
 
-  @ApiProperty({
-    example: ['questionnaire', 'expense_tracking', 'reporting'],
-    description: 'Organization features',
-    required: false,
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  features?: string[];
 
   @ApiProperty({
     example: {
@@ -90,12 +94,4 @@ export class UpdateOrganizationDto {
   @IsOptional()
   settings?: Record<string, any>;
 
-  @ApiProperty({
-    example: true,
-    description: 'Whether organization is active',
-    required: false,
-  })
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
 }

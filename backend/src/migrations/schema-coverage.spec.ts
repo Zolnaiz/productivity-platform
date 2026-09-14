@@ -47,6 +47,11 @@ const liveTables = [
   'five_s_layouts',
   'attachments',
   'invitations',
+  // Live since `UsersModule` and `OrganizationsModule` joined the application
+  // graph. Until then nothing read these tables through TypeORM, so a column
+  // missing a migration would not have shown up here.
+  'users',
+  'organizations',
 ];
 
 /** Created by `BaseEntity`, so they come with the table rather than separately. */
@@ -62,6 +67,8 @@ const mappedColumns = (): MappedColumn[] => {
   const sources = [
     ...readAll('operations/entities', /\.entity\.ts$/),
     ...readAll('auth/entities', /\.entity\.ts$/),
+    ...readAll('users/entities', /\.entity\.ts$/),
+    ...readAll('organizations/entities', /\.entity\.ts$/),
   ];
 
   return sources.flatMap((source) => {

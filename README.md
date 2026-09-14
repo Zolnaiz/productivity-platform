@@ -168,7 +168,9 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - The client asks `GET /users/profile/permissions` to decide which controls to draw, and is answered from the same table the server enforces with.
 - The users and operations APIs are tested over real HTTP through the same pipes, guards and filters `main.ts` configures, so the refusals are checked as a client meets them rather than as guards built by hand. Removing a route's permission, or putting a privilege field back into the edit DTO, each fail those tests.
 - The team screen reads the real users API rather than browser storage, and adding somebody is an invitation rather than a create: the token is shown once, open invitations are listed, and the role select offers only roles the signed-in person may actually grant.
-- Departments are still kept in the browser only, and the departments screen says so rather than presenting a local list as a shared record.
+- The workspace screen reads and writes the real organization record. The API takes the organization from the caller's token, so there is no id to pass and no path to another tenant's record; `isActive` and `features` are not editable by the tenant.
+- Headcount is counted from the members the users API returns rather than stored, so it cannot disagree with who can sign in.
+- Departments and the audit log are still kept in the browser only, and both screens say so rather than presenting local data as a shared record. A browser-kept list is not an audit trail.
 - The rules a 5S area is judged by — stage gates, what an area still needs, which areas a filter shows, what a task raised from an area says — live in `floorPlanRules.ts` and are tested directly rather than only through the floor plan that draws them.
 - Submitting an audit run writes its score onto the referenced 5S zone, so the area map shows measured condition rather than chosen colours.
 - Tasks raised from a 5S finding record their source, and the API raises at most one open task per finding rather than duplicating work.
@@ -200,8 +202,8 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 368 passing
-- Frontend tests: 265 passing
+- Backend tests: 394 passing
+- Frontend tests: 275 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

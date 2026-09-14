@@ -1,144 +1,47 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Query,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Body, Controller, Get, Patch, Request, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OrganizationsService } from './organizations.service';
-import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../shared/decorators/roles.decorator';
-import { UserRole } from '../shared/constants';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { PermissionsGuard } from '../shared/guards/permissions.guard';
+import { RequirePermission } from '../shared/decorators/permissions.decorator';
 
+interface AuthenticatedRequest {
+  user?: { id?: string; organizationId?: string; role?: string };
+}
+
+/**
+ * The caller's own organization.
+ *
+ * There is no `:id` anywhere in this controller and no listing. The
+ * organization is taken from the caller's token, so there is no path to
+ * another tenant's record to guard in the first place — which is a better
+ * defence than a check that has to be remembered on every route.
+ *
+ * What this replaced had cross-organization CRUD, a second way to add a
+ * member that bypassed invitations, and a stats endpoint querying tables this
+ * system does not have. None of it was reachable, because the module was
+ * never registered. See `organizations.service.ts` for what went and why.
+ */
 @ApiTags('organizations')
+@ApiBearerAuth()
 @Controller('organizations')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class OrganizationsController {
-  constructor(private readonly organizationsService: OrganizationsService) {}
-
-  @Post()
-  @Roles(UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Create a new organization' })
-  @ApiResponse({ status: 201, description: 'Organization created successfully' })
-  create(@Body() createOrganizationDto: CreateOrganizationDto) {
-    return this.organizationsService.create(createOrganizationDto);
-  }
-
-  @Get()
-  @Roles(UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Get all organizations' })
-  findAll(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-    @Query('search') search?: string,
-    @Query('isActive') isActive?: boolean,
-  ) {
-    return this.organizationsService.findAll({
-      page,
-      limit,
-      search,
-      isActive,
-    });
-  }
+  constructor(private readonly organizations: OrganizationsService) {}
 
   @Get('my-organization')
-  @ApiOperation({ summary: 'Get current user organization' })
-  getMyOrganization(@Request() req) {
-    return this.organizationsService.getMyOrganization(req.user.organizationId);
+  @ApiOperation({ summary: 'The organization you belong to' })
+  getMyOrganization(@Request() request: AuthenticatedRequest) {
+    // No permission named: every member needs their own workspace's name,
+    // contact details and settings to use the application at all.
+    return this.organizations.getMyOrganization(request.user?.organizationId);
   }
 
-  @Get(':id')
-  @Roles(UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Get organization by ID' })
-  findOne(@Param('id') id: string) {
-    return this.organizationsService.findOne(id);
-  }
-
-  @Patch(':id')
-  @Roles(UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Update organization' })
-  update(
-    @Param('id') id: string,
-    @Body() updateOrganizationDto: UpdateOrganizationDto,
-  ) {
-    return this.organizationsService.update(id, updateOrganizationDto);
-  }
-
-  @Delete(':id')
-  @Roles(UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Delete organization' })
-  remove(@Param('id') id: string) {
-    return this.organizationsService.remove(id);
-  }
-
-  @Post(':id/activate')
-  @Roles(UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Activate organization' })
-  activate(@Param('id') id: string) {
-    return this.organizationsService.activate(id);
-  }
-
-  @Post(':id/deactivate')
-  @Roles(UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Deactivate organization' })
-  deactivate(@Param('id') id: string) {
-    return this.organizationsService.deactivate(id);
-  }
-
-  @Get(':id/users')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN)
-  @ApiOperation({ summary: 'Get organization users' })
-  getUsers(
-    @Param('id') id: string,
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-    @Query('search') search?: string,
-    @Query('role') role?: UserRole,
-    @Request() req,
-  ) {
-    return this.organizationsService.getUsers(
-      id,
-      { page, limit, search, role },
-      req.user,
-    );
-  }
-
-  @Get(':id/stats')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN)
-  @ApiOperation({ summary: 'Get organization statistics' })
-  getStats(@Param('id') id: string, @Request() req) {
-    return this.organizationsService.getStats(id, req.user);
-  }
-
-  @Post(':id/invite-user')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN)
-  @ApiOperation({ summary: 'Invite user to organization' })
-  inviteUser(
-    @Param('id') id: string,
-    @Body('email') email: string,
-    @Body('role') role: UserRole,
-    @Request() req,
-  ) {
-    return this.organizationsService.inviteUser(id, email, role, req.user);
-  }
-
-  @Post(':id/remove-user/:userId')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZATION_ADMIN)
-  @ApiOperation({ summary: 'Remove user from organization' })
-  removeUser(
-    @Param('id') id: string,
-    @Param('userId') userId: string,
-    @Request() req,
-  ) {
-    return this.organizationsService.removeUser(id, userId, req.user);
+  @Patch('my-organization')
+  @RequirePermission('organization:update')
+  @ApiOperation({ summary: 'Edit the organization you belong to' })
+  updateMyOrganization(@Body() changes: UpdateOrganizationDto, @Request() request: AuthenticatedRequest) {
+    return this.organizations.updateMyOrganization(request.user?.organizationId, changes);
   }
 }

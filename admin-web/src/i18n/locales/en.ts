@@ -267,6 +267,7 @@ const en = {
     },
   },
   auditLog: {
+    localOnly: 'These entries are recorded by this browser only. They are not a server-side audit trail and must not be used as evidence of who changed what.',
     title: 'Audit Log',
     subtitle: 'Security events, exports, permission changes and audit submissions.',
     systemActivity: 'System activity',
@@ -420,6 +421,7 @@ const en = {
     AUTH_TOKEN_INVALID: 'Your session is no longer valid. Sign in again.',
     AUTH_TOKEN_MISSING: 'Sign in to continue.',
     AUTH_ORGANIZATION_REQUIRED: 'Your account is not linked to an organization. Contact your admin.',
+    AUTH_ORGANIZATION_TAKEN: 'An organization with this name already exists. Choose another.',
     ACCESS_DENIED: 'You do not have access to this.',
     INVITATION_INVALID: 'This invitation link is not valid. Ask for a new one.',
     INVITATION_EXPIRED: 'This invitation has expired. Ask for a new one.',
@@ -666,8 +668,9 @@ const en = {
       'Submitted checklist and questionnaire responses will appear here for review and action creation.',
   },
   settings: {
+    saveTitle: 'Save changes',
     title: 'Settings',
-    subtitle: 'Report automation, notification rules, and workspace preferences.',
+    subtitle: 'Timezone, language, and the day the month closes on.',
     workspacePreferences: 'Workspace preferences',
     timezone: 'Timezone',
     language: 'Language',

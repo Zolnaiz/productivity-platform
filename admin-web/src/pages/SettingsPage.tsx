@@ -84,27 +84,7 @@ const SettingsPage: React.FC = () => {
             onChange={(event) => updateField('monthCloseDay', Number(event.target.value))}
           />
         </div>
-      </Card>
 
-      <Card title="Automation rules">
-        <div className="space-y-4">
-          {[
-            ['autoMonthlyReport', 'Automatically prepare monthly employee and project reports'],
-            ['notifyOverdueTasks', 'Notify managers about overdue tasks'],
-            ['notifyLowAuditScore', 'Notify quality team when audit score is below 85%'],
-            ['requireWorkLogApproval', 'Require manager approval for employee work logs'],
-          ].map(([key, label]) => (
-            <label key={key} className="flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</span>
-              <input
-                checked={Boolean(settings[key as keyof WorkspaceSettings])}
-                className="h-5 w-5"
-                type="checkbox"
-                onChange={(event) => updateField(key as keyof WorkspaceSettings, event.target.checked as never)}
-              />
-            </label>
-          ))}
-        </div>
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
           <Button onClick={saveSettings} type="button">
             {t('settings.saveSettings')}
@@ -112,6 +92,15 @@ const SettingsPage: React.FC = () => {
           {saved && <span className="text-sm text-green-600">{t('settings.saved')}</span>}
         </div>
       </Card>
+
+      {/*
+        Four switches stood here — automatic monthly reports, notify on overdue
+        tasks, notify on a low audit score, require approval for work logs —
+        and nothing read any of them. A switch labelled "notify managers" that
+        notifies nobody misleads the person setting the system up, and storing
+        it in a database would only have made it more convincing. They come
+        back when notifications do; the roadmap carries them.
+      */}
         </>
       )}
     </div>

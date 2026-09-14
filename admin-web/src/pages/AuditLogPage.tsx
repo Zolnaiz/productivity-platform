@@ -38,6 +38,21 @@ const AuditLogPage: React.FC = () => {
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('auditLog.subtitle')}</p>
       </div>
 
+      {/*
+        Said plainly, because an audit trail nobody can rely on is worse than
+        an absent one. These entries are written by this browser, so they can
+        be edited or cleared by whoever is reading them and they record nothing
+        a colleague did. A real trail is written by the server as things
+        happen — that is on the roadmap, and until it exists this page must not
+        be mistaken for evidence.
+      */}
+      <p
+        className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-200"
+        role="note"
+      >
+        {t('auditLog.localOnly')}
+      </p>
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <div className="text-sm text-gray-500">{t('auditLog.totalEvents')}</div>

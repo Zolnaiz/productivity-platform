@@ -28,6 +28,7 @@ export const ErrorCode = {
   AuthTokenInvalid: 'AUTH_TOKEN_INVALID',
   AuthTokenMissing: 'AUTH_TOKEN_MISSING',
   AuthOrganizationRequired: 'AUTH_ORGANIZATION_REQUIRED',
+  AuthOrganizationTaken: 'AUTH_ORGANIZATION_TAKEN',
   AccessDenied: 'ACCESS_DENIED',
   InvitationInvalid: 'INVITATION_INVALID',
   InvitationExpired: 'INVITATION_EXPIRED',
@@ -86,6 +87,10 @@ const definitions: Record<ErrorCode, ErrorDefinition> = {
   [ErrorCode.AuthOrganizationRequired]: {
     exception: UnauthorizedException,
     message: 'Organization context is required',
+  },
+  [ErrorCode.AuthOrganizationTaken]: {
+    exception: ConflictException,
+    message: 'An organization with this name already exists',
   },
   [ErrorCode.AccessDenied]: {
     exception: ForbiddenException,

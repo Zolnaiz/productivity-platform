@@ -43,12 +43,13 @@ const OrganizationsPage: React.FC = () => {
         </Card>
       ) : (
         <>
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <div className="text-sm text-gray-500">{t('organizations.plan')}</div>
-          <div className="mt-2 text-2xl font-semibold capitalize text-gray-900 dark:text-white">{profile.plan}</div>
-        </Card>
-        <Card>
+          {/*
+            Counted from the members the users API returns, not stored, so it
+            cannot disagree with who can actually sign in. The card beside it
+            used to show a billing plan the tenant typed in themselves.
+          */}
           <div className="text-sm text-gray-500">{t('organizations.employees')}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{profile.employeeCount}</div>
         </Card>
@@ -92,13 +93,6 @@ const OrganizationsPage: React.FC = () => {
             type="tel"
             value={profile.contactPhone}
             onChange={(event) => updateField('contactPhone', event.target.value)}
-          />
-          <Input
-            label={t('organizations.employeeCount')}
-            min={1}
-            type="number"
-            value={profile.employeeCount}
-            onChange={(event) => updateField('employeeCount', Number(event.target.value))}
           />
           <Input
             label={t('organizations.address')}

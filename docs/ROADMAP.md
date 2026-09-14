@@ -6,11 +6,15 @@
   on the real API now; Departments is still browser-local and says so on the
   page. The question is not how to store a name and a manager — it is whether
   a department owns zones, projects, or the people assigned to them.
-- Register `OrganizationsModule` in `AppModule`, or delete it. Its controller
-  is fully written and role-guarded but not in the application graph, so none
-  of its routes exist — the same state `UsersModule` was in. Wiring an
-  unreviewed CRUD surface into a multi-tenant API is a decision, not a
-  formality.
+- Write the audit log on the server. The screen exists and says plainly that
+  its entries are kept by the browser, which is not an audit trail. A record of
+  who changed what has to be written as things happen, and this is the one
+  remaining screen presenting local data.
+- Bring back the automation settings when there is automation behind them:
+  monthly report preparation, notifying a manager about an overdue task,
+  notifying the quality team below 85%, and work-log approval. All four were
+  switches that were read by nothing, so they were removed rather than left
+  looking functional.
 - Deliver invitations. The API issues the token and the inviter shares it by
   hand; there is no email transport.
 - Add browser-driven API smoke automation for login, dashboard load, and core module navigation.
