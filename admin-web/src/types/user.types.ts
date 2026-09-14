@@ -1,5 +1,26 @@
 import { USER_ROLES, USER_PERMISSIONS } from '../utils/constants';
-import { Organization } from './organization.types';
+/**
+ * The organization a user belongs to, as the API returns it.
+ *
+ * Kept minimal on purpose: nothing in the app reads these fields yet, so this
+ * describes the contract rather than a model. Widen it when a screen needs
+ * more, not before.
+ */
+export interface Organization {
+  id: string;
+  name: string;
+  code?: string;
+  industry?: string;
+  size?: string;
+  settings?: {
+    language?: string;
+    currency?: string;
+  };
+  isActive?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 export type UserPermission = typeof USER_PERMISSIONS[keyof typeof USER_PERMISSIONS];

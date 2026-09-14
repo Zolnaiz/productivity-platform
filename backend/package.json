@@ -1,7 +1,7 @@
 {
-  "name": "questionnaire-backend",
+  "name": "productivity-platform-backend",
   "version": "1.0.0",
-  "description": "Асуулга, зардлын менежментийн системийн backend",
+  "description": "Operations and productivity management API",
   "author": "Your Name",
   "private": true,
   "license": "MIT",
@@ -30,8 +30,8 @@
     "seed": "ts-node --transpile-only scripts/seed-operations.ts",
     "token:smoke": "ts-node --transpile-only scripts/create-smoke-token.ts",
     "smoke:api": "ts-node --transpile-only scripts/smoke-operations-api.ts",
-    "docker:build": "docker build -t questionnaire-backend .",
-    "docker:run": "docker run -p 3000:3000 questionnaire-backend",
+    "docker:build": "docker build -t productivity-platform-backend .",
+    "docker:run": "docker run -p 3000:3000 productivity-platform-backend",
     "docker:compose": "docker-compose up",
     "docker:compose:dev": "docker-compose -f docker-compose.dev.yml up",
     "docker:compose:prod": "docker-compose -f docker-compose.prod.yml up",
@@ -124,7 +124,6 @@
       "^@auth/(.*)$": "<rootDir>/auth/$1",
       "^@users/(.*)$": "<rootDir>/users/$1",
       "^@organizations/(.*)$": "<rootDir>/organizations/$1",
-      "^@questionnaires/(.*)$": "<rootDir>/questionnaires/$1",
       "^@responses/(.*)$": "<rootDir>/responses/$1",
       "^@expenses/(.*)$": "<rootDir>/expenses/$1",
       "^@reports/(.*)$": "<rootDir>/reports/$1"

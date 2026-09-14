@@ -131,7 +131,7 @@ export class AttachmentsService {
     // the row because the file had already gone would be worse.
     try {
       await unlink(join(this.storageRoot, attachment.storageKey));
-    } catch (error) {
+    } catch {
       this.logger.warn(`Attachment file already gone: ${attachment.storageKey}`);
     }
 

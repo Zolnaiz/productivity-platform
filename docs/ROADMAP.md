@@ -9,10 +9,6 @@
   hand; there is no email transport.
 - Add browser-driven API smoke automation for login, dashboard load, and core module navigation.
 - Decide whether runtime auth tables should remain as dedicated operations-platform migrations or be merged into the legacy initial migration set before first production deployment.
-- Decide what to do with the legacy modules. `expenses`, `reports`,
-  `questionnaires` and `shared/pipes/validation.pipe.ts` are not in the
-  application graph and ship nothing, but they hold most of the repository's
-  untranslated strings and read as live code. Wire them up or delete them.
 - Seeded demo content is still written in one language in the source. Unlike
   error messages, this is organization data rather than UI copy, so it belongs
   in the seed per organization rather than in the locale files.
@@ -66,6 +62,10 @@
 
 ## Recently Completed Hardening
 
+- Deleted the scaffolding: four backend modules outside the application graph,
+  five frontend services with no importers, the legacy shared entities and the
+  unused seed module — 8,163 lines that compiled, linted and were reached by
+  nothing. The backend package is no longer called `questionnaire-backend`.
 - Added layered process audits: each layer runs on its own clock, the zone panel
   reports every layer separately, and the daily job raises one task per layer
   that is due. See [DECISIONS.md](DECISIONS.md).
