@@ -168,6 +168,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - The client asks `GET /users/profile/permissions` to decide which controls to draw, and is answered from the same table the server enforces with.
 - The team screen reads the real users API rather than browser storage, and adding somebody is an invitation rather than a create: the token is shown once, open invitations are listed, and the role select offers only roles the signed-in person may actually grant.
 - Departments are still kept in the browser only, and the departments screen says so rather than presenting a local list as a shared record.
+- The rules a 5S area is judged by — stage gates, what an area still needs, which areas a filter shows, what a task raised from an area says — live in `floorPlanRules.ts` and are tested directly rather than only through the floor plan that draws them.
 - Submitting an audit run writes its score onto the referenced 5S zone, so the area map shows measured condition rather than chosen colours.
 - Tasks raised from a 5S finding record their source, and the API raises at most one open task per finding rather than duplicating work.
 - Attachment uploads are typed by sniffing their bytes, stored under a server-generated key, served with `Content-Disposition: attachment` and a sandboxing CSP, and scoped by `organizationId` on every read. Clients fetch them through the authenticated API rather than linking the guarded endpoint.
@@ -199,7 +200,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 322 passing
-- Frontend tests: 235 passing
+- Frontend tests: 265 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

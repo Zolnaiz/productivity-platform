@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextPinSpot, pinPosition, PIN_RADIUS } from './FiveSFloorPlanSetup';
+import { nextPinSpot, pinPosition, PIN_RADIUS } from './floorPlanRules';
 import { FiveSRedTag, FiveSZone } from '../../types/fiveS.types';
 
 const zone = (over: Partial<FiveSZone> = {}): FiveSZone =>

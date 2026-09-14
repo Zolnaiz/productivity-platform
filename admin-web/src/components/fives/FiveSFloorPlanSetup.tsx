@@ -37,7 +37,38 @@ import ZoneHistory from './ZoneHistory';
 import AuditTiers from './AuditTiers';
 import HoldingArea from './HoldingArea';
 import { holdDatesFor } from './holdingRules';
-import { formatLocalDate, getAuditDueDate, getDaysUntilDate, isAuditDue } from './auditSchedule';
+import { formatLocalDate, getAuditDueDate, isAuditDue } from './auditSchedule';
+import {
+  ZoneStatusFilter,
+  buildZoneTaskPayload,
+  getDateFromToday,
+  getZoneTaskDueDate,
+  getZoneTaskPriority,
+  isOpenRedTag,
+  getAuditWalkStatus,
+  getRedTagCount,
+  getStageGate,
+  getZoneActionItems,
+  matchesZoneStatus,
+  nextPinSpot,
+  pinPosition,
+  redTagStatusLabel,
+  redTagStatusOptions,
+  stageLabels,
+  stageOrder,
+  withSyncedRedTags,
+  zoneStatusOptions,
+  PIN_RADIUS,
+} from './floorPlanRules';
+import {
+  CANVAS_HEIGHT,
+  CANVAS_WIDTH,
+  capturePointer,
+  clamp,
+  getPointerPoint,
+  pointOnCanvas,
+} from './floorPlanGeometry';
+import { AuditWalkStatus, escapeCsvCell, escapeHtml } from './floorPlanFormats';
 import { fiveSLayoutService } from '../../services/fiveSLayout.service';
 import { operationsService } from '../../services/operations.service';
 import { peopleService } from '../../services/people.service';
@@ -51,18 +82,7 @@ import {
 } from '../../types/fiveS.types';
 import { TeamUser, memberName } from '../../types/people.types';
 
-const CANVAS_WIDTH = 900;
-const CANVAS_HEIGHT = 500;
 
-const stageLabels: Record<FiveSStage, string> = {
-  sort: '1 Sort',
-  set_in_order: '2 Set',
-  shine: '3 Shine',
-  standardize: '4 Standardize',
-  sustain: '5 Sustain',
-};
-
-const stageOrder: FiveSStage[] = ['sort', 'set_in_order', 'shine', 'standardize', 'sustain'];
 
 const shapeTools: Array<{
   type: FloorPlanObjectType;
@@ -88,34 +108,6 @@ const shapeTools: Array<{
 
 const shapeToolGroups: Array<(typeof shapeTools)[number]['group']> = ['Structure', 'Furniture', 'Storage', 'Utilities'];
 
-type ZoneStatusFilter =
-  | 'all'
-  | 'needs_attention'
-  | 'ready_to_advance'
-  | 'audit_due'
-  | 'red_tags'
-  | 'low_score'
-  | 'unassigned';
-
-const zoneStatusOptions: Array<{ value: ZoneStatusFilter; label: string }> = [
-  { value: 'all', label: 'All areas' },
-  { value: 'needs_attention', label: 'Needs attention' },
-  { value: 'ready_to_advance', label: 'Ready to advance' },
-  { value: 'audit_due', label: 'Audit due' },
-  { value: 'red_tags', label: 'Red tags' },
-  { value: 'low_score', label: 'Low score' },
-  { value: 'unassigned', label: 'Unassigned' },
-];
-
-const redTagStatusLabel = (status: FiveSRedTag['status']) =>
-  redTagStatusOptions.find((option) => option.value === status)?.label ?? status;
-
-const redTagStatusOptions: Array<{ value: FiveSRedTag['status']; label: string }> = [
-  { value: 'open', label: 'Open' },
-  { value: 'review', label: 'Review' },
-  { value: 'disposed', label: 'Disposed' },
-  { value: 'returned', label: 'Returned' },
-];
 
 const zoneColorPresets = [
   { label: 'Front', value: '#38bdf8' },
@@ -205,298 +197,9 @@ const zoneTemplates: Array<
 const fieldClass =
   'mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900';
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const escapeHtml = (value: string | number | undefined) =>
-  String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 
-const escapeCsvCell = (value: string | number | undefined) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
-type AuditWalkStatus = 'overdue' | 'due_today' | 'upcoming' | 'scheduled';
-
-/** Radius of a red-tag pin on the canvas. */
-export const PIN_RADIUS = 11;
-
-/**
- * Where a new pin goes, and where an old one sits.
- *
- * Tags recorded before pins existed have no position. Rather than piling them
- * on one spot, they are laid out along a line inside their zone so each is
- * separately grabbable, and dragging one commits its real place.
- */
-export const nextPinSpot = (zone: FiveSZone, index: number) => {
-  const step = PIN_RADIUS * 2 + 6;
-  const usable = Math.max(zone.width - PIN_RADIUS * 2 - 12, step);
-  const perRow = Math.max(1, Math.floor(usable / step));
-
-  return {
-    x: Math.round(zone.x + PIN_RADIUS + 10 + (index % perRow) * step),
-    y: Math.round(zone.y + zone.height - PIN_RADIUS - 10 - Math.floor(index / perRow) * step),
-  };
-};
-
-/** A pin's drawn position: its own if it has one, otherwise a laid-out spot. */
-export const pinPosition = (zone: FiveSZone, redTag: FiveSRedTag, index: number) =>
-  redTag.x !== undefined && redTag.y !== undefined
-    ? { x: redTag.x, y: redTag.y }
-    : nextPinSpot(zone, index);
-
-const getAuditWalkStatus = (zone: FiveSZone, today = formatLocalDate()) => {
-  const dueDate = getAuditDueDate(zone);
-
-  if (!dueDate) {
-    return {
-      status: 'due_today' as AuditWalkStatus,
-      dueDate: 'Now',
-      label: 'Due now',
-      daysUntil: 0,
-    };
-  }
-
-  const daysUntil = getDaysUntilDate(dueDate, today);
-
-  if (daysUntil < 0) {
-    return {
-      status: 'overdue' as AuditWalkStatus,
-      dueDate,
-      label: `${Math.abs(daysUntil)} day(s) overdue`,
-      daysUntil,
-    };
-  }
-
-  if (daysUntil === 0) {
-    return {
-      status: 'due_today' as AuditWalkStatus,
-      dueDate,
-      label: 'Due today',
-      daysUntil,
-    };
-  }
-
-  if (daysUntil <= 7) {
-    return {
-      status: 'upcoming' as AuditWalkStatus,
-      dueDate,
-      label: `Due in ${daysUntil} day(s)`,
-      daysUntil,
-    };
-  }
-
-  return {
-    status: 'scheduled' as AuditWalkStatus,
-    dueDate,
-    label: `Scheduled in ${daysUntil} day(s)`,
-    daysUntil,
-  };
-};
-
-/**
- * A tag still needing attention.
- *
- * `closedAt` is set when the cleanup task is finished, before anyone has
- * recorded whether the item was disposed of or returned — so a tag can be
- * finished while its status is still 'open'.
- */
-const isOpenRedTag = (redTag: FiveSRedTag) =>
-  !redTag.closedAt && (redTag.status === 'open' || redTag.status === 'review');
-
-const getRedTagCount = (zone: FiveSZone) =>
-  zone.redTags?.length ? zone.redTags.filter(isOpenRedTag).length : zone.redTagCount || 0;
-
-const withSyncedRedTags = (redTags: FiveSRedTag[]) => ({
-  redTags,
-  redTagCount: redTags.filter(isOpenRedTag).length,
-});
-
-const getNextStage = (stage: FiveSStage) => {
-  const index = stageOrder.indexOf(stage);
-  return index >= 0 && index < stageOrder.length - 1 ? stageOrder[index + 1] : undefined;
-};
-
-const getStageGateItems = (zone: FiveSZone, includeAudit = true) => {
-  if (zone.stage === 'sort') {
-    return [
-      { label: 'Responsible owner assigned', complete: Boolean(zone.ownerName) },
-      { label: 'Area contents listed', complete: Boolean(zone.contents.trim()) },
-      { label: 'Red tags cleared', complete: getRedTagCount(zone) === 0 },
-    ];
-  }
-
-  if (zone.stage === 'set_in_order') {
-    return [
-      { label: 'Location label note written', complete: Boolean(zone.labelText.trim()) },
-      { label: 'Owner assigned', complete: Boolean(zone.ownerName) },
-      { label: 'Area contents listed', complete: Boolean(zone.contents.trim()) },
-    ];
-  }
-
-  if (zone.stage === 'shine') {
-    return [
-      { label: 'Last cleaned date recorded', complete: Boolean(zone.lastCleanedAt) },
-      { label: 'Red tags cleared', complete: getRedTagCount(zone) === 0 },
-      { label: 'Area standard drafted', complete: Boolean(zone.standard.trim()) },
-    ];
-  }
-
-  if (zone.stage === 'standardize') {
-    const setupItems = [
-      { label: 'Area standard published', complete: Boolean(zone.standard.trim()) },
-      { label: 'Location label note written', complete: Boolean(zone.labelText.trim()) },
-      { label: 'Owner assigned', complete: Boolean(zone.ownerName) },
-    ];
-
-    return includeAudit
-      ? [
-          ...setupItems,
-          { label: 'First audit completed', complete: zone.lastAuditScore !== undefined },
-          { label: 'Audit score at least 85%', complete: Number(zone.lastAuditScore || 0) >= 85 },
-        ]
-      : setupItems;
-  }
-
-  const setupItems = [
-    { label: 'Owner assigned', complete: Boolean(zone.ownerName) },
-    { label: 'Area standard published', complete: Boolean(zone.standard.trim()) },
-    { label: 'Red tags cleared', complete: getRedTagCount(zone) === 0 },
-  ];
-
-  return includeAudit
-    ? [
-        { label: 'Audit schedule current', complete: !isAuditDue(zone) },
-        { label: 'Red tags cleared', complete: getRedTagCount(zone) === 0 },
-        { label: 'Audit score at least 85%', complete: Number(zone.lastAuditScore || 0) >= 85 },
-      ]
-    : setupItems;
-};
-
-const getStageGate = (zone: FiveSZone, includeAudit = true) => {
-  const items = getStageGateItems(zone, includeAudit);
-  return {
-    items,
-    nextStage: getNextStage(zone.stage),
-    complete: items.every((item) => item.complete),
-  };
-};
-
-const getZoneStageActions = (zone: FiveSZone, includeAudit = true) => {
-  const gate = getStageGate(zone, includeAudit);
-
-  if (gate.nextStage && gate.complete) {
-    return [`Advance to ${stageLabels[gate.nextStage]}`];
-  }
-
-  return gate.items.filter((item) => !item.complete).map((item) => `Gate: ${item.label}`);
-};
-
-const matchesZoneStatus = (zone: FiveSZone, filter: ZoneStatusFilter, includeAudit = true) => {
-  if (filter === 'all') return true;
-  if (filter === 'needs_attention') return getZoneActionItems(zone, includeAudit).length > 0;
-  if (filter === 'ready_to_advance') {
-    const gate = getStageGate(zone, includeAudit);
-    return Boolean(gate.nextStage && gate.complete);
-  }
-  if (filter === 'audit_due') return includeAudit && isAuditDue(zone);
-  if (filter === 'red_tags') return getRedTagCount(zone) > 0;
-  if (filter === 'low_score') return includeAudit && Number(zone.lastAuditScore || 100) < 85;
-  return !zone.ownerName;
-};
-
-const getZoneSetupGaps = (zone: FiveSZone, includeAudit = true) => {
-  const gaps: string[] = [];
-
-  if (!zone.ownerName) gaps.push('Assign responsible owner');
-  if (!zone.contents.trim()) gaps.push('List what belongs in the area');
-  if (!zone.standard.trim()) gaps.push('Write the 5S standard');
-  if (includeAudit && zone.lastAuditScore === undefined) gaps.push('Run the first audit');
-  if (includeAudit && zone.lastAuditScore !== undefined && isAuditDue(zone)) gaps.push('Run scheduled audit');
-  if (includeAudit && Number(zone.lastAuditScore || 100) < 85) gaps.push(`Improve audit score from ${zone.lastAuditScore}% to 85%+`);
-  if (getRedTagCount(zone) > 0) gaps.push(`Clear ${getRedTagCount(zone)} red tag(s)`);
-
-  return gaps;
-};
-
-const getZoneActionItems = (zone: FiveSZone, includeAudit = true) => {
-  const actions = [...getZoneSetupGaps(zone, includeAudit), ...getZoneStageActions(zone, includeAudit)];
-  return Array.from(new Set(actions));
-};
-
-const getDateFromToday = (days: number) => {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return formatLocalDate(date);
-};
-
-const getZoneTaskPriority = (zone: FiveSZone, gaps: string[], includeAudit = true) =>
-  getRedTagCount(zone) > 0 ||
-  (includeAudit && (Number(zone.lastAuditScore || 100) < 85 || isAuditDue(zone))) ||
-  gaps.length > 2
-    ? 'high'
-    : 'medium';
-
-const getZoneTaskDueDate = (zone: FiveSZone, includeAudit = true) => {
-  if (getRedTagCount(zone) > 0) return getDateFromToday(3);
-  if (includeAudit && isAuditDue(zone)) return formatLocalDate();
-  return getDateFromToday(7);
-};
-
-const buildZoneTaskPayload = (zone: FiveSZone, titlePrefix: string, includeAudit = true) => {
-  const gaps = getZoneActionItems(zone, includeAudit);
-
-  return {
-    title: `${titlePrefix}: ${zone.code} - ${zone.name}`,
-    description: [
-      `Next actions: ${gaps.length ? gaps.join(', ') : 'Maintain current standard'}`,
-      `Owner: ${zone.ownerName || 'Unassigned'}`,
-      `Stage: ${stageLabels[zone.stage]}`,
-      ...(includeAudit ? [`Audit cycle: ${zone.auditFrequency}`] : []),
-      `Contents: ${zone.contents || 'Not documented'}`,
-      `Standard: ${zone.standard || 'Not documented'}`,
-      `Label note: ${zone.labelText || 'Not documented'}`,
-    ].join('\n'),
-    assigneeId: zone.ownerId,
-    status: 'todo' as const,
-    priority: getZoneTaskPriority(zone, gaps, includeAudit),
-    dueDate: getZoneTaskDueDate(zone, includeAudit),
-    estimatedHours: gaps.length > 2 ? 3 : 2,
-    actualHours: 0,
-  };
-};
-
-const getPointerPoint = (event: React.PointerEvent<SVGSVGElement>) => {
-  const rect = event.currentTarget.getBoundingClientRect();
-  return {
-    x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
-    y: ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT,
-  };
-};
-
-/** Canvas coordinates of a pointer event, measured against the canvas itself. */
-const pointOnCanvas = (svg: SVGSVGElement, event: { clientX: number; clientY: number }) => {
-  const rect = svg.getBoundingClientRect();
-  return {
-    x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
-    y: ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT,
-  };
-};
-
-/**
- * Pointer capture, where it exists.
- *
- * jsdom has no `setPointerCapture`, and a real browser can throw when the
- * pointer is already gone. Neither is a reason to abandon the drag.
- */
-const capturePointer = (event: React.PointerEvent<Element>) => {
-  try {
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-  } catch {
-    // The drag still works from the canvas-level move handler.
-  }
-};
 
 interface FiveSFloorPlanSetupProps {
   onAuditZoneSelect?: (location: string) => void;
