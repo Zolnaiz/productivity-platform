@@ -88,7 +88,10 @@ describe('users API over HTTP', () => {
       .useClass(StubAuthGuard)
       .compile();
 
-    app = configureRequestHandling(moduleRef.createNestApplication(), moduleRef.get(MetricsService));
+    // Silenced: every refusal in this file is an expected one, and the
+    // exception filter logs each at ERROR. Left on, a passing verification run
+    // scrolls past dozens of stack traces that mean the tests worked.
+    app = configureRequestHandling(moduleRef.createNestApplication({ logger: false }), moduleRef.get(MetricsService));
 
     await app.init();
   });
