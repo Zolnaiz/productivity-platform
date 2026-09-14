@@ -1,5 +1,4 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import * as compression from 'compression';
@@ -7,10 +6,7 @@ import helmet from 'helmet';
 import * as morgan from 'morgan';
 
 import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
-import { TransformInterceptor } from './shared/interceptors/transform.interceptor';
-import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
-import { MetricsInterceptor } from './shared/metrics/metrics.interceptor';
+import { configureRequestHandling } from './app-config';
 import { MetricsService } from './shared/metrics/metrics.service';
 
 const toBoolean = (value: unknown) => value === true || String(value).toLowerCase() === 'true';
@@ -66,24 +62,9 @@ async function bootstrap() {
     exposedHeaders: ['Content-Disposition', 'X-Request-Id'],
   });
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-      validationError: {
-        target: false,
-        value: false,
-      },
-    }),
-  );
-
-  app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalInterceptors(new TransformInterceptor(), new LoggingInterceptor(), new MetricsInterceptor(app.get(MetricsService)));
-  app.setGlobalPrefix('api');
+  // The pipes, filters and interceptors a handler sits behind. Shared with the
+  // HTTP tests, so what they exercise is what production runs.
+  configureRequestHandling(app, app.get(MetricsService));
 
   if (enableSwagger) {
     const config = new DocumentBuilder()

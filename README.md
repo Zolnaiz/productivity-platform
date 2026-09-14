@@ -166,6 +166,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Every operations and user route names the permission it needs, and `PermissionsGuard` refuses the request when the caller's role does not carry it. A viewer can read the plant and cannot change it. A test walks the controllers and fails when a route names no permission, or names one the table does not define.
 - Editing a member cannot change their role, organization, active flag or password. Each of those has its own route with its own check; sending one to the edit endpoint is rejected rather than silently dropped.
 - The client asks `GET /users/profile/permissions` to decide which controls to draw, and is answered from the same table the server enforces with.
+- The users and operations APIs are tested over real HTTP through the same pipes, guards and filters `main.ts` configures, so the refusals are checked as a client meets them rather than as guards built by hand. Removing a route's permission, or putting a privilege field back into the edit DTO, each fail those tests.
 - The team screen reads the real users API rather than browser storage, and adding somebody is an invitation rather than a create: the token is shown once, open invitations are listed, and the role select offers only roles the signed-in person may actually grant.
 - Departments are still kept in the browser only, and the departments screen says so rather than presenting a local list as a shared record.
 - The rules a 5S area is judged by — stage gates, what an area still needs, which areas a filter shows, what a task raised from an area says — live in `floorPlanRules.ts` and are tested directly rather than only through the floor plan that draws them.
@@ -199,7 +200,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 322 passing
+- Backend tests: 368 passing
 - Frontend tests: 265 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues

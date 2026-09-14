@@ -2,9 +2,15 @@
 
 ## Next Backend Work
 
-- Expose a users API scoped to the organization, so the Users and Departments
-  screens can come off browser storage. Invitations create members; nothing
-  lists or manages them yet.
+- Decide what a department owns before giving it a table. The Users screen is
+  on the real API now; Departments is still browser-local and says so on the
+  page. The question is not how to store a name and a manager — it is whether
+  a department owns zones, projects, or the people assigned to them.
+- Register `OrganizationsModule` in `AppModule`, or delete it. Its controller
+  is fully written and role-guarded but not in the application graph, so none
+  of its routes exist — the same state `UsersModule` was in. Wiring an
+  unreviewed CRUD surface into a multi-tenant API is a decision, not a
+  formality.
 - Deliver invitations. The API issues the token and the inviter shares it by
   hand; there is no email transport.
 - Add browser-driven API smoke automation for login, dashboard load, and core module navigation.
@@ -32,8 +38,6 @@
 - Record the disposition when a tag is closed. `closedAt` is set automatically;
   whether the item was disposed of or returned still has to be filed by hand,
   and nothing prompts for it.
-- Add the red-tag holding area: a place tagged items wait one to two months
-  with an expiry that chases someone. Standard practice, still absent.
 - Attach photographs to audit answers too. Red tags and zone standards carry
   them now; a failed checklist item still cannot show what was wrong.
 - Give production a real file store. Attachments write to `UPLOAD_DIR` on local
