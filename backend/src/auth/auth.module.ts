@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { PermissionsGuard } from '../shared/guards/permissions.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { DatabaseModule } from '../shared/database/database.module';
@@ -33,7 +34,7 @@ import { InvitationsService } from './invitations.service';
     }),
   ],
   controllers: [AuthController, InvitationsController],
-  providers: [AuthService, InvitationsService, UsersService, OrganizationsService, LocalStrategy, JwtStrategy],
+  providers: [PermissionsGuard, AuthService, InvitationsService, UsersService, OrganizationsService, LocalStrategy, JwtStrategy],
   exports: [AuthService, InvitationsService],
 })
 export class AuthModule {}

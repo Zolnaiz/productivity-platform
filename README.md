@@ -166,6 +166,8 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Every operations and user route names the permission it needs, and `PermissionsGuard` refuses the request when the caller's role does not carry it. A viewer can read the plant and cannot change it. A test walks the controllers and fails when a route names no permission, or names one the table does not define.
 - Editing a member cannot change their role, organization, active flag or password. Each of those has its own route with its own check; sending one to the edit endpoint is rejected rather than silently dropped.
 - The client asks `GET /users/profile/permissions` to decide which controls to draw, and is answered from the same table the server enforces with.
+- The team screen reads the real users API rather than browser storage, and adding somebody is an invitation rather than a create: the token is shown once, open invitations are listed, and the role select offers only roles the signed-in person may actually grant.
+- Departments are still kept in the browser only, and the departments screen says so rather than presenting a local list as a shared record.
 - Submitting an audit run writes its score onto the referenced 5S zone, so the area map shows measured condition rather than chosen colours.
 - Tasks raised from a 5S finding record their source, and the API raises at most one open task per finding rather than duplicating work.
 - Attachment uploads are typed by sniffing their bytes, stored under a server-generated key, served with `Content-Disposition: attachment` and a sandboxing CSP, and scoped by `organizationId` on every read. Clients fetch them through the authenticated API rather than linking the guarded endpoint.
@@ -197,7 +199,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 322 passing
-- Frontend tests: 217 passing
+- Frontend tests: 235 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

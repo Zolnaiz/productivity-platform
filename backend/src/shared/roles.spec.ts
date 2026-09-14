@@ -1,5 +1,5 @@
 import { UserRole } from './constants';
-import { canAssignRole, rolesAssignableBy } from './roles';
+import { canAssignRole, hasPermission, permissionsFor, rolesAssignableBy } from './roles';
 
 describe('role hierarchy', () => {
   it('lets each role hand out only roles below its own', () => {
@@ -41,6 +41,46 @@ describe('role hierarchy', () => {
   it('offers no path to a second super admin', () => {
     Object.values(UserRole).forEach((role) => {
       expect(canAssignRole(role, UserRole.SUPER_ADMIN)).toBe(false);
+    });
+  });
+});
+
+describe('the two tables agree with each other', () => {
+  it('lets exactly the roles that can hand out a role also issue an invitation', () => {
+    // An invitation grants a role, so being able to send one and being able
+    // to grant one have to be the same set. When they drift, either somebody
+    // can invite past their own level or a route exists that nobody can call.
+    Object.values(UserRole).forEach((role) => {
+      expect(hasPermission(role, 'invitations:create')).toBe(rolesAssignableBy(role).length > 0);
+    });
+  });
+
+  it('gives everyone who may change a role the permission to reach that route', () => {
+    Object.values(UserRole)
+      .filter((role) => hasPermission(role, 'users:update'))
+      .forEach((role) => {
+        expect(rolesAssignableBy(role).length).toBeGreaterThan(0);
+      });
+  });
+
+  it('nests the permissions the way the roles nest', () => {
+    const order = [
+      UserRole.VIEWER,
+      UserRole.USER,
+      UserRole.MANAGER,
+      UserRole.ADMIN,
+      UserRole.ORGANIZATION_ADMIN,
+      UserRole.SUPER_ADMIN,
+    ];
+
+    order.forEach((role, index) => {
+      if (index === 0) return;
+
+      const below = permissionsFor(order[index - 1]);
+      const here = permissionsFor(role);
+
+      below.forEach((permission) => expect(here).toContain(permission));
+      expect(here.length).toBeGreaterThan(below.length);
     });
   });
 });

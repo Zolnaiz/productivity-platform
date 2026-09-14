@@ -3,6 +3,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { InvitationsService } from './invitations.service';
 import { AcceptInvitationDto, CreateInvitationDto } from './dto/invitation.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { PermissionsGuard } from '../shared/guards/permissions.guard';
+import { RequirePermission } from '../shared/decorators/permissions.decorator';
 
 interface AuthenticatedRequest {
   user?: { id?: string; organizationId?: string; role?: string };
@@ -14,21 +16,24 @@ export class InvitationsController {
   constructor(private readonly invitations: InvitationsService) {}
 
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermission('invitations:create')
   @Post()
   invite(@Body() body: CreateInvitationDto, @Request() request: AuthenticatedRequest) {
     return this.invitations.invite(body.email, body.role, request.user ?? {});
   }
 
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermission('invitations:read')
   @Get()
   pending(@Request() request: AuthenticatedRequest) {
     return this.invitations.findPending(request.user ?? {});
   }
 
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermission('invitations:delete')
   @Delete(':id')
   revoke(@Param('id', new ParseUUIDPipe()) id: string, @Request() request: AuthenticatedRequest) {
     return this.invitations.revoke(id, request.user ?? {});

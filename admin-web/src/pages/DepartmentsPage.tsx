@@ -44,6 +44,19 @@ const DepartmentsPage: React.FC = () => {
         </Button>
       </div>
 
+      {/*
+        Departments have no table behind them yet, and this says so rather than
+        letting a browser-local list look like a shared record. The open
+        question is not how to store a name and a manager but what a department
+        should own — zones, projects, or the people assigned to them.
+      */}
+      <p
+        className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-200"
+        role="note"
+      >
+        {t('departments.localOnly')}
+      </p>
+
       <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title={t('departments.newDepartment')}>
         <form onSubmit={createDepartment} className="space-y-4">
           <Input

@@ -1,4 +1,6 @@
+import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ConfirmDialog from './ConfirmDialog';
 import Modal from './Modal';
@@ -78,6 +80,30 @@ describe('Modal', () => {
     unmount();
 
     expect(document.body.style.overflow).not.toBe('hidden');
+  });
+
+  it('keeps focus in the field being typed in', async () => {
+    // Every caller passes an inline arrow as `onClose`, so it is a new
+    // function on each render. While the focus-trap effect depended on it,
+    // each keystroke tore the effect down and set it up again — and setting
+    // up moves focus to the first focusable element. Typing into any field in
+    // any modal lost everything after the first character.
+    const Harness = () => {
+      const [value, setValue] = React.useState('');
+
+      return (
+        <Modal isOpen onClose={() => undefined} title="Invite">
+          <label htmlFor="field">Email</label>
+          <input id="field" value={value} onChange={(event) => setValue(event.target.value)} />
+        </Modal>
+      );
+    };
+
+    render(<Harness />);
+
+    await userEvent.type(screen.getByLabelText('Email'), 'new@example.com');
+
+    expect((screen.getByLabelText('Email') as HTMLInputElement).value).toBe('new@example.com');
   });
 });
 

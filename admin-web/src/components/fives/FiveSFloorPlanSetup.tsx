@@ -49,7 +49,7 @@ import {
   FloorPlanObject,
   FloorPlanObjectType,
 } from '../../types/fiveS.types';
-import { TeamUser } from '../../types/people.types';
+import { TeamUser, memberName } from '../../types/people.types';
 
 const CANVAS_WIDTH = 900;
 const CANVAS_HEIGHT = 500;
@@ -537,11 +537,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   useEffect(() => {
     let active = true;
 
-    Promise.all([fiveSLayoutService.getPlan(), peopleService.getUsers()])
+    Promise.all([fiveSLayoutService.getPlan(), peopleService.getMembers()])
       .then(([layoutPlan, teamUsers]) => {
         if (!active) return;
         setPlan(layoutPlan);
-        setUsers(teamUsers.filter((user) => user.active));
+        // A zone owner has to be somebody who can still sign in.
+        setUsers(teamUsers.filter((member) => member.isActive));
         setSelectedZoneId(layoutPlan.zones[0]?.id || '');
         setSelectedObjectId('');
       })
@@ -1131,7 +1132,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     const owner = users.find((user) => user.id === ownerId);
     updateZone(selectedZone.id, {
       ownerId: owner?.id,
-      ownerName: owner?.name || '',
+      ownerName: owner ? memberName(owner) : '',
     });
   };
 
@@ -1940,7 +1941,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               <option value="unassigned">Unassigned</option>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>
-                  {user.name}
+                  {memberName(user)}
                 </option>
               ))}
             </select>
@@ -2528,7 +2529,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     <option value="">Unassigned</option>
                     {users.map((user) => (
                       <option key={user.id} value={user.id}>
-                        {user.name} / {user.position}
+                        {memberName(user)} / {user.position}
                       </option>
                     ))}
                   </select>

@@ -11,7 +11,7 @@ import { operationsService } from '../services/operations.service';
 import { peopleService } from '../services/people.service';
 import { AssessmentResponse } from '../types/assessment.types';
 import { OperationsSummary, Project, WorkTask } from '../types/operations.types';
-import { Department, TeamUser } from '../types/people.types';
+import { Department } from '../types/people.types';
 
 const AnalyticsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -19,7 +19,6 @@ const AnalyticsPage: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<WorkTask[]>([]);
   const [responses, setResponses] = useState<AssessmentResponse[]>([]);
-  const [users, setUsers] = useState<TeamUser[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,14 +28,12 @@ const AnalyticsPage: React.FC = () => {
       operationsService.getProjects(),
       operationsService.getTasks(),
       assessmentService.getResponses(),
-      peopleService.getUsers(),
       peopleService.getDepartments(),
-    ]).then(([operationsSummary, projectItems, taskItems, responseItems, userItems, departmentItems]) => {
+    ]).then(([operationsSummary, projectItems, taskItems, responseItems, departmentItems]) => {
       setSummary(operationsSummary);
       setProjects(projectItems);
       setTasks(taskItems);
       setResponses(responseItems);
-      setUsers(userItems);
       setDepartments(departmentItems);
     }).finally(() => setLoading(false));
   }, []);
@@ -71,7 +68,11 @@ const AnalyticsPage: React.FC = () => {
   const departmentRows = useMemo(
     () =>
       departments.map((department) => {
-        const members = users.filter((user) => user.departmentId === department.id);
+        // Members per department is not counted here any more. Departments are
+        // browser-local and members come from the server, so the old count
+        // compared one list against the other and reported a number that meant
+        // nothing. What is real is the assessment work recorded against the
+        // department's name.
         const departmentResponses = responses.filter((response) => response.department === department.name);
         const score = departmentResponses.length
           ? Math.round(departmentResponses.reduce((sum, response) => sum + response.score, 0) / departmentResponses.length)
@@ -79,12 +80,11 @@ const AnalyticsPage: React.FC = () => {
 
         return {
           department,
-          members: members.length,
           responses: departmentResponses.length,
           score,
         };
       }),
-    [departments, responses, users],
+    [departments, responses],
   );
 
   return (
@@ -157,7 +157,6 @@ const AnalyticsPage: React.FC = () => {
               className: 'py-3 font-medium text-gray-900 dark:text-white',
               render: (row) => row.department.name,
             },
-            { key: 'members', header: t('analytics.members'), render: (row) => row.members },
             { key: 'responses', header: t('analytics.responses'), render: (row) => row.responses },
             {
               key: 'score',

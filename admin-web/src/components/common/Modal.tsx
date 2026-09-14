@@ -34,6 +34,23 @@ const Modal: React.FC<ModalProps> = ({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const titleId = useId();
 
+  /**
+   * Escape has to call the current `onClose`, but the effect below must not
+   * re-run when its identity changes.
+   *
+   * Every caller passes an inline arrow, so `onClose` is a new function on
+   * every render. With it in the dependency list the effect tore down and set
+   * itself up again after each keystroke, and setting up moves focus to the
+   * first focusable element — so typing into any field in any modal lost
+   * everything after the first character. The ref keeps the handler current
+   * without making the effect depend on its identity.
+   */
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!isOpen) return undefined;
 
@@ -47,7 +64,7 @@ const Modal: React.FC<ModalProps> = ({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -78,7 +95,9 @@ const Modal: React.FC<ModalProps> = ({
       document.body.style.overflow = previousOverflow;
       previouslyFocused?.focus?.();
     };
-  }, [isOpen, onClose]);
+    // `isOpen` only: focus is moved when the dialog opens, not on every
+    // render of whatever is inside it.
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

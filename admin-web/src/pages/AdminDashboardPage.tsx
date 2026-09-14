@@ -24,7 +24,7 @@ const AdminDashboardPage: React.FC = () => {
     Promise.all([
       adminService.getWorkspaceProfile(),
       operationsService.getSummary(),
-      peopleService.getUsers(),
+      peopleService.getMembers(),
       peopleService.getDepartments(),
       adminService.getAuditLog(),
     ]).then(([workspace, operations, teamUsers, teamDepartments, auditLogs]) => {
@@ -50,7 +50,7 @@ const AdminDashboardPage: React.FC = () => {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <KpiCard title={t('adminDashboard.users')} value={users.length} description={t('adminDashboard.activeCount', { count: users.filter((user) => user.active).length })} />
+            <KpiCard title={t('adminDashboard.users')} value={users.length} description={t('adminDashboard.activeCount', { count: users.filter((member) => member.isActive).length })} />
             <KpiCard title={t('adminDashboard.departments')} value={departments.length} description={t('adminDashboard.teamStructure')} />
             <KpiCard title={t('adminDashboard.openTasks')} value={summary.totals.tasks - summary.totals.completedTasks} description={t('adminDashboard.percentComplete', { percent: summary.kpis.taskCompletionRate })} />
             <KpiCard title={t('adminDashboard.auditScore')} value={`${summary.kpis.averageAuditScore}%`} description={t('adminDashboard.submittedCount', { count: summary.totals.auditRuns })} />

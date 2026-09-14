@@ -86,6 +86,11 @@ const manager = [
   'expenses:update',
   'attachments:delete',
   'users:read',
+  // A line manager may bring an operator onto their own shift. The role
+  // hierarchy above already limits them to `user` and `viewer`; revoking
+  // somebody else's pending invitation stays with administrators.
+  'invitations:read',
+  'invitations:create',
 ];
 
 const admin = [
@@ -98,8 +103,6 @@ const admin = [
   'templates:delete',
   'users:update',
   'users:delete',
-  'invitations:read',
-  'invitations:create',
   'invitations:delete',
 ];
 
