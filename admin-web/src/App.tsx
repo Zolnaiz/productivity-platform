@@ -36,7 +36,6 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import ExpensesPage from "./pages/ExpensesPage";
 
 const adminRoles = ["admin", "super_admin"];
-const ownerRoles = ["super_admin"];
 
 function App() {
   return (
@@ -107,11 +106,13 @@ function App() {
                 <Route
                   path="users"
                   element={
-                    <ProtectedRoute roles={adminRoles}>
+                    <ProtectedRoute permission="users:read">
                       <TeamUsersPage />
                     </ProtectedRoute>
                   }
                 />
+                {/* Departments are browser-local still, so there is no server
+                    permission to name for this one. */}
                 <Route
                   path="departments"
                   element={
@@ -124,7 +125,7 @@ function App() {
                 <Route
                   path="organizations"
                   element={
-                    <ProtectedRoute roles={adminRoles}>
+                    <ProtectedRoute permission="organization:update">
                       <OrganizationsPage />
                     </ProtectedRoute>
                   }
@@ -132,7 +133,7 @@ function App() {
                 <Route
                   path="settings"
                   element={
-                    <ProtectedRoute roles={adminRoles}>
+                    <ProtectedRoute permission="organization:update">
                       <SettingsPage />
                     </ProtectedRoute>
                   }
@@ -140,7 +141,7 @@ function App() {
                 <Route
                   path="audit"
                   element={
-                    <ProtectedRoute roles={ownerRoles}>
+                    <ProtectedRoute permission="auditlog:read">
                       <AuditLogPage />
                     </ProtectedRoute>
                   }

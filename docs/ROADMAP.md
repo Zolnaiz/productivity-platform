@@ -6,10 +6,14 @@
   on the real API now; Departments is still browser-local and says so on the
   page. The question is not how to store a name and a manager — it is whether
   a department owns zones, projects, or the people assigned to them.
-- Write the audit log on the server. The screen exists and says plainly that
-  its entries are kept by the browser, which is not an audit trail. A record of
-  who changed what has to be written as things happen, and this is the one
-  remaining screen presenting local data.
+- Give the audit trail a retention policy. Every accepted change writes a row
+  and nothing removes one, which is correct for evidence and unbounded for a
+  database. Decide how long entries are kept, and whether they are archived
+  rather than deleted.
+- Record what changed, not only that something did. An entry names the actor,
+  the route and the record; it does not carry a before and after. That is a
+  deliberate first step — a diff has to be taken without putting a password or
+  a token into a table people read — but it is the next thing a reader wants.
 - Bring back the automation settings when there is automation behind them:
   monthly report preparation, notifying a manager about an overdue task,
   notifying the quality team below 85%, and work-log approval. All four were

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
@@ -10,6 +10,8 @@ import { DatabaseModule } from './shared/database/database.module';
 import { OperationsModule } from './operations/operations.module';
 import { UsersModule } from './users/users.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { AuditModule } from './audit/audit.module';
+import { AuditLogInterceptor } from './audit/audit-log.interceptor';
 import { envValidationSchema } from './shared/config/env.validation';
 import { MetricsService } from './shared/metrics/metrics.service';
 
@@ -33,6 +35,7 @@ import { MetricsService } from './shared/metrics/metrics.service';
       }),
     }),
     DatabaseModule,
+    AuditModule,
     AuthModule,
     UsersModule,
     OrganizationsModule,
@@ -45,6 +48,12 @@ import { MetricsService } from './shared/metrics/metrics.service';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      // Registered once, for every route. An audit trail assembled by
+      // remembering to call a logger has invisible holes in it.
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLogInterceptor,
     },
   ],
 })

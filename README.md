@@ -170,7 +170,10 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - The team screen reads the real users API rather than browser storage, and adding somebody is an invitation rather than a create: the token is shown once, open invitations are listed, and the role select offers only roles the signed-in person may actually grant.
 - The workspace screen reads and writes the real organization record. The API takes the organization from the caller's token, so there is no id to pass and no path to another tenant's record; `isActive` and `features` are not editable by the tenant.
 - Headcount is counted from the members the users API returns rather than stored, so it cannot disagree with who can sign in.
-- Departments and the audit log are still kept in the browser only, and both screens say so rather than presenting local data as a shared record. A browser-kept list is not an audit trail.
+- The audit trail is written by the server. An interceptor in front of every route records each accepted change — actor, role, module, action, target, method, route, status — taken from the verified token and the route rather than from any request body, so a client cannot write its own history. Reads are not recorded, refused requests are not recorded, and the table is append-only: there is no route that writes, edits or removes an entry.
+- Failing to write an audit entry never fails the request it describes; the gap is logged instead.
+- Client route guards name the permission the server checks rather than a role list of their own. Those lists had drifted in both directions: an `admin` could open the workspace settings and then be refused the save, while an `organization_admin` was locked out of an audit log the server would have served. The guard fails open when the permission list is unavailable, because it exists to avoid offering an unusable page — the server is the boundary.
+- Departments are still kept in the browser only, and that screen says so rather than presenting a local list as a shared record.
 - The rules a 5S area is judged by — stage gates, what an area still needs, which areas a filter shows, what a task raised from an area says — live in `floorPlanRules.ts` and are tested directly rather than only through the floor plan that draws them.
 - Submitting an audit run writes its score onto the referenced 5S zone, so the area map shows measured condition rather than chosen colours.
 - Tasks raised from a 5S finding record their source, and the API raises at most one open task per finding rather than duplicating work.
@@ -202,8 +205,8 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 394 passing
-- Frontend tests: 275 passing
+- Backend tests: 425 passing
+- Frontend tests: 282 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

@@ -49,12 +49,24 @@ export interface WorkspaceSettings {
   monthCloseDay: number;
 }
 
+/**
+ * One entry in the trail, as the server writes it.
+ *
+ * Every field is filled from the request the server observed, so `actor` is
+ * who the token said they were rather than a name a client supplied. `route`
+ * is the precise path; `module` is the coarse grouping the screen filters by.
+ */
 export interface AuditLogEntry {
   id: string;
-  actor: string;
-  action: string;
+  actorId?: string;
+  actorName?: string;
+  actorRole?: string;
   module: string;
-  details: string;
+  action: string;
+  targetId?: string;
+  method: string;
+  route: string;
+  statusCode: number;
   severity: 'info' | 'warning' | 'critical';
   createdAt: string;
 }

@@ -52,6 +52,7 @@ const liveTables = [
   // missing a migration would not have shown up here.
   'users',
   'organizations',
+  'audit_log_entries',
 ];
 
 /** Created by `BaseEntity`, so they come with the table rather than separately. */
@@ -69,6 +70,7 @@ const mappedColumns = (): MappedColumn[] => {
     ...readAll('auth/entities', /\.entity\.ts$/),
     ...readAll('users/entities', /\.entity\.ts$/),
     ...readAll('organizations/entities', /\.entity\.ts$/),
+    ...readAll('audit/entities', /\.entity\.ts$/),
   ];
 
   return sources.flatMap((source) => {

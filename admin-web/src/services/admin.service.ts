@@ -1,4 +1,4 @@
-import { get, isDemoMode, localId, patch, shouldUseDemoFallback } from './api';
+import { get, isDemoMode, patch, shouldUseDemoFallback } from './api';
 import { peopleService } from './people.service';
 import {
   AuditLogEntry,
@@ -17,11 +17,10 @@ import {
  * caller's token, so there is no id to pass and no way to reach another
  * tenant's record.
  *
- * The audit log is the exception and says so on its own screen: there is no
- * table behind it yet.
+ * The audit trail is read here too, from `/audit-log`. Nothing writes to it
+ * from this side — the server records what it observed.
  */
 
-const auditLogKey = 'productivity-demo-audit-log';
 const demoOrganizationKey = 'productivity-demo-organization';
 
 const demoOrganization: Organization = {
@@ -38,33 +37,43 @@ const demoOrganization: Organization = {
   },
 };
 
-const defaultAuditLog: AuditLogEntry[] = [
+const demoAuditLog: AuditLogEntry[] = [
   {
     id: 'log-1',
-    actor: 'Demo Owner',
-    action: 'Workspace opened',
-    module: 'Admin',
-    details: 'The demo workspace was opened for exploration.',
+    actorName: 'Demo Owner',
+    actorRole: 'admin',
+    module: 'projects',
+    action: 'created',
+    method: 'POST',
+    route: '/projects',
+    statusCode: 201,
     severity: 'info',
-    createdAt: '2026-06-12 09:10',
+    createdAt: '2026-06-12T09:10:00.000Z',
   },
   {
     id: 'log-2',
-    actor: 'Quality Manager',
-    action: 'Audit submitted',
-    module: '5S Audit',
-    details: 'Main production floor scored 82%, corrective action needed.',
-    severity: 'warning',
-    createdAt: '2026-06-12 10:30',
+    actorName: 'Quality Manager',
+    actorRole: 'manager',
+    module: 'audit-runs',
+    action: 'created',
+    method: 'POST',
+    route: '/audit-runs',
+    statusCode: 201,
+    severity: 'info',
+    createdAt: '2026-06-12T10:30:00.000Z',
   },
   {
     id: 'log-3',
-    actor: 'Demo Owner',
-    action: 'User role reviewed',
-    module: 'Users',
-    details: 'Manager and employee permissions were checked.',
-    severity: 'info',
-    createdAt: '2026-06-11 17:20',
+    actorName: 'Demo Owner',
+    actorRole: 'admin',
+    module: 'users',
+    action: 'deactivate',
+    targetId: 'u4',
+    method: 'POST',
+    route: '/users/:id/deactivate',
+    statusCode: 201,
+    severity: 'warning',
+    createdAt: '2026-06-11T17:20:00.000Z',
   },
 ];
 
@@ -95,21 +104,26 @@ const readDemoOrganization = () => readObject(demoOrganizationKey, demoOrganizat
 const updateDemoOrganization = (changes: Partial<Organization>) =>
   writeObject(demoOrganizationKey, { ...readDemoOrganization(), ...changes });
 
-const fetchOrganization = async (): Promise<Organization> => {
+const fetchFromApi = async <T>(path: string, demoData: T): Promise<T> => {
   if (isDemoMode()) {
-    return readDemoOrganization();
+    return demoData;
   }
 
   try {
-    return await get<Organization>('/organizations/my-organization');
+    return await get<T>(path);
   } catch (error) {
     if (!shouldUseDemoFallback()) {
       throw error;
     }
 
-    return readDemoOrganization();
+    return demoData;
   }
 };
+
+const fetchOrganization = () =>
+  isDemoMode()
+    ? Promise.resolve(readDemoOrganization())
+    : fetchFromApi<Organization>('/organizations/my-organization', readDemoOrganization());
 
 const saveOrganization = (changes: Partial<Organization>) =>
   isDemoMode()
@@ -126,18 +140,6 @@ const saveOrganization = (changes: Partial<Organization>) =>
 const withSettings = (current: Organization, changes: OrganizationSettings) => ({
   settings: { ...(current.settings ?? {}), ...changes },
 });
-
-const appendAuditLog = (entry: Omit<AuditLogEntry, 'id' | 'createdAt'>) => {
-  const logs = readObject<AuditLogEntry[]>(auditLogKey, defaultAuditLog);
-  const item: AuditLogEntry = {
-    ...entry,
-    id: localId(),
-    createdAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
-  };
-
-  writeObject(auditLogKey, [item, ...logs]);
-  return item;
-};
 
 const toProfile = (organization: Organization, employeeCount: number): WorkspaceProfile => ({
   id: organization.id,
@@ -193,13 +195,13 @@ export const adminService = {
   },
 
   /**
-   * The audit log has no table behind it yet.
+   * The trail, read from the server.
    *
-   * Kept local, and the screen says so. A record of who changed what has to be
-   * written by the server as things happen — a list the browser keeps is not
-   * an audit trail, and dressing one up as though it were is worse than
-   * having none.
+   * There is no `appendAuditLog` any more. Entries are written by the server
+   * from requests it observed, which is the only way the record means
+   * anything: a client that can add to its own history is not evidence of
+   * what it did.
    */
-  getAuditLog: () => Promise.resolve(readObject<AuditLogEntry[]>(auditLogKey, defaultAuditLog)),
-  appendAuditLog: (entry: Omit<AuditLogEntry, 'id' | 'createdAt'>) => Promise.resolve(appendAuditLog(entry)),
+  getAuditLog: (limit = 100) =>
+    fetchFromApi<AuditLogEntry[]>(`/audit-log?limit=${limit}`, demoAuditLog),
 };

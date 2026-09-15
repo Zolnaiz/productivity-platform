@@ -6,6 +6,16 @@ import { MetricsInterceptor } from './shared/metrics/metrics.interceptor';
 import { MetricsService } from './shared/metrics/metrics.service';
 
 /**
+ * The prefix every route sits under.
+ *
+ * Exported because Express reports `request.route.path` with this prefix
+ * included, so anything reading a route back — the audit log does — has to
+ * strip the same string this sets. Hardcoding it in both places is how they
+ * come to disagree.
+ */
+export const API_PREFIX = 'api';
+
+/**
  * How a request is handled before and after a controller sees it.
  *
  * This lives apart from `bootstrap` so a test can build the application the
@@ -40,7 +50,7 @@ export const configureRequestHandling = (app: INestApplication, metrics: Metrics
     new LoggingInterceptor(),
     new MetricsInterceptor(metrics),
   );
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix(API_PREFIX);
 
   return app;
 };

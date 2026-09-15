@@ -267,7 +267,7 @@ const en = {
     },
   },
   auditLog: {
-    localOnly: 'These entries are recorded by this browser only. They are not a server-side audit trail and must not be used as evidence of who changed what.',
+    unknownActor: 'Unattributed',
     title: 'Audit Log',
     subtitle: 'Security events, exports, permission changes and audit submissions.',
     systemActivity: 'System activity',

@@ -1,4 +1,4 @@
-import { USER_ROLES, USER_PERMISSIONS } from '../utils/constants';
+import { USER_ROLES } from '../utils/constants';
 /**
  * The organization a user belongs to, as the API returns it.
  *
@@ -23,7 +23,6 @@ export interface Organization {
 
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
-export type UserPermission = typeof USER_PERMISSIONS[keyof typeof USER_PERMISSIONS];
 
 export interface User {
   id: string;
@@ -32,7 +31,15 @@ export interface User {
   avatar?: string;
   phone?: string;
   roles: UserRole[];
-  permissions: UserPermission[];
+  /**
+   * What the server says this person may do, from `GET /users/profile/permissions`.
+   *
+   * Plain strings, because the names belong to the server's table in
+   * `backend/src/shared/roles.ts`. There was a `UserPermission` union here
+   * listing `create_user` and `view_questionnaires`, which matched nothing the
+   * API has ever accepted and was read by nobody.
+   */
+  permissions: string[];
   organizationId?: string;
   organization?: Organization;
   isActive: boolean;

@@ -5,6 +5,7 @@ import { clearStoredAuth, isDemoEnabled } from '../services/api';
 import { useNotification } from './NotificationContext';
 import { useTranslation } from 'react-i18next';
 import { apiErrorMessage } from '../i18n/apiError';
+import { peopleService } from '../services/people.service';
 
 interface AuthContextType {
   user: User | null;
@@ -16,10 +17,38 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
+  /** Whether the permission list has been fetched at all. */
+  knowsPermissions: boolean;
   hasRole: (role: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/**
+ * What the server says this person may do.
+ *
+ * The client used to decide with its own role lists, and they had drifted from
+ * the server's table in both directions: an `admin` could open the workspace
+ * settings and then be refused the save, while an `organization_admin` was
+ * locked out of an audit log the server would have served them. The table in
+ * `backend/src/shared/roles.ts` is the authority, and this is how the client
+ * asks it.
+ *
+ * A failure here returns an empty list rather than throwing. The route guard
+ * treats that as "unknown" and falls back to the role check, because this
+ * guard exists to avoid offering somebody a page they cannot use — the server
+ * is what actually refuses them.
+ */
+const fetchPermissions = async (): Promise<string[]> => {
+  try {
+    const { permissions } = await peopleService.getOwnPermissions();
+    return permissions;
+  } catch {
+    return [];
+  }
+};
+
+
 
 const readStoredUser = (): User | null => {
   const savedUser = localStorage.getItem('user');
@@ -75,8 +104,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Token баталгаажуулах
           try {
             const userData = await authService.getMe();
-            setUser(userData);
-            localStorage.setItem('user', JSON.stringify(userData));
+            const withPermissions = { ...userData, permissions: await fetchPermissions() };
+            setUser(withPermissions);
+            localStorage.setItem('user', JSON.stringify(withPermissions));
           } catch (error) {
             console.warn('Token validation failed:', error);
             // Token хүчингүй болвол цэвэрлэх
@@ -102,10 +132,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authService.login(credentials);
       
       setToken(response.token);
-      setUser(response.user);
-      
       localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+
+      // After the token is stored, so the request for it is authenticated.
+      const signedIn = { ...response.user, permissions: await fetchPermissions() };
+      setUser(signedIn);
+      localStorage.setItem('user', JSON.stringify(signedIn));
       if (response.refreshToken) {
         localStorage.setItem('refreshToken', response.refreshToken);
       }
@@ -142,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: 'owner@example.com',
       name: 'Demo Owner',
       roles: ['admin'],
-      permissions: [],
+      permissions: ['*'],
       organization: {
         id: 'demo-org',
         name: 'Demo Organization',
@@ -207,10 +239,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Эрх шалгах
-  const hasPermission = useCallback((permission: string): boolean => {
-    if (!user || !user.permissions) return false;
-    return user.permissions.some((userPermission) => userPermission === permission);
-  }, [user]);
+  const hasPermission = useCallback(
+    (permission: string): boolean => {
+      // `*` is demo mode, where nothing is hidden.
+      if (!user?.permissions?.length) return false;
+      return user.permissions.includes('*') || user.permissions.includes(permission);
+    },
+    [user],
+  );
+
+  /** False while the list has not been fetched, so a guard can tell the two apart. */
+  const knowsPermissions = Boolean(user?.permissions?.length);
 
   // Үүрэг шалгах
   const hasRole = useCallback((role: string): boolean => {
@@ -228,6 +267,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     refreshUser,
     hasPermission,
+    knowsPermissions,
     hasRole,
   };
 

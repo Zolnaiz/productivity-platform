@@ -152,20 +152,42 @@ describe('adminService', () => {
   });
 
   describe('the audit log', () => {
-    it('recovers when stored entries are invalid JSON', async () => {
-      localStorage.setItem('productivity-demo-audit-log', '{broken-json');
+    it('reads the trail from the server', async () => {
+      get.mockResolvedValue([{ id: 'entry-1', module: 'projects', action: 'created' }]);
 
       const logs = await (await load()).getAuditLog();
 
-      expect(logs.length).toBeGreaterThan(0);
-      expect(logs[0]).toHaveProperty('module');
-      expect(localStorage.getItem('productivity-demo-audit-log')).not.toBe('{broken-json');
+      expect(get).toHaveBeenCalledWith('/audit-log?limit=100');
+      expect(logs[0]).toMatchObject({ module: 'projects', action: 'created' });
     });
 
-    it('stays local, because there is no endpoint behind it', async () => {
-      await (await load()).getAuditLog();
+    it('passes the limit through', async () => {
+      get.mockResolvedValue([]);
+
+      await (await load()).getAuditLog(25);
+
+      expect(get).toHaveBeenCalledWith('/audit-log?limit=25');
+    });
+
+    it('offers no way to add to it', async () => {
+      // A client that can write its own history is not evidence of anything.
+      expect(await load()).not.toHaveProperty('appendAuditLog');
+    });
+
+    it('lets a real failure surface rather than showing invented entries', async () => {
+      get.mockRejectedValue(new Error('network'));
+
+      await expect((await load()).getAuditLog()).rejects.toThrow('network');
+    });
+
+    it('shows the demo trail in demo mode without calling the API', async () => {
+      demoMode = true;
+
+      const logs = await (await load()).getAuditLog();
 
       expect(get).not.toHaveBeenCalled();
+      expect(logs.length).toBeGreaterThan(0);
+      expect(logs[0]).toHaveProperty('module');
     });
   });
 });
