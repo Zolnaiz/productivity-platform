@@ -216,5 +216,6 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing
 - Frontend lint/build/audit passing
-- Docker PostgreSQL runtime smoke passing with seeded owner login and project create/update/delete checks
+- Runtime smoke passing against a native PostgreSQL 18 install: seeded owner login, project create/update/delete, and auth refused without a token
+- Audit trail verified against that database: the three writes the smoke makes leave three rows with the actor taken from the token, the deletion marked as a warning, and no rows at all for the reads
 - Playwright browser smoke passing for seeded owner login and Projects page load

@@ -259,10 +259,10 @@
 ## Known Constraints
 
 - Docker cannot start on the development machine: virtualisation is disabled
-  in firmware and enabling it in the ASUS PRIME H310M-F BIOS has not taken. The
-  migration check no longer depends on it — `npm run migration:check` applies
-  every migration to PostgreSQL compiled to WebAssembly, in process. The
-  runtime smoke against a server still needs either Docker or a native
-  PostgreSQL install.
+  in firmware and enabling it in the ASUS PRIME H310M-F BIOS has not taken.
+  Nothing depends on it any more. `npm run migration:check` applies every
+  migration to PostgreSQL compiled to WebAssembly, in process, and the runtime
+  smoke runs against a native PostgreSQL 18 install — both verified passing on
+  2026-09-16.
 - Root Docker compose and production profile configs have been validated with `docker compose config`, but image build/run still needs Docker daemon.
 - Flutter CLI is not installed on PATH yet, so mobile `flutter analyze` / test checks cannot run until SDK setup finishes.
