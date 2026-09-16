@@ -111,6 +111,7 @@ import { copyName, duplicateZones, nextZoneCode } from './floorPlanClipboard';
 import { catalogue, catalogueGroups, catalogueItem, sizeForType } from './floorPlanCatalogue';
 import { dropSpot, placeAgainstWall } from './floorPlanPlacement';
 import { labelIn, nameRoom } from './floorPlanRooms';
+import { crossesAWall, perHundredSquareMetres, roomForZone, zoneCoverage } from './floorPlanZones';
 import { OrderMove, canReorder, reorder } from './floorPlanOrder';
 import {
   areaInMetres,
@@ -506,6 +507,28 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     () => detectRooms(plan?.walls ?? [], plan?.corners ?? []),
     [plan?.walls, plan?.corners],
   );
+
+  /**
+   * Where the selected zone sits in the building.
+   *
+   * None of this is stored: the room a zone is in is the room its middle is
+   * in, worked out when it is needed. A zone that kept its own copy of which
+   * room it was in would be wrong the first time somebody moved a wall.
+   */
+  const selectedZonePlace = useMemo(() => {
+    if (!selectedZone) return null;
+
+    const room = roomForZone(rooms, selectedZone);
+    const coverage = zoneCoverage(selectedZone, room, metresPerUnit);
+
+    return {
+      room,
+      roomName: room ? labelIn(room, plan?.roomLabels ?? [])?.name ?? '' : '',
+      coverage,
+      split: crossesAWall(selectedZone, plan?.walls ?? [], plan?.corners ?? []),
+      tagDensity: perHundredSquareMetres(getRedTagCount(selectedZone), coverage.area),
+    };
+  }, [selectedZone, rooms, plan, metresPerUnit]);
 
   const selectedRoom = useMemo(
     () => rooms.find((room) => roomKey(room) === selectedRoomKey) ?? null,
@@ -4334,6 +4357,51 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
+
+                {/*
+                  Where this area actually is. A zone used to be a rectangle
+                  floating in an abstract canvas: it knew nothing about the
+                  place it was describing, so it could not be compared with
+                  another zone, in this building or any other.
+                */}
+                {selectedZonePlace && (
+                  <div
+                    data-testid="five-s-zone-place"
+                    className="rounded-lg border border-gray-200 px-3 py-2 text-xs dark:border-gray-700"
+                  >
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-gray-600 dark:text-gray-300">
+                      <span className="font-medium">
+                        {selectedZonePlace.room
+                          ? selectedZonePlace.roomName || t('fiveS.roomUnnamed')
+                          : t('fiveS.zoneOutsideRooms')}
+                      </span>
+                      <span className="tabular-nums">{formatArea(selectedZonePlace.coverage.area)}</span>
+                      {selectedZonePlace.coverage.share !== null && (
+                        <span className="tabular-nums text-gray-500 dark:text-gray-400">
+                          {t('fiveS.zoneShare', {
+                            share: Math.round(selectedZonePlace.coverage.share * 100),
+                          })}
+                        </span>
+                      )}
+                    </div>
+                    {selectedZonePlace.tagDensity !== null && getRedTagCount(selectedZone) > 0 && (
+                      <div className="mt-1 tabular-nums text-gray-500 dark:text-gray-400">
+                        {t('fiveS.zoneTagDensity', { density: selectedZonePlace.tagDensity.toFixed(1) })}
+                      </div>
+                    )}
+                    {/*
+                      A zone drawn across a wall is two places with one name:
+                      nobody can walk it as one area, audit it as one, or own
+                      it as one. Better said now than noticed on the day.
+                    */}
+                    {selectedZonePlace.split && (
+                      <div className="mt-1 flex items-start gap-1 text-amber-700 dark:text-amber-400">
+                        <AlertTriangle className="mt-0.5 h-3 w-3 flex-none" aria-hidden="true" />
+                        <span>{t('fiveS.zoneCrossesWall')}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <label className="block text-sm text-gray-600 dark:text-gray-400">
                   Zone name

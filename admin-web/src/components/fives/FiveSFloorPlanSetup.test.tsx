@@ -1407,4 +1407,115 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       expect(await screen.findByText('12.0 m')).toBeTruthy();
     });
   });
+
+  describe('a 5S area inside a real room', () => {
+    /** A 12 m by 8 m room with a partition down the middle of it. */
+    const building = () => ({
+      corners: [
+        { id: 'a', x: 96, y: 96 },
+        { id: 'b', x: 240, y: 96 },
+        { id: 'c', x: 384, y: 96 },
+        { id: 'd', x: 384, y: 288 },
+        { id: 'e', x: 240, y: 288 },
+        { id: 'f', x: 96, y: 288 },
+      ],
+      walls: [
+        { id: 'w1', from: 'a', to: 'b', thickness: 12 },
+        { id: 'w2', from: 'b', to: 'c', thickness: 12 },
+        { id: 'w3', from: 'c', to: 'd', thickness: 12 },
+        { id: 'w4', from: 'd', to: 'e', thickness: 12 },
+        { id: 'w5', from: 'e', to: 'f', thickness: 12 },
+        { id: 'w6', from: 'f', to: 'a', thickness: 12 },
+        { id: 'w7', from: 'b', to: 'e', thickness: 8 },
+      ],
+      openings: [],
+      roomLabels: [{ id: 'l1', x: 168, y: 192, name: 'Goods in' }],
+    });
+
+    const zone = (over: Record<string, unknown>) => ({
+      ...buildPlan().zones[0],
+      id: 'zone-1',
+      code: 'A01',
+      name: 'Staging',
+      redTags: [],
+      redTagCount: 0,
+      ...over,
+    });
+
+    const planWith = (first: Record<string, unknown>) => ({
+      ...buildPlan(),
+      ...building(),
+      objects: [],
+      zones: [zone(first)],
+    });
+
+    /** The panel block that says where this area is. */
+    const placeLine = () => screen.findByTestId('five-s-zone-place');
+
+    it('says which room the area is in, by name', async () => {
+      // A zone used to be a rectangle floating in an abstract canvas: it knew
+      // nothing about the place it was describing. The name also appears on
+      // the plan itself, so this reads the panel rather than the page.
+      serviceMocks.getPlan.mockResolvedValue(planWith({ x: 120, y: 120, width: 96, height: 48 }));
+      render(<FiveSFloorPlanSetup />);
+
+      expect((await placeLine())?.textContent).toContain('Goods in');
+    });
+
+    it('says what share of the room the area covers', async () => {
+      // 4 m by 2 m inside a 6 m by 8 m room: a sixth of it.
+      serviceMocks.getPlan.mockResolvedValue(planWith({ x: 120, y: 120, width: 96, height: 48 }));
+      render(<FiveSFloorPlanSetup />);
+
+      expect((await placeLine())?.textContent).toContain('8.0 m²');
+      expect(screen.getByText('17% of the room')).toBeTruthy();
+    });
+
+    it('counts red tags against the floor they were found on', async () => {
+      // Two tags in a 6 m² crib and two in a 600 m² hall are not the same
+      // finding, and a density is how anybody would say so.
+      serviceMocks.getPlan.mockResolvedValue(
+        planWith({
+          x: 120,
+          y: 120,
+          width: 96,
+          height: 48,
+          redTags: [
+            { id: 'r1', title: 'Pallet', disposition: '', status: 'open' },
+            { id: 'r2', title: 'Box', disposition: '', status: 'open' },
+          ],
+          redTagCount: 2,
+        }),
+      );
+      render(<FiveSFloorPlanSetup />);
+
+      expect(await screen.findByText('25.0 red tags per 100 m²')).toBeTruthy();
+    });
+
+    it('warns when an area has been drawn across a wall', async () => {
+      // Two places with one name: nobody can walk it, audit it or own it as
+      // one area.
+      serviceMocks.getPlan.mockResolvedValue(planWith({ x: 168, y: 120, width: 144, height: 48 }));
+      render(<FiveSFloorPlanSetup />);
+
+      expect(await screen.findByText(/drawn across a wall/)).toBeTruthy();
+    });
+
+    it('does not warn about an area butted up against a wall', async () => {
+      // The normal case; warning about it would make the warning worth
+      // ignoring.
+      serviceMocks.getPlan.mockResolvedValue(planWith({ x: 144, y: 120, width: 96, height: 48 }));
+      render(<FiveSFloorPlanSetup />);
+      await placeLine();
+
+      expect(screen.queryByText(/drawn across a wall/)).toBeNull();
+    });
+
+    it('says plainly when an area is not inside any room yet', async () => {
+      serviceMocks.getPlan.mockResolvedValue(planWith({ x: 500, y: 350, width: 96, height: 48 }));
+      render(<FiveSFloorPlanSetup />);
+
+      expect(await screen.findByText('Not inside any room')).toBeTruthy();
+    });
+  });
 });
