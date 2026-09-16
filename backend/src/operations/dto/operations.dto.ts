@@ -462,6 +462,21 @@ class PlanOpeningDto {
   flip?: boolean;
 }
 
+/** A room's name, as a point inside it. */
+class PlanRoomLabelDto {
+  @IsString()
+  id: string;
+
+  @IsNumber()
+  x: number;
+
+  @IsNumber()
+  y: number;
+
+  @IsString()
+  name: string;
+}
+
 export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
   @IsString()
   name: string;
@@ -485,6 +500,14 @@ export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
   @IsOptional()
   @IsBoolean()
   showGrid?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  snapToGrid?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showDimensions?: boolean;
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -515,6 +538,12 @@ export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
   @ValidateNested({ each: true })
   @Type(() => PlanOpeningDto)
   openings?: PlanOpeningDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PlanRoomLabelDto)
+  roomLabels?: PlanRoomLabelDto[];
 
   /**
    * How many metres one canvas unit covers.

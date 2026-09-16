@@ -339,3 +339,49 @@ export const orphanCorners = (corners: Corner[], walls: Wall[]) => {
 /** The walls that end on a corner. */
 export const wallsOn = (walls: Wall[], cornerId: string) =>
   walls.filter((wall) => wall.from === cornerId || wall.to === cornerId);
+
+/**
+ * Whether a point is inside a room.
+ *
+ * Ray casting: count the edges a line drawn to the right crosses, and an odd
+ * count means inside. It handles the L-shaped and notched rooms a real building
+ * is full of, which a bounding box would get wrong in exactly the corner a
+ * person would click to name the room.
+ */
+export const containsPoint = (room: Room, point: Point) => {
+  let inside = false;
+
+  for (let index = 0, previous = room.points.length - 1; index < room.points.length; previous = index, index += 1) {
+    const a = room.points[index];
+    const b = room.points[previous];
+    const straddles = a.y > point.y !== b.y > point.y;
+    if (!straddles) continue;
+
+    const crossingX = ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x;
+    if (point.x < crossingX) inside = !inside;
+  }
+
+  return inside;
+};
+
+/**
+ * The room a point is in, or null for a point out on the site.
+ *
+ * The smallest one wins, because a room inside a room — a meeting room in the
+ * middle of an open floor, an office in a warehouse — means the inner one when
+ * you click in it.
+ */
+export const roomAt = (rooms: Room[], point: Point): Room | null =>
+  rooms
+    .filter((room) => containsPoint(room, point))
+    .reduce<Room | null>((best, room) => (!best || room.area < best.area ? room : best), null);
+
+/**
+ * A room's identity across a redraw.
+ *
+ * Rooms are found rather than stored, so they have no id of their own; the set
+ * of corners they run through is what stays the same when the walls are
+ * redrawn. It changes when the room's shape changes, which is correct: a room
+ * with a new corner in it is a different room to select.
+ */
+export const roomKey = (room: Room) => [...room.corners].sort().join('+');

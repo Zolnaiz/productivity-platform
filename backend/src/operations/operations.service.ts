@@ -285,6 +285,7 @@ export class OperationsService {
       corners: [],
       walls: [],
       openings: [],
+      roomLabels: [],
     });
 
     return this.fiveSLayouts.save(defaultLayout);
@@ -301,6 +302,8 @@ export class OperationsService {
       backgroundImage: payload.backgroundImage || '',
       backgroundOpacity: payload.backgroundOpacity ?? 0.55,
       showGrid: payload.showGrid ?? true,
+      snapToGrid: payload.snapToGrid ?? true,
+      showDimensions: payload.showDimensions ?? false,
       zones: payload.zones || [],
       objects: payload.objects || [],
       // The wall graph. Left out of the payload until now, so a plan drawn
@@ -308,6 +311,7 @@ export class OperationsService {
       corners: payload.corners || [],
       walls: payload.walls || [],
       openings: payload.openings || [],
+      roomLabels: payload.roomLabels || [],
       metresPerUnit: payload.metresPerUnit ?? existing?.metresPerUnit,
     };
 

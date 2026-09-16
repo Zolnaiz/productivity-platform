@@ -3,6 +3,7 @@ import {
   Corner,
   Wall,
   cornerAt,
+  containsPoint,
   cornerNear,
   detectRooms,
   endsOf,
@@ -10,7 +11,9 @@ import {
   moveCorner,
   orphanCorners,
   polygonArea,
+  roomAt,
   roomCentre,
+  roomKey,
   roomPath,
   signedArea,
   snapToAngle,
@@ -325,5 +328,71 @@ describe('moving a corner', () => {
     const stray = [...corners, { id: 'x', x: 50, y: 50 }];
 
     expect(orphanCorners(stray, walls).map((corner) => corner.id)).toEqual(['x']);
+  });
+});
+
+describe('which room a point is in', () => {
+  const square = {
+    corners: ['a', 'b', 'c', 'd'],
+    points: [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 100 },
+      { x: 0, y: 100 },
+    ],
+    area: 10000,
+  };
+
+  /** An L: the top-right quarter is cut out of it. */
+  const ell = {
+    corners: ['e', 'f', 'g', 'h', 'i', 'j'],
+    points: [
+      { x: 0, y: 0 },
+      { x: 50, y: 0 },
+      { x: 50, y: 50 },
+      { x: 100, y: 50 },
+      { x: 100, y: 100 },
+      { x: 0, y: 100 },
+    ],
+    area: 7500,
+  };
+
+  it('says yes inside and no outside', () => {
+    expect(containsPoint(square, { x: 50, y: 50 })).toBe(true);
+    expect(containsPoint(square, { x: 150, y: 50 })).toBe(false);
+  });
+
+  it('gets the bite out of an L right', () => {
+    // A bounding box would say yes here, and it is exactly the corner somebody
+    // clicks when they mean the room next door.
+    expect(containsPoint(ell, { x: 75, y: 25 })).toBe(false);
+    expect(containsPoint(ell, { x: 75, y: 75 })).toBe(true);
+  });
+
+  it('picks the smaller of two rooms one inside the other', () => {
+    // An office inside a warehouse: clicking in the office means the office.
+    const inner = {
+      corners: ['k', 'l', 'm', 'n'],
+      points: [
+        { x: 20, y: 20 },
+        { x: 40, y: 20 },
+        { x: 40, y: 40 },
+        { x: 20, y: 40 },
+      ],
+      area: 400,
+    };
+
+    expect(roomAt([square, inner], { x: 30, y: 30 })).toBe(inner);
+    expect(roomAt([square, inner], { x: 80, y: 80 })).toBe(square);
+  });
+
+  it('is nothing for a point out on the site', () => {
+    expect(roomAt([square], { x: 400, y: 400 })).toBeNull();
+  });
+
+  it('identifies a room by the corners it runs through, whatever order they were found in', () => {
+    // Rooms have no id of their own, being worked out afresh on every redraw.
+    expect(roomKey(square)).toBe(roomKey({ ...square, corners: ['d', 'c', 'b', 'a'] }));
+    expect(roomKey(square)).not.toBe(roomKey(ell));
   });
 });

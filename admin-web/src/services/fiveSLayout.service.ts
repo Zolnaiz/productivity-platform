@@ -286,6 +286,7 @@ const withoutServerFields = (plan: FiveSLayoutPlan) => {
     corners: plan.corners ?? [],
     walls: plan.walls ?? [],
     openings: plan.openings ?? [],
+    roomLabels: plan.roomLabels ?? [],
     ...(plan.metresPerUnit ? { metresPerUnit: plan.metresPerUnit } : {}),
   };
 
@@ -316,6 +317,8 @@ const normalizePlan = (plan: FiveSLayoutPlan): FiveSLayoutPlan => ({
   backgroundImage: plan.backgroundImage || '',
   backgroundOpacity: plan.backgroundOpacity ?? 0.55,
   showGrid: plan.showGrid ?? true,
+  snapToGrid: plan.snapToGrid ?? true,
+  showDimensions: plan.showDimensions ?? false,
   zones: (plan.zones || []).map((zone) => {
     const redTags = normalizeZoneRedTags(zone);
 
@@ -333,6 +336,7 @@ const normalizePlan = (plan: FiveSLayoutPlan): FiveSLayoutPlan => ({
   // Openings whose wall has gone are dropped on the way in: a door that
   // outlives its wall draws nowhere and can never be reached to delete.
   openings: pruneOpenings(plan.openings || [], plan.walls || []),
+  roomLabels: plan.roomLabels || [],
 });
 
 /**

@@ -140,6 +140,21 @@ export interface PlanOpening {
   flip?: boolean;
 }
 
+/**
+ * A room's name: a point with words on it.
+ *
+ * Rooms are not stored — they are whatever the walls close in — so there is
+ * nothing to hang a name on. The room a name belongs to is whichever room its
+ * point falls inside, which is also why moving a wall keeps the name in the
+ * room and knocking the room through leaves the name standing on open floor.
+ */
+export interface PlanRoomLabel {
+  id: string;
+  x: number;
+  y: number;
+  name: string;
+}
+
 export interface FiveSLayoutPlan {
   id: string;
   organizationId?: string;
@@ -165,6 +180,16 @@ export interface FiveSLayoutPlan {
   backgroundImage?: string;
   backgroundOpacity?: number;
   showGrid?: boolean;
+  /**
+   * Whether a drag snaps to the grid.
+   *
+   * Separate from `showGrid` because they are separate questions, though one
+   * checkbox used to answer both: turning the grid off to look at the plan also
+   * turned off snapping without saying so.
+   */
+  snapToGrid?: boolean;
+  /** Whether every wall carries its length, not only the one being drawn. */
+  showDimensions?: boolean;
   /** Absent until an organization configures its own layers. */
   auditTiers?: AuditTier[];
   /**
@@ -182,6 +207,8 @@ export interface FiveSLayoutPlan {
   walls?: PlanWall[];
   /** Doors and windows, each cut into one of the walls above. */
   openings?: PlanOpening[];
+  /** Names for rooms, each a point inside the room it names. */
+  roomLabels?: PlanRoomLabel[];
   zones: FiveSZone[];
   objects: FloorPlanObject[];
   createdAt?: string;

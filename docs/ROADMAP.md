@@ -55,9 +55,12 @@
 
 ## Next Frontend Work
 
-- Keep building the floor plan toward what a 2D floor-plan tool actually is,
-  in this order: naming a room; then Grid/Snap/Dimensions toggles. Zones for 5S then sit inside real rooms rather than floating in an
-  abstract canvas. Doors and windows are in: an opening belongs to a wall and
+- The floor plan is now a 2D floor-plan tool: walls that close into rooms with
+  real areas, doors and windows cut into those walls, an object catalogue at
+  real dimensions, draggable corners, named rooms, and grid/snap/dimensions
+  switches. What is left is putting 5S on top of it — zones that sit inside a
+  real room rather than floating in an abstract canvas, and scoring and red
+  tags read per square metre of the room they are in. Doors and windows are in: an opening belongs to a wall and
   is measured along it, the wall renders as the pieces left standing, and a
   door carries the quarter circle its leaf sweeps. So is the object catalogue:
   real dimensions in metres, shown on the palette, with wall snapping for the

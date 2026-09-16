@@ -25,6 +25,17 @@ export class FiveSLayout extends BaseEntity {
   @Column({ name: 'show_grid', type: 'boolean', default: true })
   showGrid: boolean;
 
+  /**
+   * Whether dragging snaps to the grid — which is not the same question as
+   * whether the grid is drawn, though one checkbox used to answer both.
+   */
+  @Column({ name: 'snap_to_grid', type: 'boolean', default: true })
+  snapToGrid: boolean;
+
+  /** Whether every wall carries its length, rather than only the one in hand. */
+  @Column({ name: 'show_dimensions', type: 'boolean', default: false })
+  showDimensions: boolean;
+
   @Column({ type: 'jsonb', default: () => "'[]'" })
   zones: Record<string, any>[];
 
@@ -47,6 +58,13 @@ export class FiveSLayout extends BaseEntity {
 
   @Column({ type: 'jsonb', default: () => "'[]'" })
   openings: Record<string, any>[];
+
+  /**
+   * Names for rooms. A room is not stored, so its name is a point with words
+   * on it, and the room it names is whichever one that point falls inside.
+   */
+  @Column({ name: 'room_labels', type: 'jsonb', default: () => "'[]'" })
+  roomLabels: Record<string, any>[];
 
   /**
    * How many metres one canvas unit covers. Null on plans drawn before the

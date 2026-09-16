@@ -110,6 +110,7 @@ import {
 import { copyName, duplicateZones, nextZoneCode } from './floorPlanClipboard';
 import { catalogue, catalogueGroups, catalogueItem, sizeForType } from './floorPlanCatalogue';
 import { dropSpot, placeAgainstWall } from './floorPlanPlacement';
+import { labelIn, nameRoom } from './floorPlanRooms';
 import { OrderMove, canReorder, reorder } from './floorPlanOrder';
 import {
   areaInMetres,
@@ -132,6 +133,7 @@ import {
   moveCorner,
   endsOf,
   roomCentre,
+  roomKey,
   roomPath,
   snapToAngle,
   wallLength,
@@ -477,6 +479,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
    * it would join is shown so nobody has to guess whether it will take.
    */
   const [cornerDrag, setCornerDrag] = useState<{ id: string; over: string } | null>(null);
+  /**
+   * The room being worked on, identified by the corners it runs through.
+   *
+   * Rooms have no id: they are found afresh from the walls on every redraw, so
+   * the only thing that stays the same across one is the set of corners the
+   * room runs through.
+   */
+  const [selectedRoomKey, setSelectedRoomKey] = useState('');
   const selectedOpening = useMemo(
     () => (plan?.openings ?? []).find((opening) => opening.id === selectedOpeningId),
     [plan, selectedOpeningId],
@@ -495,6 +505,11 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const rooms = useMemo(
     () => detectRooms(plan?.walls ?? [], plan?.corners ?? []),
     [plan?.walls, plan?.corners],
+  );
+
+  const selectedRoom = useMemo(
+    () => rooms.find((room) => roomKey(room) === selectedRoomKey) ?? null,
+    [rooms, selectedRoomKey],
   );
 
   /** The box around everything selected, for the group outline. */
@@ -1100,6 +1115,28 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const stopDrawingWall = () => setDrawingWall(null);
 
   /**
+   * Names the selected room.
+   *
+   * The name is stored as a point in the middle of the room rather than
+   * against the room itself, because there is no room to store it against —
+   * move a wall and the name stays where it was put, inside the room it
+   * describes.
+   */
+  const renameSelectedRoom = (name: string) => {
+    if (!selectedRoom) return;
+
+    updatePlan((current) => ({
+      ...current,
+      roomLabels: nameRoom(
+        current.roomLabels ?? [],
+        selectedRoom,
+        name,
+        () => `room-label-${Date.now()}`,
+      ),
+    }));
+  };
+
+  /**
    * Drags a corner, which drags every wall that ends on it.
    *
    * This is the gesture a plan is actually adjusted with: a room is the wrong
@@ -1647,7 +1684,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       dragCornerTo(
         cornerDrag.id,
         pointInView(view, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY),
-        (plan?.showGrid ?? true) && !event.altKey,
+        (plan?.snapToGrid ?? true) && !event.altKey,
       );
       return;
     }
@@ -1700,7 +1737,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       dragGroup(drag, point);
       return;
     }
-    const snap = (plan.showGrid ?? true) && !event.altKey;
+    const snap = (plan.snapToGrid ?? true) && !event.altKey;
     const snappedPoint = { x: snapToGrid(point.x, snap), y: snapToGrid(point.y, snap) };
 
     if (drag.kind === 'resize-zone') {
@@ -2697,15 +2734,6 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             <input
               className="h-4 w-4 rounded border-gray-300 text-blue-600"
               type="checkbox"
-              checked={plan.showGrid ?? true}
-              onChange={(event) => updatePlan((current) => ({ ...current, showGrid: event.target.checked }))}
-            />
-            Grid
-          </label>
-          <label className="flex items-center gap-2 self-end rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 dark:border-gray-700 dark:text-gray-300">
-            <input
-              className="h-4 w-4 rounded border-gray-300 text-blue-600"
-              type="checkbox"
               checked={colorMode === 'condition'}
               onChange={(event) => setColorMode(event.target.checked ? 'condition' : 'plan')}
             />
@@ -3231,6 +3259,35 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     </button>
                   ))}
                 </div>
+                {/*
+                  Three separate questions, which one checkbox called "Grid"
+                  used to answer at once: turning the grid off to look at the
+                  plan also turned snapping off, silently, and the next thing
+                  dragged landed a few millimetres out with nothing to say why.
+                */}
+                <div className="flex gap-0.5 rounded-md border border-gray-300 p-0.5 dark:border-gray-600">
+                  {(
+                    [
+                      ['showGrid', t('fiveS.toggleGrid'), plan.showGrid ?? true],
+                      ['snapToGrid', t('fiveS.toggleSnap'), plan.snapToGrid ?? true],
+                      ['showDimensions', t('fiveS.toggleDimensions'), plan.showDimensions ?? false],
+                    ] as Array<['showGrid' | 'snapToGrid' | 'showDimensions', string, boolean]>
+                  ).map(([field, label, on]) => (
+                    <button
+                      key={field}
+                      type="button"
+                      aria-pressed={on}
+                      className={`rounded px-2 py-1 text-xs ${
+                        on
+                          ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+                      }`}
+                      onClick={() => updatePlan((current) => ({ ...current, [field]: !on }))}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <button
                   type="button"
                   className={`rounded-md border px-2 py-1 text-xs ${
@@ -3287,6 +3344,38 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               against itself does nothing, and a row of buttons that never do
               anything is worse than no row at all.
             */}
+            {/*
+              A selected room: what it measures, and what it is called.
+              The area is not editable and never will be — it is the
+              consequence of where the walls are, and a room whose area could
+              be typed would be a room that disagreed with its own drawing.
+            */}
+            {selectedRoom && (
+              <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-blue-50/40 px-3 py-2 dark:border-gray-700 dark:bg-blue-950/20">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                  {t('fiveS.room')}
+                </span>
+                <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
+                  {t('fiveS.roomName')}
+                  <input
+                    className="w-48 rounded-md border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-900"
+                    value={labelIn(selectedRoom, plan.roomLabels ?? [])?.name ?? ''}
+                    placeholder={t('fiveS.roomNamePlaceholder')}
+                    onChange={(event) => renameSelectedRoom(event.target.value)}
+                  />
+                </label>
+                <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                  {formatArea(areaInMetres(selectedRoom.area, metresPerUnit))}
+                </span>
+                <button
+                  type="button"
+                  className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-white dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                  onClick={() => setSelectedRoomKey('')}
+                >
+                  {t('fiveS.roomDone')}
+                </button>
+              </div>
+            )}
             {/*
               What a selected door or window can be told, in the units it is
               actually specified in. A door is ordered at 900 mm, so that is
@@ -3629,20 +3718,61 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 Rooms first, then walls, then everything else: a room is the
                 floor and has to sit under what stands on it.
               */}
-              {rooms.map((room) => (
-                <g key={room.corners.join('-')} pointerEvents="none">
-                  <path d={roomPath(room)} fill="#0f172a08" stroke="none" />
-                  <text
-                    x={roomCentre(room).x}
-                    y={roomCentre(room).y}
-                    textAnchor="middle"
-                    className="fill-gray-500 font-medium tabular-nums"
-                    style={{ fontSize: view.width * 0.018 }}
-                  >
-                    {formatArea(areaInMetres(room.area, metresPerUnit))}
-                  </text>
-                </g>
-              ))}
+              {rooms.map((room) => {
+                const key = roomKey(room);
+                const selected = key === selectedRoomKey;
+                const label = labelIn(room, plan.roomLabels ?? []);
+                const centre = roomCentre(room);
+
+                return (
+                  <g key={key}>
+                    {/*
+                      The floor is clickable, which is how a room gets named:
+                      there is nowhere else to click that means "this room".
+                      It stays behind everything, so a zone or a desk standing
+                      on it is still what a click on them means.
+                    */}
+                    <path
+                      d={roomPath(room)}
+                      fill={selected ? '#2563eb14' : '#0f172a08'}
+                      stroke={selected ? '#2563eb' : 'none'}
+                      strokeWidth={selected ? 1.5 : 0}
+                      className={tool === 'select' ? 'cursor-pointer' : 'cursor-crosshair'}
+                      data-testid={`five-s-room-${key}`}
+                      aria-label={label?.name || t('fiveS.roomUnnamed')}
+                      onPointerDown={(event) => {
+                        if (tool !== 'select') return;
+
+                        event.stopPropagation();
+                        setSelectedZoneId('');
+                        setSelectedObjectId('');
+                        setSelectedOpeningId('');
+                        setSelectedRoomKey(key);
+                      }}
+                    />
+                    <text
+                      x={label?.x ?? centre.x}
+                      y={label?.y ?? centre.y}
+                      textAnchor="middle"
+                      className="fill-gray-600 font-medium"
+                      style={{ fontSize: view.width * 0.02 }}
+                      pointerEvents="none"
+                    >
+                      {label?.name ?? ''}
+                    </text>
+                    <text
+                      x={label?.x ?? centre.x}
+                      y={(label?.y ?? centre.y) + view.height * (label ? 0.034 : 0)}
+                      textAnchor="middle"
+                      className="fill-gray-500 tabular-nums"
+                      style={{ fontSize: view.width * 0.018 }}
+                      pointerEvents="none"
+                    >
+                      {formatArea(areaInMetres(room.area, metresPerUnit))}
+                    </text>
+                  </g>
+                );
+              })}
 
               {(plan.walls ?? []).map((wall) => {
                 const ends = endsOf(wall, plan.corners ?? []);
@@ -3671,7 +3801,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       Only while the wall tool is in hand. Every wall labelled
                       all the time buries the plan under its own measurements.
                     */}
-                    {tool === 'wall' && (
+                    {(tool === 'wall' || (plan.showDimensions ?? false)) && (
                       <text
                         x={(ends.from.x + ends.to.x) / 2}
                         y={(ends.from.y + ends.to.y) / 2 - view.height * 0.016}
@@ -4180,7 +4310,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               <span>Delete removes</span>
               <span>Esc deselects</span>
               <span>Ctrl+Z undoes</span>
-              {(plan.showGrid ?? true) && <span>Alt disables grid snap</span>}
+              {(plan.snapToGrid ?? true) && <span>Alt disables grid snap</span>}
             </div>
           </div>
 

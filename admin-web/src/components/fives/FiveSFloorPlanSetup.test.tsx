@@ -1192,4 +1192,219 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       expect(screen.getByTestId('five-s-corner-e')).toBeTruthy();
     });
   });
+
+  describe('naming a room', () => {
+    /** One closed rectangle: 12 m by 8 m at a square to the metre. */
+    const closedPlan = () => ({
+      ...buildPlan(),
+      zones: [],
+      objects: [],
+      corners: [
+        { id: 'a', x: 96, y: 96 },
+        { id: 'b', x: 384, y: 96 },
+        { id: 'c', x: 384, y: 288 },
+        { id: 'd', x: 96, y: 288 },
+      ],
+      walls: [
+        { id: 'w1', from: 'a', to: 'b', thickness: 12 },
+        { id: 'w2', from: 'b', to: 'c', thickness: 12 },
+        { id: 'w3', from: 'c', to: 'd', thickness: 12 },
+        { id: 'w4', from: 'd', to: 'a', thickness: 12 },
+      ],
+      openings: [],
+      roomLabels: [],
+    });
+
+    beforeEach(() => {
+      serviceMocks.getPlan.mockResolvedValue(closedPlan());
+    });
+
+    const floor = () => document.querySelector('[data-testid^="five-s-room-"]') as SVGPathElement;
+
+    it('offers the room for naming when its floor is clicked', async () => {
+      // There is nowhere else to click that means "this room": the room is not
+      // an object, it is the space the walls leave.
+      render(<FiveSFloorPlanSetup />);
+      await waitFor(() => expect(floor()).toBeTruthy());
+
+      fireEvent.pointerDown(floor(), { pointerId: 1 });
+
+      expect(await screen.findByPlaceholderText(/Meeting room/)).toBeTruthy();
+    });
+
+    it('shows what the room measures, and does not offer to let anyone type it', async () => {
+      // The area is the consequence of where the walls are. A room whose area
+      // could be typed would be a room that disagreed with its own drawing.
+      render(<FiveSFloorPlanSetup />);
+      await waitFor(() => expect(floor()).toBeTruthy());
+
+      fireEvent.pointerDown(floor(), { pointerId: 1 });
+
+      const strip = (await screen.findByPlaceholderText(/Meeting room/)).closest('div')?.parentElement;
+      expect(strip?.textContent).toContain('96.0 m²');
+      expect(screen.queryByDisplayValue('96')).toBeNull();
+    });
+
+    it('writes the name on the floor plan', async () => {
+      render(<FiveSFloorPlanSetup />);
+      await waitFor(() => expect(floor()).toBeTruthy());
+      fireEvent.pointerDown(floor(), { pointerId: 1 });
+
+      fireEvent.change(await screen.findByPlaceholderText(/Meeting room/), {
+        target: { value: 'Goods in' },
+      });
+
+      await waitFor(() => {
+        const drawn = Array.from(document.querySelectorAll('svg[aria-label="5S floor plan"] text'));
+        expect(drawn.some((node) => node.textContent === 'Goods in')).toBe(true);
+      });
+    });
+
+    it('renames rather than writing a second name in the same room', async () => {
+      render(<FiveSFloorPlanSetup />);
+      await waitFor(() => expect(floor()).toBeTruthy());
+      fireEvent.pointerDown(floor(), { pointerId: 1 });
+
+      const field = await screen.findByPlaceholderText(/Meeting room/);
+      fireEvent.change(field, { target: { value: 'Goods in' } });
+      fireEvent.change(await screen.findByDisplayValue('Goods in'), { target: { value: 'Dispatch' } });
+
+      await waitFor(() => {
+        const drawn = Array.from(document.querySelectorAll('svg[aria-label="5S floor plan"] text')).map(
+          (node) => node.textContent,
+        );
+        expect(drawn.filter((text) => text === 'Dispatch')).toHaveLength(1);
+        expect(drawn).not.toContain('Goods in');
+      });
+    });
+
+    it('takes the name off again when it is cleared', async () => {
+      // A label with nothing written on it is a thing to click on that says
+      // nothing.
+      render(<FiveSFloorPlanSetup />);
+      await waitFor(() => expect(floor()).toBeTruthy());
+      fireEvent.pointerDown(floor(), { pointerId: 1 });
+
+      fireEvent.change(await screen.findByPlaceholderText(/Meeting room/), {
+        target: { value: 'Goods in' },
+      });
+      await screen.findByDisplayValue('Goods in');
+      fireEvent.change(screen.getByDisplayValue('Goods in'), { target: { value: '' } });
+
+      await waitFor(() => {
+        const drawn = Array.from(document.querySelectorAll('svg[aria-label="5S floor plan"] text')).map(
+          (node) => node.textContent,
+        );
+        expect(drawn).not.toContain('Goods in');
+      });
+    });
+
+    it('keeps the name in the room when a wall is moved', async () => {
+      // The name is a point inside the room rather than a field on it, so
+      // this is the case that has to hold: the room changes shape and the name
+      // is still in it.
+      render(<FiveSFloorPlanSetup />);
+      await waitFor(() => expect(floor()).toBeTruthy());
+      fireEvent.pointerDown(floor(), { pointerId: 1 });
+      fireEvent.change(await screen.findByPlaceholderText(/Meeting room/), {
+        target: { value: 'Goods in' },
+      });
+      await screen.findByDisplayValue('Goods in');
+
+      const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+      } as DOMRect);
+      fireEvent.pointerDown(screen.getByTestId('five-s-corner-c'), {
+        clientX: 384,
+        clientY: 288,
+        pointerId: 2,
+      });
+      fireEvent.pointerMove(svg, { clientX: 480, clientY: 288, pointerId: 2 });
+      fireEvent.pointerUp(svg, { clientX: 480, clientY: 288, pointerId: 2 });
+
+      await waitFor(() => {
+        const drawn = Array.from(document.querySelectorAll('svg[aria-label="5S floor plan"] text')).map(
+          (node) => node.textContent,
+        );
+        // The room is bigger and still called what it was called.
+        expect(drawn).toContain('Goods in');
+        expect(drawn.some((text) => text === '112.0 m²')).toBe(true);
+      });
+    });
+  });
+
+  describe('the grid, the snapping and the dimensions', () => {
+    const walledPlan = () => ({
+      ...buildPlan(),
+      objects: [],
+      corners: [
+        { id: 'a', x: 96, y: 96 },
+        { id: 'b', x: 384, y: 96 },
+      ],
+      walls: [{ id: 'w1', from: 'a', to: 'b', thickness: 12 }],
+      openings: [],
+    });
+
+    const canvas = () => {
+      const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+      } as DOMRect);
+
+      return svg;
+    };
+
+    beforeEach(() => {
+      serviceMocks.getPlan.mockResolvedValue(walledPlan());
+    });
+
+    it('lets the grid be turned off without turning snapping off', async () => {
+      // One checkbox used to answer both questions, so looking at the plan
+      // without the grid quietly stopped things landing on it.
+      render(<FiveSFloorPlanSetup />);
+      const grid = await screen.findByRole('button', { name: 'Grid', pressed: true });
+
+      fireEvent.click(grid);
+
+      await screen.findByRole('button', { name: 'Grid', pressed: false });
+      expect(screen.getByRole('button', { name: 'Snap', pressed: true })).toBeTruthy();
+    });
+
+    it('stops snapping when snapping is turned off, and only then', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Snap', pressed: true }));
+
+      canvas();
+      const zone = document.querySelector('rect[rx="8"]') as SVGRectElement;
+      fireEvent.pointerDown(zone, { clientX: 110, clientY: 110, pointerId: 1 });
+      fireEvent.pointerMove(canvas(), { clientX: 137, clientY: 110, pointerId: 1 });
+
+      // 127 exactly, rather than the 120 the grid would have pulled it to.
+      await waitFor(() =>
+        expect(document.querySelector('rect[rx="8"]')?.getAttribute('x')).toBe('127'),
+      );
+    });
+
+    it('keeps the wall lengths out of the way until they are asked for', async () => {
+      // A plan with every wall labelled all the time is buried under its own
+      // measurements.
+      render(<FiveSFloorPlanSetup />);
+      await screen.findByRole('button', { name: 'Dimensions', pressed: false });
+
+      expect(screen.queryByText('12.0 m')).toBeNull();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Dimensions' }));
+
+      expect(await screen.findByText('12.0 m')).toBeTruthy();
+    });
+  });
 });

@@ -193,6 +193,14 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
   rooms, areas and doors that depend on those walls follow — and dropping one
   corner on another joins them into a single point, which is how a room that
   never quite closed gets closed.
+- Rooms can be named. A room is not stored — it is whatever the walls close in
+  — so its name is a point with words on it, and the room it names is whichever
+  room that point falls inside. Move a wall and the name stays in the room;
+  knock the room through and the name is left standing where it was, which is
+  what has actually happened.
+- Grid, snapping and dimensions are three separate switches. One checkbox
+  called "Grid" used to answer all three questions, so turning the grid off to
+  look at the plan also turned snapping off without saying so.
 - The plan is drawn as walls, not rectangles. Walls meet at shared corners, snap to the nearest 45 degrees unless Alt is held, and show their length in metres while being drawn. A room is whatever the walls close in — found from the wall graph on every change rather than stored, so a room and its walls cannot part company — and its area is a consequence of the drawing rather than a number somebody typed.
 - Several areas can be worked on at once: shift-click or drag a rubber band to select, move or delete them together, and line them up or space them evenly. The group is clamped as one shape, so hitting an edge does not squash the arrangement.
 - The floor plan zooms and pans: wheel or trackpad pinch to zoom at the pointer, space or middle-drag to pan, a zoom readout with fit and zoom-to-area. Every drag measures the pointer through the current view, so editing works the same at any zoom.
@@ -229,7 +237,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 432 passing
-- Frontend tests: 571 passing
+- Frontend tests: 594 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing
