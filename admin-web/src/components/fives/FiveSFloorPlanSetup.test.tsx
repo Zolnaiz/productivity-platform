@@ -909,4 +909,147 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       expect(wallLines()).toHaveLength(2);
     });
   });
+
+  describe('placing things at the size they really are', () => {
+    const walledPlan = () => ({
+      ...buildPlan(),
+      zones: [],
+      objects: [],
+      corners: [
+        { id: 'c0', x: 0, y: 100 },
+        { id: 'c1', x: 384, y: 100 },
+      ],
+      walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+      openings: [],
+    });
+
+    const canvas = () => {
+      const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+      } as DOMRect);
+
+      return svg;
+    };
+
+    beforeEach(() => {
+      serviceMocks.getPlan.mockResolvedValue(walledPlan());
+      serviceMocks.createObject.mockImplementation((type: string, placement: Record<string, number>) => ({
+        id: `${type}-1`,
+        type,
+        label: type,
+        x: placement?.x ?? 0,
+        y: placement?.y ?? 0,
+        width: placement?.width ?? 10,
+        height: placement?.height ?? 10,
+      }));
+    });
+
+    it('asks for a desk at 1.6 by 0.8 metres, in this plan\u2019s units', async () => {
+      // A desk used to be 86 by 52 because that looked about right, and no
+      // question about the room could be answered from it.
+      render(<FiveSFloorPlanSetup />);
+      const desk = await screen.findByRole('button', { name: /Desk/ });
+
+      fireEvent.click(desk);
+
+      expect(serviceMocks.createObject).toHaveBeenCalledWith(
+        'desk',
+        // One grid square to the metre: 1.6 m is 38.4 units, 0.8 m is 19.2,
+        // and neither is rounded, or the panel would report a 1.58 m desk.
+        expect.objectContaining({ width: 1.6 * GRID_SIZE, height: 0.8 * GRID_SIZE }),
+      );
+    });
+
+    it('says on the button what each thing measures', async () => {
+      render(<FiveSFloorPlanSetup />);
+
+      expect(await screen.findByText('1.2 × 0.8 m')).toBeTruthy();
+    });
+
+    it('no longer offers a wall or a door among the furniture', async () => {
+      // Both are tools now. Leaving the old rectangles in the palette would
+      // leave two ways to draw a wall, one of which encloses nothing.
+      render(<FiveSFloorPlanSetup />);
+      await screen.findByRole('button', { name: /Desk/ });
+
+      expect(screen.queryByRole('button', { name: /^Wall/ })).toBeNull();
+      expect(screen.queryByRole('button', { name: /^Door 0/ })).toBeNull();
+    });
+
+    it('drops it in the middle of what is on screen', async () => {
+      render(<FiveSFloorPlanSetup />);
+
+      fireEvent.click(await screen.findByRole('button', { name: /Desk/ }));
+
+      const [, placement] = serviceMocks.createObject.mock.calls[0];
+      expect(placement.x).toBeGreaterThan(CANVAS_WIDTH / 4);
+      expect(placement.x).toBeLessThan((CANVAS_WIDTH * 3) / 4);
+    });
+
+    /** The transform on the artwork inside an object, which carries its place. */
+    const placedAt = (id: string) =>
+      document.querySelector(`[data-testid="five-s-object-${id}"] g`)?.getAttribute('transform') ?? '';
+
+    /**
+     * Drags an object by its own middle to a point on the canvas.
+     *
+     * Grabbing it anywhere else carries the grab offset into the drop, which is
+     * how the first version of these tests ended up dropping things off the end
+     * of the wall and passing because nothing snapped.
+     */
+    const dragObjectTo = (id: string, from: [number, number], to: [number, number]) => {
+      canvas();
+      fireEvent.pointerDown(screen.getByTestId(`five-s-object-${id}`), {
+        clientX: from[0],
+        clientY: from[1],
+        pointerId: 1,
+      });
+      fireEvent.pointerMove(canvas(), { clientX: to[0], clientY: to[1], pointerId: 1 });
+    };
+
+    it('shows a placed thing’s size in metres, not in canvas units', async () => {
+      // The panel read 65 and 26 — numbers with no meaning outside this one
+      // drawing, which nobody could check against a tape or a supplier's page.
+      render(<FiveSFloorPlanSetup />);
+      fireEvent.click(await screen.findByRole('button', { name: /Desk/ }));
+
+      expect(await screen.findByDisplayValue('1.6')).toBeTruthy();
+      expect(screen.getByDisplayValue('0.8')).toBeTruthy();
+    });
+
+    it('stands a shelf flush against the wall it is dragged to', async () => {
+      // By hand this means nudging until it looks right and rotating until it
+      // looks right, and it is never quite either — which is how a plan ends up
+      // with a 40 mm gap behind a bench that nobody meant to draw.
+      render(<FiveSFloorPlanSetup />);
+      fireEvent.click(await screen.findByRole('button', { name: /Shelf/ }));
+      await screen.findByTestId('five-s-object-shelf-1');
+
+      // The shelf is 1.0 by 0.4 m: 24 by 10 units, dropped in the middle of the
+      // view at (438, 245).
+      dragObjectTo('shelf-1', [450, 250], [200, 118]);
+
+      // The wall's centre line is at y=100 and it is 12 thick, so its face is
+      // at 106 and a 10-unit deep shelf standing against it starts there.
+      await waitFor(() => expect(placedAt('shelf-1')).toContain('translate(192 106)'));
+      expect(placedAt('shelf-1')).toContain('rotate(0');
+    });
+
+    it('leaves a chair where it is put, wall or no wall', async () => {
+      // Snapping everything would mean a chair could not be placed at a desk
+      // near a wall without swinging square to it.
+      render(<FiveSFloorPlanSetup />);
+      fireEvent.click(await screen.findByRole('button', { name: /Chair/ }));
+      await screen.findByTestId('five-s-object-chair-1');
+
+      dragObjectTo('chair-1', [450, 250], [200, 118]);
+
+      // Where the grid put it, 14 units clear of the wall face, not against it.
+      await waitFor(() => expect(placedAt('chair-1')).toContain('translate(192 120)'));
+    });
+  });
 });

@@ -21,7 +21,6 @@ import {
   ClipboardList,
   Copy,
   Download,
-  DoorOpen,
   ListChecks,
   Map as MapIcon,
   MousePointer2,
@@ -109,6 +108,8 @@ import {
   toggleSelection,
 } from './floorPlanSelection';
 import { copyName, duplicateZones, nextZoneCode } from './floorPlanClipboard';
+import { catalogue, catalogueGroups, catalogueItem, sizeForType } from './floorPlanCatalogue';
+import { dropSpot, placeAgainstWall } from './floorPlanPlacement';
 import { OrderMove, canReorder, reorder } from './floorPlanOrder';
 import {
   areaInMetres,
@@ -170,29 +171,36 @@ import { TeamUser, memberName } from '../../types/people.types';
 
 
 
-const shapeTools: Array<{
-  type: FloorPlanObjectType;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  group: 'Structure' | 'Furniture' | 'Storage' | 'Utilities';
-}> = [
-  { type: 'wall', label: 'Wall', icon: Square, group: 'Structure' },
-  { type: 'door', label: 'Door', icon: DoorOpen, group: 'Structure' },
-  { type: 'desk', label: 'Desk', icon: Table, group: 'Furniture' },
-  { type: 'chair', label: 'Chair', icon: Move, group: 'Furniture' },
-  { type: 'table', label: 'Meeting table', icon: ClipboardList, group: 'Furniture' },
-  { type: 'sofa', label: 'Sofa', icon: Square, group: 'Furniture' },
-  { type: 'shelf', label: 'Shelf', icon: Package, group: 'Storage' },
-  { type: 'cabinet', label: 'Cabinet', icon: Package, group: 'Storage' },
-  { type: 'printer', label: 'Printer', icon: Printer, group: 'Utilities' },
-  { type: 'equipment', label: 'Equipment', icon: Move, group: 'Utilities' },
-  { type: 'whiteboard', label: 'Whiteboard', icon: Square, group: 'Utilities' },
-  { type: 'plant', label: 'Plant', icon: Plus, group: 'Utilities' },
-  { type: 'waste_bin', label: 'Waste bin', icon: Trash2, group: 'Utilities' },
-  { type: 'sink', label: 'Sink', icon: Square, group: 'Utilities' },
-];
-
-const shapeToolGroups: Array<(typeof shapeTools)[number]['group']> = ['Structure', 'Furniture', 'Storage', 'Utilities'];
+/**
+ * The palette, drawn from the catalogue.
+ *
+ * It used to carry a Wall and a Door of its own: black rectangles that looked
+ * like a building and were not one. Nothing closed a room, nothing had an
+ * area, and a door drawn that way was a picture of a door over a solid wall.
+ * Both are tools now — walls are drawn and openings are cut — and leaving the
+ * old pair in the palette would leave two ways to draw a wall, one of which
+ * quietly does nothing.
+ *
+ * Old plans still containing them keep drawing them; they simply cannot be
+ * added any more.
+ */
+const shapeIcons: Partial<Record<FloorPlanObjectType, React.ComponentType<{ className?: string }>>> = {
+  desk: Table,
+  chair: Move,
+  table: ClipboardList,
+  sofa: Square,
+  shelf: Package,
+  cabinet: Package,
+  pallet: Package,
+  racking: Package,
+  workbench: Table,
+  printer: Printer,
+  equipment: Move,
+  whiteboard: Square,
+  plant: Plus,
+  waste_bin: Trash2,
+  sink: Square,
+};
 
 
 const zoneColorPresets = [
@@ -863,15 +871,38 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setActionMessage(`${zone.code} - ${zone.name} area added.`);
   };
 
+  /**
+   * Adds one of the catalogue's things, at the size it really is.
+   *
+   * The size comes from the catalogue in metres and is converted through this
+   * plan's scale, so a desk is 1.6 m wide on a plan calibrated from a blueprint
+   * and 1.6 m wide on one drawn from scratch. It lands in the middle of what is
+   * on screen rather than at a fixed point on the canvas, because a desk
+   * appearing somewhere nobody is looking is indistinguishable from nothing
+   * happening.
+   */
   const addObject = (type: FloorPlanObjectType) => {
-    const object = fiveSLayoutService.createObject(type);
+    const size = sizeForType(type, metresPerUnit);
+    const object = fiveSLayoutService.createObject(
+      type,
+      size ? { ...dropSpot(view, size), ...size } : undefined,
+    );
+
     updatePlan((current) => ({
       ...current,
       objects: [...current.objects, object],
     }));
     setSelectedZoneId('');
+    setSelectedOpeningId('');
     setSelectedObjectId(object.id);
-    setActionMessage(`${object.label} added to the floorplan.`);
+    setActionMessage(
+      size
+        ? t('fiveS.objectAdded', {
+            label: object.label,
+            size: formatSize({ width: size.width, height: size.height }, metresPerUnit),
+          })
+        : `${object.label} added to the floorplan.`,
+    );
   };
 
   /**
@@ -1650,12 +1681,29 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     const object = plan.objects.find((item) => item.id === drag.objectId);
     if (!object) return;
 
+    const moved = {
+      x: Math.round(clamp(snapToGrid(point.x - drag.offsetX, snap), 8, CANVAS_WIDTH - object.width - 8)),
+      y: Math.round(clamp(snapToGrid(point.y - drag.offsetY, snap), 8, CANVAS_HEIGHT - object.height - 8)),
+    };
+
+    /*
+      Things that stand against a wall go flush and square to it when they are
+      dragged near one. Doing that by hand means nudging until it looks right
+      and rotating until it looks right, and it is never quite either — which
+      is how a plan ends up with a bench half a degree off and a 40 mm gap
+      behind it nobody meant to draw. Alt holds it off, the same key that
+      already means "no snapping".
+    */
+    const against =
+      catalogueItem(object.type)?.againstWall && !event.altKey
+        ? placeAgainstWall({ ...object, ...moved }, plan.walls ?? [], plan.corners ?? [])
+        : null;
+
     updateObject(
       object.id,
-      {
-        x: Math.round(clamp(snapToGrid(point.x - drag.offsetX, snap), 8, CANVAS_WIDTH - object.width - 8)),
-        y: Math.round(clamp(snapToGrid(point.y - drag.offsetY, snap), 8, CANVAS_HEIGHT - object.height - 8)),
-      },
+      against
+        ? { x: Math.round(against.x), y: Math.round(against.y), rotation: against.rotation }
+        : moved,
       { skipHistory: true },
     );
   };
@@ -2956,23 +3004,37 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 </div>
               </div>
               <div className="space-y-3 border-t border-gray-200 pt-3 dark:border-gray-700">
-                {shapeToolGroups.map((group) => (
+                {/*
+                  Each thing says what it measures. A person choosing between a
+                  desk and a workbench for a 3 m wall can see which one fits
+                  before placing it, and a size on the button is also the plain
+                  statement that these are real dimensions rather than shapes.
+                */}
+                {catalogueGroups.map((group) => (
                   <div key={group}>
-                    <div className="mb-2 text-xs font-semibold uppercase text-gray-500">{group}</div>
+                    <div className="mb-2 text-xs font-semibold uppercase text-gray-500">
+                      {t(`fiveS.catalogueGroup.${group}`)}
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
-                      {shapeTools
-                        .filter((tool) => tool.group === group)
-                        .map((tool) => {
-                          const Icon = tool.icon;
+                      {catalogue
+                        .filter((item) => item.group === group)
+                        .map((item) => {
+                          const Icon = shapeIcons[item.type] ?? Square;
+
                           return (
                             <button
-                              key={tool.type}
+                              key={item.type}
                               type="button"
-                              onClick={() => addObject(tool.type)}
-                              className="flex min-h-[42px] items-center gap-2 rounded-lg border border-gray-200 px-2.5 py-2 text-left text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                              onClick={() => addObject(item.type)}
+                              className="flex min-h-[42px] items-start gap-2 rounded-lg border border-gray-200 px-2.5 py-2 text-left text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                             >
-                              <Icon className="h-4 w-4 flex-none" />
-                              <span className="leading-tight">{tool.label}</span>
+                              <Icon className="mt-0.5 h-4 w-4 flex-none" />
+                              <span className="leading-tight">
+                                {t(`fiveS.object.${item.type}`)}
+                                <span className="block text-[10px] tabular-nums text-gray-500 dark:text-gray-400">
+                                  {item.metres.width} × {item.metres.depth} m
+                                </span>
+                              </span>
                             </button>
                           );
                         })}
@@ -4453,38 +4515,53 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     />
                   </label>
                 </div>
+                {/*
+                  In metres, because that is what the thing measures. These
+                  read 65 and 26 until now — canvas units, a number with no
+                  meaning outside this one drawing, which nobody could check
+                  against a tape measure or a supplier's page.
+                */}
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block text-sm text-gray-600 dark:text-gray-400">
-                    Width
+                    {t('fiveS.widthMetres')}
                     <input
                       className={fieldClass}
-                      min={12}
-                      max={CANVAS_WIDTH}
+                      min={0.1}
+                      step={0.1}
                       type="number"
-                      value={Math.round(selectedObject.width)}
-                      onChange={(event) =>
+                      value={Number(toMetres(selectedObject.width, metresPerUnit).toFixed(2))}
+                      onChange={(event) => {
+                        const metres = Number(event.target.value);
+                        if (!Number.isFinite(metres) || metres <= 0) return;
+
                         updateObject(selectedObject.id, {
-                          width: clamp(Number(event.target.value), 12, CANVAS_WIDTH - selectedObject.x),
-                        })
-                      }
+                          width: clamp(toUnits(metres, metresPerUnit), 4, CANVAS_WIDTH - selectedObject.x),
+                        });
+                      }}
                     />
                   </label>
                   <label className="block text-sm text-gray-600 dark:text-gray-400">
-                    Height
+                    {t('fiveS.heightMetres')}
                     <input
                       className={fieldClass}
-                      min={8}
-                      max={CANVAS_HEIGHT}
+                      min={0.1}
+                      step={0.1}
                       type="number"
-                      value={Math.round(selectedObject.height)}
-                      onChange={(event) =>
+                      value={Number(toMetres(selectedObject.height, metresPerUnit).toFixed(2))}
+                      onChange={(event) => {
+                        const metres = Number(event.target.value);
+                        if (!Number.isFinite(metres) || metres <= 0) return;
+
                         updateObject(selectedObject.id, {
-                          height: clamp(Number(event.target.value), 8, CANVAS_HEIGHT - selectedObject.y),
-                        })
-                      }
+                          height: clamp(toUnits(metres, metresPerUnit), 4, CANVAS_HEIGHT - selectedObject.y),
+                        });
+                      }}
                     />
                   </label>
                 </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {formatSize({ width: selectedObject.width, height: selectedObject.height }, metresPerUnit)}
+                </p>
                 <Button
                   fullWidth
                   variant="outline"
@@ -4721,6 +4798,39 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   );
 };
 
+/**
+ * The box each thing's artwork is drawn in.
+ *
+ * The drawings are full of fixed insets — a bin's lid 5 units in, a desk's
+ * monitor 12 — which were tuned when every object was about ninety units
+ * across. Now that a chair is 0.5 m and a plan can be calibrated to anything,
+ * those insets would turn inside out: a rectangle inset by 10 on each side of a
+ * 12-unit chair has a width of −8, and SVG simply does not draw it.
+ *
+ * So each drawing keeps its own box, at the proportions it was drawn for, and
+ * is scaled into whatever the object actually measures. The artwork is then
+ * never asked to be smaller than its own detail.
+ */
+const ARTWORK_BOX: Partial<Record<FloorPlanObjectType, { width: number; height: number }>> = {
+  wall: { width: 160, height: 10 },
+  door: { width: 74, height: 18 },
+  desk: { width: 86, height: 52 },
+  chair: { width: 34, height: 34 },
+  table: { width: 92, height: 70 },
+  shelf: { width: 132, height: 42 },
+  cabinet: { width: 72, height: 58 },
+  pallet: { width: 90, height: 60 },
+  racking: { width: 120, height: 50 },
+  workbench: { width: 100, height: 45 },
+  printer: { width: 54, height: 44 },
+  equipment: { width: 58, height: 46 },
+  whiteboard: { width: 120, height: 48 },
+  sofa: { width: 110, height: 48 },
+  plant: { width: 38, height: 46 },
+  waste_bin: { width: 34, height: 42 },
+  sink: { width: 58, height: 42 },
+};
+
 const renderFloorPlanObject = (
   object: FloorPlanObject,
   selected: boolean,
@@ -4728,17 +4838,26 @@ const renderFloorPlanObject = (
 ) => {
   const centerX = object.x + object.width / 2;
   const centerY = object.y + object.height / 2;
-  const transform = `rotate(${object.rotation || 0} ${centerX} ${centerY})`;
+  const art = { x: 0, y: 0, ...(ARTWORK_BOX[object.type] ?? { width: object.width, height: object.height }) };
+  const artCentreX = art.width / 2;
+  const artCentreY = art.height / 2;
+  // Read right to left: draw in the artwork's own box, squeeze it into the size
+  // this object really is, move it into place, and turn it where it points.
+  const transform = [
+    `rotate(${object.rotation || 0} ${centerX} ${centerY})`,
+    `translate(${object.x} ${object.y})`,
+    `scale(${art.width ? object.width / art.width : 1} ${art.height ? object.height / art.height : 1})`,
+  ].join(' ');
   const objectLabel = object.label.length > 18 ? `${object.label.slice(0, 16)}...` : object.label;
   let shape: React.ReactNode;
 
   if (object.type === 'wall') {
     shape = (
       <rect
-        x={object.x}
-        y={object.y}
-        width={object.width}
-        height={object.height}
+        x={art.x}
+        y={art.y}
+        width={art.width}
+        height={art.height}
         fill="#111827"
         transform={transform}
       />
@@ -4746,48 +4865,48 @@ const renderFloorPlanObject = (
   } else if (object.type === 'door') {
     shape = (
       <g transform={transform} stroke="#111827" strokeWidth="3" fill="none">
-        <line x1={object.x} y1={object.y + object.height} x2={object.x + object.width} y2={object.y + object.height} />
-        <path d={`M ${object.x} ${object.y + object.height} A ${object.width} ${object.width} 0 0 1 ${object.x + object.width} ${object.y}`} />
+        <line x1={art.x} y1={art.y + art.height} x2={art.x + art.width} y2={art.y + art.height} />
+        <path d={`M ${art.x} ${art.y + art.height} A ${art.width} ${art.width} 0 0 1 ${art.x + art.width} ${art.y}`} />
       </g>
     );
   } else if (object.type === 'desk') {
     shape = (
       <g transform={transform}>
-        <rect x={object.x} y={object.y} width={object.width} height={object.height} rx="5" fill="#f8fafc" stroke="#111827" strokeWidth="2" />
-        <rect x={object.x + 12} y={object.y + 10} width={object.width - 24} height="10" fill="#dbeafe" stroke="#111827" strokeWidth="1" />
-        <line x1={object.x + 18} y1={object.y + object.height - 10} x2={object.x + object.width - 18} y2={object.y + object.height - 10} stroke="#111827" strokeWidth="2" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="5" fill="#f8fafc" stroke="#111827" strokeWidth="2" />
+        <rect x={art.x + 12} y={art.y + 10} width={art.width - 24} height="10" fill="#dbeafe" stroke="#111827" strokeWidth="1" />
+        <line x1={art.x + 18} y1={art.y + art.height - 10} x2={art.x + art.width - 18} y2={art.y + art.height - 10} stroke="#111827" strokeWidth="2" />
       </g>
     );
   } else if (object.type === 'chair') {
     shape = (
       <g transform={transform}>
-        <rect x={object.x + 7} y={object.y + 9} width={object.width - 14} height={object.height - 12} rx="6" fill="#eff6ff" stroke="#111827" strokeWidth="2" />
-        <line x1={object.x + 7} y1={object.y + 8} x2={object.x + object.width - 7} y2={object.y + 8} stroke="#111827" strokeWidth="3" />
-        <line x1={object.x + 10} y1={object.y + object.height - 2} x2={object.x + 10} y2={object.y + object.height - 8} stroke="#111827" strokeWidth="2" />
-        <line x1={object.x + object.width - 10} y1={object.y + object.height - 2} x2={object.x + object.width - 10} y2={object.y + object.height - 8} stroke="#111827" strokeWidth="2" />
+        <rect x={art.x + 7} y={art.y + 9} width={art.width - 14} height={art.height - 12} rx="6" fill="#eff6ff" stroke="#111827" strokeWidth="2" />
+        <line x1={art.x + 7} y1={art.y + 8} x2={art.x + art.width - 7} y2={art.y + 8} stroke="#111827" strokeWidth="3" />
+        <line x1={art.x + 10} y1={art.y + art.height - 2} x2={art.x + 10} y2={art.y + art.height - 8} stroke="#111827" strokeWidth="2" />
+        <line x1={art.x + art.width - 10} y1={art.y + art.height - 2} x2={art.x + art.width - 10} y2={art.y + art.height - 8} stroke="#111827" strokeWidth="2" />
       </g>
     );
   } else if (object.type === 'table') {
     shape = (
       <g transform={transform}>
-        <ellipse cx={centerX} cy={centerY} rx={object.width / 2} ry={object.height / 2} fill="#f1f5f9" stroke="#111827" strokeWidth="2" />
-        <circle cx={object.x + 10} cy={centerY} r="5" fill="#111827" />
-        <circle cx={object.x + object.width - 10} cy={centerY} r="5" fill="#111827" />
-        <circle cx={centerX} cy={object.y + 8} r="5" fill="#111827" />
-        <circle cx={centerX} cy={object.y + object.height - 8} r="5" fill="#111827" />
+        <ellipse cx={artCentreX} cy={artCentreY} rx={art.width / 2} ry={art.height / 2} fill="#f1f5f9" stroke="#111827" strokeWidth="2" />
+        <circle cx={art.x + 10} cy={artCentreY} r="5" fill="#111827" />
+        <circle cx={art.x + art.width - 10} cy={artCentreY} r="5" fill="#111827" />
+        <circle cx={artCentreX} cy={art.y + 8} r="5" fill="#111827" />
+        <circle cx={artCentreX} cy={art.y + art.height - 8} r="5" fill="#111827" />
       </g>
     );
   } else if (object.type === 'shelf') {
     shape = (
       <g transform={transform}>
-        <rect x={object.x} y={object.y} width={object.width} height={object.height} fill="#fff7ed" stroke="#111827" strokeWidth="2" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} fill="#fff7ed" stroke="#111827" strokeWidth="2" />
         {[1, 2, 3].map((line) => (
           <line
             key={line}
-            x1={object.x}
-            y1={object.y + (object.height / 4) * line}
-            x2={object.x + object.width}
-            y2={object.y + (object.height / 4) * line}
+            x1={art.x}
+            y1={art.y + (art.height / 4) * line}
+            x2={art.x + art.width}
+            y2={art.y + (art.height / 4) * line}
             stroke="#111827"
             strokeWidth="1"
           />
@@ -4797,69 +4916,117 @@ const renderFloorPlanObject = (
   } else if (object.type === 'cabinet') {
     shape = (
       <g transform={transform}>
-        <rect x={object.x} y={object.y} width={object.width} height={object.height} rx="4" fill="#f8fafc" stroke="#111827" strokeWidth="2" />
-        <line x1={centerX} y1={object.y} x2={centerX} y2={object.y + object.height} stroke="#111827" strokeWidth="1.5" />
-        <circle cx={centerX - 7} cy={centerY} r="2" fill="#111827" />
-        <circle cx={centerX + 7} cy={centerY} r="2" fill="#111827" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="4" fill="#f8fafc" stroke="#111827" strokeWidth="2" />
+        <line x1={artCentreX} y1={art.y} x2={artCentreX} y2={art.y + art.height} stroke="#111827" strokeWidth="1.5" />
+        <circle cx={artCentreX - 7} cy={artCentreY} r="2" fill="#111827" />
+        <circle cx={artCentreX + 7} cy={artCentreY} r="2" fill="#111827" />
       </g>
     );
   } else if (object.type === 'printer') {
     shape = (
       <g transform={transform}>
-        <rect x={object.x + 6} y={object.y} width={object.width - 12} height="16" rx="3" fill="#e5e7eb" stroke="#111827" strokeWidth="2" />
-        <rect x={object.x} y={object.y + 14} width={object.width} height={object.height - 18} rx="5" fill="#f8fafc" stroke="#111827" strokeWidth="2" />
-        <rect x={object.x + 10} y={object.y + object.height - 12} width={object.width - 20} height="8" fill="#dbeafe" stroke="#111827" strokeWidth="1" />
-        <circle cx={object.x + object.width - 10} cy={object.y + 24} r="2.5" fill="#22c55e" />
+        <rect x={art.x + 6} y={art.y} width={art.width - 12} height="16" rx="3" fill="#e5e7eb" stroke="#111827" strokeWidth="2" />
+        <rect x={art.x} y={art.y + 14} width={art.width} height={art.height - 18} rx="5" fill="#f8fafc" stroke="#111827" strokeWidth="2" />
+        <rect x={art.x + 10} y={art.y + art.height - 12} width={art.width - 20} height="8" fill="#dbeafe" stroke="#111827" strokeWidth="1" />
+        <circle cx={art.x + art.width - 10} cy={art.y + 24} r="2.5" fill="#22c55e" />
       </g>
     );
   } else if (object.type === 'equipment') {
     shape = (
       <g transform={transform}>
-        <rect x={object.x} y={object.y} width={object.width} height={object.height} rx="4" fill="#e0f2fe" stroke="#111827" strokeWidth="2" />
-        <line x1={object.x + 8} y1={object.y + 8} x2={object.x + object.width - 8} y2={object.y + object.height - 8} stroke="#111827" strokeWidth="2" />
-        <line x1={object.x + object.width - 8} y1={object.y + 8} x2={object.x + 8} y2={object.y + object.height - 8} stroke="#111827" strokeWidth="2" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="4" fill="#e0f2fe" stroke="#111827" strokeWidth="2" />
+        <line x1={art.x + 8} y1={art.y + 8} x2={art.x + art.width - 8} y2={art.y + art.height - 8} stroke="#111827" strokeWidth="2" />
+        <line x1={art.x + art.width - 8} y1={art.y + 8} x2={art.x + 8} y2={art.y + art.height - 8} stroke="#111827" strokeWidth="2" />
       </g>
     );
   } else if (object.type === 'whiteboard') {
     shape = (
       <g transform={transform}>
-        <rect x={object.x} y={object.y} width={object.width} height={object.height} rx="3" fill="#ffffff" stroke="#111827" strokeWidth="2" />
-        <line x1={object.x + 10} y1={object.y + object.height - 8} x2={object.x + object.width - 10} y2={object.y + object.height - 8} stroke="#60a5fa" strokeWidth="2" />
-        <line x1={object.x + 12} y1={object.y + 14} x2={object.x + object.width - 18} y2={object.y + 14} stroke="#d1d5db" strokeWidth="1" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="3" fill="#ffffff" stroke="#111827" strokeWidth="2" />
+        <line x1={art.x + 10} y1={art.y + art.height - 8} x2={art.x + art.width - 10} y2={art.y + art.height - 8} stroke="#60a5fa" strokeWidth="2" />
+        <line x1={art.x + 12} y1={art.y + 14} x2={art.x + art.width - 18} y2={art.y + 14} stroke="#d1d5db" strokeWidth="1" />
       </g>
     );
   } else if (object.type === 'sofa') {
     shape = (
       <g transform={transform}>
-        <rect x={object.x + 8} y={object.y + 8} width={object.width - 16} height={object.height - 8} rx="8" fill="#ede9fe" stroke="#111827" strokeWidth="2" />
-        <rect x={object.x} y={object.y + 18} width="16" height={object.height - 18} rx="6" fill="#ede9fe" stroke="#111827" strokeWidth="2" />
-        <rect x={object.x + object.width - 16} y={object.y + 18} width="16" height={object.height - 18} rx="6" fill="#ede9fe" stroke="#111827" strokeWidth="2" />
-        <line x1={centerX} y1={object.y + 12} x2={centerX} y2={object.y + object.height - 2} stroke="#111827" strokeWidth="1" />
+        <rect x={art.x + 8} y={art.y + 8} width={art.width - 16} height={art.height - 8} rx="8" fill="#ede9fe" stroke="#111827" strokeWidth="2" />
+        <rect x={art.x} y={art.y + 18} width="16" height={art.height - 18} rx="6" fill="#ede9fe" stroke="#111827" strokeWidth="2" />
+        <rect x={art.x + art.width - 16} y={art.y + 18} width="16" height={art.height - 18} rx="6" fill="#ede9fe" stroke="#111827" strokeWidth="2" />
+        <line x1={artCentreX} y1={art.y + 12} x2={artCentreX} y2={art.y + art.height - 2} stroke="#111827" strokeWidth="1" />
       </g>
     );
   } else if (object.type === 'plant') {
     shape = (
       <g transform={transform}>
-        <rect x={object.x + 10} y={object.y + object.height - 16} width={object.width - 20} height="14" rx="3" fill="#92400e" stroke="#111827" strokeWidth="1.5" />
-        <ellipse cx={centerX} cy={object.y + 16} rx={object.width / 3} ry="14" fill="#86efac" stroke="#166534" strokeWidth="1.5" />
-        <ellipse cx={object.x + 13} cy={object.y + 23} rx="11" ry="16" fill="#bbf7d0" stroke="#166534" strokeWidth="1.2" />
-        <ellipse cx={object.x + object.width - 13} cy={object.y + 23} rx="11" ry="16" fill="#bbf7d0" stroke="#166534" strokeWidth="1.2" />
+        <rect x={art.x + 10} y={art.y + art.height - 16} width={art.width - 20} height="14" rx="3" fill="#92400e" stroke="#111827" strokeWidth="1.5" />
+        <ellipse cx={artCentreX} cy={art.y + 16} rx={art.width / 3} ry="14" fill="#86efac" stroke="#166534" strokeWidth="1.5" />
+        <ellipse cx={art.x + 13} cy={art.y + 23} rx="11" ry="16" fill="#bbf7d0" stroke="#166534" strokeWidth="1.2" />
+        <ellipse cx={art.x + art.width - 13} cy={art.y + 23} rx="11" ry="16" fill="#bbf7d0" stroke="#166534" strokeWidth="1.2" />
       </g>
     );
   } else if (object.type === 'waste_bin') {
     shape = (
       <g transform={transform}>
-        <path d={`M ${object.x + 6} ${object.y + 10} H ${object.x + object.width - 6} L ${object.x + object.width - 10} ${object.y + object.height - 2} H ${object.x + 10} Z`} fill="#fee2e2" stroke="#111827" strokeWidth="2" />
-        <line x1={object.x + 9} y1={object.y + 5} x2={object.x + object.width - 9} y2={object.y + 5} stroke="#111827" strokeWidth="3" />
-        <line x1={centerX} y1={object.y + 12} x2={centerX} y2={object.y + object.height - 8} stroke="#111827" strokeWidth="1" />
+        <path d={`M ${art.x + 6} ${art.y + 10} H ${art.x + art.width - 6} L ${art.x + art.width - 10} ${art.y + art.height - 2} H ${art.x + 10} Z`} fill="#fee2e2" stroke="#111827" strokeWidth="2" />
+        <line x1={art.x + 9} y1={art.y + 5} x2={art.x + art.width - 9} y2={art.y + 5} stroke="#111827" strokeWidth="3" />
+        <line x1={artCentreX} y1={art.y + 12} x2={artCentreX} y2={art.y + art.height - 8} stroke="#111827" strokeWidth="1" />
+      </g>
+    );
+  } else if (object.type === 'pallet') {
+    // Drawn as the deck boards, because that is how a pallet reads on a plan
+    // and because the thing being shown is its footprint: 1.2 by 0.8 m of
+    // floor that is either free or is not.
+    shape = (
+      <g transform={transform}>
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} fill="#fef3c7" stroke="#92400e" strokeWidth="2" />
+        {[0.22, 0.5, 0.78].map((along) => (
+          <line
+            key={along}
+            x1={art.x + 4}
+            y1={art.y + art.height * along}
+            x2={art.x + art.width - 4}
+            y2={art.y + art.height * along}
+            stroke="#92400e"
+            strokeWidth="3"
+          />
+        ))}
+      </g>
+    );
+  } else if (object.type === 'racking') {
+    // One bay, with its uprights: the aisle in front of it is what the drawing
+    // is really about.
+    shape = (
+      <g transform={transform}>
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} fill="#e5e7eb" stroke="#111827" strokeWidth="2" />
+        {[1 / 3, 2 / 3].map((along) => (
+          <line
+            key={along}
+            x1={art.x + art.width * along}
+            y1={art.y}
+            x2={art.x + art.width * along}
+            y2={art.y + art.height}
+            stroke="#111827"
+            strokeWidth="2"
+          />
+        ))}
+        <line x1={art.x} y1={art.y + art.height / 2} x2={art.x + art.width} y2={art.y + art.height / 2} stroke="#9ca3af" strokeWidth="1.5" />
+      </g>
+    );
+  } else if (object.type === 'workbench') {
+    shape = (
+      <g transform={transform}>
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="2" fill="#f1f5f9" stroke="#111827" strokeWidth="2" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height * 0.22} fill="#cbd5e1" stroke="#111827" strokeWidth="1" />
+        <line x1={art.x + art.width * 0.1} y1={art.y + art.height - 4} x2={art.x + art.width * 0.9} y2={art.y + art.height - 4} stroke="#111827" strokeWidth="2" />
       </g>
     );
   } else {
     shape = (
       <g transform={transform}>
-        <rect x={object.x} y={object.y} width={object.width} height={object.height} rx="8" fill="#ecfeff" stroke="#111827" strokeWidth="2" />
-        <ellipse cx={centerX} cy={centerY} rx={object.width / 3} ry={object.height / 3} fill="#ffffff" stroke="#111827" strokeWidth="1.5" />
-        <circle cx={centerX} cy={centerY} r="4" fill="#60a5fa" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="8" fill="#ecfeff" stroke="#111827" strokeWidth="2" />
+        <ellipse cx={artCentreX} cy={artCentreY} rx={art.width / 3} ry={art.height / 3} fill="#ffffff" stroke="#111827" strokeWidth="1.5" />
+        <circle cx={artCentreX} cy={artCentreY} r="4" fill="#60a5fa" />
       </g>
     );
   }

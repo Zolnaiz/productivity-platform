@@ -410,27 +410,50 @@ const createZone = (zones: FiveSZone[]): FiveSZone => {
   };
 };
 
-const objectDefaults: Record<FloorPlanObjectType, Omit<FloorPlanObject, 'id' | 'type'>> = {
-  wall: { label: 'Wall', x: 410, y: 254, width: 160, height: 10 },
-  door: { label: 'Door', x: 410, y: 254, width: 74, height: 18 },
-  desk: { label: 'Desk', x: 410, y: 254, width: 86, height: 52 },
-  chair: { label: 'Chair', x: 410, y: 254, width: 34, height: 34 },
-  table: { label: 'Table', x: 410, y: 254, width: 92, height: 70 },
-  shelf: { label: 'Shelf', x: 410, y: 254, width: 132, height: 42 },
-  cabinet: { label: 'Cabinet', x: 410, y: 254, width: 72, height: 58 },
-  printer: { label: 'Printer', x: 410, y: 254, width: 54, height: 44 },
-  equipment: { label: 'Equipment', x: 410, y: 254, width: 58, height: 46 },
-  whiteboard: { label: 'Whiteboard', x: 410, y: 254, width: 120, height: 48 },
-  sofa: { label: 'Sofa', x: 410, y: 254, width: 110, height: 48 },
-  plant: { label: 'Plant', x: 410, y: 254, width: 38, height: 46 },
-  waste_bin: { label: 'Waste bin', x: 410, y: 254, width: 34, height: 42 },
-  sink: { label: 'Sink', x: 410, y: 254, width: 58, height: 42 },
+const objectLabels: Record<FloorPlanObjectType, string> = {
+  wall: 'Wall',
+  door: 'Door',
+  desk: 'Desk',
+  chair: 'Chair',
+  table: 'Meeting table',
+  shelf: 'Shelf',
+  cabinet: 'Cabinet',
+  pallet: 'Pallet',
+  racking: 'Racking bay',
+  workbench: 'Workbench',
+  printer: 'Printer',
+  equipment: 'Equipment',
+  whiteboard: 'Whiteboard',
+  sofa: 'Sofa',
+  plant: 'Plant',
+  waste_bin: 'Waste bin',
+  sink: 'Sink',
 };
 
-const createObject = (type: FloorPlanObjectType): FloorPlanObject => ({
-  ...objectDefaults[type],
+/** What a legacy type with no real size falls back to. */
+const LEGACY_SIZE = { width: 120, height: 40 };
+
+/**
+ * A new object, at the size the caller says it is.
+ *
+ * The size used to live here, in canvas pixels: a desk was 86 by 52 because
+ * that looked about right. Nothing could be checked against anything — not
+ * whether four of them fit along a wall, not whether a pallet truck could get
+ * between two benches. The catalogue now holds real dimensions in metres and
+ * the editor converts them through the plan's own scale, which is the only
+ * place that knows what the scale is.
+ */
+const createObject = (
+  type: FloorPlanObjectType,
+  placement?: { x: number; y: number; width: number; height: number },
+): FloorPlanObject => ({
   id: `${type}-${Date.now()}`,
   type,
+  label: objectLabels[type] ?? type,
+  x: placement?.x ?? 410,
+  y: placement?.y ?? 254,
+  width: placement?.width ?? LEGACY_SIZE.width,
+  height: placement?.height ?? LEGACY_SIZE.height,
 });
 
 const zoneLabelHeaders = [

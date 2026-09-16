@@ -179,6 +179,9 @@ export const FLOOR_PLAN_OBJECT_TYPES = [
   'plant',
   'waste_bin',
   'sink',
+  'pallet',
+  'racking',
+  'workbench',
 ] as const;
 
 export type FloorPlanObjectType = (typeof FLOOR_PLAN_OBJECT_TYPES)[number];

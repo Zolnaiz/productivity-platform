@@ -14,7 +14,10 @@ export type FloorPlanObjectType =
   | 'sofa'
   | 'plant'
   | 'waste_bin'
-  | 'sink';
+  | 'sink'
+  | 'pallet'
+  | 'racking'
+  | 'workbench';
 
 export type FiveSRedTagStatus = 'open' | 'review' | 'disposed' | 'returned';
 

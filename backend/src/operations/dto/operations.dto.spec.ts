@@ -180,7 +180,19 @@ describe('Operations DTO validation', () => {
       site: 'HQ',
       scale: '1 square = 1 meter',
       zones: [],
-      objects: ['chair', 'cabinet', 'printer', 'whiteboard', 'sofa', 'plant', 'waste_bin', 'sink'].map(
+      objects: [
+        'chair',
+        'cabinet',
+        'printer',
+        'whiteboard',
+        'sofa',
+        'plant',
+        'waste_bin',
+        'sink',
+        'pallet',
+        'racking',
+        'workbench',
+      ].map(
         (type, index) => ({ id: `object-${index}`, type, label: type, x: 1, y: 1, width: 1, height: 1 }),
       ),
     });
