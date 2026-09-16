@@ -35,7 +35,8 @@
     "docker:compose": "docker-compose up",
     "docker:compose:dev": "docker-compose -f docker-compose.dev.yml up",
     "docker:compose:prod": "docker-compose -f docker-compose.prod.yml up",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "migration:check": "ts-node --transpile-only scripts/check-migrations.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.9",
@@ -68,6 +69,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@nestjs/cli": "^11.0.14",
     "@nestjs/schematics": "^11.0.9",
     "@nestjs/testing": "^11.1.9",

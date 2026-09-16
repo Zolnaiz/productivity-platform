@@ -31,7 +31,7 @@ From the repository root on Windows:
 powershell -ExecutionPolicy Bypass -File .\scripts\verify.ps1
 ```
 
-This runs backend tests/lint/build/audit and frontend tests/lint/build/audit.
+This runs backend tests, the migration check against a real PostgreSQL, backend lint/build/audit, and frontend tests/lint/build/audit.
 
 For a faster local pass:
 
@@ -155,6 +155,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Security Notes
 
+- Every migration is applied to a real PostgreSQL on each verification run and the resulting schema is inspected: every live table present, every mapped column present, the schema writable, and the partial unique index behind one-task-per-finding actually refusing a second. PGlite runs PostgreSQL in process, so this needs no Docker, daemon or virtualisation.
 - Production requires `JWT_SECRET`.
 - Production rejects known weak JWT and refresh-token secrets.
 - Production rejects `DB_SYNCHRONIZE=true`.
@@ -207,7 +208,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 425 passing
-- Frontend tests: 319 passing
+- Frontend tests: 346 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

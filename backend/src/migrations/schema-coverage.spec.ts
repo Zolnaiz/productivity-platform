@@ -1,5 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { liveTables, mappedColumns, readAll } from './entity-columns';
 
 /**
  * Every mapped column must exist in a migration.
@@ -16,81 +15,13 @@ import { join } from 'node:path';
  *
  * The check is deliberately crude — it asks only whether a migration mentions
  * the column name for that table. That is enough to catch a column nobody
- * wrote a migration for, which is the mistake actually being made.
+ * wrote a migration for, which is the mistake actually being made, and it runs
+ * in milliseconds as part of the ordinary test suite.
+ *
+ * `npm run migration:check` is the stronger version: it applies the migrations
+ * to a real PostgreSQL and inspects the schema that results. This one stays
+ * because it is fast and because it names the offending column directly.
  */
-
-const root = join(__dirname, '..');
-
-const readAll = (dir: string, match: RegExp): string[] => {
-  const entries = readdirSync(join(root, dir), { withFileTypes: true });
-
-  return entries.flatMap((entry) => {
-    const path = join(dir, entry.name);
-
-    if (entry.isDirectory()) return readAll(path, match);
-    return match.test(entry.name) ? [readFileSync(join(root, path), 'utf-8')] : [];
-  });
-};
-
-/** Tables the application graph actually talks to. */
-const liveTables = [
-  'projects',
-  'work_tasks',
-  'work_logs',
-  'time_entries',
-  'audit_templates',
-  'audit_runs',
-  'assessment_templates',
-  'assessment_responses',
-  'expenses',
-  'daily_goals',
-  'five_s_layouts',
-  'attachments',
-  'invitations',
-  // Live since `UsersModule` and `OrganizationsModule` joined the application
-  // graph. Until then nothing read these tables through TypeORM, so a column
-  // missing a migration would not have shown up here.
-  'users',
-  'organizations',
-  'audit_log_entries',
-];
-
-/** Created by `BaseEntity`, so they come with the table rather than separately. */
-const baseColumns = new Set(['id', 'createdAt', 'updatedAt', 'deletedAt']);
-
-interface MappedColumn {
-  table: string;
-  column: string;
-  file: string;
-}
-
-const mappedColumns = (): MappedColumn[] => {
-  const sources = [
-    ...readAll('operations/entities', /\.entity\.ts$/),
-    ...readAll('auth/entities', /\.entity\.ts$/),
-    ...readAll('users/entities', /\.entity\.ts$/),
-    ...readAll('organizations/entities', /\.entity\.ts$/),
-    ...readAll('audit/entities', /\.entity\.ts$/),
-  ];
-
-  return sources.flatMap((source) => {
-    const table = source.match(/@Entity\('([a-z_]+)'\)/)?.[1];
-
-    if (!table || !liveTables.includes(table)) return [];
-
-    // `@Column({ ... })` followed by the property it decorates. An explicit
-    // `name:` wins; otherwise TypeORM uses the property name as written.
-    const declarations = [...source.matchAll(/@Column\(([\s\S]*?)\)\s*(?:\/\*[\s\S]*?\*\/\s*)?(\w+)[?!]?:/g)];
-
-    return declarations
-      .map(([, options, property]) => ({
-        table,
-        column: options.match(/name:\s*'([^']+)'/)?.[1] ?? property,
-        file: table,
-      }))
-      .filter(({ column }) => !baseColumns.has(column));
-  });
-};
 
 describe('every mapped column has a migration', () => {
   const migrations = readAll('migrations', /^\d+-.*\.ts$/).join('\n');
