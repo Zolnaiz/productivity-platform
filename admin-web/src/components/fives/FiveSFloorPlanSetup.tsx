@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   AUDIT_PASSING_SCORE,
   AUDIT_URGENT_SCORE,
@@ -21,11 +21,13 @@ import {
   Package,
   Plus,
   Printer,
+  Redo2,
   RotateCcw,
   RotateCw,
   Square,
   Table,
   Trash2,
+  Undo2,
   Upload,
   UserCheck,
 } from 'lucide-react';
@@ -63,12 +65,28 @@ import {
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
+  GRID_SIZE,
+  ResizeCorner,
   capturePointer,
   clamp,
   getPointerPoint,
   pointOnCanvas,
+  resizeBox,
+  resizeCorners,
+  snapToGrid,
 } from './floorPlanGeometry';
 import { AuditWalkStatus, escapeCsvCell, escapeHtml } from './floorPlanFormats';
+
+/** Steps of undo kept in memory. Fifty is far more than anyone reaches for. */
+const HISTORY_LIMIT = 50;
+
+/**
+ * How long a settled plan waits before being saved.
+ *
+ * A pointer drag fires an update per frame. Without this the editor sent a
+ * PATCH per frame, and their responses could land out of order.
+ */
+const SAVE_DEBOUNCE_MS = 600;
 import { fiveSLayoutService } from '../../services/fiveSLayout.service';
 import { operationsService } from '../../services/operations.service';
 import { peopleService } from '../../services/people.service';
@@ -213,6 +231,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   showAuditControls = false,
 }) => {
   const [plan, setPlan] = useState<FiveSLayoutPlan | null>(null);
+  const [history, setHistory] = useState<FiveSLayoutPlan[]>([]);
+  const [future, setFuture] = useState<FiveSLayoutPlan[]>([]);
   const [users, setUsers] = useState<TeamUser[]>([]);
   /**
    * 'plan' paints each zone the colour someone chose for it — right while
@@ -231,11 +251,16 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     | { kind: 'zone'; zoneId: string; offsetX: number; offsetY: number }
     | { kind: 'object'; objectId: string; offsetX: number; offsetY: number }
     | { kind: 'redTag'; zoneId: string; redTagId: string; offsetX: number; offsetY: number }
+    | { kind: 'resize-zone'; zoneId: string; corner: ResizeCorner }
+    | { kind: 'resize-object'; objectId: string; corner: ResizeCorner }
     | null
   >(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const backgroundInputRef = useRef<HTMLInputElement | null>(null);
+  const saveTimerRef = useRef<number | null>(null);
+  const pendingPlanRef = useRef<FiveSLayoutPlan | null>(null);
+  const shortcutHandlerRef = useRef<((event: KeyboardEvent) => void) | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -257,6 +282,26 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       active = false;
     };
   }, [refreshKey]);
+
+  // Never leave a coalesced edit unsaved when the page is closed or the
+  // component goes away.
+  useEffect(() => {
+    const flushOnHide = () => {
+      const pending = pendingPlanRef.current;
+      if (pending) {
+        pendingPlanRef.current = null;
+        void fiveSLayoutService.savePlan(pending);
+      }
+    };
+
+    window.addEventListener('pagehide', flushOnHide);
+
+    return () => {
+      window.removeEventListener('pagehide', flushOnHide);
+      if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
+      flushOnHide();
+    };
+  }, []);
 
   const selectedZone = useMemo(
     () => plan?.zones.find((zone) => zone.id === selectedZoneId),
@@ -522,30 +567,98 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     [redTagRegister],
   );
 
-  const updatePlan = (buildPlan: (current: FiveSLayoutPlan) => FiveSLayoutPlan) => {
-    setPlan((current) => {
-      if (!current) return current;
-      const nextPlan = {
-        ...buildPlan(current),
-        updatedAt: new Date().toISOString(),
-      };
-      void fiveSLayoutService.savePlan(nextPlan);
-      return nextPlan;
-    });
+  // A drag updates the plan on every pointer frame. Persisting each one would
+  // fire a request per frame against a real backend, and late responses could
+  // land out of order, so coalesce writes and only send the settled plan.
+  const flushPlanSave = () => {
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+
+    const pending = pendingPlanRef.current;
+    pendingPlanRef.current = null;
+
+    if (pending) void fiveSLayoutService.savePlan(pending);
   };
 
-  const updateZone = (zoneId: string, patch: Partial<FiveSZone>) => {
-    updatePlan((current) => ({
-      ...current,
-      zones: current.zones.map((zone) => (zone.id === zoneId ? { ...zone, ...patch } : zone)),
-    }));
+  const cancelPlanSave = () => {
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    pendingPlanRef.current = null;
   };
 
-  const updateObject = (objectId: string, patch: Partial<FloorPlanObject>) => {
-    updatePlan((current) => ({
-      ...current,
-      objects: current.objects.map((object) => (object.id === objectId ? { ...object, ...patch } : object)),
-    }));
+  const commitPlan = (nextPlan: FiveSLayoutPlan) => {
+    setPlan(nextPlan);
+    pendingPlanRef.current = nextPlan;
+
+    if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(flushPlanSave, SAVE_DEBOUNCE_MS);
+  };
+
+  const updatePlan = (
+    buildPlan: (current: FiveSLayoutPlan) => FiveSLayoutPlan,
+    options?: { skipHistory?: boolean },
+  ) => {
+    if (!plan) return;
+
+    const nextPlan = {
+      ...buildPlan(plan),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (!options?.skipHistory) {
+      setHistory((entries) => [...entries.slice(-(HISTORY_LIMIT - 1)), plan]);
+      setFuture([]);
+    }
+
+    commitPlan(nextPlan);
+  };
+
+  const undo = () => {
+    if (!plan || !history.length) return;
+
+    const previous = history[history.length - 1];
+    setHistory((entries) => entries.slice(0, -1));
+    setFuture((entries) => [plan, ...entries.slice(0, HISTORY_LIMIT - 1)]);
+    commitPlan(previous);
+    setActionMessage('Undid the last floorplan change.');
+  };
+
+  const redo = () => {
+    if (!plan || !future.length) return;
+
+    const [next, ...rest] = future;
+    setFuture(rest);
+    setHistory((entries) => [...entries.slice(-(HISTORY_LIMIT - 1)), plan]);
+    commitPlan(next);
+    setActionMessage('Redid the last undone change.');
+  };
+
+  const updateZone = (zoneId: string, patch: Partial<FiveSZone>, options?: { skipHistory?: boolean }) => {
+    updatePlan(
+      (current) => ({
+        ...current,
+        zones: current.zones.map((zone) => (zone.id === zoneId ? { ...zone, ...patch } : zone)),
+      }),
+      options,
+    );
+  };
+
+  const updateObject = (
+    objectId: string,
+    patch: Partial<FloorPlanObject>,
+    options?: { skipHistory?: boolean },
+  ) => {
+    updatePlan(
+      (current) => ({
+        ...current,
+        objects: current.objects.map((object) => (object.id === objectId ? { ...object, ...patch } : object)),
+      }),
+      options,
+    );
   };
 
   const addZone = () => {
@@ -657,10 +770,20 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   };
 
   const resetPlan = async () => {
+    const previousPlan = plan;
+    // Drop any coalesced write so it cannot land after the reset and undo it.
+    cancelPlanSave();
     const nextPlan = await fiveSLayoutService.resetPlan();
+
+    if (previousPlan) {
+      setHistory((entries) => [...entries.slice(-(HISTORY_LIMIT - 1)), previousPlan]);
+      setFuture([]);
+    }
+
     setPlan(nextPlan);
     setSelectedZoneId(nextPlan.zones[0]?.id || '');
     setSelectedObjectId('');
+    setActionMessage('Floorplan reset to the starting layout. Undo restores your version.');
   };
 
   const importBackgroundImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -690,12 +813,19 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setActionMessage('Blueprint image cleared.');
   };
 
+  // A pointer drag fires many move events; record one history entry for the whole gesture.
+  const beginDragHistory = () => {
+    if (!plan) return;
+    setHistory((entries) => [...entries.slice(-(HISTORY_LIMIT - 1)), plan]);
+    setFuture([]);
+  };
+
   const handleZonePointerDown = (event: React.PointerEvent<SVGRectElement>, zone: FiveSZone) => {
     if (!svgRef.current) return;
 
     event.preventDefault();
     event.stopPropagation();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    capturePointer(event);
     const rect = svgRef.current.getBoundingClientRect();
     const point = {
       x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
@@ -704,6 +834,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
     setSelectedZoneId(zone.id);
     setSelectedObjectId('');
+    beginDragHistory();
     setDrag({
       kind: 'zone',
       zoneId: zone.id,
@@ -738,12 +869,29 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     });
   };
 
+  const handleResizePointerDown = (
+    event: React.PointerEvent<SVGRectElement>,
+    corner: ResizeCorner,
+    target: { kind: 'zone'; id: string } | { kind: 'object'; id: string },
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    capturePointer(event);
+    beginDragHistory();
+
+    setDrag(
+      target.kind === 'zone'
+        ? { kind: 'resize-zone', zoneId: target.id, corner }
+        : { kind: 'resize-object', objectId: target.id, corner },
+    );
+  };
+
   const handleObjectPointerDown = (event: React.PointerEvent<SVGGElement>, object: FloorPlanObject) => {
     if (!svgRef.current) return;
 
     event.preventDefault();
     event.stopPropagation();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    capturePointer(event);
     const rect = svgRef.current.getBoundingClientRect();
     const point = {
       x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
@@ -752,6 +900,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
     setSelectedZoneId('');
     setSelectedObjectId(object.id);
+    beginDragHistory();
     setDrag({
       kind: 'object',
       objectId: object.id,
@@ -763,15 +912,41 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const handleCanvasPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
     if (!drag || !plan) return;
     const point = getPointerPoint(event);
+    const snap = (plan.showGrid ?? true) && !event.altKey;
+    const snappedPoint = { x: snapToGrid(point.x, snap), y: snapToGrid(point.y, snap) };
+
+    if (drag.kind === 'resize-zone') {
+      const zone = plan.zones.find((item) => item.id === drag.zoneId);
+      if (!zone) return;
+
+      updateZone(zone.id, resizeBox(zone, drag.corner, snappedPoint.x, snappedPoint.y, 80, 72), {
+        skipHistory: true,
+      });
+      return;
+    }
+
+    if (drag.kind === 'resize-object') {
+      const object = plan.objects.find((item) => item.id === drag.objectId);
+      if (!object) return;
+
+      updateObject(object.id, resizeBox(object, drag.corner, snappedPoint.x, snappedPoint.y, 12, 8), {
+        skipHistory: true,
+      });
+      return;
+    }
 
     if (drag.kind === 'zone') {
       const zone = plan.zones.find((item) => item.id === drag.zoneId);
       if (!zone) return;
 
-      updateZone(zone.id, {
-        x: Math.round(clamp(point.x - drag.offsetX, 12, CANVAS_WIDTH - zone.width - 12)),
-        y: Math.round(clamp(point.y - drag.offsetY, 12, CANVAS_HEIGHT - zone.height - 12)),
-      });
+      updateZone(
+        zone.id,
+        {
+          x: Math.round(clamp(snapToGrid(point.x - drag.offsetX, snap), 12, CANVAS_WIDTH - zone.width - 12)),
+          y: Math.round(clamp(snapToGrid(point.y - drag.offsetY, snap), 12, CANVAS_HEIGHT - zone.height - 12)),
+        },
+        { skipHistory: true },
+      );
       return;
     }
 
@@ -799,10 +974,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     const object = plan.objects.find((item) => item.id === drag.objectId);
     if (!object) return;
 
-    updateObject(object.id, {
-      x: Math.round(clamp(point.x - drag.offsetX, 8, CANVAS_WIDTH - object.width - 8)),
-      y: Math.round(clamp(point.y - drag.offsetY, 8, CANVAS_HEIGHT - object.height - 8)),
-    });
+    updateObject(
+      object.id,
+      {
+        x: Math.round(clamp(snapToGrid(point.x - drag.offsetX, snap), 8, CANVAS_WIDTH - object.width - 8)),
+        y: Math.round(clamp(snapToGrid(point.y - drag.offsetY, snap), 8, CANVAS_HEIGHT - object.height - 8)),
+      },
+      { skipHistory: true },
+    );
   };
 
   /**
@@ -829,6 +1008,80 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
         : `Returned an item held in ${zone.code}.`,
     );
   };
+
+  const handleShortcutKey = (event: KeyboardEvent) => {
+    const target = event.target;
+    if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      if (event.shiftKey) redo();
+      else undo();
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+      event.preventDefault();
+      redo();
+      return;
+    }
+
+    if (!selectedZone && !selectedObject) return;
+
+    if (event.key === 'Escape') {
+      setSelectedZoneId('');
+      setSelectedObjectId('');
+      return;
+    }
+
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      event.preventDefault();
+      if (selectedZone) deleteSelectedZone();
+      else deleteSelectedObject();
+      return;
+    }
+
+    const nudge: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
+    };
+    const direction = nudge[event.key];
+    if (!direction) return;
+
+    event.preventDefault();
+    const step = event.shiftKey ? GRID_SIZE : 1;
+    const [dx, dy] = [direction[0] * step, direction[1] * step];
+
+    if (selectedZone) {
+      updateZone(selectedZone.id, {
+        x: Math.round(clamp(selectedZone.x + dx, 12, CANVAS_WIDTH - selectedZone.width - 12)),
+        y: Math.round(clamp(selectedZone.y + dy, 12, CANVAS_HEIGHT - selectedZone.height - 12)),
+      });
+      return;
+    }
+
+    if (selectedObject) {
+      updateObject(selectedObject.id, {
+        x: Math.round(clamp(selectedObject.x + dx, 8, CANVAS_WIDTH - selectedObject.width - 8)),
+        y: Math.round(clamp(selectedObject.y + dy, 8, CANVAS_HEIGHT - selectedObject.height - 8)),
+      });
+    }
+  };
+
+  // Keep the handler current without re-registering the listener on every
+  // render: a layout effect updates the ref during commit, so a keypress can
+  // never be handled by a closure from a stale render.
+  useLayoutEffect(() => {
+    shortcutHandlerRef.current = handleShortcutKey;
+  });
+
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => shortcutHandlerRef.current?.(event);
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, []);
 
   const handleOwnerChange = (ownerId: string) => {
     if (!selectedZone) return;
@@ -1307,6 +1560,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
         throw new Error('Invalid 5S layout backup.');
       }
 
+      // Drop any coalesced write so it cannot land after the import.
+      cancelPlanSave();
+
       const nextPlan: FiveSLayoutPlan = {
         ...imported,
         id: plan?.id || imported.id || `imported-5s-plan-${Date.now()}`,
@@ -1423,6 +1679,28 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       subtitle={`${plan.site} / ${readiness.zones} zones / ${readiness.rate}% launch ready`}
       actions={
         <>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={Undo2}
+            onClick={undo}
+            disabled={!history.length}
+            title="Undo (Ctrl+Z)"
+            type="button"
+          >
+            Undo
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={Redo2}
+            onClick={redo}
+            disabled={!future.length}
+            title="Redo (Ctrl+Shift+Z)"
+            type="button"
+          >
+            Redo
+          </Button>
           <Button variant="outline" size="sm" icon={Download} onClick={downloadZoneLabels} type="button">
             CSV
           </Button>
@@ -1878,88 +2156,93 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             <Button fullWidth size="sm" icon={Plus} onClick={addZone} type="button">
               Blank area
             </Button>
-            <div className="mt-4">
-              <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Area presets</div>
-              <div className="grid grid-cols-2 gap-2">
-                {zoneTemplates.map((template) => (
-                  <button
-                    key={template.name}
-                    type="button"
-                    onClick={() => addZoneFromTemplate(template)}
-                    className="flex min-h-[54px] flex-col items-start justify-between rounded-lg border border-gray-200 px-2.5 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                  >
-                    <span className="h-2.5 w-8 rounded-full" style={{ backgroundColor: template.color }} />
-                    <span className="font-medium">{template.name}</span>
-                  </button>
+            <div className="mt-4 max-h-[420px] space-y-4 overflow-y-auto pr-1 md:max-h-[520px]">
+              <div>
+                <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Area presets</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {zoneTemplates.map((template) => (
+                    <button
+                      key={template.name}
+                      type="button"
+                      onClick={() => addZoneFromTemplate(template)}
+                      className="flex min-h-[54px] flex-col items-start justify-between rounded-lg border border-gray-200 px-2.5 py-2 text-left text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                    >
+                      <span className="h-2.5 w-8 rounded-full" style={{ backgroundColor: template.color }} />
+                      <span className="font-medium">{template.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-3 border-t border-gray-200 pt-3 dark:border-gray-700">
+                {shapeToolGroups.map((group) => (
+                  <div key={group}>
+                    <div className="mb-2 text-xs font-semibold uppercase text-gray-500">{group}</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {shapeTools
+                        .filter((tool) => tool.group === group)
+                        .map((tool) => {
+                          const Icon = tool.icon;
+                          return (
+                            <button
+                              key={tool.type}
+                              type="button"
+                              onClick={() => addObject(tool.type)}
+                              className="flex min-h-[42px] items-center gap-2 rounded-lg border border-gray-200 px-2.5 py-2 text-left text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                            >
+                              <Icon className="h-4 w-4 flex-none" />
+                              <span className="leading-tight">{tool.label}</span>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
                 ))}
               </div>
-            </div>
-            <div className="mt-4 space-y-3 border-t border-gray-200 pt-3 dark:border-gray-700">
-              {shapeToolGroups.map((group) => (
-                <div key={group}>
-                  <div className="mb-2 text-xs font-semibold uppercase text-gray-500">{group}</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {shapeTools
-                      .filter((tool) => tool.group === group)
-                      .map((tool) => {
-                        const Icon = tool.icon;
-                        return (
-                          <button
-                            key={tool.type}
-                            type="button"
-                            onClick={() => addObject(tool.type)}
-                            className="flex min-h-[42px] items-center gap-2 rounded-lg border border-gray-200 px-2.5 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                          >
-                            <Icon className="h-4 w-4 flex-none" />
-                            <span className="leading-tight">{tool.label}</span>
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 space-y-2 border-t border-gray-200 pt-3 dark:border-gray-700">
-              {stageCounts.map((item) => (
-                <div key={item.stage} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-500">{stageLabels[item.stage]}</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{item.count}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 border-t border-gray-200 pt-3 dark:border-gray-700">
-              <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Color legend</div>
-              <div className="space-y-1.5">
-                {zoneColorPresets.map((preset) => (
-                  <div key={preset.value} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: preset.value }} />
-                      {preset.label}
-                    </span>
-                    <span className="font-mono text-[10px] text-gray-400">{preset.value}</span>
+              <div className="space-y-2 border-t border-gray-200 pt-3 dark:border-gray-700">
+                {stageCounts.map((item) => (
+                  <div key={item.stage} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500">{stageLabels[item.stage]}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{item.count}</span>
                   </div>
                 ))}
+              </div>
+              <div className="border-t border-gray-200 pt-3 dark:border-gray-700">
+                <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Color legend</div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                  {zoneColorPresets.map((preset) => (
+                    <div key={preset.value} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                      <span className="h-3 w-3 flex-none rounded-full" style={{ backgroundColor: preset.value }} />
+                      {preset.label}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-950">
+          <div className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-950">
             <svg
               ref={svgRef}
               viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
               role="img"
               aria-label="5S floor plan"
               className="h-[420px] w-full cursor-crosshair touch-none md:h-[520px]"
+              onPointerDown={(event) => {
+                if (event.target === event.currentTarget || (event.target as SVGElement).dataset.canvasBackground) {
+                  setSelectedZoneId('');
+                  setSelectedObjectId('');
+                }
+              }}
               onPointerMove={handleCanvasPointerMove}
               onPointerUp={() => setDrag(null)}
               onPointerLeave={() => setDrag(null)}
             >
               <defs>
-                <pattern id="five-s-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-                  <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#d1d5db" strokeWidth="0.8" />
+                <pattern id="five-s-grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
+                  <path d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`} fill="none" stroke="#d1d5db" strokeWidth="0.8" />
                 </pattern>
               </defs>
-              <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="white" />
+              <rect data-canvas-background="true" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="white" />
               {plan.backgroundImage && (
                 <image
                   href={plan.backgroundImage}
@@ -1971,7 +2254,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   preserveAspectRatio="xMidYMid meet"
                 />
               )}
-              {(plan.showGrid ?? true) && <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#five-s-grid)" />}
+              {(plan.showGrid ?? true) && (
+                <rect
+                  data-canvas-background="true"
+                  width={CANVAS_WIDTH}
+                  height={CANVAS_HEIGHT}
+                  fill="url(#five-s-grid)"
+                />
+              )}
 
               {plan.zones.map((zone) => {
                 const selected = zone.id === selectedZoneId;
@@ -2100,10 +2390,55 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   handleObjectPointerDown(event, object),
                 ),
               )}
+
+              {(selectedZone || selectedObject) &&
+                (() => {
+                  const box = selectedZone ?? selectedObject;
+                  if (!box) return null;
+
+                  return resizeCorners.map(({ corner, cursor }) => {
+                    const cx = corner === 'nw' || corner === 'sw' ? box.x : box.x + box.width;
+                    const cy = corner === 'nw' || corner === 'ne' ? box.y : box.y + box.height;
+
+                    return (
+                      <rect
+                        key={corner}
+                        data-testid={`five-s-resize-${corner}`}
+                        x={cx - 6}
+                        y={cy - 6}
+                        width="12"
+                        height="12"
+                        rx="2"
+                        fill="#ffffff"
+                        stroke="#2563eb"
+                        strokeWidth="2"
+                        style={{ cursor }}
+                        onPointerDown={(event) =>
+                          handleResizePointerDown(
+                            event,
+                            corner,
+                            selectedZone
+                              ? { kind: 'zone', id: selectedZone.id }
+                              : { kind: 'object', id: selectedObject!.id },
+                          )
+                        }
+                      />
+                    );
+                  });
+                })()}
             </svg>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-200 px-3 py-2 text-xs text-gray-500 dark:border-gray-700">
+              <span>Drag to move</span>
+              <span>Corner handles resize</span>
+              <span>Arrows nudge / Shift+arrows jump</span>
+              <span>Delete removes</span>
+              <span>Esc deselects</span>
+              <span>Ctrl+Z undoes</span>
+              {(plan.showGrid ?? true) && <span>Alt disables grid snap</span>}
+            </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+          <div className="max-h-[480px] overflow-y-auto rounded-lg border border-gray-200 p-3 dark:border-gray-700 md:max-h-[580px]">
             {selectedZone ? (
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -2622,18 +2957,6 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               </div>
             )}
           </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-5">
-          {stageCounts.map((item) => (
-            <div key={item.stage} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{stageLabels[item.stage]}</span>
-                {item.count > 0 && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{item.count}</div>
-            </div>
-          ))}
         </div>
 
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">

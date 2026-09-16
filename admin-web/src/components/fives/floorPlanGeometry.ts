@@ -45,3 +45,58 @@ export const capturePointer = (event: React.PointerEvent<Element>) => {
     // The drag still works from the canvas-level move handler.
   }
 };
+
+/** The grid a drag snaps to, in canvas units. */
+export const GRID_SIZE = 24;
+
+/**
+ * Snapping, which the Alt key turns off for one drag.
+ *
+ * Laying out a room wants things aligned by default; the exception is real and
+ * frequent enough that it needs a modifier rather than a trip to a setting.
+ */
+export const snapToGrid = (value: number, enabled: boolean) =>
+  enabled ? Math.round(value / GRID_SIZE) * GRID_SIZE : value;
+
+export type ResizeCorner = 'nw' | 'ne' | 'sw' | 'se';
+
+export const resizeCorners: Array<{ corner: ResizeCorner; cursor: string }> = [
+  { corner: 'nw', cursor: 'nwse-resize' },
+  { corner: 'ne', cursor: 'nesw-resize' },
+  { corner: 'sw', cursor: 'nesw-resize' },
+  { corner: 'se', cursor: 'nwse-resize' },
+];
+
+/**
+ * Resizing from a corner: the dragged corner follows the pointer and the
+ * opposite one stays where it is.
+ *
+ * Each edge is clamped so the box cannot be dragged inside out or off the
+ * canvas — a zone with a negative width renders as nothing and is then
+ * impossible to grab again.
+ */
+export const resizeBox = (
+  box: { x: number; y: number; width: number; height: number },
+  corner: ResizeCorner,
+  pointerX: number,
+  pointerY: number,
+  minWidth: number,
+  minHeight: number,
+) => {
+  const right = box.x + box.width;
+  const bottom = box.y + box.height;
+
+  const left = corner === 'nw' || corner === 'sw' ? clamp(pointerX, 0, right - minWidth) : box.x;
+  const top = corner === 'nw' || corner === 'ne' ? clamp(pointerY, 0, bottom - minHeight) : box.y;
+  const newRight =
+    corner === 'ne' || corner === 'se' ? clamp(pointerX, box.x + minWidth, CANVAS_WIDTH) : right;
+  const newBottom =
+    corner === 'sw' || corner === 'se' ? clamp(pointerY, box.y + minHeight, CANVAS_HEIGHT) : bottom;
+
+  return {
+    x: Math.round(left),
+    y: Math.round(top),
+    width: Math.round(newRight - left),
+    height: Math.round(newBottom - top),
+  };
+};
