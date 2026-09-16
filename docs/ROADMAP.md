@@ -55,12 +55,12 @@
 
 ## Next Frontend Work
 
-- Finish the floor-plan editor. Zoom, pan, grid snap, corner resize, undo/redo
-  and keyboard editing are in. Still missing, in the order they are missed:
-  multi-select (shift-click and a rubber band), align and distribute, z-order
-  for overlapping objects, copy/paste/duplicate, a right-click menu, an
-  explicit tool palette, rulers with real-world scale calibration, and
-  lock/hide per item.
+- Finish the floor-plan editor. Zoom, pan, grid snap, corner resize,
+  undo/redo, keyboard editing, multi-select and align/distribute are in. Still
+  missing, in the order they are missed: z-order for overlapping objects,
+  copy/paste/duplicate, a right-click menu, an explicit tool palette, rulers
+  with real-world scale calibration, and lock/hide per item. Multi-select
+  covers zones only — objects are still one at a time.
 
 - Add visual regression screenshots for the polished module pages.
 - Move the 5S guideline register content out of `FiveSGuidelineRegisters.tsx`.

@@ -175,6 +175,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Failing to write an audit entry never fails the request it describes; the gap is logged instead.
 - Client route guards name the permission the server checks rather than a role list of their own. Those lists had drifted in both directions: an `admin` could open the workspace settings and then be refused the save, while an `organization_admin` was locked out of an audit log the server would have served. The guard fails open when the permission list is unavailable, because it exists to avoid offering an unusable page — the server is the boundary.
 - Departments are still kept in the browser only, and that screen says so rather than presenting a local list as a shared record.
+- Several areas can be worked on at once: shift-click or drag a rubber band to select, move or delete them together, and line them up or space them evenly. The group is clamped as one shape, so hitting an edge does not squash the arrangement.
 - The floor plan zooms and pans: wheel or trackpad pinch to zoom at the pointer, space or middle-drag to pan, a zoom readout with fit and zoom-to-area. Every drag measures the pointer through the current view, so editing works the same at any zoom.
 - The rules a 5S area is judged by — stage gates, what an area still needs, which areas a filter shows, what a task raised from an area says — live in `floorPlanRules.ts` and are tested directly rather than only through the floor plan that draws them.
 - Submitting an audit run writes its score onto the referenced 5S zone, so the area map shows measured condition rather than chosen colours.
@@ -208,7 +209,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 425 passing
-- Frontend tests: 346 passing
+- Frontend tests: 352 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

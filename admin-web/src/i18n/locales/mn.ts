@@ -484,6 +484,19 @@ const mn: Translations<typeof en> = {
     emptyDescription: 'Огноотой ажил, аудит энд цагийн хэлхээ болж харагдана.',
   },
   fiveS: {
+    selectedCount: '{{count}} бүс сонгосон',
+    align: {
+      left: 'Зүүн тийш тэгшлэх',
+      centre: 'Хэвтээ голлуулах',
+      right: 'Баруун тийш тэгшлэх',
+      top: 'Дээш тэгшлэх',
+      middle: 'Босоо голлуулах',
+      bottom: 'Доош тэгшлэх',
+    },
+    distribute: {
+      horizontal: 'Хэвтээгээр жигд тараах',
+      vertical: 'Босоогоор жигд тараах',
+    },
     zoomIn: 'Ойртуулах',
     zoomOut: 'Холдуулах',
     zoomLevel: 'Томруулалт',

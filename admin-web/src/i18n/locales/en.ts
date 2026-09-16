@@ -487,6 +487,19 @@ const en = {
     emptyDescription: 'Tasks and audits with dates will appear here as a timeline.',
   },
   fiveS: {
+    selectedCount: '{{count}} areas selected',
+    align: {
+      left: 'Align left',
+      centre: 'Align centre',
+      right: 'Align right',
+      top: 'Align top',
+      middle: 'Align middle',
+      bottom: 'Align bottom',
+    },
+    distribute: {
+      horizontal: 'Space across',
+      vertical: 'Space down',
+    },
     zoomIn: 'Zoom in',
     zoomOut: 'Zoom out',
     zoomLevel: 'Zoom level',

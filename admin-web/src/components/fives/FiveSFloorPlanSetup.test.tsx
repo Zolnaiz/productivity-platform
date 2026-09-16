@@ -80,6 +80,24 @@ const buildPlan = (): FiveSLayoutPlan => ({
       redTagCount: 0,
       lastCleanedAt: '2026-06-24',
     },
+    {
+      id: 'zone-2',
+      code: 'A02',
+      name: 'Workstations',
+      color: '#22c55e',
+      x: 500,
+      y: 260,
+      width: 160,
+      height: 100,
+      ownerName: '',
+      contents: '',
+      standard: '',
+      labelText: '',
+      stage: 'sort',
+      auditFrequency: 'weekly',
+      redTags: [],
+      redTagCount: 0,
+    },
   ],
   objects: [],
   updatedAt: '2026-06-24T00:00:00.000Z',
@@ -158,11 +176,13 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   it('deletes the selected zone with the delete key', async () => {
     render(<FiveSFloorPlanSetup />);
     expect(await screen.findByText('Selected zone')).toBeTruthy();
+    expect(document.querySelectorAll('rect[rx="8"]')).toHaveLength(2);
 
     fireEvent.keyDown(document.body, { key: 'Delete' });
 
-    expect(await screen.findByText('Select or add a zone.')).toBeTruthy();
-    expect(getZoneRect()).toBeNull();
+    // The other area is left behind, and becomes the selected one.
+    await waitFor(() => expect(document.querySelectorAll('rect[rx="8"]')).toHaveLength(1));
+    expect(screen.getByDisplayValue('Workstations')).toBeTruthy();
   });
 
   it('undoes a nudge with ctrl+z and replays it with ctrl+shift+z', async () => {
@@ -184,11 +204,11 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     fireEvent.keyDown(document.body, { key: 'Delete' });
-    await waitFor(() => expect(getZoneRect()).toBeNull());
+    await waitFor(() => expect(document.querySelectorAll('rect[rx="8"]')).toHaveLength(1));
 
     fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true });
 
-    await waitFor(() => expect(getZoneRect()).not.toBeNull());
+    await waitFor(() => expect(document.querySelectorAll('rect[rx="8"]')).toHaveLength(2));
   });
 
   it('resizes from the south-east handle without moving the origin', async () => {
@@ -448,6 +468,118 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       expect(screen.getByLabelText('Zoom out')).toHaveProperty('disabled', true);
+    });
+  });
+
+  describe('working on several areas at once', () => {
+    const zoneRects = () => Array.from(document.querySelectorAll('rect[rx="8"]')) as SVGRectElement[];
+
+    const positions = () =>
+      zoneRects().map((rect) => ({
+        x: Number(rect.getAttribute('x')),
+        y: Number(rect.getAttribute('y')),
+      }));
+
+    it('adds a second area to the selection with shift', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      const [first, second] = zoneRects();
+      fireEvent.pointerDown(first, { clientX: 150, clientY: 150, pointerId: 1 });
+      fireEvent.pointerUp(first, { pointerId: 1 });
+      fireEvent.pointerDown(second, { clientX: 550, clientY: 300, pointerId: 2, shiftKey: true });
+      fireEvent.pointerUp(second, { pointerId: 2 });
+
+      expect(await screen.findByText('2 areas selected')).toBeTruthy();
+    });
+
+    it('offers alignment only once more than one is selected', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      // A row of buttons that never do anything is worse than no row.
+      expect(screen.queryByLabelText('Align left')).toBeNull();
+
+      const [first, second] = zoneRects();
+      fireEvent.pointerDown(first, { clientX: 150, clientY: 150, pointerId: 1 });
+      fireEvent.pointerUp(first, { pointerId: 1 });
+      fireEvent.pointerDown(second, { clientX: 550, clientY: 300, pointerId: 2, shiftKey: true });
+      fireEvent.pointerUp(second, { pointerId: 2 });
+
+      expect(await screen.findByLabelText('Align left')).toBeTruthy();
+    });
+
+    it('lines both areas up on the left edge', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      const [first, second] = zoneRects();
+      fireEvent.pointerDown(first, { clientX: 150, clientY: 150, pointerId: 1 });
+      fireEvent.pointerUp(first, { pointerId: 1 });
+      fireEvent.pointerDown(second, { clientX: 550, clientY: 300, pointerId: 2, shiftKey: true });
+      fireEvent.pointerUp(second, { pointerId: 2 });
+
+      fireEvent.click(await screen.findByLabelText('Align left'));
+
+      await waitFor(() => {
+        const [a, b] = positions();
+        expect(a.x).toBe(100);
+        expect(b.x).toBe(100);
+      });
+    });
+
+    it('moves both areas together with an arrow key', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      const [first, second] = zoneRects();
+      fireEvent.pointerDown(first, { clientX: 150, clientY: 150, pointerId: 1 });
+      fireEvent.pointerUp(first, { pointerId: 1 });
+      fireEvent.pointerDown(second, { clientX: 550, clientY: 300, pointerId: 2, shiftKey: true });
+      fireEvent.pointerUp(second, { pointerId: 2 });
+
+      const before = positions();
+      fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+
+      await waitFor(() => {
+        const after = positions();
+        expect(after[0].x).toBe(before[0].x + 1);
+        expect(after[1].x).toBe(before[1].x + 1);
+      });
+    });
+
+    it('deletes everything selected, not only the primary one', async () => {
+      // Removing one and leaving the rest outlined is what people report as
+      // "it did not delete them".
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+      expect(zoneRects()).toHaveLength(2);
+
+      const [first, second] = zoneRects();
+      fireEvent.pointerDown(first, { clientX: 150, clientY: 150, pointerId: 1 });
+      fireEvent.pointerUp(first, { pointerId: 1 });
+      fireEvent.pointerDown(second, { clientX: 550, clientY: 300, pointerId: 2, shiftKey: true });
+      fireEvent.pointerUp(second, { pointerId: 2 });
+
+      fireEvent.keyDown(document.body, { key: 'Delete' });
+
+      await waitFor(() => expect(zoneRects()).toHaveLength(0));
+    });
+
+    it('clears the selection on escape', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      const [first, second] = zoneRects();
+      fireEvent.pointerDown(first, { clientX: 150, clientY: 150, pointerId: 1 });
+      fireEvent.pointerUp(first, { pointerId: 1 });
+      fireEvent.pointerDown(second, { clientX: 550, clientY: 300, pointerId: 2, shiftKey: true });
+      fireEvent.pointerUp(second, { pointerId: 2 });
+      expect(await screen.findByText('2 areas selected')).toBeTruthy();
+
+      fireEvent.keyDown(document.body, { key: 'Escape' });
+
+      await waitFor(() => expect(screen.queryByText('2 areas selected')).toBeNull());
     });
   });
 });

@@ -7,6 +7,12 @@ import {
 } from '../charts/palette';
 import {
   AlertTriangle,
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignEndVertical,
+  AlignLeft,
+  AlignRight,
+  AlignStartVertical,
   Minus,
   Plus as PlusIcon,
   ArrowRight,
@@ -89,6 +95,18 @@ import {
   zoomByStep,
   zoomOf,
 } from './floorPlanViewport';
+import {
+  AlignEdge,
+  DistributeAxis,
+  alignSelection,
+  distributeSelection,
+  isClickSizedMarquee,
+  marqueeHits,
+  moveSelection,
+  normaliseMarquee,
+  selectionBounds,
+  toggleSelection,
+} from './floorPlanSelection';
 
 /** Steps of undo kept in memory. Fifty is far more than anyone reaches for. */
 const HISTORY_LIMIT = 50;
@@ -259,6 +277,20 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   /** A pan in progress, in client pixels, so the delta can be measured. */
   const panRef = useRef<{ clientX: number; clientY: number } | null>(null);
   const [spaceHeld, setSpaceHeld] = useState(false);
+  /**
+   * Everything selected, newest last.
+   *
+   * `selectedZoneId` stays as the one the properties panel describes — a
+   * panel showing four zones at once would have nothing to say. This is what
+   * the group operations work on, and the two are kept in step: the primary
+   * is always the last entry here.
+   */
+  const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>([]);
+  /** A rubber band being dragged, in canvas coordinates. */
+  const [marquee, setMarquee] = useState<{ x: number; y: number; width: number; height: number } | null>(
+    null,
+  );
+  const marqueeStartRef = useRef<{ x: number; y: number } | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState('');
   const [selectedObjectId, setSelectedObjectId] = useState('');
   const [statusFilter, setStatusFilter] = useState<ZoneStatusFilter>('all');
@@ -271,6 +303,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     | { kind: 'redTag'; zoneId: string; redTagId: string; offsetX: number; offsetY: number }
     | { kind: 'resize-zone'; zoneId: string; corner: ResizeCorner }
     | { kind: 'resize-object'; objectId: string; corner: ResizeCorner }
+    | { kind: 'group'; startX: number; startY: number; origin: Record<string, { x: number; y: number }> }
     | null
   >(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -329,6 +362,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const selectedObject = useMemo(
     () => plan?.objects.find((object) => object.id === selectedObjectId),
     [plan, selectedObjectId],
+  );
+
+  /** The box around everything selected, for the group outline. */
+  const selectionOutline = useMemo(
+    () => selectionBounds((plan?.zones ?? []).filter((zone) => selectedZoneIds.includes(zone.id))),
+    [plan, selectedZoneIds],
   );
 
   const selectedStageGate = useMemo(
@@ -722,10 +761,19 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setActionMessage(`${object.label} added to the floorplan.`);
   };
 
+  /**
+   * Removes everything selected, not only the one the panel describes.
+   *
+   * Deleting the primary and silently leaving the other three outlined is the
+   * behaviour people report as "it did not delete them".
+   */
   const deleteSelectedZone = () => {
-    if (!selectedZone) return;
+    const removing = selectedZoneIds.length ? selectedZoneIds : selectedZone ? [selectedZone.id] : [];
+    if (!removing.length) return;
+
     updatePlan((current) => {
-      const zones = current.zones.filter((zone) => zone.id !== selectedZone.id);
+      const zones = current.zones.filter((zone) => !removing.includes(zone.id));
+      setSelectedZoneIds([]);
       setSelectedZoneId(zones[0]?.id || '');
       return { ...current, zones };
     });
@@ -848,15 +896,124 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     // grab point somewhere else entirely the moment anybody zoomed in.
     const point = pointInView(view, svgRef.current.getBoundingClientRect(), event.clientX, event.clientY);
 
+    const additive = event.shiftKey || event.ctrlKey || event.metaKey;
+    // Grabbing something already in the selection drags the whole group; that
+    // is what makes a multi-selection worth having. A plain click on anything
+    // else starts again with just that one.
+    const inSelection = selectedZoneIds.includes(zone.id);
+    const next = additive || inSelection ? toggleSelection(selectedZoneIds, zone.id, true) : [zone.id];
+
+    setSelectedZoneIds(additive || !inSelection ? next : selectedZoneIds);
     setSelectedZoneId(zone.id);
     setSelectedObjectId('');
     beginDragHistory();
+
+    const group = (inSelection ? selectedZoneIds : []).filter((id) => id !== zone.id);
+
+    if (group.length) {
+      const moving = [zone.id, ...group];
+      setDrag({
+        kind: 'group',
+        startX: point.x,
+        startY: point.y,
+        origin: Object.fromEntries(
+          (plan?.zones ?? [])
+            .filter((item) => moving.includes(item.id))
+            .map((item) => [item.id, { x: item.x, y: item.y }]),
+        ),
+      });
+      return;
+    }
+
     setDrag({
       kind: 'zone',
       zoneId: zone.id,
       offsetX: point.x - zone.x,
       offsetY: point.y - zone.y,
     });
+  };
+
+  /**
+   * A rubber band over empty canvas.
+   *
+   * Starting one does not clear the selection immediately: a plain click that
+   * turns out not to be a drag clears it on release instead, so a band that
+   * misses everything and a click on nothing behave the same way.
+   */
+  const startMarquee = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return;
+
+    capturePointer(event);
+    const point = pointInView(view, svgRef.current.getBoundingClientRect(), event.clientX, event.clientY);
+
+    marqueeStartRef.current = point;
+    setMarquee({ x: point.x, y: point.y, width: 0, height: 0 });
+  };
+
+  const endMarquee = (additive: boolean) => {
+    const band = marquee;
+    marqueeStartRef.current = null;
+    setMarquee(null);
+
+    if (!band) return;
+
+    if (isClickSizedMarquee(band)) {
+      // A click on nothing, not a drag.
+      setSelectedZoneIds([]);
+      setSelectedZoneId('');
+      setSelectedObjectId('');
+      return;
+    }
+
+    const hits = marqueeHits(plan?.zones ?? [], band);
+    const next = additive ? [...new Set([...selectedZoneIds, ...hits])] : hits;
+
+    setSelectedZoneIds(next);
+    setSelectedZoneId(next[next.length - 1] ?? '');
+    setSelectedObjectId('');
+  };
+
+  /** Moves everything selected together, and keeps the group on the canvas. */
+  const dragGroup = (
+    drag: { startX: number; startY: number; origin: Record<string, { x: number; y: number }> },
+    point: { x: number; y: number },
+  ) => {
+    const items = (plan?.zones ?? [])
+      .filter((zone) => drag.origin[zone.id])
+      .map((zone) => ({ ...zone, ...drag.origin[zone.id] }));
+
+    const moves = moveSelection(items, point.x - drag.startX, point.y - drag.startY, {
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+    });
+
+    updatePlan(
+      (current) => ({
+        ...current,
+        zones: current.zones.map((zone) => (moves[zone.id] ? { ...zone, ...moves[zone.id] } : zone)),
+      }),
+      { skipHistory: true },
+    );
+  };
+
+  /** Lines up or spreads out whatever is selected. */
+  const arrangeSelection = (action: { align: AlignEdge } | { distribute: DistributeAxis }) => {
+    const items = (plan?.zones ?? []).filter((zone) => selectedZoneIds.includes(zone.id));
+    const moves =
+      'align' in action ? alignSelection(items, action.align) : distributeSelection(items, action.distribute);
+
+    if (!Object.keys(moves).length) return;
+
+    updatePlan((current) => ({
+      ...current,
+      zones: current.zones.map((zone) => (moves[zone.id] ? { ...zone, ...moves[zone.id] } : zone)),
+    }));
+
+    setActionMessage(
+      'align' in action
+        ? `${items.length} areas aligned.`
+        : `${items.length} areas spaced evenly.`,
+    );
   };
 
   const handleRedTagPointerDown = (
@@ -1050,8 +1207,25 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       return;
     }
 
+    if (marqueeStartRef.current) {
+      const corner = pointInView(
+        view,
+        event.currentTarget.getBoundingClientRect(),
+        event.clientX,
+        event.clientY,
+      );
+
+      setMarquee(normaliseMarquee(marqueeStartRef.current, corner));
+      return;
+    }
+
     if (!drag || !plan) return;
     const point = pointInView(view, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
+
+    if (drag.kind === 'group') {
+      dragGroup(drag, point);
+      return;
+    }
     const snap = (plan.showGrid ?? true) && !event.altKey;
     const snappedPoint = { x: snapToGrid(point.x, snap), y: snapToGrid(point.y, snap) };
 
@@ -1166,9 +1340,10 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       return;
     }
 
-    if (!selectedZone && !selectedObject) return;
+    if (!selectedZone && !selectedObject && !selectedZoneIds.length) return;
 
     if (event.key === 'Escape') {
+      setSelectedZoneIds([]);
       setSelectedZoneId('');
       setSelectedObjectId('');
       return;
@@ -1193,6 +1368,19 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     event.preventDefault();
     const step = event.shiftKey ? GRID_SIZE : 1;
     const [dx, dy] = [direction[0] * step, direction[1] * step];
+
+    if (selectedZoneIds.length > 1) {
+      // The group is clamped as one shape, so hitting an edge does not squash
+      // the arrangement together.
+      const items = (plan?.zones ?? []).filter((zone) => selectedZoneIds.includes(zone.id));
+      const moves = moveSelection(items, dx, dy, { width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
+
+      updatePlan((current) => ({
+        ...current,
+        zones: current.zones.map((zone) => (moves[zone.id] ? { ...zone, ...moves[zone.id] } : zone)),
+      }));
+      return;
+    }
 
     if (selectedZone) {
       updateZone(selectedZone.id, {
@@ -2414,6 +2602,60 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">{t('fiveS.canvasHint')}</p>
             </div>
+
+            {/*
+              Only while several areas are selected: alignment of one area
+              against itself does nothing, and a row of buttons that never do
+              anything is worse than no row at all.
+            */}
+            {selectedZoneIds.length > 1 && (
+              <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-blue-50/40 px-3 py-2 dark:border-gray-700 dark:bg-blue-950/20">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                  {t('fiveS.selectedCount', { count: selectedZoneIds.length })}
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {(
+                    [
+                      ['left', AlignLeft],
+                      ['centre', AlignCenterHorizontal],
+                      ['right', AlignRight],
+                      ['top', AlignStartVertical],
+                      ['middle', AlignCenterVertical],
+                      ['bottom', AlignEndVertical],
+                    ] as Array<[AlignEdge, typeof AlignLeft]>
+                  ).map(([edge, Icon]) => (
+                    <button
+                      key={edge}
+                      type="button"
+                      aria-label={t(`fiveS.align.${edge}`)}
+                      title={t(`fiveS.align.${edge}`)}
+                      className="rounded-md border border-gray-300 p-1.5 text-gray-700 hover:bg-white dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                      onClick={() => arrangeSelection({ align: edge })}
+                    >
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {(
+                    [
+                      ['horizontal', 'fiveS.distribute.horizontal'],
+                      ['vertical', 'fiveS.distribute.vertical'],
+                    ] as Array<[DistributeAxis, string]>
+                  ).map(([axis, label]) => (
+                    <button
+                      key={axis}
+                      type="button"
+                      className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-white disabled:opacity-40 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                      disabled={selectedZoneIds.length < 3}
+                      onClick={() => arrangeSelection({ distribute: axis })}
+                    >
+                      {t(label)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <svg
               ref={(node) => {
                 svgRef.current = node;
@@ -2429,17 +2671,18 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 if (startPanIfRequested(event)) return;
 
                 if (event.target === event.currentTarget || (event.target as SVGElement).dataset.canvasBackground) {
-                  setSelectedZoneId('');
-                  setSelectedObjectId('');
+                  startMarquee(event);
                 }
               }}
               onPointerMove={handleCanvasPointerMove}
-              onPointerUp={() => {
+              onPointerUp={(event) => {
                 endPan();
+                endMarquee(event.shiftKey || event.ctrlKey || event.metaKey);
                 setDrag(null);
               }}
               onPointerLeave={() => {
                 endPan();
+                endMarquee(false);
                 setDrag(null);
               }}
             >
@@ -2470,7 +2713,10 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               )}
 
               {plan.zones.map((zone) => {
-                const selected = zone.id === selectedZoneId;
+                // Every zone in the selection is outlined; the primary one — the
+                // one the properties panel describes — is outlined solid.
+                const selected = selectedZoneIds.includes(zone.id) || zone.id === selectedZoneId;
+                const primary = zone.id === selectedZoneId;
                 const focused = filteredZoneIds.has(zone.id);
                 // In condition mode the colour carries the audit score, so it
                 // stops being decoration and starts being the reading.
@@ -2489,7 +2735,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       fill={`${paint}24`}
                       stroke={selected ? '#111827' : paint}
                       strokeWidth={selected ? 3 : 2}
-                      strokeDasharray={selected ? '0' : '8 6'}
+                      strokeDasharray={primary ? '0' : selected ? '4 3' : '8 6'}
                       className="cursor-move"
                       onPointerDown={(event) => handleZonePointerDown(event, zone)}
                     />
@@ -2590,6 +2836,37 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   </g>
                 );
               })}
+              {/*
+                Drawn after the zones so it sits on top, and `pointer-events`
+                off so the band never swallows the release that ends it.
+              */}
+              {selectionOutline && selectedZoneIds.length > 1 && (
+                <rect
+                  x={selectionOutline.x - 4}
+                  y={selectionOutline.y - 4}
+                  width={selectionOutline.width + 8}
+                  height={selectionOutline.height + 8}
+                  fill="none"
+                  stroke="#2563eb"
+                  strokeWidth="1.5"
+                  strokeDasharray="6 4"
+                  pointerEvents="none"
+                />
+              )}
+
+              {marquee && (
+                <rect
+                  x={marquee.x}
+                  y={marquee.y}
+                  width={marquee.width}
+                  height={marquee.height}
+                  fill="#2563eb18"
+                  stroke="#2563eb"
+                  strokeWidth="1"
+                  pointerEvents="none"
+                />
+              )}
+
 
               {plan.objects.map((object) =>
                 renderFloorPlanObject(object, object.id === selectedObjectId, (event) =>
