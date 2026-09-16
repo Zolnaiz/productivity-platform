@@ -487,6 +487,18 @@ const en = {
     emptyDescription: 'Tasks and audits with dates will appear here as a timeline.',
   },
   fiveS: {
+    canvasMenu: 'Floor plan actions',
+    menu: {
+      duplicate: 'Duplicate',
+      copy: 'Copy',
+      paste: 'Paste',
+      zoomTo: 'Zoom to area',
+      bringForward: 'Bring forward',
+      bringToFront: 'Bring to front',
+      sendBackward: 'Send backward',
+      sendToBack: 'Send to back',
+      delete: 'Delete',
+    },
     selectedCount: '{{count}} areas selected',
     align: {
       left: 'Align left',

@@ -57,9 +57,8 @@
 
 - Finish the floor-plan editor. Zoom, pan, grid snap, corner resize,
   undo/redo, keyboard editing, multi-select, align/distribute and
-  copy/paste/duplicate are in. Still missing, in the order they are missed:
-  z-order for overlapping objects, a right-click menu, an explicit tool
-  palette, rulers
+  copy/paste/duplicate, z-order and a right-click menu are in. Still missing,
+  in the order they are missed: an explicit tool palette, rulers
   with real-world scale calibration, and lock/hide per item. Multi-select
   covers zones only — objects are still one at a time.
 

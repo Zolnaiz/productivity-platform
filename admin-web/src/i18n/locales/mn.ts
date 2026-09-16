@@ -484,6 +484,18 @@ const mn: Translations<typeof en> = {
     emptyDescription: 'Огноотой ажил, аудит энд цагийн хэлхээ болж харагдана.',
   },
   fiveS: {
+    canvasMenu: 'Зургийн үйлдлүүд',
+    menu: {
+      duplicate: 'Хувилах',
+      copy: 'Хуулах',
+      paste: 'Буулгах',
+      zoomTo: 'Бүс рүү ойртох',
+      bringForward: 'Нэг шат урагш',
+      bringToFront: 'Хамгийн урд',
+      sendBackward: 'Нэг шат хойш',
+      sendToBack: 'Хамгийн ард',
+      delete: 'Устгах',
+    },
     selectedCount: '{{count}} бүс сонгосон',
     align: {
       left: 'Зүүн тийш тэгшлэх',

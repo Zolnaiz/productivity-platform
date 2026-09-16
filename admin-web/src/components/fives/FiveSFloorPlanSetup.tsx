@@ -108,6 +108,7 @@ import {
   toggleSelection,
 } from './floorPlanSelection';
 import { copyName, duplicateZones, nextZoneCode } from './floorPlanClipboard';
+import { OrderMove, canReorder, reorder } from './floorPlanOrder';
 
 /** Steps of undo kept in memory. Fifty is far more than anyone reaches for. */
 const HISTORY_LIMIT = 50;
@@ -295,6 +296,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
    * would interrupt the one gesture this exists to make quick.
    */
   const [clipboard, setClipboard] = useState<FiveSZone[]>([]);
+  /**
+   * An open right-click menu, positioned in client pixels.
+   *
+   * Client rather than canvas coordinates because it is an HTML overlay on
+   * top of the SVG: it must stay where the pointer was even as the plan is
+   * zoomed or panned underneath it.
+   */
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   /** A rubber band being dragged, in canvas coordinates. */
   const [marquee, setMarquee] = useState<{ x: number; y: number; width: number; height: number } | null>(
     null,
@@ -814,6 +823,56 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setSelectedZoneId(copies[copies.length - 1].id);
     setSelectedObjectId('');
     setActionMessage(`${copies.length} area(s) copied.`);
+  };
+
+  /**
+   * Moves the selected object through the stacking order.
+   *
+   * SVG draws in array order, so this reorders the array and nothing else. A
+   * move with nowhere to go returns the same array, and this notices, so the
+   * button at the top of the stack does not fill the undo history with
+   * nothing.
+   */
+  const reorderSelectedObject = (move: OrderMove) => {
+    if (!selectedObject || !plan) return;
+
+    const objects = reorder(plan.objects, selectedObject.id, move);
+    if (objects === plan.objects) return;
+
+    updatePlan((current) => ({ ...current, objects }));
+    setActionMessage(`${selectedObject.label} moved ${move === 'front' || move === 'forward' ? 'forward' : 'back'}.`);
+  };
+
+  /**
+   * Opens the menu, selecting whatever was right-clicked first.
+   *
+   * Right-clicking something outside the selection replaces it, the way every
+   * editor does — acting on something the pointer is not over is how people
+   * delete the wrong thing.
+   */
+  const openContextMenu = (event: React.MouseEvent, target?: { zone?: FiveSZone; object?: FloorPlanObject }) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (target?.zone && !selectedZoneIds.includes(target.zone.id)) {
+      setSelectedZoneIds([target.zone.id]);
+      setSelectedZoneId(target.zone.id);
+      setSelectedObjectId('');
+    }
+
+    if (target?.object) {
+      setSelectedObjectId(target.object.id);
+      setSelectedZoneIds([]);
+      setSelectedZoneId('');
+    }
+
+    setContextMenu({ x: event.clientX, y: event.clientY });
+  };
+
+  /** Runs a menu action and closes the menu, so it never stays open over a change. */
+  const runFromMenu = (action: () => void) => {
+    action();
+    setContextMenu(null);
   };
 
   /** Everything selected, in plan order rather than the order it was clicked. */
@@ -1388,6 +1447,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     if (!selectedZone && !selectedObject && !selectedZoneIds.length) return;
 
     if (event.key === 'Escape') {
+      setContextMenu(null);
       setSelectedZoneIds([]);
       setSelectedZoneId('');
       setSelectedObjectId('');
@@ -2701,6 +2761,108 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 </div>
               </div>
             )}
+            {/*
+              An HTML overlay rather than SVG: it needs to sit above the canvas
+              at a fixed size whatever the zoom, and it has to be reachable by
+              keyboard, which SVG shapes are not.
+            */}
+            {contextMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} aria-hidden="true" />
+                <div
+                  role="menu"
+                  aria-label={t('fiveS.canvasMenu')}
+                  className="fixed z-50 min-w-[13rem] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+                  style={{ left: contextMenu.x, top: contextMenu.y }}
+                >
+                  {(
+                    [
+                      {
+                        label: t('fiveS.menu.duplicate'),
+                        hint: 'Ctrl+D',
+                        enabled: Boolean(selectedZone),
+                        run: duplicateSelectedZone,
+                      },
+                      {
+                        label: t('fiveS.menu.copy'),
+                        hint: 'Ctrl+C',
+                        enabled: Boolean(selectedZone),
+                        run: () => setClipboard(selectedZones()),
+                      },
+                      {
+                        label: t('fiveS.menu.paste'),
+                        hint: 'Ctrl+V',
+                        enabled: clipboard.length > 0,
+                        run: () => addCopies(clipboard),
+                      },
+                      {
+                        label: t('fiveS.menu.zoomTo'),
+                        enabled: Boolean(selectedZone),
+                        run: () => selectedZone && focusZone(selectedZone),
+                      },
+                      {
+                        label: t('fiveS.menu.bringForward'),
+                        enabled: Boolean(
+                          selectedObject && plan && canReorder(plan.objects, selectedObject.id, 'forward'),
+                        ),
+                        run: () => reorderSelectedObject('forward'),
+                      },
+                      {
+                        label: t('fiveS.menu.bringToFront'),
+                        enabled: Boolean(
+                          selectedObject && plan && canReorder(plan.objects, selectedObject.id, 'front'),
+                        ),
+                        run: () => reorderSelectedObject('front'),
+                      },
+                      {
+                        label: t('fiveS.menu.sendBackward'),
+                        enabled: Boolean(
+                          selectedObject && plan && canReorder(plan.objects, selectedObject.id, 'backward'),
+                        ),
+                        run: () => reorderSelectedObject('backward'),
+                      },
+                      {
+                        label: t('fiveS.menu.sendToBack'),
+                        enabled: Boolean(
+                          selectedObject && plan && canReorder(plan.objects, selectedObject.id, 'back'),
+                        ),
+                        run: () => reorderSelectedObject('back'),
+                      },
+                      {
+                        label: t('fiveS.menu.delete'),
+                        hint: 'Del',
+                        destructive: true,
+                        enabled: Boolean(selectedZone || selectedObject),
+                        run: () => (selectedObject ? deleteSelectedObject() : deleteSelectedZone()),
+                      },
+                    ] as Array<{
+                      label: string;
+                      hint?: string;
+                      destructive?: boolean;
+                      enabled: boolean;
+                      run: () => void;
+                    }>
+                  ).map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      role="menuitem"
+                      disabled={!item.enabled}
+                      className={`flex w-full items-center justify-between gap-6 px-3 py-1.5 text-left text-sm disabled:opacity-35 ${
+                        item.destructive
+                          ? 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30'
+                          : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+                      }`}
+                      onClick={() => runFromMenu(item.run)}
+                    >
+                      <span>{item.label}</span>
+                      {item.hint && <span className="font-mono text-[11px] text-gray-400">{item.hint}</span>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
             <svg
               ref={(node) => {
                 svgRef.current = node;
@@ -2712,7 +2874,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               className={`h-[420px] w-full touch-none md:h-[520px] ${
                 spaceHeld || panRef.current ? 'cursor-grab' : 'cursor-crosshair'
               }`}
+              onContextMenu={(event) => openContextMenu(event)}
               onPointerDown={(event) => {
+                setContextMenu(null);
                 if (startPanIfRequested(event)) return;
 
                 if (event.target === event.currentTarget || (event.target as SVGElement).dataset.canvasBackground) {
@@ -2783,6 +2947,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       strokeDasharray={primary ? '0' : selected ? '4 3' : '8 6'}
                       className="cursor-move"
                       onPointerDown={(event) => handleZonePointerDown(event, zone)}
+                      onContextMenu={(event) => openContextMenu(event, { zone })}
                     />
                     <circle cx={zone.x + 24} cy={zone.y + 24} r="18" fill={paint} />
                     <text
@@ -2913,11 +3078,13 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               )}
 
 
-              {plan.objects.map((object) =>
-                renderFloorPlanObject(object, object.id === selectedObjectId, (event) =>
-                  handleObjectPointerDown(event, object),
-                ),
-              )}
+              {plan.objects.map((object) => (
+                <g key={object.id} onContextMenu={(event) => openContextMenu(event, { object })}>
+                  {renderFloorPlanObject(object, object.id === selectedObjectId, (event) =>
+                    handleObjectPointerDown(event, object),
+                  )}
+                </g>
+              ))}
 
               {(selectedZone || selectedObject) &&
                 (() => {

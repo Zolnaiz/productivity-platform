@@ -668,4 +668,95 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       expect(screen.queryAllByDisplayValue('2026-06-24')).toHaveLength(0);
     });
   });
+
+  describe('the right-click menu', () => {
+    const zoneRects = () => Array.from(document.querySelectorAll('rect[rx="8"]')) as SVGRectElement[];
+
+    it('opens on a zone and offers what applies to it', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      fireEvent.contextMenu(zoneRects()[0]);
+
+      const menu = await screen.findByRole('menu');
+      expect(menu).toBeTruthy();
+      expect(screen.getByRole('menuitem', { name: /Duplicate/ })).toBeTruthy();
+      expect(screen.getByRole('menuitem', { name: /Delete/ })).toBeTruthy();
+    });
+
+    it('selects what was right-clicked rather than acting on something else', async () => {
+      // Acting on something the pointer is not over is how people delete the
+      // wrong thing.
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      fireEvent.contextMenu(zoneRects()[1]);
+      await screen.findByRole('menu');
+
+      expect(screen.getByDisplayValue('Workstations')).toBeTruthy();
+    });
+
+    it('duplicates from the menu', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+      expect(zoneRects()).toHaveLength(2);
+
+      fireEvent.contextMenu(zoneRects()[0]);
+      fireEvent.click(await screen.findByRole('menuitem', { name: /Duplicate/ }));
+
+      await waitFor(() => expect(zoneRects()).toHaveLength(3));
+    });
+
+    it('closes once an action has run', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      fireEvent.contextMenu(zoneRects()[0]);
+      fireEvent.click(await screen.findByRole('menuitem', { name: /Duplicate/ }));
+
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    });
+
+    it('closes on escape', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      fireEvent.contextMenu(zoneRects()[0]);
+      await screen.findByRole('menu');
+
+      fireEvent.keyDown(document.body, { key: 'Escape' });
+
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    });
+
+    it('greys out paste before anything has been copied', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      fireEvent.contextMenu(zoneRects()[0]);
+
+      expect(await screen.findByRole('menuitem', { name: /Paste/ })).toHaveProperty('disabled', true);
+    });
+
+    it('offers paste once something has been copied', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      fireEvent.keyDown(document.body, { key: 'c', ctrlKey: true });
+      fireEvent.contextMenu(zoneRects()[0]);
+
+      expect(await screen.findByRole('menuitem', { name: /Paste/ })).toHaveProperty('disabled', false);
+    });
+
+    it('greys out the stacking actions when no object is selected', async () => {
+      // They apply to drawn objects; a zone has nothing to stack against.
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      fireEvent.contextMenu(zoneRects()[0]);
+
+      expect(await screen.findByRole('menuitem', { name: /Bring forward/ })).toHaveProperty('disabled', true);
+      expect(screen.getByRole('menuitem', { name: /Send to back/ })).toHaveProperty('disabled', true);
+    });
+  });
 });
