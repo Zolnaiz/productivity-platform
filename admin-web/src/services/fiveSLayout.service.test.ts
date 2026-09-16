@@ -236,4 +236,93 @@ describe('fiveSLayoutService demo storage', () => {
       }),
     );
   });
+
+  it('sends the walls, the openings and the scale', async () => {
+    // These were left out of the payload for as long as walls existed, so a
+    // plan drawn against a real backend was complete on screen and empty again
+    // after a reload — dropped on the way out rather than refused.
+    localStorage.setItem('token', 'real-token');
+    apiMocks.patch.mockResolvedValueOnce({ id: 'server-layout', zones: [], objects: [], updatedAt: '' });
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    await fiveSLayoutService.savePlan({
+      id: 'client-layout',
+      name: 'Drawn map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      metresPerUnit: 1 / 24,
+      corners: [
+        { id: 'c0', x: 0, y: 0 },
+        { id: 'c1', x: 384, y: 0 },
+      ],
+      walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+      openings: [{ id: 'o0', wallId: 'w0', kind: 'door', offset: 120, width: 21.6 }],
+      zones: [],
+      objects: [],
+      updatedAt: '2026-06-24T00:00:00.000Z',
+    });
+
+    expect(apiMocks.patch).toHaveBeenCalledWith(
+      '/five-s-layout',
+      expect.objectContaining({
+        corners: [
+          { id: 'c0', x: 0, y: 0 },
+          { id: 'c1', x: 384, y: 0 },
+        ],
+        walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+        openings: [{ id: 'o0', wallId: 'w0', kind: 'door', offset: 120, width: 21.6 }],
+        metresPerUnit: 1 / 24,
+      }),
+    );
+  });
+
+  it('reads the walls back from the server', async () => {
+    localStorage.setItem('token', 'real-token');
+    apiMocks.get.mockResolvedValueOnce({
+      id: 'server-layout',
+      name: 'Server 5S map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      metresPerUnit: 0.05,
+      corners: [{ id: 'c0', x: 0, y: 0 }],
+      walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+      openings: [{ id: 'o0', wallId: 'w0', kind: 'door', offset: 120, width: 21.6 }],
+      zones: [],
+      objects: [],
+      updatedAt: '2026-06-24T00:00:00.000Z',
+    });
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    const plan = await fiveSLayoutService.getPlan();
+
+    expect(plan.walls).toHaveLength(1);
+    expect(plan.openings).toHaveLength(1);
+    expect(plan.metresPerUnit).toBe(0.05);
+  });
+
+  it('drops a door whose wall is gone', async () => {
+    // Otherwise the plan keeps an entrance that draws nowhere and can never be
+    // reached to delete.
+    localStorage.setItem('token', 'real-token');
+    apiMocks.get.mockResolvedValueOnce({
+      id: 'server-layout',
+      name: 'Server 5S map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      corners: [{ id: 'c0', x: 0, y: 0 }],
+      walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+      openings: [
+        { id: 'o0', wallId: 'w0', kind: 'door', offset: 120, width: 21.6 },
+        { id: 'o1', wallId: 'deleted', kind: 'window', offset: 40, width: 28.8 },
+      ],
+      zones: [],
+      objects: [],
+      updatedAt: '2026-06-24T00:00:00.000Z',
+    });
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    const plan = await fiveSLayoutService.getPlan();
+
+    expect(plan.openings?.map((opening) => opening.id)).toEqual(['o0']);
+  });
 });

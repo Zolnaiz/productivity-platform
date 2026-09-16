@@ -282,6 +282,9 @@ export class OperationsService {
       showGrid: true,
       zones: [],
       objects: [],
+      corners: [],
+      walls: [],
+      openings: [],
     });
 
     return this.fiveSLayouts.save(defaultLayout);
@@ -300,6 +303,12 @@ export class OperationsService {
       showGrid: payload.showGrid ?? true,
       zones: payload.zones || [],
       objects: payload.objects || [],
+      // The wall graph. Left out of the payload until now, so a plan drawn
+      // against a real backend was whole until the page was reloaded.
+      corners: payload.corners || [],
+      walls: payload.walls || [],
+      openings: payload.openings || [],
+      metresPerUnit: payload.metresPerUnit ?? existing?.metresPerUnit,
     };
 
     if (existing) {

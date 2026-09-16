@@ -308,6 +308,57 @@ describe('OperationsService organization scoping', () => {
     );
   });
 
+  it('stores the wall graph the plan is drawn from', async () => {
+    // Walls, corners, openings and the scale were never written, so a plan
+    // drawn against a real backend was whole on screen and gone after a reload.
+    const { service, repositories } = createService();
+    repositories.fiveSLayouts.findOne.mockResolvedValue({ id: 'layout-1', organizationId: 'org-1' });
+
+    await service.upsertFiveSLayout(
+      {
+        name: 'Office 5S map',
+        site: 'HQ',
+        scale: '1 square = 1 meter',
+        zones: [],
+        objects: [],
+        corners: [{ id: 'c0', x: 0, y: 0 }],
+        walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+        openings: [{ id: 'o0', wallId: 'w0', kind: 'door', offset: 120, width: 21.6 }],
+        metresPerUnit: 0.05,
+      } as any,
+      { id: 'user-1', organizationId: 'org-1' },
+    );
+
+    expect(repositories.fiveSLayouts.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        corners: [{ id: 'c0', x: 0, y: 0 }],
+        walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+        openings: [{ id: 'o0', wallId: 'w0', kind: 'door', offset: 120, width: 21.6 }],
+        metresPerUnit: 0.05,
+      }),
+    );
+  });
+
+  it('keeps the scale a plan was calibrated at when a save does not mention it', async () => {
+    // An older client saves without the scale; forgetting it would resize the
+    // whole building rather than leave the drawing alone.
+    const { service, repositories } = createService();
+    repositories.fiveSLayouts.findOne.mockResolvedValue({
+      id: 'layout-1',
+      organizationId: 'org-1',
+      metresPerUnit: 0.05,
+    });
+
+    await service.upsertFiveSLayout(
+      { name: 'Office 5S map', site: 'HQ', scale: '1 square = 1 meter', zones: [], objects: [] } as any,
+      { id: 'user-1', organizationId: 'org-1' },
+    );
+
+    expect(repositories.fiveSLayouts.save).toHaveBeenCalledWith(
+      expect.objectContaining({ metresPerUnit: 0.05 }),
+    );
+  });
+
   it('updates the existing organization 5S layout without accepting payload organization changes', async () => {
     const { service, repositories } = createService();
     const existingLayout = {

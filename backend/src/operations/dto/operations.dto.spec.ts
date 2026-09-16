@@ -113,6 +113,81 @@ describe('Operations DTO validation', () => {
     expect(errors.some((error) => error.property === 'objects')).toBe(true);
   });
 
+  it('accepts the wall graph a plan is actually drawn from', async () => {
+    // These fields were dropped on the way to the server for as long as walls
+    // existed, so a plan drawn against a real backend emptied itself on reload.
+    const dto = plainToInstance(UpsertFiveSLayoutDto, {
+      name: 'Office map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      zones: [],
+      objects: [],
+      corners: [
+        { id: 'c0', x: 0, y: 0 },
+        { id: 'c1', x: 384, y: 0 },
+      ],
+      walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+      openings: [{ id: 'o0', wallId: 'w0', kind: 'door', offset: 120, width: 21.6, hinge: 'from', flip: true }],
+      metresPerUnit: 1 / 24,
+    });
+
+    expect(await validate(dto)).toHaveLength(0);
+  });
+
+  it('still accepts a plan from a client that has no wall graph', async () => {
+    const dto = plainToInstance(UpsertFiveSLayoutDto, {
+      name: 'Office map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      zones: [],
+      objects: [],
+    });
+
+    expect(await validate(dto)).toHaveLength(0);
+  });
+
+  it('refuses a scale of zero, which would make every length zero in silence', async () => {
+    const dto = plainToInstance(UpsertFiveSLayoutDto, {
+      name: 'Office map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      zones: [],
+      objects: [],
+      metresPerUnit: 0,
+    });
+
+    expect((await validate(dto)).some((error) => error.property === 'metresPerUnit')).toBe(true);
+  });
+
+  it('refuses an opening that is not a door or a window', async () => {
+    const dto = plainToInstance(UpsertFiveSLayoutDto, {
+      name: 'Office map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      zones: [],
+      objects: [],
+      openings: [{ id: 'o0', wallId: 'w0', kind: 'portal', offset: 10, width: 20 }],
+    });
+
+    expect((await validate(dto)).some((error) => error.property === 'openings')).toBe(true);
+  });
+
+  it('accepts every object the editor can place', async () => {
+    // The list stopped at six types, so a chair or a printer was placeable in
+    // the editor and refused by the pipe on save.
+    const dto = plainToInstance(UpsertFiveSLayoutDto, {
+      name: 'Office map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      zones: [],
+      objects: ['chair', 'cabinet', 'printer', 'whiteboard', 'sofa', 'plant', 'waste_bin', 'sink'].map(
+        (type, index) => ({ id: `object-${index}`, type, label: type, x: 1, y: 1, width: 1, height: 1 }),
+      ),
+    });
+
+    expect(await validate(dto)).toHaveLength(0);
+  });
+
   it('accepts 5S layout red-tag and cleaning metadata', async () => {
     const dto = plainToInstance(UpsertFiveSLayoutDto, {
       name: 'Office map',

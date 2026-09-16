@@ -30,4 +30,28 @@ export class FiveSLayout extends BaseEntity {
 
   @Column({ type: 'jsonb', default: () => "'[]'" })
   objects: Record<string, any>[];
+
+  /**
+   * The wall graph: corners, the walls between them, and the openings cut into
+   * those walls.
+   *
+   * Rooms are not stored. They are whatever the walls close in, worked out when
+   * the plan is drawn, because storing them too would be a second copy of the
+   * same fact and the two would part company the first time a corner moved.
+   */
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  corners: Record<string, any>[];
+
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  walls: Record<string, any>[];
+
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  openings: Record<string, any>[];
+
+  /**
+   * How many metres one canvas unit covers. Null on plans drawn before the
+   * scale was a number, which is not the same as a plan measured at zero.
+   */
+  @Column({ name: 'metres_per_unit', type: 'float', nullable: true })
+  metresPerUnit?: number;
 }

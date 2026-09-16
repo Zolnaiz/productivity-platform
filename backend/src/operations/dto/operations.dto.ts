@@ -164,12 +164,35 @@ class FiveSZoneDto {
   lastCleanedAt?: string;
 }
 
+export const FLOOR_PLAN_OBJECT_TYPES = [
+  'wall',
+  'door',
+  'desk',
+  'chair',
+  'table',
+  'shelf',
+  'cabinet',
+  'printer',
+  'equipment',
+  'whiteboard',
+  'sofa',
+  'plant',
+  'waste_bin',
+  'sink',
+] as const;
+
+export type FloorPlanObjectType = (typeof FLOOR_PLAN_OBJECT_TYPES)[number];
+
 class FloorPlanObjectDto {
   @IsString()
   id: string;
 
-  @IsIn(['wall', 'door', 'desk', 'shelf', 'equipment', 'table'])
-  type: 'wall' | 'door' | 'desk' | 'shelf' | 'equipment' | 'table';
+  // Every type the editor can place. The list used to stop at six, so a plan
+  // containing a chair, a cabinet, a printer, a whiteboard, a sofa, a plant, a
+  // bin or a sink was refused outright by the validation pipe — the object was
+  // placeable and unsaveable.
+  @IsIn(FLOOR_PLAN_OBJECT_TYPES)
+  type: FloorPlanObjectType;
 
   @IsString()
   label: string;
@@ -376,6 +399,66 @@ export class CreateDailyGoalDto extends OrganizationScopedDto {
 
 export class UpdateDailyGoalDto extends PartialType(CreateDailyGoalDto) {}
 
+/**
+ * A point where walls meet.
+ *
+ * Corners are shared by every wall that ends on them, which is what makes
+ * dragging one move the whole junction instead of leaving a gap.
+ */
+class PlanCornerDto {
+  @IsString()
+  id: string;
+
+  @IsNumber()
+  x: number;
+
+  @IsNumber()
+  y: number;
+}
+
+class PlanWallDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  from: string;
+
+  @IsString()
+  to: string;
+
+  @IsNumber()
+  @Min(0)
+  thickness: number;
+}
+
+/** A door or window, which belongs to a wall rather than to the floor. */
+class PlanOpeningDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  wallId: string;
+
+  @IsIn(['door', 'double_door', 'window'])
+  kind: 'door' | 'double_door' | 'window';
+
+  @IsNumber()
+  @Min(0)
+  offset: number;
+
+  @IsNumber()
+  @Min(0)
+  width: number;
+
+  @IsOptional()
+  @IsIn(['from', 'to'])
+  hinge?: 'from' | 'to';
+
+  @IsOptional()
+  @IsBoolean()
+  flip?: boolean;
+}
+
 export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
   @IsString()
   name: string;
@@ -409,6 +492,38 @@ export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
   @ValidateNested({ each: true })
   @Type(() => FloorPlanObjectDto)
   objects: FloorPlanObjectDto[];
+
+  // Optional because a plan saved by an older client has no wall graph, and
+  // that has to keep working rather than being rejected.
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PlanCornerDto)
+  corners?: PlanCornerDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PlanWallDto)
+  walls?: PlanWallDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PlanOpeningDto)
+  openings?: PlanOpeningDto[];
+
+  /**
+   * How many metres one canvas unit covers.
+   *
+   * Everything the plan is worth beyond decoration rests on it: area per zone,
+   * red tags per square metre, printing to scale. A zero would make every
+   * length and area zero without saying so, hence the exclusive minimum.
+   */
+  @IsOptional()
+  @IsNumber()
+  @Min(0.000001)
+  metresPerUnit?: number;
 }
 
 export class CreateAuditTemplateDto extends OrganizationScopedDto {

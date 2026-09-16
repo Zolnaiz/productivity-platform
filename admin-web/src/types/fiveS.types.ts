@@ -119,6 +119,24 @@ export interface PlanWall {
   thickness: number;
 }
 
+/**
+ * A door or a window: a hole in a wall, not a thing standing on the floor.
+ *
+ * It belongs to a wall and is measured along it, so moving a corner carries
+ * its doors with it. Stored among the objects it would float free of the wall
+ * again, which is the mistake the wall graph exists to correct.
+ */
+export interface PlanOpening {
+  id: string;
+  wallId: string;
+  kind: 'door' | 'double_door' | 'window';
+  /** The centre of the opening, in canvas units from the wall's `from` end. */
+  offset: number;
+  width: number;
+  hinge?: 'from' | 'to';
+  flip?: boolean;
+}
+
 export interface FiveSLayoutPlan {
   id: string;
   organizationId?: string;
@@ -159,6 +177,8 @@ export interface FiveSLayoutPlan {
    * first time somebody moved a corner.
    */
   walls?: PlanWall[];
+  /** Doors and windows, each cut into one of the walls above. */
+  openings?: PlanOpening[];
   zones: FiveSZone[];
   objects: FloorPlanObject[];
   createdAt?: string;

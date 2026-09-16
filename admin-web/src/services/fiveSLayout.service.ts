@@ -1,4 +1,5 @@
 import { FiveSLayoutPlan, FiveSZone, FloorPlanObject, FloorPlanObjectType } from '../types/fiveS.types';
+import { pruneOpenings } from '../components/fives/floorPlanOpenings';
 import { get, getStoredAccessToken, isDemoMode, patch, shouldUseDemoFallback } from './api';
 
 const storageKey = 'productivity-demo-5s-layout';
@@ -263,6 +264,15 @@ const fallback = async <T>(request: () => Promise<ApiEnvelope<T>>, demoData: T |
   }
 };
 
+/**
+ * What the server is told.
+ *
+ * The wall graph and the scale were missing from this list while the editor
+ * was learning to draw walls, find rooms and measure in metres — so a plan
+ * drawn against a real backend was complete on screen and empty again after a
+ * reload, silently, because the fields were dropped on the way out rather than
+ * refused.
+ */
 const withoutServerFields = (plan: FiveSLayoutPlan) => {
   const payload = {
     name: plan.name,
@@ -273,6 +283,10 @@ const withoutServerFields = (plan: FiveSLayoutPlan) => {
     showGrid: plan.showGrid ?? true,
     zones: plan.zones,
     objects: plan.objects,
+    corners: plan.corners ?? [],
+    walls: plan.walls ?? [],
+    openings: plan.openings ?? [],
+    ...(plan.metresPerUnit ? { metresPerUnit: plan.metresPerUnit } : {}),
   };
 
   return payload;
@@ -314,6 +328,11 @@ const normalizePlan = (plan: FiveSLayoutPlan): FiveSLayoutPlan => ({
     };
   }),
   objects: plan.objects || [],
+  corners: plan.corners || [],
+  walls: plan.walls || [],
+  // Openings whose wall has gone are dropped on the way in: a door that
+  // outlives its wall draws nowhere and can never be reached to delete.
+  openings: pruneOpenings(plan.openings || [], plan.walls || []),
 });
 
 /**
