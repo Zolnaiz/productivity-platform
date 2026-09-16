@@ -493,6 +493,10 @@ const en = {
     emptyDescription: 'Tasks and audits with dates will appear here as a timeline.',
   },
   fiveS: {
+    tools: 'Tool',
+    toolSelect: 'Select',
+    toolWall: 'Wall',
+    wallHint: 'Click to start a wall, click again for each corner. Esc ends the run, Alt draws off-angle.',
     planWidth: 'Plan width (m)',
     planSize: 'Whole plan: {{width}} × {{height}} m',
     widthMetres: 'Width (m)',

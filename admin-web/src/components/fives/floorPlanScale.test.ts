@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CANVAS_HEIGHT, CANVAS_WIDTH, GRID_SIZE } from './floorPlanGeometry';
 import {
   DEFAULT_METRES_PER_UNIT,
+  areaInMetres,
   areaOf,
   calibrate,
   clampScale,
@@ -154,5 +155,23 @@ describe('the scale bar', () => {
     [3, 12, 37.5, 120].forEach((visible) => {
       expect(niceBarLength(visible)).toBeLessThanOrEqual(visible / 2);
     });
+  });
+});
+
+describe('an area already measured in canvas units', () => {
+  it('applies the scale twice, once for each side', () => {
+    // Forgetting the square is the classic way an area comes out plausible
+    // and wrong.
+    expect(areaInMetres(10000, 0.05)).toBeCloseTo(25, 10);
+  });
+
+  it('agrees with measuring the sides separately', () => {
+    const box = { width: 128, height: 84 };
+
+    expect(areaInMetres(box.width * box.height, 0.05)).toBeCloseTo(areaOf(box, 0.05), 10);
+  });
+
+  it('quarters when the scale halves', () => {
+    expect(areaInMetres(10000, 0.05)).toBeCloseTo(areaInMetres(10000, 0.1) / 4, 10);
   });
 });

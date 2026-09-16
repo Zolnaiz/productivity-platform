@@ -110,6 +110,7 @@ import {
 import { copyName, duplicateZones, nextZoneCode } from './floorPlanClipboard';
 import { OrderMove, canReorder, reorder } from './floorPlanOrder';
 import {
+  areaInMetres,
   areaOf,
   calibrate,
   formatArea,
@@ -120,6 +121,16 @@ import {
   toMetres,
   toUnits,
 } from './floorPlanScale';
+import {
+  Point,
+  cornerAt,
+  detectRooms,
+  endsOf,
+  roomCentre,
+  roomPath,
+  snapToAngle,
+  wallLength,
+} from './floorPlanWalls';
 
 /** Steps of undo kept in memory. Fifty is far more than anyone reaches for. */
 const HISTORY_LIMIT = 50;
@@ -410,8 +421,32 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   /** While on, a drag on the canvas measures instead of selecting. */
   const [calibrationMode, setCalibrationMode] = useState(false);
 
+  /**
+   * Which tool the pointer is holding.
+   *
+   * The editor had no modes at all: buttons added things and a drag always
+   * meant "select or move". Drawing a wall needs the drag to mean something
+   * else, and a person needs to be able to see which it currently means —
+   * guessing from what happens is how a tool feels unpredictable.
+   */
+  const [tool, setTool] = useState<'select' | 'wall'>('select');
+  /** A wall being drawn, from a fixed corner to wherever the pointer is. */
+  const [drawingWall, setDrawingWall] = useState<{ from: Point; to: Point } | null>(null);
+
   /** How many metres one canvas unit covers, for everything that shows a size. */
   const metresPerUnit = scaleOf(plan);
+
+  /**
+   * The rooms the walls close in.
+   *
+   * Worked out from the wall graph on every change rather than stored: a room
+   * is a consequence of where the walls are, and keeping a second copy would
+   * mean the two parting company the first time somebody moved a corner.
+   */
+  const rooms = useMemo(
+    () => detectRooms(plan?.walls ?? [], plan?.corners ?? []),
+    [plan?.walls, plan?.corners],
+  );
 
   /** The box around everything selected, for the group outline. */
   const selectionOutline = useMemo(
@@ -931,6 +966,67 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     );
   };
 
+  /**
+   * Starts or continues a run of walls.
+   *
+   * Walls are drawn end to end: releasing one leaves the pointer holding the
+   * next, because a room is four walls and making somebody start each of them
+   * separately is four times the work for no reason. Escape or switching tool
+   * ends the run.
+   */
+  const placeWallPoint = (rawPoint: Point, straighten: boolean) => {
+    if (!plan) return;
+
+    const corners = plan.corners ?? [];
+    const existing = cornerAt(corners, rawPoint);
+    const point = existing ? { x: existing.x, y: existing.y } : rawPoint;
+
+    if (!drawingWall) {
+      setDrawingWall({ from: point, to: point });
+      return;
+    }
+
+    const end = existing
+      ? point
+      : snapToAngle(drawingWall.from, point, straighten);
+
+    // Nothing to draw: the pointer never left where it started.
+    if (Math.hypot(end.x - drawingWall.from.x, end.y - drawingWall.from.y) < 4) {
+      setDrawingWall(null);
+      return;
+    }
+
+    updatePlan((current) => {
+      const withCorners = [...(current.corners ?? [])];
+
+      const idFor = (candidate: Point) => {
+        const found = cornerAt(withCorners, candidate);
+        if (found) return found.id;
+
+        const made = { id: `corner-${Date.now()}-${withCorners.length}`, x: candidate.x, y: candidate.y };
+        withCorners.push(made);
+        return made.id;
+      };
+
+      const fromId = idFor(drawingWall.from);
+      const toId = idFor(end);
+
+      return {
+        ...current,
+        corners: withCorners,
+        walls: [
+          ...(current.walls ?? []),
+          { id: `wall-${Date.now()}-${(current.walls ?? []).length}`, from: fromId, to: toId, thickness: 10 },
+        ],
+      };
+    });
+
+    // Carry on from where this wall ended.
+    setDrawingWall({ from: end, to: end });
+  };
+
+  const stopDrawingWall = () => setDrawingWall(null);
+
   /** Everything selected, in plan order rather than the order it was clicked. */
   const selectedZones = () =>
     (plan?.zones ?? []).filter((zone) => selectedZoneIds.includes(zone.id) || zone.id === selectedZoneId);
@@ -1339,6 +1435,19 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       return;
     }
 
+    if (tool === 'wall' && drawingWall) {
+      const point = pointInView(view, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
+      const corner = cornerAt(plan?.corners ?? [], point);
+
+      setDrawingWall({
+        ...drawingWall,
+        to: corner
+          ? { x: corner.x, y: corner.y }
+          : snapToAngle(drawingWall.from, point, !event.altKey),
+      });
+      return;
+    }
+
     if (calibration && !calibration.done) {
       setCalibration({
         ...calibration,
@@ -1512,6 +1621,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
     if (event.key === 'Escape') {
       setContextMenu(null);
+      stopDrawingWall();
       setSelectedZoneIds([]);
       setSelectedZoneId('');
       setSelectedObjectId('');
@@ -2792,6 +2902,37 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 )}
               </div>
               <div className="flex items-center gap-2">
+                {/*
+                  A mode, shown rather than guessed at. Without this the same
+                  drag meant "move something" and "draw a wall" depending on
+                  state nobody could see.
+                */}
+                <div role="radiogroup" aria-label={t('fiveS.tools')} className="flex gap-0.5 rounded-md border border-gray-300 p-0.5 dark:border-gray-600">
+                  {(
+                    [
+                      ['select', t('fiveS.toolSelect')],
+                      ['wall', t('fiveS.toolWall')],
+                    ] as Array<['select' | 'wall', string]>
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={tool === value}
+                      className={`rounded px-2 py-1 text-xs ${
+                        tool === value
+                          ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+                      }`}
+                      onClick={() => {
+                        stopDrawingWall();
+                        setTool(value);
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <button
                   type="button"
                   className={`rounded-md border px-2 py-1 text-xs ${
@@ -3014,6 +3155,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 setContextMenu(null);
                 if (startPanIfRequested(event)) return;
 
+                if (tool === 'wall' && svgRef.current) {
+                  placeWallPoint(
+                    pointInView(view, svgRef.current.getBoundingClientRect(), event.clientX, event.clientY),
+                    !event.altKey,
+                  );
+                  return;
+                }
+
                 if (calibrationMode && svgRef.current) {
                   const point = pointInView(
                     view,
@@ -3035,7 +3184,20 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               onPointerUp={(event) => {
                 endPan();
 
-                if (calibration && !calibration.done) {
+                if (tool === 'wall' && drawingWall) {
+      const point = pointInView(view, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
+      const corner = cornerAt(plan?.corners ?? [], point);
+
+      setDrawingWall({
+        ...drawingWall,
+        to: corner
+          ? { x: corner.x, y: corner.y }
+          : snapToAngle(drawingWall.from, point, !event.altKey),
+      });
+      return;
+    }
+
+    if (calibration && !calibration.done) {
                   setCalibration({ ...calibration, done: true });
                   return;
                 }
@@ -3073,6 +3235,101 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   height={CANVAS_HEIGHT}
                   fill="url(#five-s-grid)"
                 />
+              )}
+
+              {/*
+                Rooms first, then walls, then everything else: a room is the
+                floor and has to sit under what stands on it.
+              */}
+              {rooms.map((room) => (
+                <g key={room.corners.join('-')} pointerEvents="none">
+                  <path d={roomPath(room)} fill="#0f172a08" stroke="none" />
+                  <text
+                    x={roomCentre(room).x}
+                    y={roomCentre(room).y}
+                    textAnchor="middle"
+                    className="fill-gray-500 font-medium tabular-nums"
+                    style={{ fontSize: view.width * 0.018 }}
+                  >
+                    {formatArea(areaInMetres(room.area, metresPerUnit))}
+                  </text>
+                </g>
+              ))}
+
+              {(plan.walls ?? []).map((wall) => {
+                const ends = endsOf(wall, plan.corners ?? []);
+                if (!ends) return null;
+
+                return (
+                  <g key={wall.id}>
+                    <line
+                      x1={ends.from.x}
+                      y1={ends.from.y}
+                      x2={ends.to.x}
+                      y2={ends.to.y}
+                      stroke="#1f2937"
+                      strokeWidth={wall.thickness}
+                      strokeLinecap="square"
+                    />
+                    {/*
+                      Only while the wall tool is in hand. Every wall labelled
+                      all the time buries the plan under its own measurements.
+                    */}
+                    {tool === 'wall' && (
+                      <text
+                        x={(ends.from.x + ends.to.x) / 2}
+                        y={(ends.from.y + ends.to.y) / 2 - view.height * 0.016}
+                        textAnchor="middle"
+                        className="fill-gray-600 tabular-nums"
+                        style={{ fontSize: view.width * 0.016 }}
+                        pointerEvents="none"
+                      >
+                        {formatLength(toMetres(wallLength(wall, plan.corners ?? []), metresPerUnit))}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+
+              {(plan.corners ?? []).map((corner) => (
+                <circle key={corner.id} cx={corner.x} cy={corner.y} r={5} fill="#1f2937" pointerEvents="none" />
+              ))}
+
+              {/*
+                The wall being drawn, with its length beside it. Seeing the
+                measurement while dragging is the difference between drawing a
+                room and drawing a shape and measuring it afterwards.
+              */}
+              {drawingWall && (
+                <g pointerEvents="none">
+                  <line
+                    x1={drawingWall.from.x}
+                    y1={drawingWall.from.y}
+                    x2={drawingWall.to.x}
+                    y2={drawingWall.to.y}
+                    stroke="#2563eb"
+                    strokeWidth={10}
+                    strokeLinecap="square"
+                    opacity={0.7}
+                  />
+                  <text
+                    x={(drawingWall.from.x + drawingWall.to.x) / 2}
+                    y={(drawingWall.from.y + drawingWall.to.y) / 2 - view.height * 0.02}
+                    textAnchor="middle"
+                    className="fill-blue-700 font-semibold tabular-nums"
+                    style={{ fontSize: view.width * 0.02 }}
+                  >
+                    {formatLength(
+                      toMetres(
+                        Math.hypot(
+                          drawingWall.to.x - drawingWall.from.x,
+                          drawingWall.to.y - drawingWall.from.y,
+                        ),
+                        metresPerUnit,
+                      ),
+                    )}
+                  </text>
+                </g>
               )}
 
               {plan.zones.map((zone) => {

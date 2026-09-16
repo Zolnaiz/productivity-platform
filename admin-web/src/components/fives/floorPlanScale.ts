@@ -73,6 +73,16 @@ export interface Sized {
   height: number;
 }
 
+/**
+ * An area already measured in square canvas units, in square metres.
+ *
+ * Two factors, not one: a scale that halves the length of a side quarters the
+ * ground it covers, and forgetting the square is the classic way an area comes
+ * out plausible and wrong.
+ */
+export const areaInMetres = (squareUnits: number, metresPerUnit: number) =>
+  squareUnits * metresPerUnit * metresPerUnit;
+
 export const areaOf = (box: Sized, metresPerUnit: number) =>
   toMetres(box.width, metresPerUnit) * toMetres(box.height, metresPerUnit);
 

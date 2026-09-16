@@ -104,6 +104,21 @@ export interface AuditTier {
   templateId?: string;
 }
 
+/** A point where walls meet. */
+export interface PlanCorner {
+  id: string;
+  x: number;
+  y: number;
+}
+
+export interface PlanWall {
+  id: string;
+  from: string;
+  to: string;
+  /** In canvas units: outer walls are drawn thicker than partitions. */
+  thickness: number;
+}
+
 export interface FiveSLayoutPlan {
   id: string;
   organizationId?: string;
@@ -131,6 +146,19 @@ export interface FiveSLayoutPlan {
   showGrid?: boolean;
   /** Absent until an organization configures its own layers. */
   auditTiers?: AuditTier[];
+  /**
+   * The corners walls meet at. Shared, so dragging one moves every wall on it.
+   */
+  corners?: PlanCorner[];
+  /**
+   * The walls of the building.
+   *
+   * Rooms are not stored: they are whatever the walls close in, worked out
+   * from the wall graph whenever the plan is drawn. Storing them as well would
+   * be a second copy of the same fact, and the two would part company the
+   * first time somebody moved a corner.
+   */
+  walls?: PlanWall[];
   zones: FiveSZone[];
   objects: FloorPlanObject[];
   createdAt?: string;

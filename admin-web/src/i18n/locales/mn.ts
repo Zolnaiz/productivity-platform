@@ -490,6 +490,10 @@ const mn: Translations<typeof en> = {
     emptyDescription: 'Огноотой ажил, аудит энд цагийн хэлхээ болж харагдана.',
   },
   fiveS: {
+    tools: 'Багаж',
+    toolSelect: 'Сонгох',
+    toolWall: 'Хана',
+    wallHint: 'Товшиж хана эхлүүлнэ, булан бүр дээр дахин товшино. Esc төгсгөнө, Alt өнцгөөс чөлөөлнө.',
     planWidth: 'Зургийн өргөн (м)',
     planSize: 'Бүтэн зураг: {{width}} × {{height}} м',
     widthMetres: 'Өргөн (м)',

@@ -55,6 +55,14 @@
 
 ## Next Frontend Work
 
+- Keep building the floor plan toward what a 2D floor-plan tool actually is,
+  in this order: doors and windows placed into walls; an object library at real
+  sizes that snaps to walls; dragging a corner to move every wall on it;
+  naming a room; a start screen offering a blueprint import, a blank plan or a
+  template instead of the crude office that currently appears; then Grid/Snap/
+  Dimensions toggles. Zones for 5S then sit inside real rooms rather than
+  floating in an abstract canvas.
+
 - Finish the floor-plan editor. Zoom, pan, grid snap, corner resize,
   undo/redo, keyboard editing, multi-select, align/distribute and
   copy/paste/duplicate, z-order and a right-click menu are in. Still missing,
