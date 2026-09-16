@@ -196,6 +196,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Backend exposes Prometheus-compatible metrics at `/api/metrics` only when `ENABLE_METRICS=true`.
 - Unused Socket.IO dependencies were removed and backend `js-yaml` is pinned through overrides to keep dependency audits clean.
 - PostgreSQL backup/restore guidance is documented for Docker and non-Docker environments.
+- Light, dark and follow-the-system are switchable from the header, and so is Mongolian or English. Both capabilities were complete and unreachable: the theme context has supported all three modes from the start with every component styled for them, and the language switch was buried in Settings — which somebody who cannot read the current language has to find first.
 - Frontend admin routes are role-guarded (`admin`/`super_admin`; audit log is `super_admin` only).
 - Frontend production mode does not silently fall back to demo data for real backend failures.
 - Frontend demo mode is disabled in production unless `VITE_ENABLE_DEMO_MODE=true`.
@@ -211,7 +212,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 425 passing
-- Frontend tests: 394 passing
+- Frontend tests: 404 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

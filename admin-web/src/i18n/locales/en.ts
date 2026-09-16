@@ -42,6 +42,12 @@ const en = {
     auditLog: 'Audit Log',
     adminHome: 'Admin',
   },
+  theme: {
+    label: 'Appearance',
+    light: 'Light',
+    dark: 'Dark',
+    system: 'Follow system',
+  },
   common: {
     close: 'Close',
     cancel: 'Cancel',

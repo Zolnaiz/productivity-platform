@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import LanguageToggle from './LanguageToggle';
+import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import { assessmentService } from '../../services/assessment.service';
 import { financeService } from '../../services/finance.service';
@@ -215,7 +217,16 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         </div>
       </div>
 
-      <div className="ml-4 flex items-center gap-3">
+      <div className="ml-4 flex items-center gap-2 sm:gap-3">
+        {/*
+          Both of these were fully built and unreachable: the theme context
+          has supported light, dark and system from the start with every
+          component styled for it, and the translations were only switchable
+          from a Settings page three clicks away. A capability nobody can
+          reach is the same as not having it.
+        */}
+        <LanguageToggle />
+        <ThemeToggle />
         <div className="hidden text-right sm:block">
           <div className="text-sm font-medium text-gray-900 dark:text-white">
             {user?.name || 'Admin user'}

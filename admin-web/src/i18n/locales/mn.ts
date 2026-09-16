@@ -42,6 +42,12 @@ const mn: Translations<typeof en> = {
     auditLog: 'Аудитын бүртгэл',
     adminHome: 'Удирдлага',
   },
+  theme: {
+    label: 'Харагдац',
+    light: 'Цайвар',
+    dark: 'Бараан',
+    system: 'Системийг дагах',
+  },
   common: {
     close: 'Хаах',
     cancel: 'Болих',
