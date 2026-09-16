@@ -243,3 +243,99 @@ export const roomCentre = (room: Room): Point => {
 /** The SVG path for a room's floor. */
 export const roomPath = (room: Room) =>
   room.points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ') + ' Z';
+
+/**
+ * Moves one corner, which moves every wall that ends on it.
+ *
+ * This is why corners are shared rather than each wall carrying its own two
+ * ends: a room is adjusted by pulling a corner, and the walls either side of it
+ * follow because they were never separate from it. Two walls that merely met at
+ * the same coordinates would part company here, leaving a gap the room stops
+ * closing through.
+ */
+export const moveCorner = (corners: Corner[], id: string, point: Point): Corner[] =>
+  corners.map((corner) => (corner.id === id ? { ...corner, x: point.x, y: point.y } : corner));
+
+export interface MergeResult {
+  corners: Corner[];
+  walls: Wall[];
+  /** Walls that were dropped, mapped to the one that replaced them. */
+  replaced: Record<string, string>;
+}
+
+/**
+ * Joins one corner to another, as dropping one on top of another means.
+ *
+ * Drawing a room and finding it does not close is the commonest way a
+ * hand-drawn plan fails: two corners a pixel apart, no enclosed face, no area.
+ * Dragging one onto the other is how a person says "these are the same point",
+ * and it has to actually make them one point rather than stacking them.
+ *
+ * Walls that would run from a corner to itself are dropped, and a wall that
+ * would duplicate one already there is dropped too — both are the same wall
+ * twice, and a doubled wall is invisible until it breaks the room-finding.
+ */
+export const mergeCorners = (
+  corners: Corner[],
+  walls: Wall[],
+  fromId: string,
+  intoId: string,
+): MergeResult => {
+  if (fromId === intoId) return { corners, walls, replaced: {} };
+
+  const kept: Wall[] = [];
+  const replaced: Record<string, string> = {};
+  const seen = new Map<string, string>();
+
+  walls.forEach((wall) => {
+    const from = wall.from === fromId ? intoId : wall.from;
+    const to = wall.to === fromId ? intoId : wall.to;
+
+    if (from === to) {
+      replaced[wall.id] = '';
+      return;
+    }
+
+    // Undirected: a wall from A to B is the wall from B to A.
+    const key = [from, to].sort().join('>');
+    const already = seen.get(key);
+
+    if (already) {
+      replaced[wall.id] = already;
+      return;
+    }
+
+    seen.set(key, wall.id);
+    kept.push({ ...wall, from, to });
+  });
+
+  return {
+    corners: corners.filter((corner) => corner.id !== fromId),
+    walls: kept,
+    replaced,
+  };
+};
+
+/** The corner a point means, ignoring one it is not allowed to be. */
+export const cornerNear = (corners: Corner[], point: Point, exceptId: string, tolerance = CORNER_SNAP) =>
+  cornerAt(
+    corners.filter((corner) => corner.id !== exceptId),
+    point,
+    tolerance,
+  );
+
+/**
+ * Corners that no wall uses any more.
+ *
+ * A corner with nothing on it draws as a dot somebody cannot explain and
+ * cannot select; it is left over from a deletion rather than placed.
+ */
+export const orphanCorners = (corners: Corner[], walls: Wall[]) => {
+  const used = new Set(walls.flatMap((wall) => [wall.from, wall.to]));
+
+  return corners.filter((corner) => !used.has(corner.id));
+};
+
+/** The walls that end on a corner. */
+export const wallsOn = (walls: Wall[], cornerId: string) =>
+  walls.filter((wall) => wall.from === cornerId || wall.to === cornerId);

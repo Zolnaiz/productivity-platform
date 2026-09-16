@@ -56,13 +56,13 @@
 ## Next Frontend Work
 
 - Keep building the floor plan toward what a 2D floor-plan tool actually is,
-  in this order: dragging a corner to move every wall on it; naming a room;
-  then Grid/Snap/Dimensions toggles. Zones for 5S then sit inside real rooms rather than floating in an
+  in this order: naming a room; then Grid/Snap/Dimensions toggles. Zones for 5S then sit inside real rooms rather than floating in an
   abstract canvas. Doors and windows are in: an opening belongs to a wall and
   is measured along it, the wall renders as the pieces left standing, and a
   door carries the quarter circle its leaf sweeps. So is the object catalogue:
   real dimensions in metres, shown on the palette, with wall snapping for the
-  things that stand against walls.
+  things that stand against walls. So is dragging a corner, including dropping
+  one corner on another to join them.
 
 - Finish the floor-plan editor. Zoom, pan, grid snap, corner resize,
   undo/redo, keyboard editing, multi-select, align/distribute and

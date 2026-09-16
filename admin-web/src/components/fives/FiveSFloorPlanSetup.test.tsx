@@ -1052,4 +1052,144 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       await waitFor(() => expect(placedAt('chair-1')).toContain('translate(192 120)'));
     });
   });
+
+  describe('pulling a corner about', () => {
+    /** Three walls of a rectangle, with the fourth corner a little off. */
+    const nearlyClosed = () => ({
+      ...buildPlan(),
+      zones: [],
+      objects: [],
+      corners: [
+        { id: 'a', x: 96, y: 96 },
+        { id: 'b', x: 384, y: 96 },
+        { id: 'c', x: 384, y: 288 },
+        { id: 'd', x: 96, y: 288 },
+        { id: 'e', x: 108, y: 108 },
+      ],
+      walls: [
+        { id: 'w1', from: 'e', to: 'b', thickness: 12 },
+        { id: 'w2', from: 'b', to: 'c', thickness: 12 },
+        { id: 'w3', from: 'c', to: 'd', thickness: 12 },
+        { id: 'w4', from: 'd', to: 'a', thickness: 12 },
+      ],
+      openings: [],
+    });
+
+    const canvas = () => {
+      const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+      } as DOMRect);
+
+      return svg;
+    };
+
+    const roomAreas = () =>
+      Array.from(document.querySelectorAll('svg[aria-label="5S floor plan"] text'))
+        .map((node) => node.textContent ?? '')
+        .filter((text) => text.endsWith('m²'));
+
+    beforeEach(() => {
+      serviceMocks.getPlan.mockResolvedValue(nearlyClosed());
+    });
+
+    it('closes a room that never quite closed, by dropping one corner on another', async () => {
+      // Two corners a pixel apart is the commonest way a hand-drawn plan fails:
+      // nothing encloses, no area appears, and nothing on screen says why.
+      render(<FiveSFloorPlanSetup />);
+      await screen.findByTestId('five-s-corner-e');
+      expect(roomAreas()).toHaveLength(0);
+
+      canvas();
+      fireEvent.pointerDown(screen.getByTestId('five-s-corner-e'), {
+        clientX: 108,
+        clientY: 108,
+        pointerId: 1,
+      });
+      fireEvent.pointerMove(canvas(), { clientX: 98, clientY: 98, pointerId: 1 });
+      fireEvent.pointerUp(canvas(), { clientX: 98, clientY: 98, pointerId: 1 });
+
+      await waitFor(() => expect(roomAreas()).toHaveLength(1));
+      expect(screen.getByText(/Corners joined/)).toBeTruthy();
+    });
+
+    it('takes every wall on the corner along with it', async () => {
+      render(<FiveSFloorPlanSetup />);
+      await screen.findByTestId('five-s-corner-b');
+
+      canvas();
+      fireEvent.pointerDown(screen.getByTestId('five-s-corner-b'), {
+        clientX: 384,
+        clientY: 96,
+        pointerId: 1,
+      });
+      fireEvent.pointerMove(canvas(), { clientX: 480, clientY: 96, pointerId: 1 });
+
+      // Both walls that end on it follow: one got longer, the other leans.
+      await waitFor(() => {
+        const moved = Array.from(document.querySelectorAll('line[stroke-width="12"]'));
+        expect(moved.some((line) => line.getAttribute('x2') === '480')).toBe(true);
+        expect(moved.some((line) => line.getAttribute('x1') === '480')).toBe(true);
+      });
+    });
+
+    it('says how long the walls are while the corner is moving', async () => {
+      // Dragging blind and measuring afterwards is how a room ends up 30 mm out.
+      render(<FiveSFloorPlanSetup />);
+      await screen.findByTestId('five-s-corner-c');
+
+      canvas();
+      fireEvent.pointerDown(screen.getByTestId('five-s-corner-c'), {
+        clientX: 384,
+        clientY: 288,
+        pointerId: 1,
+      });
+      fireEvent.pointerMove(canvas(), { clientX: 384, clientY: 240, pointerId: 1 });
+
+      await waitFor(() => expect(screen.getByText('6.0 m')).toBeTruthy());
+    });
+
+    it('carries a door over to the wall that stays', async () => {
+      // A door dropped with the wall that gave way would take an entrance out
+      // of the building without saying anything.
+      serviceMocks.getPlan.mockResolvedValue({
+        ...nearlyClosed(),
+        openings: [{ id: 'o1', wallId: 'w1', kind: 'door', offset: 100, width: 21.6 }],
+      });
+      render(<FiveSFloorPlanSetup />);
+      await screen.findByTestId('five-s-corner-e');
+
+      canvas();
+      fireEvent.pointerDown(screen.getByTestId('five-s-corner-e'), {
+        clientX: 108,
+        clientY: 108,
+        pointerId: 1,
+      });
+      fireEvent.pointerMove(canvas(), { clientX: 98, clientY: 98, pointerId: 1 });
+      fireEvent.pointerUp(canvas(), { clientX: 98, clientY: 98, pointerId: 1 });
+
+      await waitFor(() => expect(screen.getByText(/Corners joined/)).toBeTruthy());
+      expect(document.querySelector('path[stroke-dasharray="4 3"]')).toBeTruthy();
+    });
+
+    it('leaves a corner dropped nowhere near another one alone', async () => {
+      render(<FiveSFloorPlanSetup />);
+      await screen.findByTestId('five-s-corner-e');
+
+      canvas();
+      fireEvent.pointerDown(screen.getByTestId('five-s-corner-e'), {
+        clientX: 108,
+        clientY: 108,
+        pointerId: 1,
+      });
+      fireEvent.pointerMove(canvas(), { clientX: 200, clientY: 200, pointerId: 1 });
+      fireEvent.pointerUp(canvas(), { clientX: 200, clientY: 200, pointerId: 1 });
+
+      expect(screen.queryByText(/Corners joined/)).toBeNull();
+      expect(screen.getByTestId('five-s-corner-e')).toBeTruthy();
+    });
+  });
 });

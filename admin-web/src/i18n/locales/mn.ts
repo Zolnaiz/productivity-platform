@@ -529,6 +529,8 @@ const mn: Translations<typeof en> = {
       sink: 'Угаалтуур',
     },
     objectAdded: '{{label}} {{size}} хэмжээтэйгээр байрлууллаа.',
+    corner: 'Булан',
+    cornersJoined: 'Булангууд нэгдэж, ханууд нэг цэгийг хуваалцаж байна.',
     toolDoor: 'Хаалга',
     toolWindow: 'Цонх',
     opening_door: 'Хаалга',

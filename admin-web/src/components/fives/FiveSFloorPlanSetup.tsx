@@ -126,12 +126,16 @@ import {
 import {
   Point,
   cornerAt,
+  cornerNear,
   detectRooms,
+  mergeCorners,
+  moveCorner,
   endsOf,
   roomCentre,
   roomPath,
   snapToAngle,
   wallLength,
+  wallsOn,
 } from './floorPlanWalls';
 import {
   Opening,
@@ -465,6 +469,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const [selectedOpeningId, setSelectedOpeningId] = useState('');
   /** An opening being slid along its wall. */
   const [openingDrag, setOpeningDrag] = useState<string>('');
+  /**
+   * A corner being dragged, and the corner it would join if let go.
+   *
+   * The second half is what makes closing a room possible: dropping a corner on
+   * another means they are the same point, and until the drop is made the one
+   * it would join is shown so nobody has to guess whether it will take.
+   */
+  const [cornerDrag, setCornerDrag] = useState<{ id: string; over: string } | null>(null);
   const selectedOpening = useMemo(
     () => (plan?.openings ?? []).find((opening) => opening.id === selectedOpeningId),
     [plan, selectedOpeningId],
@@ -1088,6 +1100,66 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const stopDrawingWall = () => setDrawingWall(null);
 
   /**
+   * Drags a corner, which drags every wall that ends on it.
+   *
+   * This is the gesture a plan is actually adjusted with: a room is the wrong
+   * size, so you pull the corner. Redrawing both walls instead loses their
+   * openings, their thickness, and any rooms they were part of.
+   */
+  const dragCornerTo = (id: string, rawPoint: Point, straighten: boolean) => {
+    if (!plan) return;
+
+    const point = {
+      x: snapToGrid(rawPoint.x, straighten),
+      y: snapToGrid(rawPoint.y, straighten),
+    };
+    const over = cornerNear(plan.corners ?? [], point, id);
+
+    setCornerDrag({ id, over: over?.id ?? '' });
+    updatePlan((current) => ({ ...current, corners: moveCorner(current.corners ?? [], id, point) }), {
+      skipHistory: true,
+    });
+  };
+
+  /**
+   * Lets go of a corner, joining it to another if it was dropped on one.
+   *
+   * Two corners a pixel apart is the commonest way a hand-drawn plan quietly
+   * fails: nothing encloses, no area ever appears, and there is nothing on
+   * screen to say why. Dropping one on the other is how a person says they are
+   * the same point, so it has to actually make them one.
+   */
+  const dropCorner = () => {
+    const dragging = cornerDrag;
+    setCornerDrag(null);
+    if (!dragging?.over || !plan) return;
+
+    updatePlan((current) => {
+      const merged = mergeCorners(
+        current.corners ?? [],
+        current.walls ?? [],
+        dragging.id,
+        dragging.over,
+      );
+
+      return {
+        ...current,
+        corners: merged.corners,
+        walls: merged.walls,
+        // A door on a wall that gave way belongs on the wall that stayed;
+        // dropping it with the wall would lose an entrance without a word.
+        openings: (current.openings ?? []).flatMap((opening) => {
+          const replacement = merged.replaced[opening.wallId];
+          if (replacement === undefined) return [opening];
+
+          return replacement ? [{ ...opening, wallId: replacement }] : [];
+        }),
+      };
+    });
+    setActionMessage(t('fiveS.cornersJoined'));
+  };
+
+  /**
    * Puts a door or a window into the wall somebody pointed at.
    *
    * Pointing at the wall is the whole gesture: an opening belongs to a wall, so
@@ -1568,6 +1640,15 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
       panRef.current = { clientX: event.clientX, clientY: event.clientY };
       setView((current) => panBy(current, moved.x, moved.y));
+      return;
+    }
+
+    if (cornerDrag) {
+      dragCornerTo(
+        cornerDrag.id,
+        pointInView(view, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY),
+        (plan?.showGrid ?? true) && !event.altKey,
+      );
       return;
     }
 
@@ -3487,6 +3568,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               onPointerUp={(event) => {
                 endPan();
                 setOpeningDrag('');
+                dropCorner();
 
                 if (tool === 'wall' && drawingWall) {
       const point = pointInView(view, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
@@ -3512,6 +3594,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               onPointerLeave={() => {
                 endPan();
                 setOpeningDrag('');
+                dropCorner();
                 endMarquee(false);
                 setDrag(null);
               }}
@@ -3704,9 +3787,71 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 );
               })}
 
-              {(plan.corners ?? []).map((corner) => (
-                <circle key={corner.id} cx={corner.x} cy={corner.y} r={5} fill="#1f2937" pointerEvents="none" />
-              ))}
+              {/*
+                Corners are handles, not decoration. Dragging one moves every
+                wall that ends on it, and dropping it on another joins them —
+                which is how a room that never quite closed gets closed.
+              */}
+              {(plan.corners ?? []).map((corner) => {
+                const dragging = cornerDrag?.id === corner.id;
+                const joining = Boolean(dragging && cornerDrag?.over) || cornerDrag?.over === corner.id;
+
+                return (
+                  <g key={corner.id}>
+                    <circle
+                      cx={corner.x}
+                      cy={corner.y}
+                      r={joining ? 9 : 5}
+                      fill={joining ? '#2563eb' : '#1f2937'}
+                      pointerEvents="none"
+                    />
+                    <circle
+                      cx={corner.x}
+                      cy={corner.y}
+                      r={14}
+                      fill="transparent"
+                      className={tool === 'select' ? 'cursor-move' : 'cursor-crosshair'}
+                      aria-label={t('fiveS.corner')}
+                      data-testid={`five-s-corner-${corner.id}`}
+                      onPointerDown={(event) => {
+                        if (tool !== 'select') return;
+
+                        event.stopPropagation();
+                        capturePointer(event);
+                        setSelectedZoneId('');
+                        setSelectedObjectId('');
+                        setSelectedOpeningId('');
+                        beginDragHistory();
+                        setCornerDrag({ id: corner.id, over: '' });
+                      }}
+                    />
+                    {/*
+                      While a corner is moving, the walls on it say how long
+                      they now are. Dragging blind and measuring afterwards is
+                      how a room ends up 30 mm out.
+                    */}
+                    {dragging &&
+                      wallsOn(plan.walls ?? [], corner.id).map((wall) => {
+                        const ends = endsOf(wall, plan.corners ?? []);
+                        if (!ends) return null;
+
+                        return (
+                          <text
+                            key={wall.id}
+                            x={(ends.from.x + ends.to.x) / 2}
+                            y={(ends.from.y + ends.to.y) / 2 - view.height * 0.016}
+                            textAnchor="middle"
+                            className="fill-blue-600 tabular-nums"
+                            style={{ fontSize: view.width * 0.016 }}
+                            pointerEvents="none"
+                          >
+                            {formatLength(toMetres(wallLength(wall, plan.corners ?? []), metresPerUnit))}
+                          </text>
+                        );
+                      })}
+                  </g>
+                );
+              })}
 
               {/*
                 The wall being drawn, with its length beside it. Seeing the

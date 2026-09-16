@@ -532,6 +532,8 @@ const en = {
       sink: 'Sink',
     },
     objectAdded: '{{label}} placed at {{size}}.',
+    corner: 'Corner',
+    cornersJoined: 'Corners joined; the walls now share one point.',
     toolDoor: 'Door',
     toolWindow: 'Window',
     opening_door: 'Door',

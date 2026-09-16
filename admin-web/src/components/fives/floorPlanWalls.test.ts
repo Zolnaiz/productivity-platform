@@ -3,14 +3,19 @@ import {
   Corner,
   Wall,
   cornerAt,
+  cornerNear,
   detectRooms,
   endsOf,
+  mergeCorners,
+  moveCorner,
+  orphanCorners,
   polygonArea,
   roomCentre,
   roomPath,
   signedArea,
   snapToAngle,
   wallLength,
+  wallsOn,
 } from './floorPlanWalls';
 
 const corner = (id: string, x: number, y: number): Corner => ({ id, x, y });
@@ -199,5 +204,126 @@ describe('labelling a room', () => {
     expect(path.startsWith('M ')).toBe(true);
     expect(path.endsWith(' Z')).toBe(true);
     expect(path.split('L')).toHaveLength(4);
+  });
+});
+
+describe('moving a corner', () => {
+  const corners = [
+    { id: 'a', x: 0, y: 0 },
+    { id: 'b', x: 100, y: 0 },
+    { id: 'c', x: 100, y: 100 },
+    { id: 'd', x: 0, y: 100 },
+  ];
+  const walls = [
+    { id: 'w1', from: 'a', to: 'b', thickness: 10 },
+    { id: 'w2', from: 'b', to: 'c', thickness: 10 },
+    { id: 'w3', from: 'c', to: 'd', thickness: 10 },
+    { id: 'w4', from: 'd', to: 'a', thickness: 10 },
+  ];
+
+  it('takes every wall on it along', () => {
+    // The point of sharing corners: two walls that merely met at the same
+    // coordinates would part company here and leave a gap.
+    const moved = moveCorner(corners, 'b', { x: 200, y: -50 });
+
+    expect(wallLength({ id: 'w1', from: 'a', to: 'b', thickness: 10 }, moved)).toBeCloseTo(
+      Math.hypot(200, 50),
+      6,
+    );
+    expect(wallLength({ id: 'w2', from: 'b', to: 'c', thickness: 10 }, moved)).toBeCloseTo(
+      Math.hypot(100, 150),
+      6,
+    );
+  });
+
+  it('leaves the other corners alone', () => {
+    const moved = moveCorner(corners, 'b', { x: 200, y: -50 });
+
+    expect(moved.filter((corner) => corner.id !== 'b')).toEqual(
+      corners.filter((corner) => corner.id !== 'b'),
+    );
+  });
+
+  it('keeps the room closed, at its new size', () => {
+    const moved = moveCorner(corners, 'c', { x: 200, y: 100 });
+    const rooms = detectRooms(walls, moved);
+
+    expect(rooms).toHaveLength(1);
+    expect(rooms[0].area).toBeCloseTo((100 + 200) / 2 * 100, 6);
+  });
+
+  it('is nothing at all for a corner that is not there', () => {
+    expect(moveCorner(corners, 'nobody', { x: 5, y: 5 })).toEqual(corners);
+  });
+
+  it('finds the corner a drag has landed on, but never the one being dragged', () => {
+    // Without the exception a corner always lands on itself, and every drag
+    // would end by merging a corner into itself.
+    expect(cornerNear(corners, { x: 2, y: 2 }, 'a')).toBeNull();
+    expect(cornerNear(corners, { x: 2, y: 2 }, 'b')?.id).toBe('a');
+  });
+
+  describe('dropped on top of another corner', () => {
+    it('makes them one point, so the room closes', () => {
+      // Two corners a pixel apart is the commonest way a hand-drawn plan
+      // fails: nothing encloses, and no area ever appears.
+      const open = [...corners, { id: 'e', x: 2, y: 2 }];
+      const openWalls = [
+        { id: 'w1', from: 'e', to: 'b', thickness: 10 },
+        { id: 'w2', from: 'b', to: 'c', thickness: 10 },
+        { id: 'w3', from: 'c', to: 'd', thickness: 10 },
+        { id: 'w4', from: 'd', to: 'a', thickness: 10 },
+      ];
+
+      expect(detectRooms(openWalls, open)).toHaveLength(0);
+
+      const merged = mergeCorners(open, openWalls, 'e', 'a');
+
+      expect(detectRooms(merged.walls, merged.corners)).toHaveLength(1);
+      expect(merged.corners).toHaveLength(4);
+    });
+
+    it('drops a wall that would run from the corner to itself', () => {
+      const merged = mergeCorners(corners, walls, 'b', 'a');
+
+      expect(merged.walls.map((wall) => wall.id)).not.toContain('w1');
+      expect(merged.replaced.w1).toBe('');
+    });
+
+    it('drops a wall that would double one already there', () => {
+      // A doubled wall is invisible until it breaks the room-finding.
+      const extra = [...walls, { id: 'w5', from: 'a', to: 'c', thickness: 10 }];
+      const merged = mergeCorners(corners, extra, 'b', 'c');
+
+      const keys = merged.walls.map((wall) => [wall.from, wall.to].sort().join('>'));
+      expect(new Set(keys).size).toBe(keys.length);
+      // w1 now runs a to c, which is the wall w5 already was; the first one
+      // stays and the later duplicate gives way to it.
+      expect(merged.replaced.w5).toBe('w1');
+    });
+
+    it('says which wall replaced each one it dropped, so a door can follow', () => {
+      const extra = [...walls, { id: 'w5', from: 'a', to: 'c', thickness: 10 }];
+      const merged = mergeCorners(corners, extra, 'b', 'c');
+
+      // A door on the wall that gave way belongs on the one that stayed;
+      // without this it would be dropped with the wall and disappear.
+      expect(merged.replaced.w5).toBe('w1');
+      expect(merged.replaced.w2).toBe('');
+    });
+
+    it('refuses to merge a corner into itself', () => {
+      expect(mergeCorners(corners, walls, 'a', 'a').walls).toEqual(walls);
+    });
+  });
+
+  it('knows which walls end on a corner', () => {
+    expect(wallsOn(walls, 'b').map((wall) => wall.id)).toEqual(['w1', 'w2']);
+  });
+
+  it('spots a corner no wall uses any more', () => {
+    const stray = [...corners, { id: 'x', x: 50, y: 50 }];
+
+    expect(orphanCorners(stray, walls).map((corner) => corner.id)).toEqual(['x']);
   });
 });
