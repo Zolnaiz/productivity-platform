@@ -109,6 +109,17 @@ import {
 } from './floorPlanSelection';
 import { copyName, duplicateZones, nextZoneCode } from './floorPlanClipboard';
 import { OrderMove, canReorder, reorder } from './floorPlanOrder';
+import {
+  areaOf,
+  calibrate,
+  formatArea,
+  formatLength,
+  formatSize,
+  niceBarLength,
+  scaleOf,
+  toMetres,
+  toUnits,
+} from './floorPlanScale';
 
 /** Steps of undo kept in memory. Fifty is far more than anyone reaches for. */
 const HISTORY_LIMIT = 50;
@@ -381,6 +392,26 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     () => plan?.objects.find((object) => object.id === selectedObjectId),
     [plan, selectedObjectId],
   );
+
+  /**
+   * A calibration line being drawn, in canvas coordinates.
+   *
+   * This is how an imported building drawing gets its real size: draw along
+   * something whose length somebody has measured, then say what it is.
+   * Everything already on the plan resizes with it, so calibrating after
+   * drawing does not mean drawing again.
+   */
+  const [calibration, setCalibration] = useState<{
+    from: { x: number; y: number };
+    to: { x: number; y: number };
+    done?: boolean;
+  } | null>(null);
+  const [calibrationMetres, setCalibrationMetres] = useState('10');
+  /** While on, a drag on the canvas measures instead of selecting. */
+  const [calibrationMode, setCalibrationMode] = useState(false);
+
+  /** How many metres one canvas unit covers, for everything that shows a size. */
+  const metresPerUnit = scaleOf(plan);
 
   /** The box around everything selected, for the group outline. */
   const selectionOutline = useMemo(
@@ -875,6 +906,31 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setContextMenu(null);
   };
 
+  const startCalibration = () => {
+    setCalibration(null);
+    setCalibrationMode(true);
+  };
+
+  /** Applies the measured line, rescaling the whole plan with it. */
+  const applyCalibration = () => {
+    if (!calibration) return;
+
+    const pixels = Math.hypot(calibration.to.x - calibration.from.x, calibration.to.y - calibration.from.y);
+    const next = calibrate(pixels, Number(calibrationMetres));
+
+    if (!next) {
+      setActionMessage('Draw a line along something you know the length of, then give that length.');
+      return;
+    }
+
+    updatePlan((current) => ({ ...current, metresPerUnit: next }));
+    setCalibration(null);
+    setCalibrationMode(false);
+    setActionMessage(
+      `Plan calibrated: it is now ${toMetres(CANVAS_WIDTH, next).toFixed(1)} m across.`,
+    );
+  };
+
   /** Everything selected, in plan order rather than the order it was clicked. */
   const selectedZones = () =>
     (plan?.zones ?? []).filter((zone) => selectedZoneIds.includes(zone.id) || zone.id === selectedZoneId);
@@ -1280,6 +1336,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
       panRef.current = { clientX: event.clientX, clientY: event.clientY };
       setView((current) => panBy(current, moved.x, moved.y));
+      return;
+    }
+
+    if (calibration && !calibration.done) {
+      setCalibration({
+        ...calibration,
+        to: pointInView(view, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY),
+      });
       return;
     }
 
@@ -2181,13 +2245,35 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               onChange={(event) => updatePlan((current) => ({ ...current, site: event.target.value }))}
             />
           </label>
+          {/*
+            The scale used to be free text — `1 square = 1 meter`, a note to
+            the reader that no code could act on. It is a number now, and
+            everything that shows a size reads it.
+          */}
           <label className="block text-sm text-gray-600 dark:text-gray-400">
-            Scale
+            {t('fiveS.planWidth')}
             <input
               className={fieldClass}
-              value={plan.scale}
-              onChange={(event) => updatePlan((current) => ({ ...current, scale: event.target.value }))}
+              min={1}
+              step={0.5}
+              type="number"
+              value={Number(toMetres(CANVAS_WIDTH, metresPerUnit).toFixed(1))}
+              onChange={(event) => {
+                const metres = Number(event.target.value);
+                if (!(metres > 0)) return;
+
+                // Said as the width of the whole plan, because that is a
+                // number somebody knows about their building. One unit in
+                // metres is not.
+                updatePlan((current) => ({ ...current, metresPerUnit: metres / CANVAS_WIDTH }));
+              }}
             />
+            <span className="mt-1 block text-xs text-gray-500">
+              {t('fiveS.planSize', {
+                width: toMetres(CANVAS_WIDTH, metresPerUnit).toFixed(1),
+                height: toMetres(CANVAS_HEIGHT, metresPerUnit).toFixed(1),
+              })}
+            </span>
           </label>
         </div>
 
@@ -2705,8 +2791,57 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   </button>
                 )}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('fiveS.canvasHint')}</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className={`rounded-md border px-2 py-1 text-xs ${
+                    calibrationMode
+                      ? 'border-red-400 bg-red-50 text-red-700 dark:border-red-700 dark:bg-red-950/30 dark:text-red-300'
+                      : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800'
+                  }`}
+                  onClick={() => (calibrationMode ? setCalibrationMode(false) : startCalibration())}
+                >
+                  {calibrationMode ? t('fiveS.calibrateCancel') : t('fiveS.calibrate')}
+                </button>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('fiveS.canvasHint')}</p>
+              </div>
             </div>
+
+            {/*
+              Shown only while measuring. The length is asked for after the
+              line is drawn rather than before, because nobody knows which wall
+              they are going to use until they are looking at the drawing.
+            */}
+            {calibrationMode && (
+              <div className="flex flex-wrap items-center gap-2 border-b border-red-200 bg-red-50/60 px-3 py-2 dark:border-red-900 dark:bg-red-950/20">
+                <span className="text-xs text-red-800 dark:text-red-300">
+                  {calibration?.done ? t('fiveS.calibrateLength') : t('fiveS.calibrateDraw')}
+                </span>
+                {calibration?.done && (
+                  <>
+                    <input
+                      autoFocus
+                      className="w-24 rounded-md border border-red-300 px-2 py-1 text-sm dark:border-red-800 dark:bg-gray-900"
+                      min={0.1}
+                      step={0.1}
+                      type="number"
+                      aria-label={t('fiveS.calibrateLength')}
+                      value={calibrationMetres}
+                      onChange={(event) => setCalibrationMetres(event.target.value)}
+                      onKeyDown={(event) => event.key === 'Enter' && applyCalibration()}
+                    />
+                    <span className="text-xs text-red-800 dark:text-red-300">m</span>
+                    <button
+                      type="button"
+                      className="rounded-md bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700"
+                      onClick={applyCalibration}
+                    >
+                      {t('fiveS.calibrateApply')}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
 
             {/*
               Only while several areas are selected: alignment of one area
@@ -2879,6 +3014,19 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 setContextMenu(null);
                 if (startPanIfRequested(event)) return;
 
+                if (calibrationMode && svgRef.current) {
+                  const point = pointInView(
+                    view,
+                    svgRef.current.getBoundingClientRect(),
+                    event.clientX,
+                    event.clientY,
+                  );
+
+                  capturePointer(event);
+                  setCalibration({ from: point, to: point });
+                  return;
+                }
+
                 if (event.target === event.currentTarget || (event.target as SVGElement).dataset.canvasBackground) {
                   startMarquee(event);
                 }
@@ -2886,6 +3034,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               onPointerMove={handleCanvasPointerMove}
               onPointerUp={(event) => {
                 endPan();
+
+                if (calibration && !calibration.done) {
+                  setCalibration({ ...calibration, done: true });
+                  return;
+                }
+
                 endMarquee(event.shiftKey || event.ctrlKey || event.metaKey);
                 setDrag(null);
               }}
@@ -2963,6 +3117,28 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     </text>
                     <text x={zone.x + 52} y={zone.y + 50} className="fill-gray-600 text-[12px]">
                       {zone.ownerName || 'No owner'}
+                    </text>
+                    {/*
+                      The size, on the area itself. A floor plan whose parts
+                      cannot say how large they are is a drawing; this is what
+                      makes a 5S score comparable across rooms and red tags
+                      per square metre a number rather than a wish.
+                    */}
+                    <text
+                      x={zone.x + zone.width - 14}
+                      y={zone.y + 26}
+                      textAnchor="end"
+                      className="fill-gray-500 text-[11px] tabular-nums"
+                    >
+                      {formatSize(zone, metresPerUnit)}
+                    </text>
+                    <text
+                      x={zone.x + zone.width - 14}
+                      y={zone.y + 42}
+                      textAnchor="end"
+                      className="fill-gray-500 text-[11px] font-medium tabular-nums"
+                    >
+                      {formatArea(areaOf(zone, metresPerUnit))}
                     </text>
                     <text x={zone.x + 18} y={zone.y + zone.height - 18} className="fill-gray-700 text-[12px]">
                       {stageLabels[zone.stage]}
@@ -3062,6 +3238,66 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   strokeDasharray="6 4"
                   pointerEvents="none"
                 />
+              )}
+
+              {/*
+                A scale bar, pinned to the corner of the view rather than to
+                the plan, so it stays put while the plan moves under it. It is
+                the one thing that makes a printed or screenshotted plan
+                measurable by somebody who was not the person who drew it.
+              */}
+              {(() => {
+                const metres = niceBarLength(toMetres(view.width, metresPerUnit));
+                const barUnits = toUnits(metres, metresPerUnit);
+                const left = view.x + view.width * 0.02;
+                const bottom = view.y + view.height * 0.96;
+                const tick = view.height * 0.014;
+
+                return (
+                  <g pointerEvents="none">
+                    <line
+                      x1={left}
+                      y1={bottom}
+                      x2={left + barUnits}
+                      y2={bottom}
+                      stroke="#334155"
+                      strokeWidth={view.width * 0.002}
+                    />
+                    <line x1={left} y1={bottom - tick} x2={left} y2={bottom + tick} stroke="#334155" strokeWidth={view.width * 0.002} />
+                    <line
+                      x1={left + barUnits}
+                      y1={bottom - tick}
+                      x2={left + barUnits}
+                      y2={bottom + tick}
+                      stroke="#334155"
+                      strokeWidth={view.width * 0.002}
+                    />
+                    <text
+                      x={left + barUnits / 2}
+                      y={bottom - tick * 1.6}
+                      textAnchor="middle"
+                      className="fill-gray-600 font-medium tabular-nums"
+                      style={{ fontSize: view.width * 0.016 }}
+                    >
+                      {formatLength(metres)}
+                    </text>
+                  </g>
+                );
+              })()}
+
+              {calibration && (
+                <g pointerEvents="none">
+                  <line
+                    x1={calibration.from.x}
+                    y1={calibration.from.y}
+                    x2={calibration.to.x}
+                    y2={calibration.to.y}
+                    stroke="#dc2626"
+                    strokeWidth={view.width * 0.003}
+                  />
+                  <circle cx={calibration.from.x} cy={calibration.from.y} r={view.width * 0.005} fill="#dc2626" />
+                  <circle cx={calibration.to.x} cy={calibration.to.y} r={view.width * 0.005} fill="#dc2626" />
+                </g>
               )}
 
               {marquee && (
@@ -3225,32 +3461,45 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   </label>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
+                  {/*
+                    Metres, not canvas units. `Width: 200` was two hundred of
+                    nothing; a person setting up an area knows it is six metres
+                    across and has no idea what two hundred means.
+                  */}
                   <label className="block text-sm text-gray-600 dark:text-gray-400">
-                    Width
+                    {t('fiveS.widthMetres')}
                     <input
                       className={fieldClass}
-                      min={80}
-                      max={CANVAS_WIDTH}
+                      min={0.5}
+                      step={0.1}
                       type="number"
-                      value={Math.round(selectedZone.width)}
+                      value={Number(toMetres(selectedZone.width, metresPerUnit).toFixed(1))}
                       onChange={(event) =>
                         updateZone(selectedZone.id, {
-                          width: clamp(Number(event.target.value), 80, CANVAS_WIDTH - selectedZone.x),
+                          width: clamp(
+                            toUnits(Number(event.target.value), metresPerUnit),
+                            80,
+                            CANVAS_WIDTH - selectedZone.x,
+                          ),
                         })
                       }
                     />
                   </label>
                   <label className="block text-sm text-gray-600 dark:text-gray-400">
-                    Height
+                    {t('fiveS.heightMetres')}
                     <input
                       className={fieldClass}
-                      min={72}
-                      max={CANVAS_HEIGHT}
+                      min={0.5}
+                      step={0.1}
                       type="number"
-                      value={Math.round(selectedZone.height)}
+                      value={Number(toMetres(selectedZone.height, metresPerUnit).toFixed(1))}
                       onChange={(event) =>
                         updateZone(selectedZone.id, {
-                          height: clamp(Number(event.target.value), 72, CANVAS_HEIGHT - selectedZone.y),
+                          height: clamp(
+                            toUnits(Number(event.target.value), metresPerUnit),
+                            72,
+                            CANVAS_HEIGHT - selectedZone.y,
+                          ),
                         })
                       }
                     />

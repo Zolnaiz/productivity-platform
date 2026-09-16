@@ -493,6 +493,15 @@ const en = {
     emptyDescription: 'Tasks and audits with dates will appear here as a timeline.',
   },
   fiveS: {
+    planWidth: 'Plan width (m)',
+    planSize: 'Whole plan: {{width}} × {{height}} m',
+    widthMetres: 'Width (m)',
+    heightMetres: 'Depth (m)',
+    calibrate: 'Set scale',
+    calibrateCancel: 'Cancel',
+    calibrateDraw: 'Drag a line along something you know the length of.',
+    calibrateLength: 'How long is that line?',
+    calibrateApply: 'Apply',
     canvasMenu: 'Floor plan actions',
     menu: {
       duplicate: 'Duplicate',

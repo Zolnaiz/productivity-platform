@@ -109,7 +109,23 @@ export interface FiveSLayoutPlan {
   organizationId?: string;
   name: string;
   site: string;
+  /**
+   * Free text describing the scale, kept for plans drawn before the scale
+   * became a number. Nothing computes with it.
+   *
+   * @deprecated Read `metresPerUnit`.
+   */
   scale: string;
+  /**
+   * How many metres one canvas unit covers.
+   *
+   * The whole of a floor plan's usefulness beyond decoration rests on this:
+   * area per zone, red tags per square metre, printing to scale, and one day a
+   * spaghetti diagram reporting a walking distance in metres. Absent on plans
+   * drawn before it existed, which are read at one grid square to the metre —
+   * what their free-text `scale` already claimed.
+   */
+  metresPerUnit?: number;
   backgroundImage?: string;
   backgroundOpacity?: number;
   showGrid?: boolean;

@@ -490,6 +490,15 @@ const mn: Translations<typeof en> = {
     emptyDescription: 'Огноотой ажил, аудит энд цагийн хэлхээ болж харагдана.',
   },
   fiveS: {
+    planWidth: 'Зургийн өргөн (м)',
+    planSize: 'Бүтэн зураг: {{width}} × {{height}} м',
+    widthMetres: 'Өргөн (м)',
+    heightMetres: 'Гүн (м)',
+    calibrate: 'Масштаб тохируулах',
+    calibrateCancel: 'Болих',
+    calibrateDraw: 'Уртыг нь мэддэг зүйл дээрээ шугам татна уу.',
+    calibrateLength: 'Тэр шугам хэдэн метр вэ?',
+    calibrateApply: 'Хэрэглэх',
     canvasMenu: 'Зургийн үйлдлүүд',
     menu: {
       duplicate: 'Хувилах',
