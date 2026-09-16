@@ -132,6 +132,18 @@ import {
   snapToAngle,
   wallLength,
 } from './floorPlanWalls';
+import {
+  Opening,
+  OpeningKind,
+  clampOffset,
+  defaultWidth,
+  doorSwing,
+  openingGeometry,
+  projectOntoWall,
+  wallAtPoint,
+  wallCanHold,
+  wallSegments,
+} from './floorPlanOpenings';
 
 /** Steps of undo kept in memory. Fifty is far more than anyone reaches for. */
 const HISTORY_LIMIT = 50;
@@ -430,11 +442,25 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
    * else, and a person needs to be able to see which it currently means —
    * guessing from what happens is how a tool feels unpredictable.
    */
-  const [tool, setTool] = useState<'select' | 'wall'>('select');
+  const [tool, setTool] = useState<'select' | 'wall' | 'door' | 'window'>('select');
   /** Set once somebody has chosen how to begin, so the choice is not asked twice. */
   const [started, setStarted] = useState(false);
   /** A wall being drawn, from a fixed corner to wherever the pointer is. */
   const [drawingWall, setDrawingWall] = useState<{ from: Point; to: Point } | null>(null);
+  /**
+   * The door or window being worked on.
+   *
+   * Selected separately from zones and objects because it is neither: it is a
+   * hole in a wall, and the things you do to it — move it along the wall, hang
+   * it on the other jamb, swing it the other way — are its own.
+   */
+  const [selectedOpeningId, setSelectedOpeningId] = useState('');
+  /** An opening being slid along its wall. */
+  const [openingDrag, setOpeningDrag] = useState<string>('');
+  const selectedOpening = useMemo(
+    () => (plan?.openings ?? []).find((opening) => opening.id === selectedOpeningId),
+    [plan, selectedOpeningId],
+  );
 
   /** How many metres one canvas unit covers, for everything that shows a size. */
   const metresPerUnit = scaleOf(plan);
@@ -1030,6 +1056,82 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
   const stopDrawingWall = () => setDrawingWall(null);
 
+  /**
+   * Puts a door or a window into the wall somebody pointed at.
+   *
+   * Pointing at the wall is the whole gesture: an opening belongs to a wall, so
+   * asking which wall and how far along it would be asking somebody to measure
+   * from a corner they have not decided is the first one. A click that misses
+   * every wall says so rather than dropping a door on the floor.
+   */
+  const placeOpening = (point: Point, kind: OpeningKind) => {
+    if (!plan) return;
+
+    const hit = wallAtPoint(plan.walls ?? [], plan.corners ?? [], point, 20);
+
+    if (!hit) {
+      setActionMessage(t('fiveS.openingNoWall'));
+      return;
+    }
+
+    const width = defaultWidth(kind, metresPerUnit);
+    const length = wallLength(hit.wall, plan.corners ?? []);
+
+    // A door wider than the wall it is in would be a wall-shaped hole.
+    if (!wallCanHold(length, width)) {
+      setActionMessage(t('fiveS.openingTooShort', { length: formatLength(toMetres(length, metresPerUnit)) }));
+      return;
+    }
+
+    const opening: Opening = {
+      id: `opening-${Date.now()}`,
+      wallId: hit.wall.id,
+      kind,
+      offset: clampOffset(hit.offset, width, length),
+      width,
+    };
+
+    updatePlan((current) => ({ ...current, openings: [...(current.openings ?? []), opening] }));
+    setSelectedOpeningId(opening.id);
+    setActionMessage(
+      t('fiveS.openingPlaced', {
+        kind: t(`fiveS.opening_${kind}`),
+        size: formatLength(toMetres(width, metresPerUnit)),
+      }),
+    );
+  };
+
+  const updateOpening = (id: string, change: Partial<Opening>) =>
+    updatePlan((current) => ({
+      ...current,
+      openings: (current.openings ?? []).map((opening) =>
+        opening.id === id ? { ...opening, ...change } : opening,
+      ),
+    }));
+
+  const deleteSelectedOpening = () => {
+    if (!selectedOpening) return;
+
+    updatePlan((current) => ({
+      ...current,
+      openings: (current.openings ?? []).filter((opening) => opening.id !== selectedOpening.id),
+    }));
+    setSelectedOpeningId('');
+    setActionMessage(t('fiveS.openingRemoved', { kind: t(`fiveS.opening_${selectedOpening.kind}`) }));
+  };
+
+  /** Slides an opening along the wall it is in; it cannot leave that wall. */
+  const dragOpeningTo = (id: string, point: Point) => {
+    const opening = (plan?.openings ?? []).find((candidate) => candidate.id === id);
+    const wall = (plan?.walls ?? []).find((candidate) => candidate.id === opening?.wallId);
+    if (!opening || !wall) return;
+
+    const hit = projectOntoWall(point, wall, plan?.corners ?? []);
+    if (!hit) return;
+
+    updateOpening(id, { offset: clampOffset(hit.offset, opening.width, wallLength(wall, plan?.corners ?? [])) });
+  };
+
   /** Everything selected, in plan order rather than the order it was clicked. */
   const selectedZones = () =>
     (plan?.zones ?? []).filter((zone) => selectedZoneIds.includes(zone.id) || zone.id === selectedZoneId);
@@ -1438,6 +1540,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       return;
     }
 
+    if (openingDrag) {
+      dragOpeningTo(
+        openingDrag,
+        pointInView(view, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY),
+      );
+      return;
+    }
+
     if (tool === 'wall' && drawingWall) {
       const point = pointInView(view, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
       const corner = cornerAt(plan?.corners ?? [], point);
@@ -1620,7 +1730,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       return;
     }
 
-    if (!selectedZone && !selectedObject && !selectedZoneIds.length) return;
+    if (!selectedZone && !selectedObject && !selectedOpening && !selectedZoneIds.length) return;
 
     if (event.key === 'Escape') {
       setContextMenu(null);
@@ -1628,15 +1738,21 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       setSelectedZoneIds([]);
       setSelectedZoneId('');
       setSelectedObjectId('');
+      setSelectedOpeningId('');
       return;
     }
 
     if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
       if (selectedZone) deleteSelectedZone();
+      else if (selectedOpening) deleteSelectedOpening();
       else deleteSelectedObject();
       return;
     }
+
+    // An opening moves along its wall, not across the canvas, so the arrow
+    // nudges below — which move a box in x and y — are not its gesture.
+    if (selectedOpening && !selectedZone && !selectedObject) return;
 
     const nudge: Record<string, [number, number]> = {
       ArrowLeft: [-1, 0],
@@ -2949,7 +3065,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     [
                       ['select', t('fiveS.toolSelect')],
                       ['wall', t('fiveS.toolWall')],
-                    ] as Array<['select' | 'wall', string]>
+                      ['door', t('fiveS.toolDoor')],
+                      ['window', t('fiveS.toolWindow')],
+                    ] as Array<['select' | 'wall' | 'door' | 'window', string]>
                   ).map(([value, label]) => (
                     <button
                       key={value}
@@ -3026,6 +3144,84 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               against itself does nothing, and a row of buttons that never do
               anything is worse than no row at all.
             */}
+            {/*
+              What a selected door or window can be told, in the units it is
+              actually specified in. A door is ordered at 900 mm, so that is
+              what this asks for — not a percentage of a wall or a number of
+              pixels, which nobody can check against anything.
+            */}
+            {selectedOpening && (
+              <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-blue-50/40 px-3 py-2 dark:border-gray-700 dark:bg-blue-950/20">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                  {t(`fiveS.opening_${selectedOpening.kind}`)}
+                </span>
+                <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
+                  {t('fiveS.openingWidth')}
+                  <input
+                    type="number"
+                    min={0.1}
+                    step={0.1}
+                    className="w-20 rounded-md border border-gray-300 px-2 py-1 text-sm tabular-nums dark:border-gray-600 dark:bg-gray-900"
+                    value={Number(toMetres(selectedOpening.width, metresPerUnit).toFixed(2))}
+                    onChange={(event) => {
+                      const metres = Number(event.target.value);
+                      if (!Number.isFinite(metres) || metres <= 0) return;
+
+                      const wall = (plan.walls ?? []).find((candidate) => candidate.id === selectedOpening.wallId);
+                      const length = wall ? wallLength(wall, plan.corners ?? []) : 0;
+                      const width = toUnits(metres, metresPerUnit);
+
+                      // Refused rather than clamped: silently narrowing a door
+                      // somebody has measured is worse than not taking it.
+                      if (!wallCanHold(length, width)) {
+                        setActionMessage(
+                          t('fiveS.openingTooShort', {
+                            length: formatLength(toMetres(length, metresPerUnit)),
+                          }),
+                        );
+                        return;
+                      }
+
+                      updateOpening(selectedOpening.id, {
+                        width,
+                        offset: clampOffset(selectedOpening.offset, width, length),
+                      });
+                    }}
+                  />
+                  m
+                </label>
+                {selectedOpening.kind !== 'window' && (
+                  <>
+                    <button
+                      type="button"
+                      className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-white dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                      onClick={() =>
+                        updateOpening(selectedOpening.id, {
+                          hinge: selectedOpening.hinge === 'to' ? 'from' : 'to',
+                        })
+                      }
+                    >
+                      {t('fiveS.openingHinge')}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-white dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                      onClick={() => updateOpening(selectedOpening.id, { flip: !selectedOpening.flip })}
+                    >
+                      {t('fiveS.openingSide')}
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/30"
+                  onClick={deleteSelectedOpening}
+                >
+                  {t('fiveS.openingRemove')}
+                </button>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{t('fiveS.openingDragHint')}</span>
+              </div>
+            )}
             {selectedZoneIds.length > 1 && (
               <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-blue-50/40 px-3 py-2 dark:border-gray-700 dark:bg-blue-950/20">
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
@@ -3200,6 +3396,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   return;
                 }
 
+                if ((tool === 'door' || tool === 'window') && svgRef.current) {
+                  placeOpening(
+                    pointInView(view, svgRef.current.getBoundingClientRect(), event.clientX, event.clientY),
+                    tool === 'door' && event.altKey ? 'double_door' : tool,
+                  );
+                  return;
+                }
+
                 if (calibrationMode && svgRef.current) {
                   const point = pointInView(
                     view,
@@ -3220,6 +3424,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               onPointerMove={handleCanvasPointerMove}
               onPointerUp={(event) => {
                 endPan();
+                setOpeningDrag('');
 
                 if (tool === 'wall' && drawingWall) {
       const point = pointInView(view, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
@@ -3244,6 +3449,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               }}
               onPointerLeave={() => {
                 endPan();
+                setOpeningDrag('');
                 endMarquee(false);
                 setDrag(null);
               }}
@@ -3299,15 +3505,23 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
                 return (
                   <g key={wall.id}>
-                    <line
-                      x1={ends.from.x}
-                      y1={ends.from.y}
-                      x2={ends.to.x}
-                      y2={ends.to.y}
-                      stroke="#1f2937"
-                      strokeWidth={wall.thickness}
-                      strokeLinecap="square"
-                    />
+                    {/*
+                      The pieces left standing either side of the openings, not
+                      one line with a door drawn over it: a door that does not
+                      remove wall is a picture of a door.
+                    */}
+                    {wallSegments(wall, plan.corners ?? [], plan.openings ?? []).map((segment, index) => (
+                      <line
+                        key={`${wall.id}-${index}`}
+                        x1={segment.from.x}
+                        y1={segment.from.y}
+                        x2={segment.to.x}
+                        y2={segment.to.y}
+                        stroke="#1f2937"
+                        strokeWidth={wall.thickness}
+                        strokeLinecap="butt"
+                      />
+                    ))}
                     {/*
                       Only while the wall tool is in hand. Every wall labelled
                       all the time buries the plan under its own measurements.
@@ -3322,6 +3536,106 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                         pointerEvents="none"
                       >
                         {formatLength(toMetres(wallLength(wall, plan.corners ?? []), metresPerUnit))}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+
+              {/*
+                Doors and windows, in the gaps their walls were cut for them.
+                A door carries the quarter circle its leaf sweeps, which is the
+                one drawing convention here that is a fact about the floor: the
+                square metre it covers is not floor anything can stand on.
+              */}
+              {(plan.openings ?? []).map((opening) => {
+                const wall = (plan.walls ?? []).find((candidate) => candidate.id === opening.wallId);
+                const geometry = wall ? openingGeometry(opening, wall, plan.corners ?? []) : null;
+                if (!wall || !geometry) return null;
+
+                const selected = opening.id === selectedOpeningId;
+                const jamb = wall.thickness;
+                const swing = opening.kind === 'window' ? null : doorSwing(opening, geometry);
+
+                return (
+                  <g key={opening.id}>
+                    {/* The reveal: the wall's depth shown at each jamb. */}
+                    <line
+                      x1={geometry.start.x}
+                      y1={geometry.start.y}
+                      x2={geometry.end.x}
+                      y2={geometry.end.y}
+                      stroke={selected ? '#2563eb' : '#94a3b8'}
+                      strokeWidth={opening.kind === 'window' ? jamb * 0.45 : 1.2}
+                      pointerEvents="none"
+                    />
+                    {opening.kind === 'window' && (
+                      <line
+                        x1={geometry.start.x}
+                        y1={geometry.start.y}
+                        x2={geometry.end.x}
+                        y2={geometry.end.y}
+                        stroke="#ffffff"
+                        strokeWidth={jamb * 0.15}
+                        pointerEvents="none"
+                      />
+                    )}
+                    {swing && (
+                      <>
+                        <line
+                          x1={swing.hinge.x}
+                          y1={swing.hinge.y}
+                          x2={swing.tip.x}
+                          y2={swing.tip.y}
+                          stroke={selected ? '#2563eb' : '#1f2937'}
+                          strokeWidth={2}
+                          pointerEvents="none"
+                        />
+                        <path
+                          d={swing.path}
+                          fill="none"
+                          stroke={selected ? '#2563eb' : '#94a3b8'}
+                          strokeWidth={1}
+                          strokeDasharray="4 3"
+                          pointerEvents="none"
+                        />
+                      </>
+                    )}
+                    {/*
+                      A hit target as wide as the wall is thick. Aiming at a
+                      one-pixel line is not a thing anybody should have to do.
+                    */}
+                    <line
+                      x1={geometry.start.x}
+                      y1={geometry.start.y}
+                      x2={geometry.end.x}
+                      y2={geometry.end.y}
+                      stroke="transparent"
+                      strokeWidth={Math.max(jamb * 1.6, 12)}
+                      className={tool === 'select' ? 'cursor-move' : 'cursor-crosshair'}
+                      aria-label={t(`fiveS.opening_${opening.kind}`)}
+                      onPointerDown={(event) => {
+                        if (tool !== 'select') return;
+
+                        event.stopPropagation();
+                        capturePointer(event);
+                        setSelectedZoneId('');
+                        setSelectedObjectId('');
+                        setSelectedOpeningId(opening.id);
+                        beginDragHistory();
+                        setOpeningDrag(opening.id);
+                      }}
+                    />
+                    {selected && (
+                      <text
+                        x={geometry.centre.x}
+                        y={geometry.centre.y - view.height * 0.016}
+                        textAnchor="middle"
+                        className="fill-blue-600 tabular-nums"
+                        style={{ fontSize: view.width * 0.016 }}
+                        pointerEvents="none"
+                      >
+                        {formatLength(toMetres(opening.width, metresPerUnit))}
                       </text>
                     )}
                   </g>

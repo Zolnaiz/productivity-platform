@@ -5,6 +5,7 @@ import {
   MAX_ZOOM,
   clampView,
   distanceInView,
+  fitInside,
   panBy,
   pointInView,
   toViewBox,
@@ -155,5 +156,64 @@ describe('clamping', () => {
     const view = clampView({ x: 0, y: 0, width: 450, height: 9999 });
 
     expect(view.height).toBeCloseTo(450 * (CANVAS_HEIGHT / CANVAS_WIDTH), 10);
+  });
+});
+
+describe('a pane that is not the shape of the plan', () => {
+  // The canvas is 900x500 and the pane is whatever the window leaves it, so
+  // this is the normal case rather than an edge one. An SVG fits its viewBox
+  // inside the element and centres the remainder, and the pointer maths has to
+  // agree with that or it reports a place the drawing is not.
+  const tall = { left: 0, top: 0, width: 458, height: 520 };
+
+  it('reads the middle of the pane as the middle of the plan', () => {
+    const point = pointInView(FULL_VIEW, tall, 229, 260);
+
+    expect(point.x).toBeCloseTo(450, 6);
+    expect(point.y).toBeCloseTo(250, 6);
+  });
+
+  it('measures both axes by the one scale the drawing is fitted at', () => {
+    // Stretching each axis separately is what put a click a third of the plan
+    // away from the wall it was aimed at in a narrow pane.
+    const { scale, offsetX, offsetY } = fitInside(FULL_VIEW, tall);
+
+    expect(scale).toBeCloseTo(458 / 900, 6);
+    expect(offsetX).toBeCloseTo(0, 6);
+    expect(offsetY).toBeCloseTo((520 - 500 * (458 / 900)) / 2, 6);
+  });
+
+  it('puts the pointer where the drawing actually is', () => {
+    // A wall at canvas y=34 is drawn 34 units below the top of the fitted
+    // area, not 34/500 of the way down the element.
+    const { scale, offsetY } = fitInside(FULL_VIEW, tall);
+    const drawnAt = offsetY + 34 * scale;
+
+    expect(pointInView(FULL_VIEW, tall, 100, drawnAt).y).toBeCloseTo(34, 6);
+  });
+
+  it('lands in the empty band above the plan as a point above it', () => {
+    // Honest rather than clamped: the caller decides what a click on the
+    // letterbox means, and a tolerance test then simply misses.
+    expect(pointInView(FULL_VIEW, tall, 100, 2).y).toBeLessThan(0);
+  });
+
+  it('keeps a drag square, so a diagonal does not skew', () => {
+    const moved = distanceInView(FULL_VIEW, tall, 45.8, 45.8);
+
+    expect(moved.x).toBeCloseTo(moved.y, 6);
+  });
+
+  it('still reads a pane shaped like the plan the same way it always did', () => {
+    const square = { left: 0, top: 0, width: CANVAS_WIDTH, height: CANVAS_HEIGHT };
+
+    expect(pointInView(FULL_VIEW, square, 300, 220)).toEqual({ x: 300, y: 220 });
+  });
+
+  it('says the origin rather than NaN for a pane with no size', () => {
+    const none = { left: 0, top: 0, width: 0, height: 0 };
+
+    expect(pointInView(FULL_VIEW, none, 10, 10)).toEqual({ x: 0, y: 0 });
+    expect(distanceInView(FULL_VIEW, none, 10, 10)).toEqual({ x: 0, y: 0 });
   });
 });

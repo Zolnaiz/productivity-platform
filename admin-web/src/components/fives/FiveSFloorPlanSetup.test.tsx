@@ -759,4 +759,154 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       expect(screen.getByRole('menuitem', { name: /Send to back/ })).toHaveProperty('disabled', true);
     });
   });
+  describe('cutting doors and windows into walls', () => {
+    /** A plan with one wall across it, 16 m of it, to put doors in. */
+    const walledPlan = () => ({
+      ...buildPlan(),
+      zones: [],
+      corners: [
+        { id: 'c0', x: 0, y: 100 },
+        { id: 'c1', x: 384, y: 100 },
+      ],
+      walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+      openings: [],
+    });
+
+    const canvas = () => {
+      const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+      } as DOMRect);
+
+      return svg;
+    };
+
+    const pickTool = (name: string) => fireEvent.click(screen.getByRole('radio', { name }));
+
+    const wallLines = () =>
+      Array.from(document.querySelectorAll('line[stroke="#1f2937"]')).filter(
+        (line) => line.getAttribute('stroke-width') === '12',
+      );
+
+    const cutADoor = async (kind = 'Door') => {
+      render(<FiveSFloorPlanSetup />);
+      await screen.findByRole('radio', { name: kind });
+
+      pickTool(kind);
+      fireEvent.pointerDown(canvas(), { clientX: 200, clientY: 100, pointerId: 1 });
+    };
+
+    beforeEach(() => {
+      serviceMocks.getPlan.mockResolvedValue(walledPlan());
+    });
+
+    it('takes a piece out of the wall where the door goes', async () => {
+      // The point of the whole thing: a door that leaves the wall solid
+      // underneath is a picture of a door, and nothing downstream can tell
+      // there is a way in.
+      render(<FiveSFloorPlanSetup />);
+      await screen.findByRole('radio', { name: 'Door' });
+      expect(wallLines()).toHaveLength(1);
+
+      pickTool('Door');
+      fireEvent.pointerDown(canvas(), { clientX: 200, clientY: 100, pointerId: 1 });
+
+      await waitFor(() => expect(wallLines()).toHaveLength(2));
+    });
+
+    it('draws the swing, so the floor in front of the door reads as spoken for', async () => {
+      await cutADoor();
+
+      await waitFor(() => expect(document.querySelector('path[stroke-dasharray="4 3"]')).toBeTruthy());
+    });
+
+    it('puts the door in at the size a door actually is', async () => {
+      await cutADoor();
+
+      // 900 mm, the door that gets fitted — not a fraction of the wall.
+      expect(await screen.findByDisplayValue('0.9')).toBeTruthy();
+    });
+
+    it('says so instead of dropping a door on the floor', async () => {
+      render(<FiveSFloorPlanSetup />);
+      await screen.findByRole('radio', { name: 'Door' });
+
+      pickTool('Door');
+      fireEvent.pointerDown(canvas(), { clientX: 200, clientY: 400, pointerId: 1 });
+
+      expect(await screen.findByText(/a door is a hole in a wall/)).toBeTruthy();
+      expect(wallLines()).toHaveLength(1);
+    });
+
+    it('refuses an opening wider than the wall it is cut into', async () => {
+      // Silently narrowing a door somebody has measured would be worse than
+      // not taking the number at all.
+      await cutADoor();
+
+      fireEvent.change(await screen.findByDisplayValue('0.9'), { target: { value: '40' } });
+
+      expect(await screen.findByText(/too short to hold this opening/)).toBeTruthy();
+      expect(screen.getByDisplayValue('0.9')).toBeTruthy();
+    });
+
+    it('takes a width in metres, because that is how a door is ordered', async () => {
+      await cutADoor();
+
+      fireEvent.change(await screen.findByDisplayValue('0.9'), { target: { value: '1.2' } });
+
+      expect(await screen.findByDisplayValue('1.2')).toBeTruthy();
+    });
+
+    it('swings the leaf the other way when asked', async () => {
+      await cutADoor();
+      await screen.findByDisplayValue('0.9');
+      const before = document.querySelector('path[stroke-dasharray="4 3"]')?.getAttribute('d');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Other side' }));
+
+      await waitFor(() =>
+        expect(document.querySelector('path[stroke-dasharray="4 3"]')?.getAttribute('d')).not.toBe(before),
+      );
+    });
+
+    it('cuts a window with no leaf to swing', async () => {
+      await cutADoor('Window');
+
+      await waitFor(() => expect(wallLines()).toHaveLength(2));
+      expect(document.querySelector('path[stroke-dasharray="4 3"]')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Other side' })).toBeNull();
+    });
+
+    it('closes the wall again when the door is deleted', async () => {
+      await cutADoor();
+      await waitFor(() => expect(wallLines()).toHaveLength(2));
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+
+      await waitFor(() => expect(wallLines()).toHaveLength(1));
+    });
+
+    it('slides the door along the wall it is in, and no further', async () => {
+      await cutADoor();
+      await waitFor(() => expect(wallLines()).toHaveLength(2));
+      const gapStartsAt = () => Number(wallLines()[0].getAttribute('x2'));
+      const before = gapStartsAt();
+
+      pickTool('Select');
+      fireEvent.pointerDown(screen.getByLabelText('Door'), { clientX: 200, clientY: 100, pointerId: 2 });
+      fireEvent.pointerMove(canvas(), { clientX: 100, clientY: 100, pointerId: 2 });
+
+      await waitFor(() => expect(gapStartsAt()).toBeLessThan(before));
+
+      // Dragged far past the end it stops at the jamb rather than leaving the
+      // wall, because an opening belongs to a wall and cannot be anywhere else.
+      fireEvent.pointerMove(canvas(), { clientX: 2000, clientY: 100, pointerId: 2 });
+
+      await waitFor(() => expect(gapStartsAt()).toBeGreaterThan(before));
+      expect(wallLines()).toHaveLength(2);
+    });
+  });
 });

@@ -89,38 +89,78 @@ export const panBy = (view: Viewport, dx: number, dy: number) =>
 export const toViewBox = (view: Viewport) => `${view.x} ${view.y} ${view.width} ${view.height}`;
 
 /**
+ * How the view is laid out inside the element that shows it.
+ *
+ * An SVG with the default `preserveAspectRatio` fits its viewBox inside the
+ * element and centres what is left over, so unless the element happens to have
+ * the same shape as the view there are bands of empty space down two of its
+ * sides. One scale governs both axes.
+ */
+export const fitInside = (
+  view: Viewport,
+  rect: { width: number; height: number },
+) => {
+  const scale = Math.min(
+    view.width > 0 ? rect.width / view.width : 0,
+    view.height > 0 ? rect.height / view.height : 0,
+  );
+
+  return {
+    scale,
+    offsetX: (rect.width - view.width * scale) / 2,
+    offsetY: (rect.height - view.height * scale) / 2,
+  };
+};
+
+/**
  * Where a pointer is, in canvas coordinates.
  *
  * The element's box is in screen pixels and the view decides what part of the
  * plan those pixels cover, so both are needed. Every drag goes through this: a
  * version that assumed the view was always the whole canvas put the pointer in
  * the wrong place the moment anybody zoomed.
+ *
+ * It then assumed the element had the same shape as the view, which it almost
+ * never does — the canvas is 900×500 and the pane is whatever the window
+ * leaves it. Stretching each axis separately across the element put the
+ * pointer further and further from the drawing the narrower the pane got: in a
+ * tall, narrow pane a click on a wall landed a third of the plan away from it,
+ * and nothing said so, because the drawing was where it looked and only the
+ * pointer disagreed.
  */
 export const pointInView = (
   view: Viewport,
   rect: { left: number; top: number; width: number; height: number },
   clientX: number,
   clientY: number,
-) => ({
-  x: view.x + ((clientX - rect.left) / rect.width) * view.width,
-  y: view.y + ((clientY - rect.top) / rect.height) * view.height,
-});
+) => {
+  const { scale, offsetX, offsetY } = fitInside(view, rect);
+  if (!scale) return { x: view.x, y: view.y };
+
+  return {
+    x: view.x + (clientX - rect.left - offsetX) / scale,
+    y: view.y + (clientY - rect.top - offsetY) / scale,
+  };
+};
 
 /**
  * Screen pixels to canvas units, for a drag that is already under way.
  *
  * A pan drag moves by a delta rather than to a position, and the delta has to
- * be scaled the same way a position would be.
+ * be scaled the same way a position would be — by the one scale the fit uses,
+ * so a diagonal drag does not skew.
  */
 export const distanceInView = (
   view: Viewport,
   rect: { width: number; height: number },
   dx: number,
   dy: number,
-) => ({
-  x: (dx / rect.width) * view.width,
-  y: (dy / rect.height) * view.height,
-});
+) => {
+  const { scale } = fitInside(view, rect);
+  if (!scale) return { x: 0, y: 0 };
+
+  return { x: dx / scale, y: dy / scale };
+};
 
 /**
  * A view framing one rectangle, with room around it.
