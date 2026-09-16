@@ -46,6 +46,7 @@ import PhotoEvidence from '../common/PhotoEvidence';
 import ZoneHistory from './ZoneHistory';
 import AuditTiers from './AuditTiers';
 import HoldingArea from './HoldingArea';
+import FloorPlanStart from './FloorPlanStart';
 import { holdDatesFor } from './holdingRules';
 import { formatLocalDate, getAuditDueDate, isAuditDue } from './auditSchedule';
 import {
@@ -430,6 +431,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
    * guessing from what happens is how a tool feels unpredictable.
    */
   const [tool, setTool] = useState<'select' | 'wall'>('select');
+  /** Set once somebody has chosen how to begin, so the choice is not asked twice. */
+  const [started, setStarted] = useState(false);
   /** A wall being drawn, from a fixed corner to wherever the pointer is. */
   const [drawingWall, setDrawingWall] = useState<{ from: Point; to: Point } | null>(null);
 
@@ -2276,6 +2279,40 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     return (
       <Card loading title="5S area setup">
         <div />
+      </Card>
+    );
+  }
+
+  /**
+   * A plan with nothing on it is a new workspace, not a broken one.
+   *
+   * It used to be filled with a sample office nobody asked for. The question
+   * is asked instead — and only while the plan really is empty, so it never
+   * appears in front of work somebody has already done.
+   */
+  if (!started && !plan.zones.length && !plan.objects.length && !(plan.walls ?? []).length) {
+    return (
+      <Card title={t('fiveS.title')}>
+        <FloorPlanStart
+          onBlank={() => setStarted(true)}
+          onTemplate={(template) => {
+            updatePlan((current) => ({
+              ...current,
+              corners: template.corners,
+              walls: template.walls,
+            }));
+            setStarted(true);
+            setTool('wall');
+          }}
+          onBlueprint={(dataUrl) => {
+            // Straight into calibrating: a traced drawing is worth nothing
+            // until the plan knows what one of its walls measures.
+            updatePlan((current) => ({ ...current, backgroundImage: dataUrl, backgroundOpacity: 0.55 }));
+            setStarted(true);
+            setTool('select');
+            setCalibrationMode(true);
+          }}
+        />
       </Card>
     );
   }

@@ -177,6 +177,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Departments are still kept in the browser only, and that screen says so rather than presenting a local list as a shared record.
 - Right-clicking the plan opens a menu of what applies to whatever is under the pointer, with the stacking actions live only for a drawn object and paste live only once something has been copied. Overlapping objects are reordered from it: SVG draws in array order, so the array is the stacking order and no `zIndex` column exists to fall out of step with it.
 - Areas are copied with Ctrl+C/Ctrl+V or duplicated with Ctrl+D, singly or a whole selection at a time. A copy keeps how the area is set up and inherits none of what happened in it: no audit score, no last-audit or last-cleaned date, no red tags. Each copy gets its own code, because two areas sharing one on a printed label sheet is a real problem on a shop floor.
+- A new workspace is asked how to begin — trace a drawing it already has, start from a named shell at real dimensions, or draw from scratch — rather than being handed a pre-drawn sample office. An empty plan used to be silently replaced with one, so somebody signing up saw a building that was not theirs with areas named Reception and Workstations, and their first job was working out that none of it was real. A template is walls and nothing else, and the screen says so.
 - The plan is drawn as walls, not rectangles. Walls meet at shared corners, snap to the nearest 45 degrees unless Alt is held, and show their length in metres while being drawn. A room is whatever the walls close in — found from the wall graph on every change rather than stored, so a room and its walls cannot part company — and its area is a consequence of the drawing rather than a number somebody typed.
 - Several areas can be worked on at once: shift-click or drag a rubber band to select, move or delete them together, and line them up or space them evenly. The group is clamped as one shape, so hitting an edge does not squash the arrangement.
 - The floor plan zooms and pans: wheel or trackpad pinch to zoom at the pointer, space or middle-drag to pan, a zoom readout with fit and zoom-to-area. Every drag measures the pointer through the current view, so editing works the same at any zoom.
@@ -213,7 +214,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 425 passing
-- Frontend tests: 454 passing
+- Frontend tests: 473 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

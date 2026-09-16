@@ -170,7 +170,12 @@ describe('fiveSLayoutService demo storage', () => {
     expect(plan.zones).toHaveLength(1);
   });
 
-  it('uses the sample office plan when the backend layout is empty', async () => {
+  it('leaves an empty backend layout empty', async () => {
+    // It used to substitute a sample office here, so somebody signing up was
+    // shown a building that was not theirs, with areas named Reception and
+    // Workstations, and their first job was working out none of it was real.
+    // An empty plan is what a new workspace *is*; the editor asks how to
+    // begin rather than pretending the question is answered.
     localStorage.setItem('token', 'real-token');
     apiMocks.get.mockResolvedValueOnce({
       id: 'empty-server-layout',
@@ -187,7 +192,8 @@ describe('fiveSLayoutService demo storage', () => {
     const plan = await fiveSLayoutService.getPlan();
 
     expect(plan.id).toBe('empty-server-layout');
-    expect(plan.zones.length).toBeGreaterThan(0);
+    expect(plan.zones).toEqual([]);
+    expect(plan.objects).toEqual([]);
   });
 
   it('saves real backend 5S layout without client-only fields', async () => {

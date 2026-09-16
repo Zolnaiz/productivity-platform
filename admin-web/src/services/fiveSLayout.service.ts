@@ -316,29 +316,27 @@ const normalizePlan = (plan: FiveSLayoutPlan): FiveSLayoutPlan => ({
   objects: plan.objects || [],
 });
 
-const withDefaultLayoutWhenEmpty = (plan: FiveSLayoutPlan): FiveSLayoutPlan => {
-  if (plan.zones?.length || plan.objects?.length) {
-    return normalizePlan({
-      ...plan,
-      zones: plan.zones || [],
-      objects: plan.objects || [],
-    });
-  }
-
-  return normalizePlan({
-    ...defaultPlan,
-    id: plan.id,
-    organizationId: plan.organizationId,
-    name: plan.name || defaultPlan.name,
-    site: plan.site || defaultPlan.site,
-    scale: plan.scale || defaultPlan.scale,
-    backgroundImage: plan.backgroundImage || defaultPlan.backgroundImage,
-    backgroundOpacity: plan.backgroundOpacity ?? defaultPlan.backgroundOpacity,
-    showGrid: plan.showGrid ?? defaultPlan.showGrid,
-    createdAt: plan.createdAt,
+/**
+ * An organization's own plan, left empty when it is empty.
+ *
+ * This used to substitute a pre-drawn sample office whenever the plan had no
+ * zones — so somebody signing up for the first time was shown a building that
+ * was not theirs, with areas named Reception and Workstations, and their first
+ * job was working out that none of it was real and deleting it. An empty plan
+ * is not a problem to paper over; it is what a new workspace is, and the
+ * editor now offers a blueprint import, a blank plan or a named template
+ * instead of pretending the question is already answered.
+ *
+ * Demo mode still has its sample plan. That is what demo mode is for, and it
+ * says so on the sign-in screen.
+ */
+const withOwnLayout = (plan: FiveSLayoutPlan): FiveSLayoutPlan =>
+  normalizePlan({
+    ...plan,
+    zones: plan.zones || [],
+    objects: plan.objects || [],
     updatedAt: plan.updatedAt || now(),
   });
-};
 
 const readPlan = () => {
   const stored = localStorage.getItem(storageKey);
@@ -477,7 +475,7 @@ const buildZoneLabelsCsv = (plan: FiveSLayoutPlan) => {
 export const fiveSLayoutService = {
   getPlan: () =>
     fallback<FiveSLayoutPlan>(
-      async () => withDefaultLayoutWhenEmpty(await get<FiveSLayoutPlan>('/five-s-layout')),
+      async () => withOwnLayout(await get<FiveSLayoutPlan>('/five-s-layout')),
       readPlan,
     ),
   savePlan: (plan: FiveSLayoutPlan) =>
