@@ -338,4 +338,88 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
 
     await waitFor(() => expect(undoButton.disabled).toBe(false));
   });
+
+  describe('zooming and panning the plan', () => {
+    const mockCanvasRect = () => {
+      const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+      } as DOMRect);
+
+      return svg;
+    };
+
+    it('starts showing the whole plan', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      const svg = document.querySelector('svg[aria-label="5S floor plan"]');
+      expect(svg?.getAttribute('viewBox')).toBe(`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`);
+      expect(screen.getByLabelText('Zoom level').textContent).toBe('100%');
+    });
+
+    it('zooms in on the wheel and back out again', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+      const svg = mockCanvasRect();
+
+      fireEvent.wheel(svg, { deltaY: -100, clientX: 450, clientY: 250 });
+      await waitFor(() => expect(screen.getByLabelText('Zoom level').textContent).toBe('120%'));
+
+      fireEvent.wheel(svg, { deltaY: 100, clientX: 450, clientY: 250 });
+      await waitFor(() => expect(screen.getByLabelText('Zoom level').textContent).toBe('100%'));
+    });
+
+    it('drags a zone to the right place while zoomed in', async () => {
+      // The regression the whole viewport module exists to prevent: with the
+      // view no longer the whole canvas, a pointer position measured as though
+      // it were puts the zone somewhere else entirely.
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+      const svg = mockCanvasRect();
+
+      // Zoom about the middle, so the view becomes 450x250 starting at 225,125.
+      fireEvent.click(screen.getByLabelText('Zoom in'));
+      await waitFor(() => expect(screen.getByLabelText('Zoom level').textContent).toBe('140%'));
+
+      const handle = screen.getByTestId('five-s-resize-se');
+      const before = getZoneRect()?.getAttribute('width');
+
+      fireEvent.pointerDown(handle, { clientX: 300, clientY: 220, pointerId: 1 });
+      fireEvent.pointerMove(svg, { clientX: 700, clientY: 400, pointerId: 1 });
+
+      // What matters is that it moved and stayed on the canvas, not the exact
+      // figure: the arithmetic itself is checked in floorPlanViewport.test.ts.
+      await waitFor(() => {
+        const zone = getZoneRect();
+        expect(zone?.getAttribute('width')).not.toBe(before);
+        expect(Number(zone?.getAttribute('x')) + Number(zone?.getAttribute('width'))).toBeLessThanOrEqual(
+          CANVAS_WIDTH,
+        );
+      });
+    });
+
+    it('fits the plan again after zooming', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+      mockCanvasRect();
+
+      fireEvent.click(screen.getByLabelText('Zoom in'));
+      await waitFor(() => expect(screen.getByLabelText('Zoom level').textContent).not.toBe('100%'));
+
+      fireEvent.click(screen.getByText('Fit plan'));
+
+      await waitFor(() => expect(screen.getByLabelText('Zoom level').textContent).toBe('100%'));
+    });
+
+    it('will not zoom out past the whole plan', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      expect(screen.getByLabelText('Zoom out')).toHaveProperty('disabled', true);
+    });
+  });
 });

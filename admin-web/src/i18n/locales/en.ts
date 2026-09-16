@@ -487,6 +487,12 @@ const en = {
     emptyDescription: 'Tasks and audits with dates will appear here as a timeline.',
   },
   fiveS: {
+    zoomIn: 'Zoom in',
+    zoomOut: 'Zoom out',
+    zoomLevel: 'Zoom level',
+    fitToPlan: 'Fit plan',
+    zoomToSelection: 'Zoom to area',
+    canvasHint: 'Scroll to zoom · space or middle-drag to pan · Alt overrides snapping',
     title: '5S Setup',
     subtitle: 'Map office and work areas, label each zone, assign responsible owners, and define what belongs there.',
     deleteImprovement: 'Delete improvement row',

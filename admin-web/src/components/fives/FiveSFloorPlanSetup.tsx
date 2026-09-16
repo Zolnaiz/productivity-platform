@@ -7,6 +7,8 @@ import {
 } from '../charts/palette';
 import {
   AlertTriangle,
+  Minus,
+  Plus as PlusIcon,
   ArrowRight,
   CalendarCheck,
   CheckCircle2,
@@ -69,13 +71,24 @@ import {
   ResizeCorner,
   capturePointer,
   clamp,
-  getPointerPoint,
-  pointOnCanvas,
   resizeBox,
   resizeCorners,
   snapToGrid,
 } from './floorPlanGeometry';
 import { AuditWalkStatus, escapeCsvCell, escapeHtml } from './floorPlanFormats';
+import {
+  FULL_VIEW,
+  Viewport,
+  distanceInView,
+  panBy,
+  pointInView,
+  MAX_ZOOM,
+  toViewBox,
+  viewAround,
+  zoomAt,
+  zoomByStep,
+  zoomOf,
+} from './floorPlanViewport';
 
 /** Steps of undo kept in memory. Fifty is far more than anyone reaches for. */
 const HISTORY_LIMIT = 50;
@@ -241,6 +254,11 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
    */
   const { t } = useTranslation();
   const [colorMode, setColorMode] = useState<'plan' | 'condition'>('plan');
+  /** Which part of the plan the pane is showing. */
+  const [view, setView] = useState<Viewport>(FULL_VIEW);
+  /** A pan in progress, in client pixels, so the delta can be measured. */
+  const panRef = useRef<{ clientX: number; clientY: number } | null>(null);
+  const [spaceHeld, setSpaceHeld] = useState(false);
   const [selectedZoneId, setSelectedZoneId] = useState('');
   const [selectedObjectId, setSelectedObjectId] = useState('');
   const [statusFilter, setStatusFilter] = useState<ZoneStatusFilter>('all');
@@ -855,7 +873,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     event.stopPropagation();
     capturePointer(event);
 
-    const point = pointOnCanvas(svgRef.current, event);
+    const point = pointInView(view, svgRef.current.getBoundingClientRect(), event.clientX, event.clientY);
     const spot = pinPosition(zone, redTag, index);
 
     setSelectedZoneId(zone.id);
@@ -909,9 +927,135 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     });
   };
 
+  /**
+   * Space holds the pan gesture, the way it does in a drawing tool.
+   *
+   * Registered on the window rather than the canvas because the canvas is an
+   * SVG that does not take focus, and a person reaches for space while looking
+   * at the plan rather than after clicking it. Repeat events are ignored so
+   * holding the key does not churn state sixty times a second.
+   */
+  useEffect(() => {
+    const target = (event: KeyboardEvent) => event.target;
+
+    const down = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || event.repeat) return;
+      const focused = target(event);
+      if (focused instanceof Element && focused.closest('input, textarea, select, button, [contenteditable="true"]')) {
+        return;
+      }
+
+      event.preventDefault();
+      setSpaceHeld(true);
+    };
+
+    const up = (event: KeyboardEvent) => {
+      if (event.code !== 'Space') return;
+      setSpaceHeld(false);
+      panRef.current = null;
+    };
+
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
+  }, []);
+
+  /**
+   * Wheel to zoom, at the pointer.
+   *
+   * Attached by hand rather than with React's `onWheel`, which registers a
+   * *passive* listener: `preventDefault` inside one does nothing, the browser
+   * says so in the console, and the page scrolls away underneath while you are
+   * trying to zoom. Only a listener registered with `passive: false` can hold
+   * the page still. jsdom does not enforce passive, so this was found by
+   * opening the plan rather than by a test.
+   *
+   * A trackpad pinch arrives here as `ctrl+wheel`, so it needs no separate
+   * handling — the same code zooms for both.
+   *
+   * `view` is read through a ref so the listener is not torn down and rebuilt
+   * on every zoom, which would drop wheel events mid-gesture.
+   */
+  const viewRef = useRef(view);
+
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
+
+  /**
+   * Held in state rather than read from the ref, so the listener below is
+   * attached when the element actually mounts.
+   *
+   * Keying that effect on `plan` was not enough: the canvas also waits on
+   * `loading`, which clears in a separate update, so the effect could run with
+   * the ref still null and never run again. Whether the wheel worked then came
+   * down to which state landed first.
+   */
+  const [canvasNode, setCanvasNode] = useState<SVGSVGElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasNode;
+    if (!canvas) return undefined;
+
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+
+      const rect = canvas.getBoundingClientRect();
+      const focus = pointInView(viewRef.current, rect, event.clientX, event.clientY);
+      // A fixed ratio per notch, so in and back out lands where it started.
+      const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
+
+      setView((current) => zoomAt(current, factor, focus.x, focus.y));
+    };
+
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', onWheel);
+  }, [canvasNode]);
+
+  /** Middle button, or space held: the two ways a canvas is expected to pan. */
+  const startPanIfRequested = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (event.button !== 1 && !spaceHeld) return false;
+
+    event.preventDefault();
+    capturePointer(event);
+    panRef.current = { clientX: event.clientX, clientY: event.clientY };
+    return true;
+  };
+
+  const endPan = () => {
+    panRef.current = null;
+  };
+
+  /** Frames one area, for jumping to it from the list rather than hunting. */
+  const focusZone = (zone: FiveSZone) => {
+    setSelectedZoneId(zone.id);
+    setSelectedObjectId('');
+    setView(viewAround(zone));
+  };
+
   const handleCanvasPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    // A pan is a drag of the paper itself, so it runs before — and instead of —
+    // anything that moves a zone.
+    if (panRef.current) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const moved = distanceInView(
+        view,
+        rect,
+        event.clientX - panRef.current.clientX,
+        event.clientY - panRef.current.clientY,
+      );
+
+      panRef.current = { clientX: event.clientX, clientY: event.clientY };
+      setView((current) => panBy(current, moved.x, moved.y));
+      return;
+    }
+
     if (!drag || !plan) return;
-    const point = getPointerPoint(event);
+    const point = pointInView(view, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
     const snap = (plan.showGrid ?? true) && !event.altKey;
     const snappedPoint = { x: snapToGrid(point.x, snap), y: snapToGrid(point.y, snap) };
 
@@ -2221,21 +2365,87 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           </div>
 
           <div className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-950">
+            {/*
+              The zoom controls sit on the canvas rather than in the toolbar
+              across the room, because they are used while looking at the plan.
+            */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-3 py-2 dark:border-gray-700">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  aria-label={t('fiveS.zoomOut')}
+                  title={t('fiveS.zoomOut')}
+                  className="rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-40 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                  disabled={zoomOf(view) <= 1}
+                  onClick={() => setView((current) => zoomByStep(current, 1 / 1.4))}
+                >
+                  <Minus className="h-4 w-4" aria-hidden="true" />
+                </button>
+                <span
+                  className="min-w-[3.5rem] text-center font-mono text-xs tabular-nums text-gray-600 dark:text-gray-300"
+                  aria-live="polite"
+                  aria-label={t('fiveS.zoomLevel')}
+                >
+                  {Math.round(zoomOf(view) * 100)}%
+                </span>
+                <button
+                  type="button"
+                  aria-label={t('fiveS.zoomIn')}
+                  title={t('fiveS.zoomIn')}
+                  className="rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-40 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                  disabled={zoomOf(view) >= MAX_ZOOM}
+                  onClick={() => setView((current) => zoomByStep(current, 1.4))}
+                >
+                  <PlusIcon className="h-4 w-4" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="ml-1 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 disabled:opacity-40 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                  disabled={zoomOf(view) === 1}
+                  onClick={() => setView(FULL_VIEW)}
+                >
+                  {t('fiveS.fitToPlan')}
+                </button>
+                {selectedZone && (
+                  <button
+                    type="button"
+                    className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                    onClick={() => focusZone(selectedZone)}
+                  >
+                    {t('fiveS.zoomToSelection')}
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('fiveS.canvasHint')}</p>
+            </div>
             <svg
-              ref={svgRef}
-              viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+              ref={(node) => {
+                svgRef.current = node;
+                setCanvasNode(node);
+              }}
+              viewBox={toViewBox(view)}
               role="img"
               aria-label="5S floor plan"
-              className="h-[420px] w-full cursor-crosshair touch-none md:h-[520px]"
+              className={`h-[420px] w-full touch-none md:h-[520px] ${
+                spaceHeld || panRef.current ? 'cursor-grab' : 'cursor-crosshair'
+              }`}
               onPointerDown={(event) => {
+                if (startPanIfRequested(event)) return;
+
                 if (event.target === event.currentTarget || (event.target as SVGElement).dataset.canvasBackground) {
                   setSelectedZoneId('');
                   setSelectedObjectId('');
                 }
               }}
               onPointerMove={handleCanvasPointerMove}
-              onPointerUp={() => setDrag(null)}
-              onPointerLeave={() => setDrag(null)}
+              onPointerUp={() => {
+                endPan();
+                setDrag(null);
+              }}
+              onPointerLeave={() => {
+                endPan();
+                setDrag(null);
+              }}
             >
               <defs>
                 <pattern id="five-s-grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
