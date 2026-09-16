@@ -844,11 +844,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     event.preventDefault();
     event.stopPropagation();
     capturePointer(event);
-    const rect = svgRef.current.getBoundingClientRect();
-    const point = {
-      x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
-      y: ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT,
-    };
+    // Through the current view: measuring against the whole canvas put the
+    // grab point somewhere else entirely the moment anybody zoomed in.
+    const point = pointInView(view, svgRef.current.getBoundingClientRect(), event.clientX, event.clientY);
 
     setSelectedZoneId(zone.id);
     setSelectedObjectId('');
@@ -910,11 +908,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     event.preventDefault();
     event.stopPropagation();
     capturePointer(event);
-    const rect = svgRef.current.getBoundingClientRect();
-    const point = {
-      x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
-      y: ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT,
-    };
+    // Through the current view: measuring against the whole canvas put the
+    // grab point somewhere else entirely the moment anybody zoomed in.
+    const point = pointInView(view, svgRef.current.getBoundingClientRect(), event.clientX, event.clientY);
 
     setSelectedZoneId('');
     setSelectedObjectId(object.id);

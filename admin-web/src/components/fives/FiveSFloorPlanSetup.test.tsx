@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FiveSFloorPlanSetup from './FiveSFloorPlanSetup';
 import { FiveSLayoutPlan } from '../../types/fiveS.types';
+import { CANVAS_HEIGHT, CANVAS_WIDTH, GRID_SIZE } from './floorPlanGeometry';
 
 const serviceMocks = vi.hoisted(() => ({
   getPlan: vi.fn(),
@@ -84,8 +85,6 @@ const buildPlan = (): FiveSLayoutPlan => ({
   updatedAt: '2026-06-24T00:00:00.000Z',
 });
 
-const CANVAS_WIDTH = 900;
-const CANVAS_HEIGHT = 500;
 
 // jsdom has no PointerEvent, so fireEvent would drop clientX/clientY and the
 // drag maths would see NaN. MouseEvent carries the coordinates we need.
@@ -399,6 +398,35 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
         expect(Number(zone?.getAttribute('x')) + Number(zone?.getAttribute('width'))).toBeLessThanOrEqual(
           CANVAS_WIDTH,
         );
+      });
+    });
+
+
+    it('grabs a zone at the right point while zoomed in', async () => {
+      // The resize test above goes through one code path; dragging a zone had
+      // its own copy of the pointer arithmetic, which kept measuring against
+      // the whole canvas after the view stopped being the whole canvas.
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+      const svg = mockCanvasRect();
+
+      fireEvent.click(screen.getByLabelText('Zoom in'));
+      await waitFor(() => expect(screen.getByLabelText('Zoom level').textContent).toBe('140%'));
+
+      const zone = getZoneRect() as SVGRectElement;
+      const startX = Number(zone.getAttribute('x'));
+
+      // Grab the zone where it is drawn and drop it one grid step right.
+      fireEvent.pointerDown(zone, { clientX: 200, clientY: 200, pointerId: 3 });
+      fireEvent.pointerMove(svg, { clientX: 240, clientY: 200, pointerId: 3 });
+      fireEvent.pointerUp(svg, { pointerId: 3 });
+
+      await waitFor(() => {
+        const moved = Number(getZoneRect()?.getAttribute('x'));
+        expect(moved).not.toBe(startX);
+        // A drag of 40 screen pixels at 140% is under 30 canvas units. Reading
+        // it as 40 would put the zone past the next grid line.
+        expect(moved).toBeLessThanOrEqual(startX + GRID_SIZE);
       });
     });
 
