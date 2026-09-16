@@ -582,4 +582,90 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       await waitFor(() => expect(screen.queryByText('2 areas selected')).toBeNull());
     });
   });
+
+  describe('copying areas', () => {
+    const zoneRects = () => Array.from(document.querySelectorAll('rect[rx="8"]')) as SVGRectElement[];
+
+    const selectBoth = async () => {
+      const [first, second] = zoneRects();
+      fireEvent.pointerDown(first, { clientX: 150, clientY: 150, pointerId: 1 });
+      fireEvent.pointerUp(first, { pointerId: 1 });
+      fireEvent.pointerDown(second, { clientX: 550, clientY: 300, pointerId: 2, shiftKey: true });
+      fireEvent.pointerUp(second, { pointerId: 2 });
+      expect(await screen.findByText('2 areas selected')).toBeTruthy();
+    };
+
+    it('duplicates the selected area with ctrl+d', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+      expect(zoneRects()).toHaveLength(2);
+
+      fireEvent.keyDown(document.body, { key: 'd', ctrlKey: true });
+
+      await waitFor(() => expect(zoneRects()).toHaveLength(3));
+      expect(screen.getByDisplayValue('Reception copy')).toBeTruthy();
+    });
+
+    it('duplicates a whole selection at once', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+      await selectBoth();
+
+      fireEvent.keyDown(document.body, { key: 'd', ctrlKey: true });
+
+      await waitFor(() => expect(zoneRects()).toHaveLength(4));
+    });
+
+    it('gives each copy its own code rather than repeating one', async () => {
+      // Two areas sharing a code on a printed label sheet is a real problem on
+      // a shop floor.
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+      await selectBoth();
+
+      fireEvent.keyDown(document.body, { key: 'd', ctrlKey: true });
+      await waitFor(() => expect(zoneRects()).toHaveLength(4));
+
+      const codes = Array.from(document.querySelectorAll('text'))
+        .map((node) => node.textContent)
+        .filter((text) => /^\d+$/.test(text ?? ''));
+
+      expect(new Set(codes).size).toBe(codes.length);
+    });
+
+    it('copies with ctrl+c and pastes with ctrl+v', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      fireEvent.keyDown(document.body, { key: 'c', ctrlKey: true });
+      expect(await screen.findByText(/copied to the clipboard/)).toBeTruthy();
+
+      fireEvent.keyDown(document.body, { key: 'v', ctrlKey: true });
+      await waitFor(() => expect(zoneRects()).toHaveLength(3));
+
+      // The clipboard keeps its contents, so pasting twice gives two copies.
+      fireEvent.keyDown(document.body, { key: 'v', ctrlKey: true });
+      await waitFor(() => expect(zoneRects()).toHaveLength(4));
+    });
+
+    it('pastes nothing when nothing has been copied', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      fireEvent.keyDown(document.body, { key: 'v', ctrlKey: true });
+
+      await waitFor(() => expect(zoneRects()).toHaveLength(2));
+    });
+
+    it('leaves a copy with no audit history of its own', async () => {
+      render(<FiveSFloorPlanSetup />);
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      fireEvent.keyDown(document.body, { key: 'd', ctrlKey: true });
+      await waitFor(() => expect(screen.getByDisplayValue('Reception copy')).toBeTruthy());
+
+      // The original was cleaned on 2026-06-24; its copy has not been anywhere.
+      expect(screen.queryAllByDisplayValue('2026-06-24')).toHaveLength(0);
+    });
+  });
 });

@@ -107,6 +107,7 @@ import {
   selectionBounds,
   toggleSelection,
 } from './floorPlanSelection';
+import { copyName, duplicateZones, nextZoneCode } from './floorPlanClipboard';
 
 /** Steps of undo kept in memory. Fifty is far more than anyone reaches for. */
 const HISTORY_LIMIT = 50;
@@ -286,6 +287,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
    * is always the last entry here.
    */
   const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>([]);
+  /**
+   * Areas copied with Ctrl+C, held until something else is copied.
+   *
+   * Kept in the component rather than the system clipboard: these are records,
+   * not text, and reading the system clipboard needs a permission prompt that
+   * would interrupt the one gesture this exists to make quick.
+   */
+  const [clipboard, setClipboard] = useState<FiveSZone[]>([]);
   /** A rubber band being dragged, in canvas coordinates. */
   const [marquee, setMarquee] = useState<{ x: number; y: number; width: number; height: number } | null>(
     null,
@@ -779,31 +788,39 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     });
   };
 
-  const duplicateSelectedZone = () => {
-    if (!selectedZone || !plan) return;
+  /**
+   * Adds copies of some areas to the plan and selects them.
+   *
+   * Codes and names are worked out against the plan as it grows, not as it
+   * was, so copying three areas at once does not give all three the same code.
+   */
+  const addCopies = (source: FiveSZone[]) => {
+    if (!source.length || !plan) return;
 
-    const template = fiveSLayoutService.createZone(plan.zones);
-    const duplicate = {
-      ...selectedZone,
-      id: `zone-${Date.now()}`,
-      code: template.code,
-      name: `${selectedZone.name} copy`,
-      x: Math.round(clamp(selectedZone.x + 28, 12, CANVAS_WIDTH - selectedZone.width - 12)),
-      y: Math.round(clamp(selectedZone.y + 28, 12, CANVAS_HEIGHT - selectedZone.height - 12)),
-      lastAuditScore: undefined,
-      lastAuditAt: '',
-      redTagCount: 0,
-      redTags: [],
-    };
+    const growing = [...plan.zones];
+    const copies = duplicateZones(source, { width: CANVAS_WIDTH, height: CANVAS_HEIGHT }, 28, (zone, index) => {
+      const identity = {
+        id: `zone-${Date.now()}-${index}`,
+        code: nextZoneCode(growing),
+        name: copyName(zone.name, growing),
+      };
 
-    updatePlan((current) => ({
-      ...current,
-      zones: [...current.zones, duplicate],
-    }));
-    setSelectedZoneId(duplicate.id);
+      growing.push({ ...zone, ...identity });
+      return identity;
+    });
+
+    updatePlan((current) => ({ ...current, zones: [...current.zones, ...copies] }));
+    setSelectedZoneIds(copies.map((zone) => zone.id));
+    setSelectedZoneId(copies[copies.length - 1].id);
     setSelectedObjectId('');
-    setActionMessage(`${duplicate.code} - ${duplicate.name} duplicated.`);
+    setActionMessage(`${copies.length} area(s) copied.`);
   };
+
+  /** Everything selected, in plan order rather than the order it was clicked. */
+  const selectedZones = () =>
+    (plan?.zones ?? []).filter((zone) => selectedZoneIds.includes(zone.id) || zone.id === selectedZoneId);
+
+  const duplicateSelectedZone = () => addCopies(selectedZones());
 
   const deleteSelectedObject = () => {
     if (!selectedObject) return;
@@ -1337,6 +1354,34 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
       event.preventDefault();
       redo();
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
+      const copying = selectedZones();
+      if (!copying.length) return;
+
+      event.preventDefault();
+      setClipboard(copying);
+      setActionMessage(`${copying.length} area(s) copied to the clipboard.`);
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') {
+      if (!clipboard.length) return;
+
+      event.preventDefault();
+      addCopies(clipboard);
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
+      if (!selectedZones().length) return;
+
+      // Duplicate in place rather than through the clipboard, so it does not
+      // quietly replace whatever somebody copied earlier.
+      event.preventDefault();
+      duplicateSelectedZone();
       return;
     }
 
