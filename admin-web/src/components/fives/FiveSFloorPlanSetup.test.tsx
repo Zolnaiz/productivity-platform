@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FiveSFloorPlanSetup from './FiveSFloorPlanSetup';
+import { ThemeProvider } from '../../contexts/ThemeContext';
 import { FiveSLayoutPlan } from '../../types/fiveS.types';
 import { CANVAS_HEIGHT, CANVAS_WIDTH, GRID_SIZE } from './floorPlanGeometry';
 
@@ -119,6 +120,15 @@ if (typeof window.PointerEvent === 'undefined') {
   window.PointerEvent = TestPointerEvent as unknown as typeof window.PointerEvent;
 }
 
+/**
+ * The editor as the application mounts it.
+ *
+ * It reads the theme to know what colours to draw the plan in — the plan used
+ * to be white with black walls whatever the rest of the page was doing — so a
+ * bare render is not the component in its real setting.
+ */
+const renderEditor = () => render(<ThemeProvider><FiveSFloorPlanSetup /></ThemeProvider>);
+
 const getZoneRect = () =>
   document.querySelector('rect[rx="8"]') as SVGRectElement | null;
 
@@ -137,7 +147,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('nudges the selected zone by one unit with an arrow key', async () => {
-    render(<FiveSFloorPlanSetup />);
+    renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     fireEvent.keyDown(document.body, { key: 'ArrowRight' });
@@ -146,7 +156,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('jumps the selected zone by one grid step with shift and an arrow key', async () => {
-    render(<FiveSFloorPlanSetup />);
+    renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     fireEvent.keyDown(document.body, { key: 'ArrowDown', shiftKey: true });
@@ -155,7 +165,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('ignores arrow keys typed inside a form field', async () => {
-    render(<FiveSFloorPlanSetup />);
+    renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     const nameInput = screen.getByDisplayValue('Reception');
@@ -165,7 +175,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('clears the selection with escape', async () => {
-    render(<FiveSFloorPlanSetup />);
+    renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     fireEvent.keyDown(document.body, { key: 'Escape' });
@@ -174,7 +184,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('deletes the selected zone with the delete key', async () => {
-    render(<FiveSFloorPlanSetup />);
+    renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
     expect(document.querySelectorAll('rect[rx="8"]')).toHaveLength(2);
 
@@ -186,7 +196,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('undoes a nudge with ctrl+z and replays it with ctrl+shift+z', async () => {
-    render(<FiveSFloorPlanSetup />);
+    renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     fireEvent.keyDown(document.body, { key: 'ArrowRight' });
@@ -200,7 +210,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('restores a deleted zone through undo', async () => {
-    render(<FiveSFloorPlanSetup />);
+    renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     fireEvent.keyDown(document.body, { key: 'Delete' });
@@ -212,7 +222,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('resizes from the south-east handle without moving the origin', async () => {
-    render(<FiveSFloorPlanSetup />);
+    renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
@@ -240,7 +250,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('keeps the opposite corner pinned when resizing from the north-west handle', async () => {
-    render(<FiveSFloorPlanSetup />);
+    renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
@@ -265,7 +275,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('does not let a resize collapse a zone past its minimum size', async () => {
-    render(<FiveSFloorPlanSetup />);
+    renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
@@ -285,7 +295,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('reverses a whole resize gesture with a single undo', async () => {
-    render(<FiveSFloorPlanSetup />);
+    renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
@@ -313,7 +323,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('coalesces a drag into a single save instead of one per frame', async () => {
-    const { unmount } = render(<FiveSFloorPlanSetup />);
+    const { unmount } = renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     const svg = document.querySelector('svg[aria-label="5S floor plan"]') as SVGSVGElement;
@@ -347,7 +357,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   });
 
   it('keeps undo disabled until the plan is edited', async () => {
-    render(<FiveSFloorPlanSetup />);
+    renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();
 
     const undoButton = screen.getByRole('button', { name: /undo/i }) as HTMLButtonElement;
@@ -372,7 +382,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     };
 
     it('starts showing the whole plan', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       const svg = document.querySelector('svg[aria-label="5S floor plan"]');
@@ -381,7 +391,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('zooms in on the wheel and back out again', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
       const svg = mockCanvasRect();
 
@@ -396,7 +406,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       // The regression the whole viewport module exists to prevent: with the
       // view no longer the whole canvas, a pointer position measured as though
       // it were puts the zone somewhere else entirely.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
       const svg = mockCanvasRect();
 
@@ -426,7 +436,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       // The resize test above goes through one code path; dragging a zone had
       // its own copy of the pointer arithmetic, which kept measuring against
       // the whole canvas after the view stopped being the whole canvas.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
       const svg = mockCanvasRect();
 
@@ -451,7 +461,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('fits the plan again after zooming', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
       mockCanvasRect();
 
@@ -464,7 +474,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('will not zoom out past the whole plan', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       expect(screen.getByLabelText('Zoom out')).toHaveProperty('disabled', true);
@@ -481,7 +491,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       }));
 
     it('adds a second area to the selection with shift', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       const [first, second] = zoneRects();
@@ -494,7 +504,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('offers alignment only once more than one is selected', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       // A row of buttons that never do anything is worse than no row.
@@ -510,7 +520,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('lines both areas up on the left edge', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       const [first, second] = zoneRects();
@@ -529,7 +539,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('moves both areas together with an arrow key', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       const [first, second] = zoneRects();
@@ -551,7 +561,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('deletes everything selected, not only the primary one', async () => {
       // Removing one and leaving the rest outlined is what people report as
       // "it did not delete them".
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
       expect(zoneRects()).toHaveLength(2);
 
@@ -567,7 +577,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('clears the selection on escape', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       const [first, second] = zoneRects();
@@ -596,7 +606,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     };
 
     it('duplicates the selected area with ctrl+d', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
       expect(zoneRects()).toHaveLength(2);
 
@@ -607,7 +617,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('duplicates a whole selection at once', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
       await selectBoth();
 
@@ -619,7 +629,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('gives each copy its own code rather than repeating one', async () => {
       // Two areas sharing a code on a printed label sheet is a real problem on
       // a shop floor.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
       await selectBoth();
 
@@ -634,7 +644,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('copies with ctrl+c and pastes with ctrl+v', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       fireEvent.keyDown(document.body, { key: 'c', ctrlKey: true });
@@ -649,7 +659,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('pastes nothing when nothing has been copied', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       fireEvent.keyDown(document.body, { key: 'v', ctrlKey: true });
@@ -658,7 +668,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('leaves a copy with no audit history of its own', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       fireEvent.keyDown(document.body, { key: 'd', ctrlKey: true });
@@ -673,7 +683,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     const zoneRects = () => Array.from(document.querySelectorAll('rect[rx="8"]')) as SVGRectElement[];
 
     it('opens on a zone and offers what applies to it', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       fireEvent.contextMenu(zoneRects()[0]);
@@ -687,7 +697,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('selects what was right-clicked rather than acting on something else', async () => {
       // Acting on something the pointer is not over is how people delete the
       // wrong thing.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       fireEvent.contextMenu(zoneRects()[1]);
@@ -697,7 +707,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('duplicates from the menu', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
       expect(zoneRects()).toHaveLength(2);
 
@@ -708,7 +718,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('closes once an action has run', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       fireEvent.contextMenu(zoneRects()[0]);
@@ -718,7 +728,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('closes on escape', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       fireEvent.contextMenu(zoneRects()[0]);
@@ -730,7 +740,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('greys out paste before anything has been copied', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       fireEvent.contextMenu(zoneRects()[0]);
@@ -739,7 +749,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('offers paste once something has been copied', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       fireEvent.keyDown(document.body, { key: 'c', ctrlKey: true });
@@ -750,7 +760,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
 
     it('greys out the stacking actions when no object is selected', async () => {
       // They apply to drawn objects; a zone has nothing to stack against.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       fireEvent.contextMenu(zoneRects()[0]);
@@ -792,7 +802,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       );
 
     const cutADoor = async (kind = 'Door') => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await screen.findByRole('radio', { name: kind });
 
       pickTool(kind);
@@ -807,7 +817,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       // The point of the whole thing: a door that leaves the wall solid
       // underneath is a picture of a door, and nothing downstream can tell
       // there is a way in.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await screen.findByRole('radio', { name: 'Door' });
       expect(wallLines()).toHaveLength(1);
 
@@ -831,7 +841,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('says so instead of dropping a door on the floor', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await screen.findByRole('radio', { name: 'Door' });
 
       pickTool('Door');
@@ -951,7 +961,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('asks for a desk at 1.6 by 0.8 metres, in this plan\u2019s units', async () => {
       // A desk used to be 86 by 52 because that looked about right, and no
       // question about the room could be answered from it.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       const desk = await screen.findByRole('button', { name: /Desk/ });
 
       fireEvent.click(desk);
@@ -965,7 +975,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('says on the button what each thing measures', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
 
       expect(await screen.findByText('1.2 × 0.8 m')).toBeTruthy();
     });
@@ -973,7 +983,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('no longer offers a wall or a door among the furniture', async () => {
       // Both are tools now. Leaving the old rectangles in the palette would
       // leave two ways to draw a wall, one of which encloses nothing.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await screen.findByRole('button', { name: /Desk/ });
 
       expect(screen.queryByRole('button', { name: /^Wall/ })).toBeNull();
@@ -981,7 +991,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('drops it in the middle of what is on screen', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
 
       fireEvent.click(await screen.findByRole('button', { name: /Desk/ }));
 
@@ -1014,7 +1024,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('shows a placed thing’s size in metres, not in canvas units', async () => {
       // The panel read 65 and 26 — numbers with no meaning outside this one
       // drawing, which nobody could check against a tape or a supplier's page.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       fireEvent.click(await screen.findByRole('button', { name: /Desk/ }));
 
       expect(await screen.findByDisplayValue('1.6')).toBeTruthy();
@@ -1025,7 +1035,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       // By hand this means nudging until it looks right and rotating until it
       // looks right, and it is never quite either — which is how a plan ends up
       // with a 40 mm gap behind a bench that nobody meant to draw.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       fireEvent.click(await screen.findByRole('button', { name: /Shelf/ }));
       await screen.findByTestId('five-s-object-shelf-1');
 
@@ -1042,7 +1052,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('leaves a chair where it is put, wall or no wall', async () => {
       // Snapping everything would mean a chair could not be placed at a desk
       // near a wall without swinging square to it.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       fireEvent.click(await screen.findByRole('button', { name: /Chair/ }));
       await screen.findByTestId('five-s-object-chair-1');
 
@@ -1099,7 +1109,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('closes a room that never quite closed, by dropping one corner on another', async () => {
       // Two corners a pixel apart is the commonest way a hand-drawn plan fails:
       // nothing encloses, no area appears, and nothing on screen says why.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await screen.findByTestId('five-s-corner-e');
       expect(roomAreas()).toHaveLength(0);
 
@@ -1117,7 +1127,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('takes every wall on the corner along with it', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await screen.findByTestId('five-s-corner-b');
 
       canvas();
@@ -1138,7 +1148,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
 
     it('says how long the walls are while the corner is moving', async () => {
       // Dragging blind and measuring afterwards is how a room ends up 30 mm out.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await screen.findByTestId('five-s-corner-c');
 
       canvas();
@@ -1159,7 +1169,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
         ...nearlyClosed(),
         openings: [{ id: 'o1', wallId: 'w1', kind: 'door', offset: 100, width: 21.6 }],
       });
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await screen.findByTestId('five-s-corner-e');
 
       canvas();
@@ -1176,7 +1186,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('leaves a corner dropped nowhere near another one alone', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await screen.findByTestId('five-s-corner-e');
 
       canvas();
@@ -1224,7 +1234,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('offers the room for naming when its floor is clicked', async () => {
       // There is nowhere else to click that means "this room": the room is not
       // an object, it is the space the walls leave.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await waitFor(() => expect(floor()).toBeTruthy());
 
       fireEvent.pointerDown(floor(), { pointerId: 1 });
@@ -1235,7 +1245,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('shows what the room measures, and does not offer to let anyone type it', async () => {
       // The area is the consequence of where the walls are. A room whose area
       // could be typed would be a room that disagreed with its own drawing.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await waitFor(() => expect(floor()).toBeTruthy());
 
       fireEvent.pointerDown(floor(), { pointerId: 1 });
@@ -1246,7 +1256,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('writes the name on the floor plan', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await waitFor(() => expect(floor()).toBeTruthy());
       fireEvent.pointerDown(floor(), { pointerId: 1 });
 
@@ -1261,7 +1271,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('renames rather than writing a second name in the same room', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await waitFor(() => expect(floor()).toBeTruthy());
       fireEvent.pointerDown(floor(), { pointerId: 1 });
 
@@ -1281,7 +1291,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('takes the name off again when it is cleared', async () => {
       // A label with nothing written on it is a thing to click on that says
       // nothing.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await waitFor(() => expect(floor()).toBeTruthy());
       fireEvent.pointerDown(floor(), { pointerId: 1 });
 
@@ -1303,7 +1313,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       // The name is a point inside the room rather than a field on it, so
       // this is the case that has to hold: the room changes shape and the name
       // is still in it.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await waitFor(() => expect(floor()).toBeTruthy());
       fireEvent.pointerDown(floor(), { pointerId: 1 });
       fireEvent.change(await screen.findByPlaceholderText(/Meeting room/), {
@@ -1368,7 +1378,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('lets the grid be turned off without turning snapping off', async () => {
       // One checkbox used to answer both questions, so looking at the plan
       // without the grid quietly stopped things landing on it.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       const grid = await screen.findByRole('button', { name: 'Grid', pressed: true });
 
       fireEvent.click(grid);
@@ -1378,7 +1388,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     });
 
     it('stops snapping when snapping is turned off, and only then', async () => {
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       expect(await screen.findByText('Selected zone')).toBeTruthy();
 
       fireEvent.click(screen.getByRole('button', { name: 'Snap', pressed: true }));
@@ -1397,7 +1407,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('keeps the wall lengths out of the way until they are asked for', async () => {
       // A plan with every wall labelled all the time is buried under its own
       // measurements.
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await screen.findByRole('button', { name: 'Dimensions', pressed: false });
 
       expect(screen.queryByText('12.0 m')).toBeNull();
@@ -1457,7 +1467,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       // nothing about the place it was describing. The name also appears on
       // the plan itself, so this reads the panel rather than the page.
       serviceMocks.getPlan.mockResolvedValue(planWith({ x: 120, y: 120, width: 96, height: 48 }));
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
 
       expect((await placeLine())?.textContent).toContain('Goods in');
     });
@@ -1465,7 +1475,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     it('says what share of the room the area covers', async () => {
       // 4 m by 2 m inside a 6 m by 8 m room: a sixth of it.
       serviceMocks.getPlan.mockResolvedValue(planWith({ x: 120, y: 120, width: 96, height: 48 }));
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
 
       expect((await placeLine())?.textContent).toContain('8.0 m²');
       expect(screen.getByText('17% of the room')).toBeTruthy();
@@ -1487,7 +1497,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
           redTagCount: 2,
         }),
       );
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
 
       expect(await screen.findByText('25.0 red tags per 100 m²')).toBeTruthy();
     });
@@ -1496,7 +1506,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       // Two places with one name: nobody can walk it, audit it or own it as
       // one area.
       serviceMocks.getPlan.mockResolvedValue(planWith({ x: 168, y: 120, width: 144, height: 48 }));
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
 
       expect(await screen.findByText(/drawn across a wall/)).toBeTruthy();
     });
@@ -1505,7 +1515,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       // The normal case; warning about it would make the warning worth
       // ignoring.
       serviceMocks.getPlan.mockResolvedValue(planWith({ x: 144, y: 120, width: 96, height: 48 }));
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
       await placeLine();
 
       expect(screen.queryByText(/drawn across a wall/)).toBeNull();
@@ -1513,7 +1523,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
 
     it('says plainly when an area is not inside any room yet', async () => {
       serviceMocks.getPlan.mockResolvedValue(planWith({ x: 500, y: 350, width: 96, height: 48 }));
-      render(<FiveSFloorPlanSetup />);
+      renderEditor();
 
       expect(await screen.findByText('Not inside any room')).toBeTruthy();
     });

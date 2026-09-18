@@ -221,6 +221,12 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
   nothing still gets a line, because a month with nothing in it is a fact about
   the month; somebody who has since left keeps theirs, because they still did
   the work.
+- The plan has a night of its own. It used to be a sheet of pure white with
+  black walls whatever the rest of the page was doing, so turning the lights
+  off left one blazing rectangle in the part of the screen people look at
+  longest. Now the paper goes dark and the ink goes light, hues that carry
+  meaning keep their hue, and anything exported or printed is forced back to
+  the daylight set — a plan leaving the editor is going onto white paper.
 - The plan is drawn as walls, not rectangles. Walls meet at shared corners, snap to the nearest 45 degrees unless Alt is held, and show their length in metres while being drawn. A room is whatever the walls close in — found from the wall graph on every change rather than stored, so a room and its walls cannot part company — and its area is a consequence of the drawing rather than a number somebody typed.
 - Several areas can be worked on at once: shift-click or drag a rubber band to select, move or delete them together, and line them up or space them evenly. The group is clamped as one shape, so hitting an edge does not squash the arrangement.
 - The floor plan zooms and pans: wheel or trackpad pinch to zoom at the pointer, space or middle-drag to pan, a zoom readout with fit and zoom-to-area. Every drag measures the pointer through the current view, so editing works the same at any zoom.
@@ -257,7 +263,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 451 passing
-- Frontend tests: 666 passing
+- Frontend tests: 674 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

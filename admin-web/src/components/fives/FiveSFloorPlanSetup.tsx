@@ -111,6 +111,8 @@ import { copyName, duplicateZones, nextZoneCode } from './floorPlanClipboard';
 import { catalogue, catalogueGroups, catalogueItem, sizeForType } from './floorPlanCatalogue';
 import { dropSpot, placeAgainstWall } from './floorPlanPlacement';
 import { labelIn, nameRoom } from './floorPlanRooms';
+import { CanvasColours, canvasColours, strokeInk, tint } from './floorPlanTheme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { crossesAWall, perHundredSquareMetres, roomForZone, zoneCoverage } from './floorPlanZones';
 import { summariseRooms, zonesInNoRoom } from './floorPlanRoomSummary';
 import { OrderMove, canReorder, reorder } from './floorPlanOrder';
@@ -496,6 +498,15 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
   /** How many metres one canvas unit covers, for everything that shows a size. */
   const metresPerUnit = scaleOf(plan);
+
+  /**
+   * The colours the plan is drawn in, which follow the application's theme.
+   *
+   * The plan used to be white with black walls whatever the rest of the page
+   * was doing, so at night it was the brightest thing on screen.
+   */
+  const { isDarkMode } = useTheme();
+  const colours = canvasColours(isDarkMode);
 
   /**
    * The rooms the walls close in.
@@ -2524,6 +2535,26 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     svg.setAttribute('height', String(CANVAS_HEIGHT));
     svg.querySelectorAll('[data-testid]').forEach((element) => element.removeAttribute('data-testid'));
 
+    /*
+      A plan leaving the editor is going onto white paper, whatever theme it
+      was drawn in. Exporting the night colours would hand somebody a file
+      that prints as a black rectangle — and the dark set exists for looking
+      at a screen, not for the wall of a plant.
+    */
+    if (isDarkMode) {
+      const day = canvasColours(false);
+      svg.querySelectorAll('[data-canvas-background]').forEach((element) => {
+        if (element.getAttribute('fill') === colours.paper) element.setAttribute('fill', day.paper);
+      });
+      svg.querySelectorAll('[stroke], [fill]').forEach((element) => {
+        if (element.getAttribute('stroke') === colours.ink) element.setAttribute('stroke', day.ink);
+        if (element.getAttribute('fill') === colours.ink) element.setAttribute('fill', day.ink);
+        if (element.getAttribute('stroke') === colours.grid) element.setAttribute('stroke', day.grid);
+        if (element.getAttribute('stroke') === colours.measure) element.setAttribute('stroke', day.measure);
+        if (element.getAttribute('stroke') === colours.paper) element.setAttribute('stroke', day.paper);
+      });
+    }
+
     const source = new XMLSerializer().serializeToString(svg);
     const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -3731,10 +3762,15 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             >
               <defs>
                 <pattern id="five-s-grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
-                  <path d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`} fill="none" stroke="#d1d5db" strokeWidth="0.8" />
+                  <path d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`} fill="none" stroke={colours.grid} strokeWidth="0.8" />
                 </pattern>
               </defs>
-              <rect data-canvas-background="true" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="white" />
+              <rect
+                data-canvas-background="true"
+                width={CANVAS_WIDTH}
+                height={CANVAS_HEIGHT}
+                fill={colours.paper}
+              />
               {plan.backgroundImage && (
                 <image
                   href={plan.backgroundImage}
@@ -3775,8 +3811,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     */}
                     <path
                       d={roomPath(room)}
-                      fill={selected ? '#2563eb14' : '#0f172a08'}
-                      stroke={selected ? '#2563eb' : 'none'}
+                      fill={selected ? `${colours.roomSelected}20` : colours.roomFill}
+                      stroke={selected ? colours.roomSelected : 'none'}
                       strokeWidth={selected ? 1.5 : 0}
                       className={tool === 'select' ? 'cursor-pointer' : 'cursor-crosshair'}
                       data-testid={`five-s-room-${key}`}
@@ -3795,7 +3831,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       x={label?.x ?? centre.x}
                       y={label?.y ?? centre.y}
                       textAnchor="middle"
-                      className="fill-gray-600 font-medium"
+                      className="fill-gray-600 font-medium dark:fill-gray-200"
                       style={{ fontSize: view.width * 0.02 }}
                       pointerEvents="none"
                     >
@@ -3805,7 +3841,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       x={label?.x ?? centre.x}
                       y={(label?.y ?? centre.y) + view.height * (label ? 0.034 : 0)}
                       textAnchor="middle"
-                      className="fill-gray-500 tabular-nums"
+                      className="fill-gray-500 tabular-nums dark:fill-gray-400"
                       style={{ fontSize: view.width * 0.018 }}
                       pointerEvents="none"
                     >
@@ -3833,7 +3869,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                         y1={segment.from.y}
                         x2={segment.to.x}
                         y2={segment.to.y}
-                        stroke="#1f2937"
+                        stroke={colours.ink}
                         strokeWidth={wall.thickness}
                         strokeLinecap="butt"
                       />
@@ -3847,7 +3883,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                         x={(ends.from.x + ends.to.x) / 2}
                         y={(ends.from.y + ends.to.y) / 2 - view.height * 0.016}
                         textAnchor="middle"
-                        className="fill-gray-600 tabular-nums"
+                        className="fill-gray-600 tabular-nums dark:fill-gray-300"
                         style={{ fontSize: view.width * 0.016 }}
                         pointerEvents="none"
                       >
@@ -3891,7 +3927,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                         y1={geometry.start.y}
                         x2={geometry.end.x}
                         y2={geometry.end.y}
-                        stroke="#ffffff"
+                        stroke={colours.paper}
                         strokeWidth={jamb * 0.15}
                         pointerEvents="none"
                       />
@@ -3973,7 +4009,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       cx={corner.x}
                       cy={corner.y}
                       r={joining ? 9 : 5}
-                      fill={joining ? '#2563eb' : '#1f2937'}
+                      fill={joining ? colours.roomSelected : colours.ink}
                       pointerEvents="none"
                     />
                     <circle
@@ -4082,7 +4118,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       height={zone.height}
                       rx="8"
                       fill={`${paint}24`}
-                      stroke={selected ? '#111827' : paint}
+                      stroke={selected ? colours.ink : paint}
                       strokeWidth={selected ? 3 : 2}
                       strokeDasharray={primary ? '0' : selected ? '4 3' : '8 6'}
                       className="cursor-move"
@@ -4098,10 +4134,10 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     >
                       {zone.code.replace(/^\D+/, '')}
                     </text>
-                    <text x={zone.x + 52} y={zone.y + 28} className="fill-gray-900 text-[15px] font-semibold">
+                    <text x={zone.x + 52} y={zone.y + 28} className="fill-gray-900 text-[15px] font-semibold dark:fill-gray-100">
                       {zone.name}
                     </text>
-                    <text x={zone.x + 52} y={zone.y + 50} className="fill-gray-600 text-[12px]">
+                    <text x={zone.x + 52} y={zone.y + 50} className="fill-gray-600 text-[12px] dark:fill-gray-400">
                       {zone.ownerName || 'No owner'}
                     </text>
                     {/*
@@ -4172,7 +4208,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                             cy={spot.y}
                             r={PIN_RADIUS}
                             fill={auditBands.poor}
-                            stroke="#ffffff"
+                            stroke={colours.paper}
                             strokeWidth="2"
                           />
                           <text
@@ -4246,16 +4282,16 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       y1={bottom}
                       x2={left + barUnits}
                       y2={bottom}
-                      stroke="#334155"
+                      stroke={colours.measure}
                       strokeWidth={view.width * 0.002}
                     />
-                    <line x1={left} y1={bottom - tick} x2={left} y2={bottom + tick} stroke="#334155" strokeWidth={view.width * 0.002} />
+                    <line x1={left} y1={bottom - tick} x2={left} y2={bottom + tick} stroke={colours.measure} strokeWidth={view.width * 0.002} />
                     <line
                       x1={left + barUnits}
                       y1={bottom - tick}
                       x2={left + barUnits}
                       y2={bottom + tick}
-                      stroke="#334155"
+                      stroke={colours.measure}
                       strokeWidth={view.width * 0.002}
                     />
                     <text
@@ -4302,8 +4338,11 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
               {plan.objects.map((object) => (
                 <g key={object.id} onContextMenu={(event) => openContextMenu(event, { object })}>
-                  {renderFloorPlanObject(object, object.id === selectedObjectId, (event) =>
-                    handleObjectPointerDown(event, object),
+                  {renderFloorPlanObject(
+                    object,
+                    object.id === selectedObjectId,
+                    (event) => handleObjectPointerDown(event, object),
+                    colours,
                   )}
                 </g>
               ))}
@@ -4326,8 +4365,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                         width="12"
                         height="12"
                         rx="2"
-                        fill="#ffffff"
-                        stroke="#2563eb"
+                        fill={colours.paper}
+                        stroke={colours.roomSelected}
                         strokeWidth="2"
                         style={{ cursor }}
                         onPointerDown={(event) =>
@@ -5284,6 +5323,7 @@ const renderFloorPlanObject = (
   object: FloorPlanObject,
   selected: boolean,
   onPointerDown: (event: React.PointerEvent<SVGGElement>) => void,
+  colours: CanvasColours,
 ) => {
   const centerX = object.x + object.width / 2;
   const centerY = object.y + object.height / 2;
@@ -5307,13 +5347,13 @@ const renderFloorPlanObject = (
         y={art.y}
         width={art.width}
         height={art.height}
-        fill="#111827"
+        fill={tint('#111827', colours)}
         transform={transform}
       />
     );
   } else if (object.type === 'door') {
     shape = (
-      <g transform={transform} stroke="#111827" strokeWidth="3" fill="none">
+      <g transform={transform} stroke={strokeInk('#111827', colours)} strokeWidth="3" fill="none">
         <line x1={art.x} y1={art.y + art.height} x2={art.x + art.width} y2={art.y + art.height} />
         <path d={`M ${art.x} ${art.y + art.height} A ${art.width} ${art.width} 0 0 1 ${art.x + art.width} ${art.y}`} />
       </g>
@@ -5321,34 +5361,34 @@ const renderFloorPlanObject = (
   } else if (object.type === 'desk') {
     shape = (
       <g transform={transform}>
-        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="5" fill="#f8fafc" stroke="#111827" strokeWidth="2" />
-        <rect x={art.x + 12} y={art.y + 10} width={art.width - 24} height="10" fill="#dbeafe" stroke="#111827" strokeWidth="1" />
-        <line x1={art.x + 18} y1={art.y + art.height - 10} x2={art.x + art.width - 18} y2={art.y + art.height - 10} stroke="#111827" strokeWidth="2" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="5" fill={tint('#f8fafc', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <rect x={art.x + 12} y={art.y + 10} width={art.width - 24} height="10" fill={tint('#dbeafe', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="1" />
+        <line x1={art.x + 18} y1={art.y + art.height - 10} x2={art.x + art.width - 18} y2={art.y + art.height - 10} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
       </g>
     );
   } else if (object.type === 'chair') {
     shape = (
       <g transform={transform}>
-        <rect x={art.x + 7} y={art.y + 9} width={art.width - 14} height={art.height - 12} rx="6" fill="#eff6ff" stroke="#111827" strokeWidth="2" />
-        <line x1={art.x + 7} y1={art.y + 8} x2={art.x + art.width - 7} y2={art.y + 8} stroke="#111827" strokeWidth="3" />
-        <line x1={art.x + 10} y1={art.y + art.height - 2} x2={art.x + 10} y2={art.y + art.height - 8} stroke="#111827" strokeWidth="2" />
-        <line x1={art.x + art.width - 10} y1={art.y + art.height - 2} x2={art.x + art.width - 10} y2={art.y + art.height - 8} stroke="#111827" strokeWidth="2" />
+        <rect x={art.x + 7} y={art.y + 9} width={art.width - 14} height={art.height - 12} rx="6" fill={tint('#eff6ff', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <line x1={art.x + 7} y1={art.y + 8} x2={art.x + art.width - 7} y2={art.y + 8} stroke={strokeInk('#111827', colours)} strokeWidth="3" />
+        <line x1={art.x + 10} y1={art.y + art.height - 2} x2={art.x + 10} y2={art.y + art.height - 8} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <line x1={art.x + art.width - 10} y1={art.y + art.height - 2} x2={art.x + art.width - 10} y2={art.y + art.height - 8} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
       </g>
     );
   } else if (object.type === 'table') {
     shape = (
       <g transform={transform}>
-        <ellipse cx={artCentreX} cy={artCentreY} rx={art.width / 2} ry={art.height / 2} fill="#f1f5f9" stroke="#111827" strokeWidth="2" />
-        <circle cx={art.x + 10} cy={artCentreY} r="5" fill="#111827" />
-        <circle cx={art.x + art.width - 10} cy={artCentreY} r="5" fill="#111827" />
-        <circle cx={artCentreX} cy={art.y + 8} r="5" fill="#111827" />
-        <circle cx={artCentreX} cy={art.y + art.height - 8} r="5" fill="#111827" />
+        <ellipse cx={artCentreX} cy={artCentreY} rx={art.width / 2} ry={art.height / 2} fill={tint('#f1f5f9', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <circle cx={art.x + 10} cy={artCentreY} r="5" fill={tint('#111827', colours)} />
+        <circle cx={art.x + art.width - 10} cy={artCentreY} r="5" fill={tint('#111827', colours)} />
+        <circle cx={artCentreX} cy={art.y + 8} r="5" fill={tint('#111827', colours)} />
+        <circle cx={artCentreX} cy={art.y + art.height - 8} r="5" fill={tint('#111827', colours)} />
       </g>
     );
   } else if (object.type === 'shelf') {
     shape = (
       <g transform={transform}>
-        <rect x={art.x} y={art.y} width={art.width} height={art.height} fill="#fff7ed" stroke="#111827" strokeWidth="2" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} fill={tint('#fff7ed', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
         {[1, 2, 3].map((line) => (
           <line
             key={line}
@@ -5356,7 +5396,7 @@ const renderFloorPlanObject = (
             y1={art.y + (art.height / 4) * line}
             x2={art.x + art.width}
             y2={art.y + (art.height / 4) * line}
-            stroke="#111827"
+            stroke={strokeInk('#111827', colours)}
             strokeWidth="1"
           />
         ))}
@@ -5365,61 +5405,61 @@ const renderFloorPlanObject = (
   } else if (object.type === 'cabinet') {
     shape = (
       <g transform={transform}>
-        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="4" fill="#f8fafc" stroke="#111827" strokeWidth="2" />
-        <line x1={artCentreX} y1={art.y} x2={artCentreX} y2={art.y + art.height} stroke="#111827" strokeWidth="1.5" />
-        <circle cx={artCentreX - 7} cy={artCentreY} r="2" fill="#111827" />
-        <circle cx={artCentreX + 7} cy={artCentreY} r="2" fill="#111827" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="4" fill={tint('#f8fafc', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <line x1={artCentreX} y1={art.y} x2={artCentreX} y2={art.y + art.height} stroke={strokeInk('#111827', colours)} strokeWidth="1.5" />
+        <circle cx={artCentreX - 7} cy={artCentreY} r="2" fill={tint('#111827', colours)} />
+        <circle cx={artCentreX + 7} cy={artCentreY} r="2" fill={tint('#111827', colours)} />
       </g>
     );
   } else if (object.type === 'printer') {
     shape = (
       <g transform={transform}>
-        <rect x={art.x + 6} y={art.y} width={art.width - 12} height="16" rx="3" fill="#e5e7eb" stroke="#111827" strokeWidth="2" />
-        <rect x={art.x} y={art.y + 14} width={art.width} height={art.height - 18} rx="5" fill="#f8fafc" stroke="#111827" strokeWidth="2" />
-        <rect x={art.x + 10} y={art.y + art.height - 12} width={art.width - 20} height="8" fill="#dbeafe" stroke="#111827" strokeWidth="1" />
-        <circle cx={art.x + art.width - 10} cy={art.y + 24} r="2.5" fill="#22c55e" />
+        <rect x={art.x + 6} y={art.y} width={art.width - 12} height="16" rx="3" fill={tint('#e5e7eb', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <rect x={art.x} y={art.y + 14} width={art.width} height={art.height - 18} rx="5" fill={tint('#f8fafc', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <rect x={art.x + 10} y={art.y + art.height - 12} width={art.width - 20} height="8" fill={tint('#dbeafe', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="1" />
+        <circle cx={art.x + art.width - 10} cy={art.y + 24} r="2.5" fill={tint('#22c55e', colours)} />
       </g>
     );
   } else if (object.type === 'equipment') {
     shape = (
       <g transform={transform}>
-        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="4" fill="#e0f2fe" stroke="#111827" strokeWidth="2" />
-        <line x1={art.x + 8} y1={art.y + 8} x2={art.x + art.width - 8} y2={art.y + art.height - 8} stroke="#111827" strokeWidth="2" />
-        <line x1={art.x + art.width - 8} y1={art.y + 8} x2={art.x + 8} y2={art.y + art.height - 8} stroke="#111827" strokeWidth="2" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="4" fill={tint('#e0f2fe', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <line x1={art.x + 8} y1={art.y + 8} x2={art.x + art.width - 8} y2={art.y + art.height - 8} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <line x1={art.x + art.width - 8} y1={art.y + 8} x2={art.x + 8} y2={art.y + art.height - 8} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
       </g>
     );
   } else if (object.type === 'whiteboard') {
     shape = (
       <g transform={transform}>
-        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="3" fill="#ffffff" stroke="#111827" strokeWidth="2" />
-        <line x1={art.x + 10} y1={art.y + art.height - 8} x2={art.x + art.width - 10} y2={art.y + art.height - 8} stroke="#60a5fa" strokeWidth="2" />
-        <line x1={art.x + 12} y1={art.y + 14} x2={art.x + art.width - 18} y2={art.y + 14} stroke="#d1d5db" strokeWidth="1" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="3" fill={tint('#ffffff', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <line x1={art.x + 10} y1={art.y + art.height - 8} x2={art.x + art.width - 10} y2={art.y + art.height - 8} stroke={strokeInk('#60a5fa', colours)} strokeWidth="2" />
+        <line x1={art.x + 12} y1={art.y + 14} x2={art.x + art.width - 18} y2={art.y + 14} stroke={strokeInk('#d1d5db', colours)} strokeWidth="1" />
       </g>
     );
   } else if (object.type === 'sofa') {
     shape = (
       <g transform={transform}>
-        <rect x={art.x + 8} y={art.y + 8} width={art.width - 16} height={art.height - 8} rx="8" fill="#ede9fe" stroke="#111827" strokeWidth="2" />
-        <rect x={art.x} y={art.y + 18} width="16" height={art.height - 18} rx="6" fill="#ede9fe" stroke="#111827" strokeWidth="2" />
-        <rect x={art.x + art.width - 16} y={art.y + 18} width="16" height={art.height - 18} rx="6" fill="#ede9fe" stroke="#111827" strokeWidth="2" />
-        <line x1={artCentreX} y1={art.y + 12} x2={artCentreX} y2={art.y + art.height - 2} stroke="#111827" strokeWidth="1" />
+        <rect x={art.x + 8} y={art.y + 8} width={art.width - 16} height={art.height - 8} rx="8" fill={tint('#ede9fe', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <rect x={art.x} y={art.y + 18} width="16" height={art.height - 18} rx="6" fill={tint('#ede9fe', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <rect x={art.x + art.width - 16} y={art.y + 18} width="16" height={art.height - 18} rx="6" fill={tint('#ede9fe', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <line x1={artCentreX} y1={art.y + 12} x2={artCentreX} y2={art.y + art.height - 2} stroke={strokeInk('#111827', colours)} strokeWidth="1" />
       </g>
     );
   } else if (object.type === 'plant') {
     shape = (
       <g transform={transform}>
-        <rect x={art.x + 10} y={art.y + art.height - 16} width={art.width - 20} height="14" rx="3" fill="#92400e" stroke="#111827" strokeWidth="1.5" />
-        <ellipse cx={artCentreX} cy={art.y + 16} rx={art.width / 3} ry="14" fill="#86efac" stroke="#166534" strokeWidth="1.5" />
-        <ellipse cx={art.x + 13} cy={art.y + 23} rx="11" ry="16" fill="#bbf7d0" stroke="#166534" strokeWidth="1.2" />
-        <ellipse cx={art.x + art.width - 13} cy={art.y + 23} rx="11" ry="16" fill="#bbf7d0" stroke="#166534" strokeWidth="1.2" />
+        <rect x={art.x + 10} y={art.y + art.height - 16} width={art.width - 20} height="14" rx="3" fill={tint('#92400e', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="1.5" />
+        <ellipse cx={artCentreX} cy={art.y + 16} rx={art.width / 3} ry="14" fill={tint('#86efac', colours)} stroke={strokeInk('#166534', colours)} strokeWidth="1.5" />
+        <ellipse cx={art.x + 13} cy={art.y + 23} rx="11" ry="16" fill={tint('#bbf7d0', colours)} stroke={strokeInk('#166534', colours)} strokeWidth="1.2" />
+        <ellipse cx={art.x + art.width - 13} cy={art.y + 23} rx="11" ry="16" fill={tint('#bbf7d0', colours)} stroke={strokeInk('#166534', colours)} strokeWidth="1.2" />
       </g>
     );
   } else if (object.type === 'waste_bin') {
     shape = (
       <g transform={transform}>
-        <path d={`M ${art.x + 6} ${art.y + 10} H ${art.x + art.width - 6} L ${art.x + art.width - 10} ${art.y + art.height - 2} H ${art.x + 10} Z`} fill="#fee2e2" stroke="#111827" strokeWidth="2" />
-        <line x1={art.x + 9} y1={art.y + 5} x2={art.x + art.width - 9} y2={art.y + 5} stroke="#111827" strokeWidth="3" />
-        <line x1={artCentreX} y1={art.y + 12} x2={artCentreX} y2={art.y + art.height - 8} stroke="#111827" strokeWidth="1" />
+        <path d={`M ${art.x + 6} ${art.y + 10} H ${art.x + art.width - 6} L ${art.x + art.width - 10} ${art.y + art.height - 2} H ${art.x + 10} Z`} fill={tint('#fee2e2', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <line x1={art.x + 9} y1={art.y + 5} x2={art.x + art.width - 9} y2={art.y + 5} stroke={strokeInk('#111827', colours)} strokeWidth="3" />
+        <line x1={artCentreX} y1={art.y + 12} x2={artCentreX} y2={art.y + art.height - 8} stroke={strokeInk('#111827', colours)} strokeWidth="1" />
       </g>
     );
   } else if (object.type === 'pallet') {
@@ -5428,7 +5468,7 @@ const renderFloorPlanObject = (
     // floor that is either free or is not.
     shape = (
       <g transform={transform}>
-        <rect x={art.x} y={art.y} width={art.width} height={art.height} fill="#fef3c7" stroke="#92400e" strokeWidth="2" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} fill={tint('#fef3c7', colours)} stroke={strokeInk('#92400e', colours)} strokeWidth="2" />
         {[0.22, 0.5, 0.78].map((along) => (
           <line
             key={along}
@@ -5436,7 +5476,7 @@ const renderFloorPlanObject = (
             y1={art.y + art.height * along}
             x2={art.x + art.width - 4}
             y2={art.y + art.height * along}
-            stroke="#92400e"
+            stroke={strokeInk('#92400e', colours)}
             strokeWidth="3"
           />
         ))}
@@ -5447,7 +5487,7 @@ const renderFloorPlanObject = (
     // is really about.
     shape = (
       <g transform={transform}>
-        <rect x={art.x} y={art.y} width={art.width} height={art.height} fill="#e5e7eb" stroke="#111827" strokeWidth="2" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} fill={tint('#e5e7eb', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
         {[1 / 3, 2 / 3].map((along) => (
           <line
             key={along}
@@ -5455,27 +5495,27 @@ const renderFloorPlanObject = (
             y1={art.y}
             x2={art.x + art.width * along}
             y2={art.y + art.height}
-            stroke="#111827"
+            stroke={strokeInk('#111827', colours)}
             strokeWidth="2"
           />
         ))}
-        <line x1={art.x} y1={art.y + art.height / 2} x2={art.x + art.width} y2={art.y + art.height / 2} stroke="#9ca3af" strokeWidth="1.5" />
+        <line x1={art.x} y1={art.y + art.height / 2} x2={art.x + art.width} y2={art.y + art.height / 2} stroke={strokeInk('#9ca3af', colours)} strokeWidth="1.5" />
       </g>
     );
   } else if (object.type === 'workbench') {
     shape = (
       <g transform={transform}>
-        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="2" fill="#f1f5f9" stroke="#111827" strokeWidth="2" />
-        <rect x={art.x} y={art.y} width={art.width} height={art.height * 0.22} fill="#cbd5e1" stroke="#111827" strokeWidth="1" />
-        <line x1={art.x + art.width * 0.1} y1={art.y + art.height - 4} x2={art.x + art.width * 0.9} y2={art.y + art.height - 4} stroke="#111827" strokeWidth="2" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="2" fill={tint('#f1f5f9', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height * 0.22} fill={tint('#cbd5e1', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="1" />
+        <line x1={art.x + art.width * 0.1} y1={art.y + art.height - 4} x2={art.x + art.width * 0.9} y2={art.y + art.height - 4} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
       </g>
     );
   } else {
     shape = (
       <g transform={transform}>
-        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="8" fill="#ecfeff" stroke="#111827" strokeWidth="2" />
-        <ellipse cx={artCentreX} cy={artCentreY} rx={art.width / 3} ry={art.height / 3} fill="#ffffff" stroke="#111827" strokeWidth="1.5" />
-        <circle cx={artCentreX} cy={artCentreY} r="4" fill="#60a5fa" />
+        <rect x={art.x} y={art.y} width={art.width} height={art.height} rx="8" fill={tint('#ecfeff', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="2" />
+        <ellipse cx={artCentreX} cy={artCentreY} rx={art.width / 3} ry={art.height / 3} fill={tint('#ffffff', colours)} stroke={strokeInk('#111827', colours)} strokeWidth="1.5" />
+        <circle cx={artCentreX} cy={artCentreY} r="4" fill={tint('#60a5fa', colours)} />
       </g>
     );
   }
@@ -5490,14 +5530,18 @@ const renderFloorPlanObject = (
       {shape}
       {object.type !== 'wall' && (
         <g pointerEvents="none">
+          {/*
+            The pill behind an object's name is paper, so at night the name
+            sits on the sheet rather than on a white sticker.
+          */}
           <rect
             x={Math.max(0, object.x + object.width / 2 - 42)}
             y={Math.min(CANVAS_HEIGHT - 22, object.y + object.height + 5)}
             width="84"
             height="18"
             rx="9"
-            fill="white"
-            stroke="#d1d5db"
+            fill={colours.paper}
+            stroke={colours.grid}
           />
           <text
             x={object.x + object.width / 2}
