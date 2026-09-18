@@ -1,5 +1,89 @@
 # Roadmap
 
+## What comes next, in order
+
+Written 2026-09-18, after the floor plan became a floor-plan tool and the
+projects and monthly report stopped reporting numbers nobody measured. The
+order is by what blocks the next thing, not by what is most interesting.
+
+### 1. Ship what is built
+
+Nothing below matters if it only exists on a branch and on one laptop.
+
+- **Merge `feat/design-system-adoption` into `main`.** It is 70 commits ahead.
+  CI runs on pull requests and on `main`, so every one of those commits has
+  been verified locally and by nothing else. This is one pull request and it
+  should happen before the branch grows again.
+- **Deploy to MPC for real.** Postgres, the migrations, the environment, and a
+  first organization. The pieces exist — Dockerfiles, compose files, a backup
+  and restore runbook — and have never been run end to end by anyone but the
+  author.
+- **Give attachments a real file store.** They write to `UPLOAD_DIR` on local
+  disk, which does not survive a container being replaced. Photographs are
+  evidence in a 5S programme; losing them on a redeploy is losing the evidence.
+
+### 2. Make it trustworthy in daily use
+
+Each of these is something the product currently does half of, in a way a
+person notices within a week of real use.
+
+- **Departments.** The last browser-local module, and the page admits it. The
+  question to answer first is not how to store a name — it is whether a
+  department owns zones, projects, or the people assigned to them. Until that
+  is decided the table cannot be designed.
+- **Tell somebody.** The scheduler raises audits and tasks and nobody is
+  notified, so work is found rather than delivered. Invitations have the same
+  hole: the API issues a token and the inviter sends it by hand. One transport
+  serves both.
+- **The audit trail.** It records who changed what record through which route,
+  and never what the change was, and nothing ever removes a row. A diff and a
+  retention policy, in that order — the diff has to be taken without writing a
+  password or a token into a table people read.
+
+### 3. 5S where the building is real
+
+The floor plan can now carry these; before the walls existed, none of them
+could be built honestly.
+
+- **Multi-floor and multi-site.** `site` is a single string. MPC has buildings
+  and floors, and an audit score means nothing if two floors share one plan.
+- **A QR code per zone.** Scanning the label on the wall opens that zone's
+  checklist on a phone. This is the thing that turns the mobile app from a
+  viewer into a tool, and it needs the zone ids the plan already has.
+- **Routes measured in metres.** The plan knows its scale and its rooms, so a
+  spaghetti diagram is now arithmetic rather than a drawing exercise.
+- **Floor plan versions.** An audit from March should still make sense against
+  the plan of March, not against the wall somebody moved in June.
+- **Audit layers in the interface.** They are read from the layout and default
+  sensibly; nothing lets an organization change them, or assign a layer by role
+  rather than to the zone owner.
+
+### 4. Language and content
+
+- **Finish the translation.** The 5S page speaks both languages now; the
+  monthly report has about nineteen English strings left, and the profile,
+  projects and organizations pages a handful each.
+- **Move the guideline registers out of the source.** About a hundred Mongolian
+  strings sit in `FiveSGuidelineRegisters.tsx`. They are not UI copy — they are
+  one organization's 5S standard — so they belong in seeded organization data,
+  which also lets a second organization have its own.
+
+### 5. Mobile
+
+- Build the Phase 1 screens against the real API: login, my tasks, calendar,
+  work log, clock in and out. The Flutter app compiles and its logic is tested;
+  its screens have never spoken to the server.
+- Cover `auth_provider` first, since login is the path every user takes.
+
+### 6. Keep it honest as it grows
+
+- **A browser-driven smoke run in CI**: sign in, load the dashboard, open the
+  5S page, draw a wall. Every serious defect found in the last month — the
+  pointer mapping, the walls that were never saved, the white canvas — was
+  found by opening the application, not by a unit test.
+- **Visual regression screenshots** for the pages that are now designed rather
+  than assembled.
+
 ## Next Backend Work
 
 - Decide what a department owns before giving it a table. The Users screen is
