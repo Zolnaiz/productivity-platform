@@ -280,6 +280,103 @@ describe('OperationsService organization scoping', () => {
     );
   });
 
+  describe('the monthly report', () => {
+    const month = '2026-09';
+
+    /** Every repository the report reads, empty unless a test fills it. */
+    const emptyMonth = (repositories: Record<string, any>, over: Record<string, any[]> = {}) => {
+      [
+        'projects',
+        'tasks',
+        'workLogs',
+        'timeEntries',
+        'auditRuns',
+        'assessmentResponses',
+        'expenses',
+        'dailyGoals',
+      ].forEach((name) => repositories[name].find.mockResolvedValue(over[name] ?? []));
+    };
+
+    it('says what each person did, not only what the organization did', async () => {
+      // The totals are for a board paper; the conversation a manager actually
+      // has is with one person about their month.
+      const { service, repositories } = createService();
+      emptyMonth(repositories, {
+        tasks: [
+          { id: 't1', assigneeId: 'u1', status: 'done', dueDate: '2026-09-04' },
+          { id: 't2', assigneeId: 'u1', status: 'todo', dueDate: '2026-09-20' },
+          { id: 't3', assigneeId: 'u2', status: 'done', dueDate: '2026-09-11' },
+        ],
+        timeEntries: [{ id: 'e1', userId: 'u1', workDate: '2026-09-03', hours: 6 }],
+        workLogs: [{ id: 'l1', userId: 'u1', logDate: '2026-09-03', hours: 2 }],
+        auditRuns: [{ id: 'a1', auditorId: 'u2', createdAt: new Date('2026-09-09') }],
+      });
+
+      const report = await service.monthlyReport({ id: 'u1', organizationId: 'org-1' }, month);
+
+      expect(report.people).toEqual([
+        expect.objectContaining({ userId: 'u1', completedTasks: 1, assignedTasks: 2, hours: 8, workLogs: 1 }),
+        expect.objectContaining({ userId: 'u2', completedTasks: 1, auditRuns: 1 }),
+      ]);
+    });
+
+    it('counts project progress from the tasks rather than the slider', async () => {
+      // This used to average `project.progress`, a figure somebody dragged,
+      // and report it as the organization's progress for the month.
+      const { service, repositories } = createService();
+      emptyMonth(repositories, {
+        projects: [{ id: 'p1', progress: 90 }],
+        tasks: [
+          { id: 't1', projectId: 'p1', status: 'done', dueDate: '2026-09-04' },
+          { id: 't2', projectId: 'p1', status: 'todo', dueDate: '2026-09-20' },
+          { id: 't3', projectId: 'p1', status: 'todo', dueDate: '2026-09-21' },
+          { id: 't4', projectId: 'p1', status: 'todo', dueDate: '2026-09-22' },
+        ],
+      });
+
+      const report = await service.monthlyReport({ id: 'u1', organizationId: 'org-1' }, month);
+
+      expect(report.kpis.averageProjectProgress).toBe(25);
+    });
+
+    it('leaves the typed figure standing for a project with no tasks to count', async () => {
+      const { service, repositories } = createService();
+      emptyMonth(repositories, { projects: [{ id: 'p1', progress: 40 }] });
+
+      const report = await service.monthlyReport({ id: 'u1', organizationId: 'org-1' }, month);
+
+      expect(report.kpis.averageProjectProgress).toBe(40);
+    });
+
+    it('leaves work nobody is recorded against out of everyone\u2019s month', async () => {
+      const { service, repositories } = createService();
+      emptyMonth(repositories, {
+        tasks: [{ id: 't1', status: 'done', dueDate: '2026-09-04' }],
+        timeEntries: [{ id: 'e1', workDate: '2026-09-03', hours: 6 }],
+      });
+
+      const report = await service.monthlyReport({ id: 'u1', organizationId: 'org-1' }, month);
+
+      expect(report.people).toEqual([]);
+      expect(report.totals.completedTasks).toBe(1);
+    });
+
+    it('reports the month asked for, not the month it is read in', async () => {
+      const { service, repositories } = createService();
+      emptyMonth(repositories, {
+        tasks: [
+          { id: 't1', assigneeId: 'u1', status: 'done', dueDate: '2026-09-04' },
+          { id: 't2', assigneeId: 'u1', status: 'done', dueDate: '2026-08-04' },
+        ],
+      });
+
+      const report = await service.monthlyReport({ id: 'u1', organizationId: 'org-1' }, '2026-08');
+
+      expect(report.period).toBe('2026-08');
+      expect(report.people[0]).toMatchObject({ userId: 'u1', completedTasks: 1 });
+    });
+  });
+
   it('creates a default 5S layout when the organization has none', async () => {
     const { service, repositories } = createService();
     repositories.fiveSLayouts.findOne.mockResolvedValue(undefined);

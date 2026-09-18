@@ -303,6 +303,17 @@ const en = {
       'Security events, report exports, permission changes, and audit submissions will appear here.',
   },
   monthlyReport: {
+    peopleTitle: 'The month, person by person',
+    peopleSubtitle: 'Compiled from the tasks, hours, work logs, audits and assessments each person recorded.',
+    person: 'Person',
+    personTasks: 'Tasks done',
+    personHours: 'Hours',
+    personLogs: 'Work logs',
+    personAudits: 'Audits',
+    personAssessments: 'Assessments',
+    personTasksValue: '{{done}} of {{total}}',
+    personNothing: 'Nothing recorded',
+    peopleEmpty: 'Nobody recorded anything this month.',
     title: 'Monthly Report',
     subtitle:
       'A combined monthly report built from projects, tasks, work logs, time entries, audits, assessments and expenses.',

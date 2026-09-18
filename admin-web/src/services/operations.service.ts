@@ -10,6 +10,7 @@ import {
   WorkTask,
 } from '../types/operations.types';
 import { DailyGoal } from '../types/productivity.types';
+import { summarisePeople } from '../components/reports/monthlyPeople';
 
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
 type DemoKey = 'projects' | 'tasks' | 'workLogs' | 'timeEntries' | 'auditTemplates' | 'auditRuns' | 'goals';
@@ -26,7 +27,7 @@ const demoProjects: Project[] = [
   {
     id: 'p1',
     organizationId: 'demo-org',
-    ownerId: 'demo-owner',
+    ownerId: 'u1',
     name: 'Operations productivity rollout',
     description: 'Task, time, work log, and monthly reporting MVP.',
     status: 'active',
@@ -38,7 +39,7 @@ const demoProjects: Project[] = [
   {
     id: 'p2',
     organizationId: 'demo-org',
-    ownerId: 'demo-owner',
+    ownerId: 'u1',
     name: '5S audit implementation',
     description: 'Manufacturing checklist templates and audit scoring.',
     status: 'planned',
@@ -54,8 +55,8 @@ const demoTasks: WorkTask[] = [
     organizationId: 'demo-org',
     title: 'Build project and task APIs',
     projectId: 'p1',
-    assigneeId: 'demo-owner',
-    reporterId: 'demo-owner',
+    assigneeId: 'u1',
+    reporterId: 'u1',
     status: 'done',
     priority: 'high',
     dueDate: '2026-06-14',
@@ -67,8 +68,8 @@ const demoTasks: WorkTask[] = [
     organizationId: 'demo-org',
     title: 'Connect work log dashboard',
     projectId: 'p1',
-    assigneeId: 'demo-owner',
-    reporterId: 'demo-owner',
+    assigneeId: 'u3',
+    reporterId: 'u1',
     status: 'in_progress',
     priority: 'high',
     dueDate: '2026-06-18',
@@ -80,8 +81,8 @@ const demoTasks: WorkTask[] = [
     organizationId: 'demo-org',
     title: 'Prepare 5S template library',
     projectId: 'p2',
-    assigneeId: 'demo-owner',
-    reporterId: 'demo-owner',
+    assigneeId: 'u2',
+    reporterId: 'u1',
     status: 'todo',
     priority: 'medium',
     dueDate: '2026-06-25',
@@ -94,7 +95,7 @@ const demoWorkLogs: WorkLog[] = [
   {
     id: 'w1',
     organizationId: 'demo-org',
-    userId: 'demo-owner',
+    userId: 'u1',
     logDate: '2026-06-12',
     projectId: 'p1',
     taskId: 't1',
@@ -105,7 +106,7 @@ const demoWorkLogs: WorkLog[] = [
   {
     id: 'w2',
     organizationId: 'demo-org',
-    userId: 'demo-owner',
+    userId: 'u3',
     logDate: '2026-06-11',
     projectId: 'p1',
     summary: 'Product blueprint and route structure were finalized.',
@@ -118,7 +119,7 @@ const demoTimeEntries: TimeEntry[] = [
   {
     id: 'te1',
     organizationId: 'demo-org',
-    userId: 'demo-owner',
+    userId: 'u1',
     workDate: '2026-06-12',
     projectId: 'p1',
     taskId: 't1',
@@ -128,7 +129,7 @@ const demoTimeEntries: TimeEntry[] = [
   {
     id: 'te2',
     organizationId: 'demo-org',
-    userId: 'demo-owner',
+    userId: 'u3',
     workDate: '2026-06-11',
     projectId: 'p1',
     hours: 4,
@@ -137,9 +138,9 @@ const demoTimeEntries: TimeEntry[] = [
 ];
 
 const demoDailyGoals: DailyGoal[] = [
-  { id: 'g1', organizationId: 'demo-org', userId: 'demo-owner', title: 'Finish operations MVP shell', date: '2026-06-23', completed: true },
-  { id: 'g2', organizationId: 'demo-org', userId: 'demo-owner', title: 'Add daily productivity tools', date: '2026-06-23', completed: false },
-  { id: 'g3', organizationId: 'demo-org', userId: 'demo-owner', title: 'Review carry-over work', date: '2026-06-20', completed: false },
+  { id: 'g1', organizationId: 'demo-org', userId: 'u1', title: 'Finish operations MVP shell', date: '2026-06-23', completed: true },
+  { id: 'g2', organizationId: 'demo-org', userId: 'u1', title: 'Add daily productivity tools', date: '2026-06-23', completed: false },
+  { id: 'g3', organizationId: 'demo-org', userId: 'u1', title: 'Review carry-over work', date: '2026-06-20', completed: false },
 ];
 
 const demoAuditTemplates: AuditTemplate[] = [
@@ -295,6 +296,9 @@ const demoAuditRuns: AuditRun[] = [
   {
     id: 'ar1',
     templateId: 'a1',
+    // The quality manager walks the floor; without an auditor the run belongs
+    // to nobody and nobody's month shows the audit they carried out.
+    auditorId: 'u2',
     location: 'Main production floor',
     status: 'submitted',
     score: 82,
@@ -326,20 +330,20 @@ const withDemoScope = <T extends Record<string, any>>(key: DemoKey, item: T): T 
   };
 
   if ((key === 'workLogs' || key === 'timeEntries') && !scoped.userId) {
-    scoped.userId = 'demo-owner';
+    scoped.userId = 'u1';
   }
 
   if (key === 'goals' && !scoped.userId) {
-    scoped.userId = 'demo-owner';
+    scoped.userId = 'u1';
   }
 
   if (key === 'tasks') {
-    if (!scoped.assigneeId) scoped.assigneeId = 'demo-owner';
-    if (!scoped.reporterId) scoped.reporterId = 'demo-owner';
+    if (!scoped.assigneeId) scoped.assigneeId = 'u1';
+    if (!scoped.reporterId) scoped.reporterId = 'u1';
   }
 
   if (key === 'auditRuns' && !scoped.auditorId) {
-    scoped.auditorId = 'demo-owner';
+    scoped.auditorId = 'u1';
   }
 
   return scoped as T;
@@ -544,8 +548,17 @@ const buildSummary = (): OperationsSummary => {
   const auditRuns = readDemo<AuditRun>('auditRuns');
   const completedTasks = tasks.filter((task) => task.status === 'done').length;
   const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
+  // Counted from the tasks, the same rule the projects page and the server
+  // use. `project.progress` is a figure somebody set with a slider.
   const averageProjectProgress = projects.length
-    ? Math.round(projects.reduce((sum, project) => sum + Number(project.progress || 0), 0) / projects.length)
+    ? Math.round(
+        projects.reduce((sum, project) => {
+          const mine = tasks.filter((task) => task.projectId === project.id);
+          if (!mine.length) return sum + Number(project.progress || 0);
+
+          return sum + Math.round((mine.filter((task) => task.status === 'done').length / mine.length) * 100);
+        }, 0) / projects.length,
+      )
     : 0;
 
   const averageAuditScore = auditRuns.length
@@ -592,6 +605,9 @@ const buildMonthlyReport = (month = currentMonth()): OperationsMonthlyReport => 
 
   return {
     period: month,
+    // The demo builds its report in the browser, so it groups the records by
+    // person here rather than being handed the answer by the server.
+    people: summarisePeople({ tasks: monthlyTasks, workLogs, timeEntries, auditRuns }),
     totals: {
       projects: projects.length,
       tasks: monthlyTasks.length,

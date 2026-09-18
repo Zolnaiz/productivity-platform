@@ -4,7 +4,9 @@ import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import { operationsService } from '../services/operations.service';
+import { peopleService } from '../services/people.service';
 import { OperationsMonthlyReport } from '../types/operations.types';
+import { TeamUser, memberName } from '../types/people.types';
 
 const formatMnt = (value: number) =>
   new Intl.NumberFormat('mn-MN', {
@@ -19,6 +21,14 @@ const MonthlyReportPage: React.FC = () => {
   const { t } = useTranslation();
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
   const [report, setReport] = useState<OperationsMonthlyReport | null>(null);
+  /**
+   * The people the report is about.
+   *
+   * Fetched separately because the report knows ids and this knows names, and
+   * because somebody with nothing recorded is worth a line of their own —
+   * which can only be written by a page that knows who was there.
+   */
+  const [members, setMembers] = useState<TeamUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +55,27 @@ const MonthlyReportPage: React.FC = () => {
       active = false;
     };
   }, [selectedMonth]);
+
+  /*
+    Names are loaded on their own, and their failure is not the report's.
+    Loading both together meant a hiccup fetching the staff list blanked the
+    whole month; the ids are in the report either way, and a row with an id on
+    it still says what somebody did.
+  */
+  useEffect(() => {
+    let active = true;
+
+    Promise.resolve()
+      .then(() => peopleService.getMembers())
+      .then((memberData) => {
+        if (active) setMembers(memberData ?? []);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const improvementActions = report
     ? report.assessmentResponses.filter((response) => response.score < 85).length
@@ -103,6 +134,35 @@ const MonthlyReportPage: React.FC = () => {
       ]
     : [];
 
+  /**
+   * One row per person: what they did, and a name to put on it.
+   *
+   * People with nothing recorded appear at the bottom with zeros rather than
+   * being left out. A month in which somebody logged nothing is a fact about
+   * the month — sometimes it means they were on leave, sometimes it means the
+   * recording is not happening — and dropping them hides both.
+   */
+  const peopleRows = (() => {
+    const recorded = report?.people ?? [];
+    const byId = new Map(recorded.map((person) => [person.userId, person]));
+    const named = members.map((member) => ({
+      userId: member.id,
+      name: memberName(member),
+      month: byId.get(member.id),
+    }));
+    // Somebody in the records who is no longer on the list still worked.
+    const departed = recorded
+      .filter((person) => !members.some((member) => member.id === person.userId))
+      .map((person) => ({ userId: person.userId, name: person.userId, month: person }));
+
+    return [...named, ...departed].sort((a, b) => {
+      const weight = (row: (typeof named)[number]) =>
+        (row.month?.completedTasks ?? 0) + (row.month?.hours ?? 0);
+
+      return weight(b) - weight(a);
+    });
+  })();
+
   const executiveSummary = report
     ? summaryLines.map((line) => `${line.label}: ${line.text}`).join('\n')
     : 'Monthly productivity report is loading.';
@@ -129,6 +189,19 @@ const MonthlyReportPage: React.FC = () => {
       ['Pending expenses', report.totals.pendingExpenseTotal],
       ['Improvement actions needed', improvementActions],
       ['Average project progress', `${report.kpis.averageProjectProgress}%`],
+      [],
+      // The per-person rows go in the same file: a monthly report that has to
+      // be read on screen and re-typed to be shared is not a report.
+      ['Person', 'Tasks done', 'Tasks assigned', 'Hours', 'Work logs', 'Audits', 'Assessments'],
+      ...peopleRows.map((row) => [
+        row.name,
+        row.month?.completedTasks ?? 0,
+        row.month?.assignedTasks ?? 0,
+        (row.month?.hours ?? 0).toFixed(1),
+        row.month?.workLogs ?? 0,
+        row.month?.auditRuns ?? 0,
+        row.month?.assessments ?? 0,
+      ]),
     ];
     const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -231,6 +304,53 @@ const MonthlyReportPage: React.FC = () => {
               <div className="mt-2 text-xl font-semibold">{formatMnt(report.totals.approvedExpenseTotal)}</div>
             </Card>
           </div>
+
+          {/*
+            The month, person by person. The totals above are for a board
+            paper; this is the conversation a manager actually has.
+          */}
+          <Card title={t('monthlyReport.peopleTitle')} subtitle={t('monthlyReport.peopleSubtitle')}>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                <thead className="text-left text-xs font-medium uppercase text-gray-500">
+                  <tr>
+                    <th className="py-2 pr-4">{t('monthlyReport.person')}</th>
+                    <th className="py-2 pr-4">{t('monthlyReport.personTasks')}</th>
+                    <th className="py-2 pr-4">{t('monthlyReport.personHours')}</th>
+                    <th className="py-2 pr-4">{t('monthlyReport.personLogs')}</th>
+                    <th className="py-2 pr-4">{t('monthlyReport.personAudits')}</th>
+                    <th className="py-2">{t('monthlyReport.personAssessments')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {peopleRows.map((row) => (
+                    <tr key={row.userId} className={row.month ? '' : 'text-gray-400 dark:text-gray-500'}>
+                      <td className="py-2 pr-4">{row.name}</td>
+                      <td className="py-2 pr-4 tabular-nums">
+                        {row.month
+                          ? t('monthlyReport.personTasksValue', {
+                              done: row.month.completedTasks,
+                              total: row.month.assignedTasks,
+                            })
+                          : t('monthlyReport.personNothing')}
+                      </td>
+                      <td className="py-2 pr-4 tabular-nums">{(row.month?.hours ?? 0).toFixed(1)}</td>
+                      <td className="py-2 pr-4 tabular-nums">{row.month?.workLogs ?? 0}</td>
+                      <td className="py-2 pr-4 tabular-nums">{row.month?.auditRuns ?? 0}</td>
+                      <td className="py-2 tabular-nums">{row.month?.assessments ?? 0}</td>
+                    </tr>
+                  ))}
+                  {!peopleRows.length && (
+                    <tr>
+                      <td className="py-3 text-gray-500" colSpan={6}>
+                        {t('monthlyReport.peopleEmpty')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
 
           <div className="grid gap-6 lg:grid-cols-3">
             <Card title="Completed tasks">

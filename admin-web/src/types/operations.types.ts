@@ -124,8 +124,27 @@ export interface OperationsSummary {
   };
 }
 
+/** What one person did in the month, from everything they left behind. */
+export interface MonthlyPerson {
+  userId: string;
+  completedTasks: number;
+  assignedTasks: number;
+  hours: number;
+  workLogs: number;
+  auditRuns: number;
+  assessments: number;
+}
+
 export interface OperationsMonthlyReport {
   period: string;
+  /**
+   * Everybody who appears in the month's records.
+   *
+   * Built from the records rather than the staff list, so somebody who has
+   * left still has the month they worked; the page adds the people who left
+   * nothing behind, because it knows who was supposed to be there.
+   */
+  people?: MonthlyPerson[];
   totals: {
     projects: number;
     tasks: number;

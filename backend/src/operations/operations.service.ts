@@ -14,6 +14,7 @@ import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
+import { projectProgressPercent, summarisePeople } from './monthly-people';
 
 type CurrentUser = {
   id?: string;
@@ -515,8 +516,14 @@ export class OperationsService {
 
     const completedTasks = tasks.filter((task) => task.status === 'done').length;
     const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
+    // Counted from the tasks, the same way the projects page counts it. This
+    // used to average `project.progress` — a figure somebody set with a slider
+    // — and report it as the organization's progress for the month.
     const averageProjectProgress = projects.length
-      ? Math.round(projects.reduce((sum, project) => sum + Number(project.progress || 0), 0) / projects.length)
+      ? Math.round(
+          projects.reduce((sum, project) => sum + projectProgressPercent(project, tasks), 0) /
+            projects.length,
+        )
       : 0;
     const averageAuditScore = auditRuns.length
       ? Math.round(auditRuns.reduce((sum, run) => sum + Number(run.score || 0), 0) / auditRuns.length)
@@ -587,8 +594,13 @@ export class OperationsService {
     const dailyGoalCompletionRate = monthlyDailyGoals.length
       ? Math.round((completedDailyGoals.length / monthlyDailyGoals.length) * 100)
       : 0;
+    // Counted from the tasks, the same rule the projects page and the
+    // dashboard use: `project.progress` is a figure somebody set with a slider.
     const averageProjectProgress = projects.length
-      ? Math.round(projects.reduce((sum, project) => sum + Number(project.progress || 0), 0) / projects.length)
+      ? Math.round(
+          projects.reduce((sum, project) => sum + projectProgressPercent(project, tasks), 0) /
+            projects.length,
+        )
       : 0;
     const averageAssessmentScore = monthlyAssessmentResponses.length
       ? Math.round(
@@ -603,8 +615,25 @@ export class OperationsService {
       .filter((expense) => expense.status === 'submitted')
       .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
 
+    /*
+      What each person did, which is the conversation a manager actually has.
+      The totals above are for a board paper; nobody can act on them.
+
+      Daily goals are deliberately absent: they are personal notes, scoped to
+      the person who wrote them, and turning them into a number somebody else
+      reads would change what they are for.
+    */
+    const people = summarisePeople({
+      tasks: monthlyTasks,
+      workLogs: monthlyWorkLogs,
+      timeEntries: monthlyTimeEntries,
+      auditRuns: monthlyAuditRuns,
+      assessmentResponses: monthlyAssessmentResponses,
+    });
+
     return {
       period: reportMonth,
+      people,
       totals: {
         projects: projects.length,
         tasks: monthlyTasks.length,

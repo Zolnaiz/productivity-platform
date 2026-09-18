@@ -170,7 +170,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const demoUser: User = {
-      id: 'demo-owner',
+      // The same id the member list gives this person. They were different
+      // strings for the same human being, so everything the demo user did was
+      // recorded against somebody who was not in the staff list — and the
+      // monthly report, which groups by person, showed it as a stranger's
+      // month beside four people who had apparently done nothing.
+      id: 'u1',
       email: 'owner@example.com',
       name: 'Demo Owner',
       roles: ['admin'],
