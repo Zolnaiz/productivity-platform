@@ -8,11 +8,22 @@ import Input from '../components/common/Input';
 import Modal from '../components/common/Modal';
 import Select from '../components/common/Select';
 import { operationsService } from '../services/operations.service';
-import { Project } from '../types/operations.types';
+import { Project, TimeEntry, WorkLog, WorkTask } from '../types/operations.types';
+import { isProjectLate, summariseProject } from '../components/projects/projectProgress';
 
 const ProjectsPage: React.FC = () => {
   const { t } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
+  /**
+   * The records a project's state is actually made of.
+   *
+   * Loaded here rather than computed on the server because they are already
+   * fetched elsewhere in the app and the numbers have to agree with the task
+   * board — one set of records, read the same way.
+   */
+  const [tasks, setTasks] = useState<WorkTask[]>([]);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [workLogs, setWorkLogs] = useState<WorkLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [projectPendingDelete, setProjectPendingDelete] = useState<Project | null>(null);
@@ -30,8 +41,19 @@ const ProjectsPage: React.FC = () => {
 
     const loadProjects = async () => {
       try {
-        const data = await operationsService.getProjects();
-        if (active) setProjects(data);
+        const [data, taskData, entryData, logData] = await Promise.all([
+          operationsService.getProjects(),
+          operationsService.getTasks(),
+          operationsService.getTimeEntries(),
+          operationsService.getWorkLogs(),
+        ]);
+
+        if (!active) return;
+
+        setProjects(data);
+        setTasks(taskData);
+        setTimeEntries(entryData);
+        setWorkLogs(logData);
       } catch {
         if (active) setError(t('projects.loadFailed'));
       } finally {
@@ -45,6 +67,9 @@ const ProjectsPage: React.FC = () => {
       active = false;
     };
   }, []);
+
+  /** Today, decided once: two cards must not disagree about what is overdue. */
+  const today = new Date().toISOString().slice(0, 10);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -148,7 +173,12 @@ const ProjectsPage: React.FC = () => {
             </div>
           </Card>
         )}
-        {projects.map((project) => (
+        {projects.map((project) => {
+          const summary = summariseProject(project, tasks, timeEntries, workLogs, today);
+          const counted = summary.progress.source === 'tasks';
+          const late = isProjectLate(project, today);
+
+          return (
           <Card key={project.id}>
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -167,30 +197,97 @@ const ProjectsPage: React.FC = () => {
               </div>
               <div>
                 <div className="text-gray-500">{t('projects.dueDate')}</div>
-                <div className="font-medium">{project.dueDate || '-'}</div>
+                <div className={`font-medium ${late ? 'text-red-600 dark:text-red-400' : ''}`}>
+                  {project.dueDate || '-'}
+                  {late && <span className="ml-1 text-xs">{t('projects.late')}</span>}
+                </div>
               </div>
               <div>
                 <div className="text-gray-500">{t('projects.progress')}</div>
-                <div className="font-medium">{project.progress}%</div>
+                <div className="font-medium">{summary.progress.percent}%</div>
               </div>
             </div>
 
             <div className="mt-4 h-2 rounded-full bg-gray-100 dark:bg-gray-700">
-              <div className="h-2 rounded-full bg-blue-600" style={{ width: `${project.progress}%` }} />
+              <div
+                className={`h-2 rounded-full ${counted ? 'bg-blue-600' : 'bg-gray-400 dark:bg-gray-500'}`}
+                style={{ width: `${summary.progress.percent}%` }}
+              />
             </div>
+            {/*
+              Where the number came from, said out loud. It used to be a slider
+              somebody dragged, and the dashboard reported that figure as
+              though it had been measured.
+            */}
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {counted
+                ? t('projects.progressFromTasks', {
+                    done: summary.progress.done,
+                    total: summary.progress.total,
+                  })
+                : t('projects.progressEstimated')}
+            </p>
+
+            {counted && (
+              <div className="mt-4 grid gap-3 text-sm sm:grid-cols-4">
+                <div>
+                  <div className="text-gray-500">{t('projects.openTasks')}</div>
+                  <div className="font-medium tabular-nums">{summary.open}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">{t('projects.inProgress')}</div>
+                  <div className="font-medium tabular-nums">{summary.inProgress}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">{t('projects.overdueTasks')}</div>
+                  <div
+                    className={`font-medium tabular-nums ${
+                      summary.overdue ? 'text-red-600 dark:text-red-400' : ''
+                    }`}
+                  >
+                    {summary.overdue}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-500">{t('projects.hours')}</div>
+                  <div className="font-medium tabular-nums">
+                    {summary.hoursLogged.toFixed(1)}
+                    {summary.hoursEstimated > 0 && (
+                      <span className="text-gray-500">
+                        {' '}
+                        / {summary.hoursEstimated.toFixed(1)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {counted && Boolean(summary.unassigned) && (
+              <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                {t('projects.unassignedWarning', { count: summary.unassigned })}
+              </p>
+            )}
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="text-sm text-gray-600 dark:text-gray-400">
-                {t('projects.progress')}
-                <input
-                  className="mt-1 w-full"
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={project.progress}
-                  onChange={(event) => updateProgress(project, Number(event.target.value))}
-                />
-              </label>
+              {/*
+                The slider is offered only while there is nothing to count. Once
+                a project has tasks, dragging a number over the top of them is
+                how a status report ends up disagreeing with the task board.
+              */}
+              {!counted && (
+                <label className="text-sm text-gray-600 dark:text-gray-400">
+                  {t('projects.progressEstimate')}
+                  <input
+                    className="mt-1 w-full"
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={project.progress}
+                    onChange={(event) => updateProgress(project, Number(event.target.value))}
+                  />
+                </label>
+              )}
               <Select
                 label={t('projects.status')}
                 value={project.status}
@@ -216,7 +313,8 @@ const ProjectsPage: React.FC = () => {
               </Button>
             </div>
           </Card>
-        ))}
+          );
+        })}
       </div>
 
       <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title={t('projects.newProject')}>

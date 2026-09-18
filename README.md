@@ -211,6 +211,11 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
   areas at all, how those areas score on average, how many open red tags that
   is and how many per 100 m². Areas that are in no room are listed rather than
   dropped from every total.
+- A project reports what its tasks say, not what somebody dragged a slider to:
+  how many tasks are done, open, in progress and overdue, the hours recorded
+  against it from both places people record them, and whether it is past its
+  own due date. The slider survives only for a project with no tasks yet, and
+  says it is an estimate.
 - The plan is drawn as walls, not rectangles. Walls meet at shared corners, snap to the nearest 45 degrees unless Alt is held, and show their length in metres while being drawn. A room is whatever the walls close in — found from the wall graph on every change rather than stored, so a room and its walls cannot part company — and its area is a consequence of the drawing rather than a number somebody typed.
 - Several areas can be worked on at once: shift-click or drag a rubber band to select, move or delete them together, and line them up or space them evenly. The group is clamped as one shape, so hitting an edge does not squash the arrangement.
 - The floor plan zooms and pans: wheel or trackpad pinch to zoom at the pointer, space or middle-drag to pan, a zoom readout with fit and zoom-to-area. Every drag measures the pointer through the current view, so editing works the same at any zoom.
@@ -247,7 +252,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 432 passing
-- Frontend tests: 627 passing
+- Frontend tests: 654 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing
