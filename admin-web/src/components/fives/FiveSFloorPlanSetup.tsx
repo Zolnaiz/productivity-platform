@@ -112,6 +112,7 @@ import { catalogue, catalogueGroups, catalogueItem, sizeForType } from './floorP
 import { dropSpot, placeAgainstWall } from './floorPlanPlacement';
 import { labelIn, nameRoom } from './floorPlanRooms';
 import { crossesAWall, perHundredSquareMetres, roomForZone, zoneCoverage } from './floorPlanZones';
+import { summariseRooms, zonesInNoRoom } from './floorPlanRoomSummary';
 import { OrderMove, canReorder, reorder } from './floorPlanOrder';
 import {
   areaInMetres,
@@ -529,6 +530,23 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       tagDensity: perHundredSquareMetres(getRedTagCount(selectedZone), coverage.area),
     };
   }, [selectedZone, rooms, plan, metresPerUnit]);
+
+  /**
+   * What each room adds up to.
+   *
+   * A room is the level people manage at: it has a door, a name, somebody
+   * responsible for it, and a floor you can stand in the middle of. Until the
+   * plan had rooms the only thing above a zone was the whole site.
+   */
+  const roomSummaries = useMemo(
+    () => summariseRooms(rooms, plan?.zones ?? [], plan?.roomLabels ?? [], metresPerUnit),
+    [rooms, plan, metresPerUnit],
+  );
+
+  const strayZones = useMemo(
+    () => zonesInNoRoom(rooms, plan?.zones ?? []),
+    [rooms, plan],
+  );
 
   const selectedRoom = useMemo(
     () => rooms.find((room) => roomKey(room) === selectedRoomKey) ?? null,
@@ -5062,6 +5080,94 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             </div>
           )}
         </div>
+
+        {/*
+          The rooms, and what is happening in each. This is the level a plant
+          manager walks and talks in — "how is goods-in doing" — and it could
+          not be asked at all until the plan had rooms to ask it of.
+        */}
+        {Boolean(rooms.length) && (
+          <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
+                <MapIcon className="h-4 w-4" />
+                {t('fiveS.roomRegister')}
+              </div>
+              <span className="text-xs text-gray-500">
+                {t('fiveS.roomRegisterCount', { count: rooms.length })}
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-4 py-3">{t('fiveS.room')}</th>
+                    <th className="px-4 py-3">{t('fiveS.roomFloor')}</th>
+                    <th className="px-4 py-3">{t('fiveS.roomMapped')}</th>
+                    <th className="px-4 py-3">{t('fiveS.roomAreas')}</th>
+                    {showAuditControls && <th className="px-4 py-3">{t('fiveS.roomScore')}</th>}
+                    <th className="px-4 py-3">{t('fiveS.roomTags')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {roomSummaries.map((summary) => (
+                    <tr key={summary.key} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="px-4 py-3 text-gray-900 dark:text-white">
+                        {summary.name || (
+                          <span className="text-gray-400 dark:text-gray-500">{t('fiveS.roomUnnamed')}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums text-gray-600 dark:text-gray-300">
+                        {formatArea(summary.area)}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums text-gray-600 dark:text-gray-300">
+                        {summary.coverage === null ? '-' : `${Math.round(summary.coverage * 100)}%`}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums text-gray-600 dark:text-gray-300">
+                        {summary.zones.length}
+                        {summary.unowned > 0 && (
+                          <span className="ml-1 text-amber-600 dark:text-amber-400">
+                            {t('fiveS.roomUnowned', { count: summary.unowned })}
+                          </span>
+                        )}
+                      </td>
+                      {showAuditControls && (
+                        <td className="px-4 py-3 tabular-nums text-gray-600 dark:text-gray-300">
+                          {summary.averageScore === null
+                            ? t('fiveS.roomNeverAudited')
+                            : `${Math.round(summary.averageScore)}%`}
+                        </td>
+                      )}
+                      <td className="px-4 py-3 tabular-nums text-gray-600 dark:text-gray-300">
+                        {summary.openRedTags}
+                        {summary.tagDensity !== null && summary.openRedTags > 0 && (
+                          <span className="ml-1 text-gray-400 dark:text-gray-500">
+                            {t('fiveS.roomPerHundred', { density: summary.tagDensity.toFixed(1) })}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {/*
+                    Areas in no room at all, said out loud rather than dropped
+                    from every total: either the walls round them have not been
+                    drawn, or they are somewhere nobody has accounted for.
+                  */}
+                  {Boolean(strayZones.length) && (
+                    <tr className="bg-amber-50/40 dark:bg-amber-950/10">
+                      <td className="px-4 py-3 text-amber-800 dark:text-amber-300" colSpan={showAuditControls ? 6 : 5}>
+                        {t('fiveS.roomStrayZones', {
+                          count: strayZones.length,
+                          names: strayZones.map((zone) => zone.code).join(', '),
+                        })}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">

@@ -207,6 +207,10 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
   6 m² tool crib and two in a 600 m² hall are not the same finding. An area
   drawn across a wall is called out, because nobody can walk, audit or own it
   as one area.
+- Each room says what it adds up to: how much of its floor is mapped into 5S
+  areas at all, how those areas score on average, how many open red tags that
+  is and how many per 100 m². Areas that are in no room are listed rather than
+  dropped from every total.
 - The plan is drawn as walls, not rectangles. Walls meet at shared corners, snap to the nearest 45 degrees unless Alt is held, and show their length in metres while being drawn. A room is whatever the walls close in — found from the wall graph on every change rather than stored, so a room and its walls cannot part company — and its area is a consequence of the drawing rather than a number somebody typed.
 - Several areas can be worked on at once: shift-click or drag a rubber band to select, move or delete them together, and line them up or space them evenly. The group is clamped as one shape, so hitting an edge does not squash the arrangement.
 - The floor plan zooms and pans: wheel or trackpad pinch to zoom at the pointer, space or middle-drag to pan, a zoom readout with fit and zoom-to-area. Every drag measures the pointer through the current view, so editing works the same at any zoom.
@@ -243,7 +247,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 432 passing
-- Frontend tests: 616 passing
+- Frontend tests: 627 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing
