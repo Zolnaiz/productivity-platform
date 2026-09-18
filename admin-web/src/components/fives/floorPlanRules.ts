@@ -25,6 +25,20 @@ export const stageLabels: Record<FiveSStage, string> = {
   sustain: '5 Sustain',
 };
 
+/**
+ * The five S's, keyed for translation.
+ *
+ * The numbers stay, because 1S through 5S is how the programme is spoken about
+ * in every language it runs in; only the words move.
+ */
+export const stageKeys: Record<FiveSStage, string> = {
+  sort: 'sort',
+  set_in_order: 'setInOrder',
+  shine: 'shine',
+  standardize: 'standardize',
+  sustain: 'sustain',
+};
+
 export const stageOrder: FiveSStage[] = ['sort', 'set_in_order', 'shine', 'standardize', 'sustain'];
 
 export type ZoneStatusFilter =
@@ -36,25 +50,35 @@ export type ZoneStatusFilter =
   | 'low_score'
   | 'unassigned';
 
-export const zoneStatusOptions: Array<{ value: ZoneStatusFilter; label: string }> = [
-  { value: 'all', label: 'All areas' },
-  { value: 'needs_attention', label: 'Needs attention' },
-  { value: 'ready_to_advance', label: 'Ready to advance' },
-  { value: 'audit_due', label: 'Audit due' },
-  { value: 'red_tags', label: 'Red tags' },
-  { value: 'low_score', label: 'Low score' },
-  { value: 'unassigned', label: 'Unassigned' },
+/**
+ * The area filters.
+ *
+ * Each carries both an English label and a key. The label is what an export
+ * writes, because a CSV goes to somebody who may not share the reader's
+ * language; the key is what the screen shows, in whichever language the reader
+ * is in. They were one English string doing both jobs, so a Mongolian
+ * workspace filtered its areas in English.
+ */
+export const zoneStatusOptions: Array<{ value: ZoneStatusFilter; label: string; key: string }> = [
+  { value: 'all', label: 'All areas', key: 'allAreas' },
+  { value: 'needs_attention', label: 'Needs attention', key: 'needsAttention' },
+  { value: 'ready_to_advance', label: 'Ready to advance', key: 'readyToAdvance' },
+  { value: 'audit_due', label: 'Audit due', key: 'auditDue' },
+  { value: 'red_tags', label: 'Red tags', key: 'redTags' },
+  { value: 'low_score', label: 'Low score', key: 'lowScore' },
+  { value: 'unassigned', label: 'Unassigned', key: 'unassigned' },
 ];
 
-export const redTagStatusLabel = (status: FiveSRedTag['status']) =>
-  redTagStatusOptions.find((option) => option.value === status)?.label ?? status;
-
-export const redTagStatusOptions: Array<{ value: FiveSRedTag['status']; label: string }> = [
-  { value: 'open', label: 'Open' },
-  { value: 'review', label: 'Review' },
-  { value: 'disposed', label: 'Disposed' },
-  { value: 'returned', label: 'Returned' },
+export const redTagStatusOptions: Array<{ value: FiveSRedTag['status']; label: string; key: string }> = [
+  { value: 'open', label: 'Open', key: 'open' },
+  { value: 'review', label: 'Review', key: 'review' },
+  { value: 'disposed', label: 'Disposed', key: 'disposed' },
+  { value: 'returned', label: 'Returned', key: 'returned' },
 ];
+
+/** The key for a red tag's status, for the screen. */
+export const redTagStatusKey = (status: FiveSRedTag['status']) =>
+  redTagStatusOptions.find((option) => option.value === status)?.key ?? 'open';
 
 /** Radius of a red-tag pin on the canvas. */
 export const PIN_RADIUS = 11;
@@ -158,55 +182,55 @@ export const getNextStage = (stage: FiveSStage) => {
 export const getStageGateItems = (zone: FiveSZone, includeAudit = true) => {
   if (zone.stage === 'sort') {
     return [
-      { label: 'Responsible owner assigned', complete: Boolean(zone.ownerName) },
-      { label: 'Area contents listed', complete: Boolean(zone.contents.trim()) },
-      { label: 'Red tags cleared', complete: getRedTagCount(zone) === 0 },
+      { key: 'ownerAssigned', label: 'Responsible owner assigned', complete: Boolean(zone.ownerName) },
+      { key: 'contentsListed', label: 'Area contents listed', complete: Boolean(zone.contents.trim()) },
+      { key: 'redTagsCleared', label: 'Red tags cleared', complete: getRedTagCount(zone) === 0 },
     ];
   }
 
   if (zone.stage === 'set_in_order') {
     return [
-      { label: 'Location label note written', complete: Boolean(zone.labelText.trim()) },
-      { label: 'Owner assigned', complete: Boolean(zone.ownerName) },
-      { label: 'Area contents listed', complete: Boolean(zone.contents.trim()) },
+      { key: 'labelWritten', label: 'Location label note written', complete: Boolean(zone.labelText.trim()) },
+      { key: 'ownerAssigned', label: 'Owner assigned', complete: Boolean(zone.ownerName) },
+      { key: 'contentsListed', label: 'Area contents listed', complete: Boolean(zone.contents.trim()) },
     ];
   }
 
   if (zone.stage === 'shine') {
     return [
-      { label: 'Last cleaned date recorded', complete: Boolean(zone.lastCleanedAt) },
-      { label: 'Red tags cleared', complete: getRedTagCount(zone) === 0 },
-      { label: 'Area standard drafted', complete: Boolean(zone.standard.trim()) },
+      { key: 'cleanedRecorded', label: 'Last cleaned date recorded', complete: Boolean(zone.lastCleanedAt) },
+      { key: 'redTagsCleared', label: 'Red tags cleared', complete: getRedTagCount(zone) === 0 },
+      { key: 'standardDrafted', label: 'Area standard drafted', complete: Boolean(zone.standard.trim()) },
     ];
   }
 
   if (zone.stage === 'standardize') {
     const setupItems = [
-      { label: 'Area standard published', complete: Boolean(zone.standard.trim()) },
-      { label: 'Location label note written', complete: Boolean(zone.labelText.trim()) },
-      { label: 'Owner assigned', complete: Boolean(zone.ownerName) },
+      { key: 'standardPublished', label: 'Area standard published', complete: Boolean(zone.standard.trim()) },
+      { key: 'labelWritten', label: 'Location label note written', complete: Boolean(zone.labelText.trim()) },
+      { key: 'ownerAssigned', label: 'Owner assigned', complete: Boolean(zone.ownerName) },
     ];
 
     return includeAudit
       ? [
           ...setupItems,
-          { label: 'First audit completed', complete: zone.lastAuditScore !== undefined },
-          { label: 'Audit score at least 85%', complete: Number(zone.lastAuditScore || 0) >= 85 },
+          { key: 'firstAuditDone', label: 'First audit completed', complete: zone.lastAuditScore !== undefined },
+          { key: 'scoreAtLeast85', label: 'Audit score at least 85%', complete: Number(zone.lastAuditScore || 0) >= 85 },
         ]
       : setupItems;
   }
 
   const setupItems = [
-    { label: 'Owner assigned', complete: Boolean(zone.ownerName) },
-    { label: 'Area standard published', complete: Boolean(zone.standard.trim()) },
-    { label: 'Red tags cleared', complete: getRedTagCount(zone) === 0 },
+    { key: 'ownerAssigned', label: 'Owner assigned', complete: Boolean(zone.ownerName) },
+    { key: 'standardPublished', label: 'Area standard published', complete: Boolean(zone.standard.trim()) },
+    { key: 'redTagsCleared', label: 'Red tags cleared', complete: getRedTagCount(zone) === 0 },
   ];
 
   return includeAudit
     ? [
-        { label: 'Audit schedule current', complete: !isAuditDue(zone) },
-        { label: 'Red tags cleared', complete: getRedTagCount(zone) === 0 },
-        { label: 'Audit score at least 85%', complete: Number(zone.lastAuditScore || 0) >= 85 },
+        { key: 'auditScheduleCurrent', label: 'Audit schedule current', complete: !isAuditDue(zone) },
+        { key: 'redTagsCleared', label: 'Red tags cleared', complete: getRedTagCount(zone) === 0 },
+        { key: 'scoreAtLeast85', label: 'Audit score at least 85%', complete: Number(zone.lastAuditScore || 0) >= 85 },
       ]
     : setupItems;
 };
@@ -220,14 +244,22 @@ export const getStageGate = (zone: FiveSZone, includeAudit = true) => {
   };
 };
 
-export const getZoneStageActions = (zone: FiveSZone, includeAudit = true) => {
+export const getZoneStageActions = (zone: FiveSZone, includeAudit = true): ZoneAction[] => {
   const gate = getStageGate(zone, includeAudit);
 
   if (gate.nextStage && gate.complete) {
-    return [`Advance to ${stageLabels[gate.nextStage]}`];
+    return [
+      {
+        key: 'advance',
+        label: `Advance to ${stageLabels[gate.nextStage]}`,
+        params: { stageKey: stageKeys[gate.nextStage] },
+      },
+    ];
   }
 
-  return gate.items.filter((item) => !item.complete).map((item) => `Gate: ${item.label}`);
+  return gate.items
+    .filter((item) => !item.complete)
+    .map((item) => ({ key: 'gate', label: `Gate: ${item.label}`, params: { gateKey: item.key } }));
 };
 
 export const matchesZoneStatus = (zone: FiveSZone, filter: ZoneStatusFilter, includeAudit = true) => {
@@ -243,23 +275,59 @@ export const matchesZoneStatus = (zone: FiveSZone, filter: ZoneStatusFilter, inc
   return !zone.ownerName;
 };
 
-export const getZoneSetupGaps = (zone: FiveSZone, includeAudit = true) => {
-  const gaps: string[] = [];
+/**
+ * What is still missing from an area, as something that can be said in any
+ * language.
+ *
+ * These used to be English sentences built here and printed straight onto the
+ * screen, so a Mongolian workspace read its own next actions in English. Each
+ * one now carries a key and its numbers; the English label stays because an
+ * export goes to somebody who may not share the reader's language.
+ */
+export interface ZoneAction {
+  key: string;
+  label: string;
+  params?: Record<string, string | number>;
+}
 
-  if (!zone.ownerName) gaps.push('Assign responsible owner');
-  if (!zone.contents.trim()) gaps.push('List what belongs in the area');
-  if (!zone.standard.trim()) gaps.push('Write the 5S standard');
-  if (includeAudit && zone.lastAuditScore === undefined) gaps.push('Run the first audit');
-  if (includeAudit && zone.lastAuditScore !== undefined && isAuditDue(zone)) gaps.push('Run scheduled audit');
-  if (includeAudit && Number(zone.lastAuditScore || 100) < 85) gaps.push(`Improve audit score from ${zone.lastAuditScore}% to 85%+`);
-  if (getRedTagCount(zone) > 0) gaps.push(`Clear ${getRedTagCount(zone)} red tag(s)`);
+export const getZoneSetupGaps = (zone: FiveSZone, includeAudit = true): ZoneAction[] => {
+  const gaps: ZoneAction[] = [];
+  const score = zone.lastAuditScore;
+  const redTags = getRedTagCount(zone);
+
+  if (!zone.ownerName) gaps.push({ key: 'assignOwner', label: 'Assign responsible owner' });
+  if (!zone.contents.trim()) gaps.push({ key: 'listContents', label: 'List what belongs in the area' });
+  if (!zone.standard.trim()) gaps.push({ key: 'writeStandard', label: 'Write the 5S standard' });
+  if (includeAudit && score === undefined) gaps.push({ key: 'firstAudit', label: 'Run the first audit' });
+  if (includeAudit && score !== undefined && isAuditDue(zone)) {
+    gaps.push({ key: 'scheduledAudit', label: 'Run scheduled audit' });
+  }
+  if (includeAudit && Number(score || 100) < 85) {
+    gaps.push({
+      key: 'improveScore',
+      label: `Improve audit score from ${score}% to 85%+`,
+      params: { score: score ?? 0 },
+    });
+  }
+  if (redTags > 0) {
+    gaps.push({ key: 'clearRedTags', label: `Clear ${redTags} red tag(s)`, params: { count: redTags } });
+  }
 
   return gaps;
 };
 
-export const getZoneActionItems = (zone: FiveSZone, includeAudit = true) => {
+export const getZoneActionItems = (zone: FiveSZone, includeAudit = true): ZoneAction[] => {
   const actions = [...getZoneSetupGaps(zone, includeAudit), ...getZoneStageActions(zone, includeAudit)];
-  return Array.from(new Set(actions));
+  const seen = new Set<string>();
+
+  // Deduped by what they say rather than by object identity, which is what the
+  // set of strings was doing before these became objects.
+  return actions.filter((action) => {
+    if (seen.has(action.label)) return false;
+
+    seen.add(action.label);
+    return true;
+  });
 };
 
 export const getDateFromToday = (days: number) => {
@@ -268,7 +336,7 @@ export const getDateFromToday = (days: number) => {
   return formatLocalDate(date);
 };
 
-export const getZoneTaskPriority = (zone: FiveSZone, gaps: string[], includeAudit = true) =>
+export const getZoneTaskPriority = (zone: FiveSZone, gaps: ZoneAction[], includeAudit = true) =>
   getRedTagCount(zone) > 0 ||
   (includeAudit && (Number(zone.lastAuditScore || 100) < 85 || isAuditDue(zone))) ||
   gaps.length > 2

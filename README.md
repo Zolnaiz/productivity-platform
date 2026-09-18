@@ -227,6 +227,13 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
   longest. Now the paper goes dark and the ink goes light, hues that carry
   meaning keep their hue, and anything exported or printed is forced back to
   the daylight set — a plan leaving the editor is going onto white paper.
+- The 5S page speaks the reader's language throughout. It had about 120 English
+  strings hardcoded into it — every table header, every button, every message,
+  and the sentences the rules module built to say what an area still needs — so
+  a Mongolian workspace read most of its biggest page in English. What an area
+  needs is now produced as a key and its numbers rather than as a finished
+  English sentence; the English wording is kept for exports, because a CSV goes
+  to somebody who may not share the reader's language.
 - The plan is drawn as walls, not rectangles. Walls meet at shared corners, snap to the nearest 45 degrees unless Alt is held, and show their length in metres while being drawn. A room is whatever the walls close in — found from the wall graph on every change rather than stored, so a room and its walls cannot part company — and its area is a consequence of the drawing rather than a number somebody typed.
 - Several areas can be worked on at once: shift-click or drag a rubber band to select, move or delete them together, and line them up or space them evenly. The group is clamped as one shape, so hitting an edge does not squash the arrangement.
 - The floor plan zooms and pans: wheel or trackpad pinch to zoom at the pointer, space or middle-drag to pan, a zoom readout with fit and zoom-to-area. Every drag measures the pointer through the current view, so editing works the same at any zoom.

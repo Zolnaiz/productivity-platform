@@ -124,11 +124,20 @@ describe('the gate between one S and the next', () => {
 
 describe('what an area still needs', () => {
   it('names every gap on a blank area', () => {
+    // Each gap carries a key for the screen, which shows it in the reader's
+    // language, and an English label, which is what an export writes.
     const actions = getZoneActionItems(zone());
 
-    expect(actions).toContain('Assign responsible owner');
-    expect(actions).toContain('List what belongs in the area');
-    expect(actions).toContain('Write the 5S standard');
+    expect(actions.map((action) => action.key)).toEqual(
+      expect.arrayContaining(['assignOwner', 'listContents', 'writeStandard']),
+    );
+    expect(actions.map((action) => action.label)).toEqual(
+      expect.arrayContaining([
+        'Assign responsible owner',
+        'List what belongs in the area',
+        'Write the 5S standard',
+      ]),
+    );
   });
 
   it('says nothing to do when the area is set up and scoring well', () => {
@@ -144,14 +153,18 @@ describe('what an area still needs', () => {
 
   it('reports the number of tags to clear rather than just that there are some', () => {
     const actions = getZoneActionItems(zone({ ...fullySetUp, redTags: [tag(), tag({ id: 't2' })] }));
+    const clearing = actions.find((action) => action.key === 'clearRedTags');
 
-    expect(actions).toContain('Clear 2 red tag(s)');
+    // The count travels as a parameter, so the sentence can be built in any
+    // language rather than only in the one it was written in here.
+    expect(clearing?.params).toEqual({ count: 2 });
+    expect(clearing?.label).toBe('Clear 2 red tag(s)');
   });
 
   it('lists each gap once even when two rules find it', () => {
     const actions = getZoneActionItems(zone({ redTags: [tag()] }));
 
-    expect(new Set(actions).size).toBe(actions.length);
+    expect(new Set(actions.map((action) => action.label)).size).toBe(actions.length);
   });
 });
 

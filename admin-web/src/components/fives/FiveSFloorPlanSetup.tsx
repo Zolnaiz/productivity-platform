@@ -58,12 +58,14 @@ import {
   getAuditWalkStatus,
   getRedTagCount,
   getStageGate,
+  ZoneAction,
   getZoneActionItems,
   matchesZoneStatus,
   nextPinSpot,
   pinPosition,
-  redTagStatusLabel,
+  redTagStatusKey,
   redTagStatusOptions,
+  stageKeys,
   stageLabels,
   stageOrder,
   withSyncedRedTags,
@@ -223,11 +225,19 @@ const zoneColorPresets = [
   { label: 'Support', value: '#64748b' },
 ];
 
+/**
+ * The area presets, named by key rather than by an English string.
+ *
+ * A Mongolian workspace was being offered buttons called Reception and
+ * Workstations, and the areas they created came out with English names that
+ * somebody then had to retype. The preset's `key` is what the palette and the
+ * new area are both named from.
+ */
 const zoneTemplates: Array<
-  Pick<FiveSZone, 'name' | 'color' | 'width' | 'height' | 'contents' | 'standard' | 'labelText' | 'stage'>
+  Pick<FiveSZone, 'color' | 'width' | 'height' | 'contents' | 'standard' | 'labelText' | 'stage'> & { key: string }
 > = [
   {
-    name: 'Reception',
+    key: 'reception',
     color: '#38bdf8',
     width: 210,
     height: 126,
@@ -237,7 +247,7 @@ const zoneTemplates: Array<
     stage: 'set_in_order',
   },
   {
-    name: 'Workstations',
+    key: 'workstations',
     color: '#22c55e',
     width: 310,
     height: 190,
@@ -247,7 +257,7 @@ const zoneTemplates: Array<
     stage: 'shine',
   },
   {
-    name: 'Storage',
+    key: 'storage',
     color: '#f59e0b',
     width: 220,
     height: 160,
@@ -257,7 +267,7 @@ const zoneTemplates: Array<
     stage: 'sort',
   },
   {
-    name: 'Meeting room',
+    key: 'meetingRoom',
     color: '#a855f7',
     width: 190,
     height: 150,
@@ -267,7 +277,7 @@ const zoneTemplates: Array<
     stage: 'standardize',
   },
   {
-    name: 'Break area',
+    key: 'breakArea',
     color: '#ef4444',
     width: 220,
     height: 120,
@@ -277,7 +287,7 @@ const zoneTemplates: Array<
     stage: 'shine',
   },
   {
-    name: 'Archive',
+    key: 'archive',
     color: '#14b8a6',
     width: 210,
     height: 132,
@@ -287,7 +297,7 @@ const zoneTemplates: Array<
     stage: 'set_in_order',
   },
   {
-    name: 'Walkway',
+    key: 'walkway',
     color: '#64748b',
     width: 260,
     height: 86,
@@ -495,6 +505,25 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     () => (plan?.openings ?? []).find((opening) => opening.id === selectedOpeningId),
     [plan, selectedOpeningId],
   );
+
+  /**
+   * An action, in the reader's language.
+   *
+   * The rules module says what is missing — an owner, a standard, three red
+   * tags — as a key and its numbers. This is the only place that turns one
+   * into a sentence, so the register, the queue and a task raised from either
+   * cannot word the same finding differently.
+   */
+  const actionText = (action: ZoneAction) => {
+    const params = action.params ?? {};
+    const stageParam = params.stageKey ? { stage: t(`fiveS.stage.${params.stageKey}`) } : {};
+    const gateParam = params.gateKey ? { item: t(`fiveS.gate.${params.gateKey}`) } : {};
+
+    return t(`fiveS.action.${action.key}`, { ...params, ...stageParam, ...gateParam });
+  };
+
+  const nextActionText = (actions: ZoneAction[]) =>
+    actions.length ? actionText(actions[0]) : t('fiveS.action.maintain');
 
   /** How many metres one canvas unit covers, for everything that shows a size. */
   const metresPerUnit = scaleOf(plan);
@@ -785,7 +814,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
           return {
             zone,
-            nextAction: gaps[0] || 'Maintain current standard',
+            nextAction: nextActionText(gaps),
             gapCount: gaps.length,
             priority: getZoneTaskPriority(zone, gaps, showAuditControls),
             dueDate: getZoneTaskDueDate(zone, showAuditControls),
@@ -881,7 +910,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setHistory((entries) => entries.slice(0, -1));
     setFuture((entries) => [plan, ...entries.slice(0, HISTORY_LIMIT - 1)]);
     commitPlan(previous);
-    setActionMessage('Undid the last floorplan change.');
+    setActionMessage(t('fiveS.ui.msgUndone'));
   };
 
   const redo = () => {
@@ -891,7 +920,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setFuture(rest);
     setHistory((entries) => [...entries.slice(-(HISTORY_LIMIT - 1)), plan]);
     commitPlan(next);
-    setActionMessage('Redid the last undone change.');
+    setActionMessage(t('fiveS.ui.msgRedone'));
   };
 
   const updateZone = (zoneId: string, patch: Partial<FiveSZone>, options?: { skipHistory?: boolean }) => {
@@ -934,9 +963,11 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
     const baseZone = fiveSLayoutService.createZone(plan.zones);
     const index = plan.zones.length;
+    const { key, ...shape } = template;
     const zone = {
       ...baseZone,
-      ...template,
+      ...shape,
+      name: t(`fiveS.preset.${key}`),
       x: Math.round(clamp(64 + (index % 4) * 42, 12, CANVAS_WIDTH - template.width - 12)),
       y: Math.round(clamp(64 + (index % 5) * 34, 12, CANVAS_HEIGHT - template.height - 12)),
     };
@@ -1093,7 +1124,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     const next = calibrate(pixels, Number(calibrationMetres));
 
     if (!next) {
-      setActionMessage('Draw a line along something you know the length of, then give that length.');
+      setActionMessage(t('fiveS.ui.msgCalibrateHint'));
       return;
     }
 
@@ -1374,7 +1405,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setPlan(nextPlan);
     setSelectedZoneId(nextPlan.zones[0]?.id || '');
     setSelectedObjectId('');
-    setActionMessage('Floorplan reset to the starting layout. Undo restores your version.');
+    setActionMessage(t('fiveS.ui.msgReset'));
   };
 
   const importBackgroundImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1401,7 +1432,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
   const clearBackgroundImage = () => {
     updatePlan((current) => ({ ...current, backgroundImage: '' }));
-    setActionMessage('Blueprint image cleared.');
+    setActionMessage(t('fiveS.ui.msgBlueprintCleared'));
   };
 
   // A pointer drag fires many move events; record one history entry for the whole gesture.
@@ -2069,7 +2100,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     }
 
     updateZone(selectedZone.id, { stage: selectedStageGate.nextStage });
-    setActionMessage(`${selectedZone.code} advanced to ${stageLabels[selectedStageGate.nextStage]}.`);
+    setActionMessage(
+      t('fiveS.ui.msgAdvanced', {
+        code: selectedZone.code,
+        stage: t(`fiveS.stage.${stageKeys[selectedStageGate.nextStage]}`),
+      }),
+    );
   };
 
   const addSelectedZoneRedTag = () => {
@@ -2191,7 +2227,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
       setActionMessage(`${zonesNeedingLaunchTasks.length} 5S launch task(s) created.`);
     } catch {
-      setActionMessage('Could not create all 5S launch tasks.');
+      setActionMessage(t('fiveS.ui.msgLaunchTasksFailed'));
     }
   };
 
@@ -2206,7 +2242,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
   const createFilteredRolloutTasks = async () => {
     if (!rolloutQueue.length) {
-      setActionMessage('The current filters have no open 5S rollout actions.');
+      setActionMessage(t('fiveS.ui.msgNoRolloutActions'));
       return;
     }
 
@@ -2214,13 +2250,13 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       await Promise.all(rolloutQueue.map((item) => createTaskForZone(item.zone, '5S rollout')));
       setActionMessage(`${rolloutQueue.length} filtered rollout task(s) created.`);
     } catch {
-      setActionMessage('Could not create all filtered rollout tasks.');
+      setActionMessage(t('fiveS.ui.msgRolloutTasksFailed'));
     }
   };
 
   const advanceFilteredReadyStages = () => {
     if (!readyToAdvanceZones.length) {
-      setActionMessage('No filtered areas are ready to advance.');
+      setActionMessage(t('fiveS.ui.msgNoneReady'));
       return;
     }
 
@@ -2245,7 +2281,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     const taskCount = openRedTagItems.length + legacyRedTagZones.length;
 
     if (!taskCount) {
-      setActionMessage('No red tags are currently open.');
+      setActionMessage(t('fiveS.ui.msgNoOpenRedTags'));
       return;
     }
 
@@ -2278,7 +2314,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             title: `5S red tags: ${zone.code} - ${zone.name}`,
             description: [
               `Clear ${getRedTagCount(zone)} red tag(s).`,
-              `Owner: ${zone.ownerName || 'Unassigned'}`,
+              `Owner: ${zone.ownerName || t('fiveS.ui.unassigned')}`,
               `Contents: ${zone.contents || 'Not documented'}`,
               `Standard: ${zone.standard || 'Not documented'}`,
             ].join('\n'),
@@ -2296,13 +2332,13 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
       setActionMessage(`${taskCount} red tag(s) now have a cleanup task.`);
     } catch {
-      setActionMessage('Could not create red-tag cleanup tasks.');
+      setActionMessage(t('fiveS.ui.msgRedTagTasksFailed'));
     }
   };
 
   const createAuditDueTasks = async () => {
     if (!zonesAuditDue.length) {
-      setActionMessage('No 5S audits are due right now.');
+      setActionMessage(t('fiveS.ui.msgNoAuditsDue'));
       return;
     }
 
@@ -2317,7 +2353,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               `Audit frequency: ${zone.auditFrequency}`,
               `Last audit: ${zone.lastAuditAt || 'Not recorded'}`,
               `Due date: ${getAuditDueDate(zone) || 'Now'}`,
-              `Owner: ${zone.ownerName || 'Unassigned'}`,
+              `Owner: ${zone.ownerName || t('fiveS.ui.unassigned')}`,
             ].join('\n'),
             assigneeId: zone.ownerId,
             sourceType: 'audit_run',
@@ -2333,7 +2369,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
       setActionMessage(`${zonesAuditDue.length} 5S audit task(s) created.`);
     } catch {
-      setActionMessage('Could not create 5S audit tasks.');
+      setActionMessage(t('fiveS.ui.msgAuditTasksFailed'));
     }
   };
 
@@ -2348,7 +2384,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     link.download = `5s-zone-labels-${plan.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    setActionMessage('Zone labels exported as CSV.');
+    setActionMessage(t('fiveS.ui.msgLabelsCsv'));
   };
 
   const downloadAreaRegisterCsv = () => {
@@ -2367,7 +2403,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
         stageLabels[zone.stage],
         getRedTagCount(zone),
         zone.lastCleanedAt || '',
-        gaps.length ? gaps[0] : 'Maintain current standard',
+        gaps.length ? gaps[0].label : 'Maintain current standard',
       ];
 
       return showAuditControls
@@ -2381,7 +2417,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             getAuditDueDate(zone) || 'Now',
             getRedTagCount(zone),
             zone.lastCleanedAt || '',
-            gaps.length ? gaps[0] : 'Maintain current standard',
+            gaps.length ? gaps[0].label : 'Maintain current standard',
           ]
         : setupRow;
     });
@@ -2411,7 +2447,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
         item.priority,
         item.dueDate,
         item.nextAction,
-        gaps.join('; '),
+        gaps.map((gap) => gap.label).join('; '),
       ];
     });
     const csv = [headers, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\n');
@@ -2488,7 +2524,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     link.download = `${plan.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-backup.json`;
     link.click();
     URL.revokeObjectURL(url);
-    setActionMessage('Floorplan backup exported as JSON.');
+    setActionMessage(t('fiveS.ui.msgBackupExported'));
   };
 
   const importPlanJson = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2522,7 +2558,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       setSelectedObjectId('');
       setActionMessage(`Imported ${savedPlan.zones.length} zone(s) and ${savedPlan.objects.length} object(s).`);
     } catch {
-      setActionMessage('Could not import that 5S layout backup.');
+      setActionMessage(t('fiveS.ui.msgImportFailed'));
     }
   };
 
@@ -2563,7 +2599,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     link.download = `${plan.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-floorplan.svg`;
     link.click();
     URL.revokeObjectURL(url);
-    setActionMessage('Floorplan exported as SVG.');
+    setActionMessage(t('fiveS.ui.msgSvgExported'));
   };
 
   const printZoneLabels = () => {
@@ -2573,7 +2609,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     const printWindow = window.open('', '_blank', 'width=900,height=700');
 
     if (!printWindow) {
-      setActionMessage('Print window could not be opened.');
+      setActionMessage(t('fiveS.ui.msgPrintFailed'));
       return;
     }
 
@@ -2601,20 +2637,20 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   <div class="label">
                     <div class="code">${escapeHtml(label.code)}</div>
                     <div class="zone">${escapeHtml(label.zone)}</div>
-                    <div class="meta"><strong>Owner:</strong> ${escapeHtml(label.owner)}</div>
-                    <div class="meta"><strong>Stage:</strong> ${escapeHtml(label.stage)}${
-                      showAuditControls ? ` / <strong>Cycle:</strong> ${escapeHtml(label.auditCycle)}` : ''
+                    <div class="meta"><strong>{t('fiveS.ui.labelOwner')}</strong> ${escapeHtml(label.owner)}</div>
+                    <div class="meta"><strong>{t('fiveS.ui.labelStage')}</strong> ${escapeHtml(label.stage)}${
+                      showAuditControls ? ` / <strong>{t('fiveS.ui.labelCycle')}</strong> ${escapeHtml(label.auditCycle)}` : ''
                     }</div>
                     ${
                       showAuditControls
-                        ? `<div class="meta"><strong>Last score:</strong> ${escapeHtml(label.lastAuditScore || '-')}</div>
-                    <div class="meta"><strong>Last audit:</strong> ${escapeHtml(label.lastAuditAt || '-')}</div>`
+                        ? `<div class="meta"><strong>{t('fiveS.ui.labelLastScore')}</strong> ${escapeHtml(label.lastAuditScore || '-')}</div>
+                    <div class="meta"><strong>{t('fiveS.ui.labelLastAudit')}</strong> ${escapeHtml(label.lastAuditAt || '-')}</div>`
                         : ''
                     }
-                    <div class="meta"><strong>Red tags:</strong> ${escapeHtml(label.redTags)} / <strong>Cleaned:</strong> ${escapeHtml(label.lastCleaned || '-')}</div>
-                    <div class="meta"><strong>Contents:</strong> ${escapeHtml(label.contents || '-')}</div>
-                    <div class="standard"><strong>Standard:</strong> ${escapeHtml(label.standard || '-')}</div>
-                    <div class="meta"><strong>Label:</strong> ${escapeHtml(label.labelNote || '-')}</div>
+                    <div class="meta"><strong>{t('fiveS.ui.labelRedTags')}</strong> ${escapeHtml(label.redTags)} / <strong>{t('fiveS.ui.labelCleaned')}</strong> ${escapeHtml(label.lastCleaned || '-')}</div>
+                    <div class="meta"><strong>{t('fiveS.ui.labelContents')}</strong> ${escapeHtml(label.contents || '-')}</div>
+                    <div class="standard"><strong>{t('fiveS.ui.labelStandard')}</strong> ${escapeHtml(label.standard || '-')}</div>
+                    <div class="meta"><strong>{t('fiveS.ui.labelLabel')}</strong> ${escapeHtml(label.labelNote || '-')}</div>
                   </div>
                 `,
               )
@@ -2626,12 +2662,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
-    setActionMessage('Zone label sheet opened for printing.');
+    setActionMessage(t('fiveS.ui.msgLabelsPrint'));
   };
 
   if (loading || !plan) {
     return (
-      <Card loading title="5S area setup">
+      <Card loading title={t('fiveS.title')}>
         <div />
       </Card>
     );
@@ -2673,8 +2709,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
   return (
     <Card
-      title="5S Area Setup"
-      subtitle={`${plan.site} / ${readiness.zones} zones / ${readiness.rate}% launch ready`}
+      title={t('fiveS.title')}
+      subtitle={t('fiveS.setupSubtitle', {
+        site: plan.site,
+        zones: readiness.zones,
+        rate: readiness.rate,
+      })}
       actions={
         <>
           <Button
@@ -2683,10 +2723,10 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             icon={Undo2}
             onClick={undo}
             disabled={!history.length}
-            title="Undo (Ctrl+Z)"
+            title={t('fiveS.ui.undoTitle')}
             type="button"
           >
-            Undo
+            {t('fiveS.ui.undo')}
           </Button>
           <Button
             variant="outline"
@@ -2694,28 +2734,28 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             icon={Redo2}
             onClick={redo}
             disabled={!future.length}
-            title="Redo (Ctrl+Shift+Z)"
+            title={t('fiveS.ui.redoTitle')}
             type="button"
           >
-            Redo
+            {t('fiveS.ui.redo')}
           </Button>
           <Button variant="outline" size="sm" icon={Download} onClick={downloadZoneLabels} type="button">
             CSV
           </Button>
           <Button variant="outline" size="sm" icon={Download} onClick={downloadFloorPlanSvg} type="button">
-            Map SVG
+            {t('fiveS.ui.mapSvg')}
           </Button>
           <Button variant="outline" size="sm" icon={Download} onClick={downloadPlanJson} type="button">
-            Backup
+            {t('fiveS.ui.backup')}
           </Button>
           <Button variant="outline" size="sm" icon={Upload} onClick={() => importInputRef.current?.click()} type="button">
-            Import
+            {t('fiveS.ui.import')}
           </Button>
           <Button variant="outline" size="sm" icon={Printer} onClick={printZoneLabels} type="button">
-            Print
+            {t('fiveS.ui.print')}
           </Button>
           <Button variant="outline" size="sm" icon={RotateCcw} onClick={resetPlan} type="button">
-            Reset
+            {t('fiveS.ui.reset')}
           </Button>
         </>
       }
@@ -2780,10 +2820,10 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
         <div className="grid gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700 md:grid-cols-[auto_auto_minmax(180px,1fr)_auto]">
           <Button variant="outline" icon={Upload} onClick={() => backgroundInputRef.current?.click()} type="button">
-            Blueprint
+            {t('fiveS.ui.blueprint')}
           </Button>
           <Button variant="outline" icon={Trash2} onClick={clearBackgroundImage} disabled={!plan.backgroundImage} type="button">
-            Clear
+            {t('fiveS.ui.clear')}
           </Button>
           <label className="block text-sm text-gray-600 dark:text-gray-400">
             Blueprint opacity
@@ -2809,7 +2849,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               checked={colorMode === 'condition'}
               onChange={(event) => setColorMode(event.target.checked ? 'condition' : 'plan')}
             />
-            Colour by audit score
+            {t('fiveS.ui.colourByScore')}
           </label>
         </div>
 
@@ -2837,36 +2877,36 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
         <div className={`grid gap-4 md:grid-cols-3 ${showAuditControls ? 'xl:grid-cols-7' : 'xl:grid-cols-5'}`}>
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <div className="text-xs text-gray-500">Zones</div>
+            <div className="text-xs text-gray-500">{t('fiveS.ui.zones')}</div>
             <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{readiness.zones}</div>
           </div>
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <div className="text-xs text-gray-500">Owners</div>
+            <div className="text-xs text-gray-500">{t('fiveS.ui.owners')}</div>
             <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{readiness.withOwner}</div>
           </div>
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <div className="text-xs text-gray-500">Contents</div>
+            <div className="text-xs text-gray-500">{t('fiveS.ui.contents')}</div>
             <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{readiness.withContents}</div>
           </div>
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <div className="text-xs text-gray-500">Standards</div>
+            <div className="text-xs text-gray-500">{t('fiveS.ui.standards')}</div>
             <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{readiness.withStandard}</div>
           </div>
           <div className="rounded-lg border border-red-200 p-3 dark:border-red-900/70">
             <div className="flex items-center gap-1 text-xs text-red-600 dark:text-red-300">
               <AlertTriangle className="h-3.5 w-3.5" />
-              Red tags
+              {t('fiveS.ui.redTags')}
             </div>
             <div className="mt-1 text-2xl font-semibold text-red-700 dark:text-red-300">{readiness.redTags}</div>
           </div>
           {showAuditControls && (
             <>
               <div className="rounded-lg border border-blue-200 p-3 dark:border-blue-900/70">
-                <div className="text-xs text-blue-700 dark:text-blue-300">Audits due</div>
+                <div className="text-xs text-blue-700 dark:text-blue-300">{t('fiveS.ui.auditsDue')}</div>
                 <div className="mt-1 text-2xl font-semibold text-blue-700 dark:text-blue-300">{readiness.auditDue}</div>
               </div>
               <div className="rounded-lg border border-amber-200 p-3 dark:border-amber-900/70">
-                <div className="text-xs text-amber-700 dark:text-amber-300">Risk areas</div>
+                <div className="text-xs text-amber-700 dark:text-amber-300">{t('fiveS.ui.riskAreas')}</div>
                 <div className="mt-1 text-2xl font-semibold text-amber-700 dark:text-amber-300">{readiness.riskAreas}</div>
               </div>
             </>
@@ -2882,15 +2922,15 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             <div className="flex flex-wrap items-center justify-end gap-2">
               <span className="text-xs font-medium text-gray-500">{readiness.rate}% setup ready</span>
               <Button variant="outline" size="sm" icon={AlertTriangle} onClick={createRedTagTasks} type="button">
-                Red-tag tasks
+                {t('fiveS.ui.redTagTasks')}
               </Button>
               {showAuditControls && (
                 <Button variant="outline" size="sm" icon={ClipboardList} onClick={createAuditDueTasks} type="button">
-                  Audit tasks
+                  {t('fiveS.ui.auditTasks')}
                 </Button>
               )}
               <Button variant="outline" size="sm" icon={ListChecks} onClick={createLaunchTasks} type="button">
-                Create launch tasks
+                {t('fiveS.ui.createLaunchTasks')}
               </Button>
             </div>
           </div>
@@ -2921,7 +2961,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             <select className={fieldClass} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as ZoneStatusFilter)}>
               {visibleZoneStatusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {t(`fiveS.filter.${option.key}`)}
                 </option>
               ))}
             </select>
@@ -2929,8 +2969,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           <label className="block text-sm text-gray-600 dark:text-gray-400">
             Owner
             <select className={fieldClass} value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)}>
-              <option value="all">All owners</option>
-              <option value="unassigned">Unassigned</option>
+              <option value="all">{t('fiveS.ui.allOwners')}</option>
+              <option value="unassigned">{t('fiveS.ui.unassigned')}</option>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>
                   {memberName(user)}
@@ -2940,7 +2980,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           </label>
           <div className="flex items-end">
             <Button fullWidth variant="outline" icon={Download} onClick={downloadAreaRegisterCsv} type="button">
-              Export register
+              {t('fiveS.ui.exportRegister')}
             </Button>
           </div>
           <div className="text-xs text-gray-500 md:col-span-3">
@@ -2966,7 +3006,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 disabled={!rolloutQueue.length}
                 type="button"
               >
-                Export queue
+                {t('fiveS.ui.exportQueue')}
               </Button>
               <Button
                 variant="outline"
@@ -2976,7 +3016,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 disabled={!readyToAdvanceZones.length}
                 type="button"
               >
-                Advance ready
+                {t('fiveS.ui.advanceReady')}
               </Button>
               <Button
                 variant="outline"
@@ -2986,7 +3026,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 disabled={!rolloutQueue.length}
                 type="button"
               >
-                Create queue tasks
+                {t('fiveS.ui.createQueueTasks')}
               </Button>
             </div>
           </div>
@@ -3007,12 +3047,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   >
                     {item.zone.code} - {item.zone.name}
                   </button>
-                  <div className="mt-1 text-xs text-gray-500">{item.zone.ownerName || 'Unassigned'}</div>
+                  <div className="mt-1 text-xs text-gray-500">{item.zone.ownerName || t('fiveS.ui.unassigned')}</div>
                 </div>
                 <div>
                   <div className="text-sm text-gray-800 dark:text-gray-100">{item.nextAction}</div>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                    <span>{stageLabels[item.zone.stage]}</span>
+                    <span>{t(`fiveS.stage.${stageKeys[item.zone.stage]}`)}</span>
                     <span>Due {item.dueDate}</span>
                     <span className={item.priority === 'high' ? 'font-semibold text-red-600' : 'font-semibold text-amber-600'}>
                       {item.priority}
@@ -3030,7 +3070,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     }}
                     type="button"
                   >
-                    Select
+                    {t('fiveS.ui.select')}
                   </Button>
                   <Button
                     variant="outline"
@@ -3039,13 +3079,13 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     onClick={() => createRolloutQueueTask(item.zone)}
                     type="button"
                   >
-                    Task
+                    {t('fiveS.ui.task')}
                   </Button>
                 </div>
               </div>
             ))}
             {!rolloutQueue.length && (
-              <div className="px-4 py-6 text-sm text-gray-500">Current filters have no open rollout actions.</div>
+              <div className="px-4 py-6 text-sm text-gray-500">{t('fiveS.ui.noRolloutActions')}</div>
             )}
           </div>
           {rolloutQueue.length > 6 && (
@@ -3067,7 +3107,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   {auditWalkSummary.overdue} overdue / {auditWalkSummary.dueToday} due / {auditWalkSummary.upcoming} upcoming
                 </span>
                 <Button variant="outline" size="sm" icon={Download} onClick={downloadAuditWalkCsv} type="button">
-                  Export walk
+                  {t('fiveS.ui.exportWalk')}
                 </Button>
                 <Button
                   variant="outline"
@@ -3077,25 +3117,25 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   disabled={!zonesAuditDue.length}
                   type="button"
                 >
-                  Audit tasks
+                  {t('fiveS.ui.auditTasks')}
                 </Button>
               </div>
             </div>
             <div className="grid gap-3 border-b border-gray-200 p-4 dark:border-gray-700 md:grid-cols-4">
               <div className="rounded-lg border border-red-200 p-3 text-sm dark:border-red-900/70">
-                <div className="text-xs text-red-600 dark:text-red-300">Overdue</div>
+                <div className="text-xs text-red-600 dark:text-red-300">{t('fiveS.ui.overdue')}</div>
                 <div className="mt-1 text-xl font-semibold text-red-700 dark:text-red-300">{auditWalkSummary.overdue}</div>
               </div>
               <div className="rounded-lg border border-blue-200 p-3 text-sm dark:border-blue-900/70">
-                <div className="text-xs text-blue-600 dark:text-blue-300">Due today</div>
+                <div className="text-xs text-blue-600 dark:text-blue-300">{t('fiveS.ui.dueToday')}</div>
                 <div className="mt-1 text-xl font-semibold text-blue-700 dark:text-blue-300">{auditWalkSummary.dueToday}</div>
               </div>
               <div className="rounded-lg border border-amber-200 p-3 text-sm dark:border-amber-900/70">
-                <div className="text-xs text-amber-600 dark:text-amber-300">Next 7 days</div>
+                <div className="text-xs text-amber-600 dark:text-amber-300">{t('fiveS.ui.next7Days')}</div>
                 <div className="mt-1 text-xl font-semibold text-amber-700 dark:text-amber-300">{auditWalkSummary.upcoming}</div>
               </div>
               <div className="rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700">
-                <div className="text-xs text-gray-500">Scheduled</div>
+                <div className="text-xs text-gray-500">{t('fiveS.ui.scheduled')}</div>
                 <div className="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{auditWalkSummary.scheduled}</div>
               </div>
             </div>
@@ -3117,7 +3157,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     >
                       {item.zone.code} - {item.zone.name}
                     </button>
-                    <div className="mt-1 text-xs text-gray-500">{item.zone.ownerName || 'Unassigned'}</div>
+                    <div className="mt-1 text-xs text-gray-500">{item.zone.ownerName || t('fiveS.ui.unassigned')}</div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-800 dark:text-gray-100">
@@ -3135,25 +3175,30 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                                 : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
                         }`}
                       >
-                        {item.timing.label}
+                        {t(`fiveS.walk.${item.timing.status}`, {
+                          days: Math.abs(item.timing.daysUntil),
+                        })}
                       </span>
-                      <span className="text-gray-500">Last {item.zone.lastAuditAt || '-'}</span>
                       <span className="text-gray-500">
-                        Score {item.zone.lastAuditScore === undefined ? '-' : `${item.zone.lastAuditScore}%`}
+                        {t('fiveS.ui.labelLastAudit')} {item.zone.lastAuditAt || '-'}
+                      </span>
+                      <span className="text-gray-500">
+                        {t('fiveS.ui.colScore')}{' '}
+                        {item.zone.lastAuditScore === undefined ? '-' : `${item.zone.lastAuditScore}%`}
                       </span>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <Button variant="ghost" size="sm" icon={UserCheck} onClick={() => useZoneForAudit(item.zone)} type="button">
-                      Audit
+                      {t('fiveS.ui.audit')}
                     </Button>
                     <Button variant="outline" size="sm" icon={CheckCircle2} onClick={() => markZoneWalkedToday(item.zone)} type="button">
-                      Walked
+                      {t('fiveS.ui.walked')}
                     </Button>
                   </div>
                 </div>
               ))}
-              {!auditWalkItems.length && <div className="px-4 py-6 text-sm text-gray-500">No mapped areas for audit walk.</div>}
+              {!auditWalkItems.length && <div className="px-4 py-6 text-sm text-gray-500">{t('fiveS.ui.noAreasForWalk')}</div>}
             </div>
           </div>
         )}
@@ -3162,24 +3207,24 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
             <div className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
               <MapIcon className="h-4 w-4" />
-              Floorplan
+              {t('fiveS.ui.floorplan')}
             </div>
             <Button fullWidth size="sm" icon={Plus} onClick={addZone} type="button">
-              Blank area
+              {t('fiveS.ui.blankArea')}
             </Button>
             <div className="mt-4 max-h-[420px] space-y-4 overflow-y-auto pr-1 md:max-h-[520px]">
               <div>
-                <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Area presets</div>
+                <div className="mb-2 text-xs font-semibold uppercase text-gray-500">{t('fiveS.ui.areaPresets')}</div>
                 <div className="grid grid-cols-2 gap-2">
                   {zoneTemplates.map((template) => (
                     <button
-                      key={template.name}
+                      key={template.key}
                       type="button"
                       onClick={() => addZoneFromTemplate(template)}
                       className="flex min-h-[54px] flex-col items-start justify-between rounded-lg border border-gray-200 px-2.5 py-2 text-left text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                     >
                       <span className="h-2.5 w-8 rounded-full" style={{ backgroundColor: template.color }} />
-                      <span className="font-medium">{template.name}</span>
+                      <span className="font-medium">{t(`fiveS.preset.${template.key}`)}</span>
                     </button>
                   ))}
                 </div>
@@ -3226,13 +3271,13 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               <div className="space-y-2 border-t border-gray-200 pt-3 dark:border-gray-700">
                 {stageCounts.map((item) => (
                   <div key={item.stage} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500">{stageLabels[item.stage]}</span>
+                    <span className="text-gray-500">{t(`fiveS.stage.${stageKeys[item.stage]}`)}</span>
                     <span className="font-semibold text-gray-900 dark:text-white">{item.count}</span>
                   </div>
                 ))}
               </div>
               <div className="border-t border-gray-200 pt-3 dark:border-gray-700">
-                <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Color legend</div>
+                <div className="mb-2 text-xs font-semibold uppercase text-gray-500">{t('fiveS.ui.colorLegend')}</div>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                   {zoneColorPresets.map((preset) => (
                     <div key={preset.value} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
@@ -4163,7 +4208,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       {formatArea(areaOf(zone, metresPerUnit))}
                     </text>
                     <text x={zone.x + 18} y={zone.y + zone.height - 18} className="fill-gray-700 text-[12px]">
-                      {stageLabels[zone.stage]}
+                      {t(`fiveS.stage.${stageKeys[zone.stage]}`)}
                       {/* The score is printed whenever it exists, so colour is
                           never the only thing carrying the reading. */}
                       {zone.lastAuditScore !== undefined ? ` / ${zone.lastAuditScore}%` : ''}
@@ -4202,7 +4247,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                           className="cursor-grab"
                           onPointerDown={(event) => handleRedTagPointerDown(event, zone, redTag, index)}
                         >
-                          <title>{`${redTag.title} - ${redTagStatusLabel(redTag.status)}`}</title>
+                          <title>{`${redTag.title} - ${t(`fiveS.redTagStatus.${redTagStatusKey(redTag.status)}`)}`}</title>
                           <circle
                             cx={spot.x}
                             cy={spot.y}
@@ -4237,7 +4282,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                           textAnchor="middle"
                           className="fill-white text-[11px] font-semibold"
                         >
-                          AUDIT
+                          {t('fiveS.ui.badgeAudit')}
                         </text>
                       </g>
                     )}
@@ -4384,13 +4429,13 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 })()}
             </svg>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-200 px-3 py-2 text-xs text-gray-500 dark:border-gray-700">
-              <span>Drag to move</span>
-              <span>Corner handles resize</span>
-              <span>Arrows nudge / Shift+arrows jump</span>
-              <span>Delete removes</span>
-              <span>Esc deselects</span>
-              <span>Ctrl+Z undoes</span>
-              {(plan.snapToGrid ?? true) && <span>Alt disables grid snap</span>}
+              <span>{t('fiveS.ui.hintDrag')}</span>
+              <span>{t('fiveS.ui.hintCorners')}</span>
+              <span>{t('fiveS.ui.hintArrows')}</span>
+              <span>{t('fiveS.ui.hintDelete')}</span>
+              <span>{t('fiveS.ui.hintEsc')}</span>
+              <span>{t('fiveS.ui.hintUndo')}</span>
+              {(plan.snapToGrid ?? true) && <span>{t('fiveS.ui.hintAlt')}</span>}
             </div>
           </div>
 
@@ -4401,7 +4446,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   <div>
                     <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
                       <MousePointer2 className="h-4 w-4" />
-                      Selected zone
+                      {t('fiveS.ui.selectedZone')}
                     </div>
                     <div className="mt-1 text-xs text-gray-500">{selectedZone.code}</div>
                   </div>
@@ -4409,7 +4454,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     type="button"
                     onClick={deleteSelectedZone}
                     className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/30"
-                    aria-label="Delete selected zone"
+                    aria-label={t('fiveS.ui.deleteSelectedZone')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -4578,7 +4623,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 <label className="block text-sm text-gray-600 dark:text-gray-400">
                   Responsible owner
                   <select className={fieldClass} value={selectedZone.ownerId || ''} onChange={(event) => handleOwnerChange(event.target.value)}>
-                    <option value="">Unassigned</option>
+                    <option value="">{t('fiveS.ui.unassigned')}</option>
                     {users.map((user) => (
                       <option key={user.id} value={user.id}>
                         {memberName(user)} / {user.position}
@@ -4596,7 +4641,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     >
                       {stageOrder.map((stage) => (
                         <option key={stage} value={stage}>
-                          {stageLabels[stage]}
+                          {t(`fiveS.stage.${stageKeys[stage]}`)}
                         </option>
                       ))}
                     </select>
@@ -4613,9 +4658,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                           })
                         }
                       >
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
+                        <option value="daily">{t('fiveS.ui.daily')}</option>
+                        <option value="weekly">{t('fiveS.ui.weekly')}</option>
+                        <option value="monthly">{t('fiveS.ui.monthly')}</option>
                       </select>
                     </label>
                   )}
@@ -4623,10 +4668,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 {selectedStageGate && (
                   <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm dark:border-gray-700 dark:bg-gray-800">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="font-medium text-gray-900 dark:text-white">Stage gate</div>
+                      <div className="font-medium text-gray-900 dark:text-white">{t('fiveS.ui.stageGate')}</div>
                       <div className="text-xs text-gray-500">
-                        {stageLabels[selectedZone.stage]}
-                        {selectedStageGate.nextStage ? ` -> ${stageLabels[selectedStageGate.nextStage]}` : ' active'}
+                        {t(`fiveS.stage.${stageKeys[selectedZone.stage]}`)}
+                        {selectedStageGate.nextStage
+                          ? ` → ${t(`fiveS.stage.${stageKeys[selectedStageGate.nextStage]}`)}`
+                          : ` ${t('fiveS.ui.stageActive')}`}
                       </div>
                     </div>
                     <div className="mt-3 space-y-2">
@@ -4649,14 +4696,18 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       disabled={!selectedStageGate.nextStage || !selectedStageGate.complete}
                       type="button"
                     >
-                      {selectedStageGate.nextStage ? `Advance to ${stageLabels[selectedStageGate.nextStage]}` : 'Sustain active'}
+                      {selectedStageGate.nextStage
+                        ? t('fiveS.ui.advanceTo', {
+                            stage: t(`fiveS.stage.${stageKeys[selectedStageGate.nextStage]}`),
+                          })
+                        : t('fiveS.ui.sustainActive')}
                     </Button>
                   </div>
                 )}
                 {showAuditControls && (
                   <>
                     <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm dark:border-gray-700 dark:bg-gray-800">
-                      <div className="text-gray-500 dark:text-gray-400">Last audit score</div>
+                      <div className="text-gray-500 dark:text-gray-400">{t('fiveS.ui.lastAuditScore')}</div>
                       <div className="mt-1 text-xl font-semibold text-gray-900 dark:text-white">
                         {selectedZone.lastAuditScore === undefined ? '-' : `${selectedZone.lastAuditScore}%`}
                       </div>
@@ -4699,10 +4750,10 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
                       <AlertTriangle className="h-4 w-4 text-red-500" />
-                      Red-tag register
+                      {t('fiveS.ui.redTagRegister')}
                     </div>
                     <Button variant="outline" size="sm" icon={Plus} onClick={addSelectedZoneRedTag} type="button">
-                      Add tag
+                      {t('fiveS.ui.addTag')}
                     </Button>
                   </div>
                   <div className="space-y-3">
@@ -4716,7 +4767,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                             type="button"
                             onClick={() => deleteSelectedZoneRedTag(redTag.id)}
                             className="rounded p-1 text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/30"
-                            aria-label="Delete red-tag item"
+                            aria-label={t('fiveS.ui.deleteRedTag')}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -4741,7 +4792,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                             >
                               {redTagStatusOptions.map((option) => (
                                 <option key={option.value} value={option.value}>
-                                  {option.label}
+                                  {t(`fiveS.redTagStatus.${option.key}`)}
                                 </option>
                               ))}
                             </select>
@@ -4835,7 +4886,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   />
                 </label>
                 <Button fullWidth variant="outline" icon={ListChecks} onClick={createSelectedZoneTask} type="button">
-                  Create setup task
+                  {t('fiveS.ui.createSetupTask')}
                 </Button>
                 <Button
                   fullWidth
@@ -4844,14 +4895,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   onClick={markSelectedZoneCleanedToday}
                   type="button"
                 >
-                  Mark cleaned today
+                  {t('fiveS.ui.markCleaned')}
                 </Button>
                 <Button fullWidth variant="outline" icon={Copy} onClick={duplicateSelectedZone} type="button">
-                  Duplicate zone
+                  {t('fiveS.ui.duplicateZone')}
                 </Button>
                 {showAuditControls && (
                   <Button fullWidth variant="outline" icon={UserCheck} onClick={useSelectedZoneForAudit} type="button">
-                    Use as audit location
+                    {t('fiveS.ui.useAsAuditLocation')}
                   </Button>
                 )}
               </div>
@@ -4861,7 +4912,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   <div>
                     <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
                       <Move className="h-4 w-4" />
-                      Selected object
+                      {t('fiveS.ui.selectedObject')}
                     </div>
                     <div className="mt-1 text-xs capitalize text-gray-500">{selectedObject.type}</div>
                   </div>
@@ -4869,7 +4920,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     type="button"
                     onClick={deleteSelectedObject}
                     className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/30"
-                    aria-label="Delete selected object"
+                    aria-label={t('fiveS.ui.deleteSelectedObject')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -4973,10 +5024,10 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   }
                   type="button"
                 >
-                  Rotate 45
+                  {t('fiveS.ui.rotate45')}
                 </Button>
                 <Button fullWidth variant="outline" icon={Copy} onClick={duplicateSelectedObject} type="button">
-                  Duplicate object
+                  {t('fiveS.ui.duplicateObject')}
                 </Button>
               </div>
             ) : (
@@ -4992,7 +5043,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
               <UserCheck className="h-4 w-4" />
-              Owner coverage
+              {t('fiveS.ui.ownerCoverage')}
             </div>
             <span className="text-xs text-gray-500">{ownerCoverage.length} owner groups</span>
           </div>
@@ -5013,7 +5064,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       Avg score {owner.scoreCount ? `${Math.round(owner.scoreTotal / owner.scoreCount)}%` : '-'}
                     </div>
                   ) : (
-                    <div className="text-xs text-gray-500">Responsible area ownership</div>
+                    <div className="text-xs text-gray-500">{t('fiveS.ui.responsibleOwnership')}</div>
                   )}
                 </div>
                 <div className="text-center text-xs text-gray-500">
@@ -5039,7 +5090,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
               <AlertTriangle className="h-4 w-4 text-red-500" />
-              Red-tag register
+              {t('fiveS.ui.redTagRegister')}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <span className="text-xs text-gray-500">
@@ -5053,7 +5104,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 disabled={!redTagRegister.length}
                 type="button"
               >
-                Export red tags
+                {t('fiveS.ui.exportRedTags')}
               </Button>
             </div>
           </div>
@@ -5061,12 +5112,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
               <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500 dark:bg-gray-800">
                 <tr>
-                  <th className="px-4 py-3">Area</th>
-                  <th className="px-4 py-3">Item</th>
-                  <th className="px-4 py-3">Owner</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Due</th>
-                  <th className="px-4 py-3">Disposition</th>
+                  <th className="px-4 py-3">{t('fiveS.ui.colArea')}</th>
+                  <th className="px-4 py-3">{t('fiveS.ui.colItem')}</th>
+                  <th className="px-4 py-3">{t('fiveS.ui.owner')}</th>
+                  <th className="px-4 py-3">{t('fiveS.ui.colStatus')}</th>
+                  <th className="px-4 py-3">{t('fiveS.ui.colDue')}</th>
+                  <th className="px-4 py-3">{t('fiveS.ui.colDisposition')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -5222,14 +5273,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
               <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500 dark:bg-gray-800">
                 <tr>
-                  <th className="px-4 py-3">Area</th>
-                  <th className="px-4 py-3">Owner</th>
-                  <th className="px-4 py-3">Stage</th>
-                  {showAuditControls && <th className="px-4 py-3">Score</th>}
-                  {showAuditControls && <th className="px-4 py-3">Audit due</th>}
-                  <th className="px-4 py-3">Red tags</th>
-                  <th className="px-4 py-3">Cleaned</th>
-                  <th className="px-4 py-3">Next action</th>
+                  <th className="px-4 py-3">{t('fiveS.ui.colArea')}</th>
+                  <th className="px-4 py-3">{t('fiveS.ui.owner')}</th>
+                  <th className="px-4 py-3">{t('fiveS.ui.stage')}</th>
+                  {showAuditControls && <th className="px-4 py-3">{t('fiveS.ui.colScore')}</th>}
+                  {showAuditControls && <th className="px-4 py-3">{t('fiveS.ui.colAuditDue')}</th>}
+                  <th className="px-4 py-3">{t('fiveS.ui.redTags')}</th>
+                  <th className="px-4 py-3">{t('fiveS.ui.colCleaned')}</th>
+                  <th className="px-4 py-3">{t('fiveS.ui.colNextAction')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -5250,8 +5301,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                           {zone.code} - {zone.name}
                         </button>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{zone.ownerName || 'Unassigned'}</td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{stageLabels[zone.stage]}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{zone.ownerName || t('fiveS.ui.unassigned')}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{t(`fiveS.stage.${stageKeys[zone.stage]}`)}</td>
                       {showAuditControls && (
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
                           {zone.lastAuditScore === undefined ? '-' : `${zone.lastAuditScore}%`}
@@ -5265,7 +5316,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{getRedTagCount(zone)}</td>
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{zone.lastCleanedAt || '-'}</td>
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                        {gaps.length ? gaps[0] : 'Maintain current standard'}
+                        {nextActionText(gaps)}
                       </td>
                     </tr>
                   );
