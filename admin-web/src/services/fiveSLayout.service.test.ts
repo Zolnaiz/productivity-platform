@@ -227,8 +227,10 @@ describe('fiveSLayoutService demo storage', () => {
       updatedAt: '2026-06-24T00:00:00.000Z',
     });
 
+    // By id: a building with several floors has to save the floor being
+    // edited rather than whichever plan comes back first.
     expect(apiMocks.patch).toHaveBeenCalledWith(
-      '/five-s-layout',
+      '/five-s-layouts/client-layout',
       expect.not.objectContaining({
         id: expect.anything(),
         organizationId: expect.anything(),
@@ -263,7 +265,7 @@ describe('fiveSLayoutService demo storage', () => {
     });
 
     expect(apiMocks.patch).toHaveBeenCalledWith(
-      '/five-s-layout',
+      '/five-s-layouts/client-layout',
       expect.objectContaining({
         corners: [
           { id: 'c0', x: 0, y: 0 },
@@ -274,6 +276,40 @@ describe('fiveSLayoutService demo storage', () => {
         metresPerUnit: 1 / 24,
       }),
     );
+  });
+
+  it('saves a plan that has no id of its own through the organization route', async () => {
+    // A workspace whose plan was made by the server's default has the id the
+    // browser gave it, and that names nothing the server knows.
+    localStorage.setItem('token', 'real-token');
+    apiMocks.patch.mockResolvedValueOnce({ id: 'server-layout', zones: [], objects: [], updatedAt: '' });
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    await fiveSLayoutService.savePlan({
+      id: 'default-5s-office-plan',
+      name: 'Office 5S launch map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      zones: [],
+      objects: [],
+      updatedAt: '2026-06-24T00:00:00.000Z',
+    });
+
+    expect(apiMocks.patch).toHaveBeenCalledWith('/five-s-layout', expect.anything());
+  });
+
+  it('asks for every plan the organization has', async () => {
+    localStorage.setItem('token', 'real-token');
+    apiMocks.get.mockResolvedValueOnce([
+      { id: 'l1', name: 'Machine shop', site: 'Plant', floor: '1st floor', zones: [], objects: [], updatedAt: '' },
+      { id: 'l2', name: 'Offices', site: 'Plant', floor: '2nd floor', zones: [], objects: [], updatedAt: '' },
+    ]);
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    const plans = await fiveSLayoutService.getPlans();
+
+    expect(apiMocks.get).toHaveBeenCalledWith('/five-s-layouts');
+    expect(plans.map((plan) => plan.floor)).toEqual(['1st floor', '2nd floor']);
   });
 
   it('reads the walls back from the server', async () => {

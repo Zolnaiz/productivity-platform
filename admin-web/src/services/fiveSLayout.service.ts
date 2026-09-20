@@ -1,6 +1,6 @@
 import { FiveSLayoutPlan, FiveSZone, FloorPlanObject, FloorPlanObjectType } from '../types/fiveS.types';
 import { pruneOpenings } from '../components/fives/floorPlanOpenings';
-import { get, getStoredAccessToken, isDemoMode, patch, shouldUseDemoFallback } from './api';
+import { del, get, getStoredAccessToken, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
 
 const storageKey = 'productivity-demo-5s-layout';
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
@@ -277,6 +277,7 @@ const withoutServerFields = (plan: FiveSLayoutPlan) => {
   const payload = {
     name: plan.name,
     site: plan.site,
+    floor: plan.floor ?? '',
     scale: plan.scale,
     backgroundImage: plan.backgroundImage || '',
     backgroundOpacity: plan.backgroundOpacity ?? 0.55,
@@ -519,14 +520,46 @@ const buildZoneLabelsCsv = (plan: FiveSLayoutPlan) => {
 };
 
 export const fiveSLayoutService = {
-  getPlan: () =>
+  /**
+   * Every plan the organization has â€” one per floor of one per building.
+   *
+   * Demo mode has the one it keeps in the browser: a demo with two floors
+   * would be inventing a building nobody has.
+   */
+  getPlans: () =>
+    fallback<FiveSLayoutPlan[]>(
+      async () => (await get<FiveSLayoutPlan[]>('/five-s-layouts')).map(withOwnLayout),
+      () => [readPlan()],
+    ),
+
+  createPlan: (plan: { name: string; site: string; floor?: string }) =>
     fallback<FiveSLayoutPlan>(
-      async () => withOwnLayout(await get<FiveSLayoutPlan>('/five-s-layout')),
+      async () => withOwnLayout(await post<FiveSLayoutPlan>('/five-s-layouts', plan)),
+      // In demo mode there is one plan and it is the one in the browser;
+      // pretending to add a second would lose the first.
       readPlan,
     ),
+
+  deletePlan: (id: string) =>
+    fallback<{ id: string; deleted: boolean }>(
+      () => del<{ id: string; deleted: boolean }>(`/five-s-layouts/${id}`),
+      () => ({ id, deleted: false }),
+    ),
+
+  getPlan: (id?: string) =>
+    fallback<FiveSLayoutPlan>(
+      async () => withOwnLayout(await get<FiveSLayoutPlan>(id ? `/five-s-layout?id=${id}` : '/five-s-layout')),
+      readPlan,
+    ),
+
   savePlan: (plan: FiveSLayoutPlan) =>
     fallback<FiveSLayoutPlan>(
-      async () => patch<FiveSLayoutPlan>('/five-s-layout', withoutServerFields(plan)),
+      async () =>
+        // By id when the plan has one, so a building with several floors saves
+        // the floor being edited rather than whichever comes back first.
+        plan.id && !plan.id.startsWith('default-')
+          ? patch<FiveSLayoutPlan>(`/five-s-layouts/${plan.id}`, withoutServerFields(plan))
+          : patch<FiveSLayoutPlan>('/five-s-layout', withoutServerFields(plan)),
       () => savePlan(plan),
     ).then(normalizePlan),
   resetPlan: async () => {

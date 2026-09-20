@@ -161,6 +161,13 @@ export interface FiveSLayoutPlan {
   name: string;
   site: string;
   /**
+   * Which floor of that site this plan is of.
+   *
+   * Empty for a single-storey place. An organization has a plan per floor, and
+   * this and `site` together are how somebody tells one from another.
+   */
+  floor?: string;
+  /**
    * Free text describing the scale, kept for plans drawn before the scale
    * became a number. Nothing computes with it.
    *

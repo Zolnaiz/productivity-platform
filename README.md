@@ -246,6 +246,10 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
   and anything too large to read described rather than copied. It is the change
   that was *asked for*: an interceptor never sees the row as it stood, and the
   trail does not pretend otherwise. Entries are kept two years by default.
+- A building has as many plans as it has floors. Each carries a site, a floor
+  and a name; the editor moves between them, and an audit of a zone upstairs
+  repaints upstairs — which it could not have done while the lookups took the
+  organization's first plan.
 - The plan is drawn as walls, not rectangles. Walls meet at shared corners, snap to the nearest 45 degrees unless Alt is held, and show their length in metres while being drawn. A room is whatever the walls close in — found from the wall graph on every change rather than stored, so a room and its walls cannot part company — and its area is a consequence of the drawing rather than a number somebody typed.
 - Several areas can be worked on at once: shift-click or drag a rubber band to select, move or delete them together, and line them up or space them evenly. The group is clamped as one shape, so hitting an edge does not squash the arrangement.
 - The floor plan zooms and pans: wheel or trackpad pinch to zoom at the pointer, space or middle-drag to pan, a zoom readout with fit and zoom-to-area. Every drag measures the pointer through the current view, so editing works the same at any zoom.
@@ -281,8 +285,8 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 502 passing
-- Frontend tests: 682 passing
+- Backend tests: 517 passing
+- Frontend tests: 691 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

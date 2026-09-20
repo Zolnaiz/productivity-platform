@@ -397,9 +397,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   useEffect(() => {
     let active = true;
 
-    Promise.all([fiveSLayoutService.getPlan(), peopleService.getMembers()])
-      .then(([layoutPlan, teamUsers]) => {
+    Promise.all([
+      fiveSLayoutService.getPlans(),
+      peopleService.getMembers(),
+    ])
+      .then(([layoutPlans, teamUsers]) => {
         if (!active) return;
+        const layoutPlan = layoutPlans[0];
+        setPlans(layoutPlans);
         setPlan(layoutPlan);
         // A zone owner has to be somebody who can still sign in.
         setUsers(teamUsers.filter((member) => member.isActive));
@@ -473,6 +478,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const [tool, setTool] = useState<'select' | 'wall' | 'door' | 'window'>('select');
   /** Set once somebody has chosen how to begin, so the choice is not asked twice. */
   const [started, setStarted] = useState(false);
+  /**
+   * Every plan the organization has, and which one is on the canvas.
+   *
+   * A building has a plan per floor. The list is what lets somebody move
+   * between them; the canvas only ever holds one, because a floor plan showing
+   * two floors at once is a drawing of nowhere.
+   */
+  const [plans, setPlans] = useState<FiveSLayoutPlan[]>([]);
   /** A wall being drawn, from a fixed corner to wherever the pointer is. */
   const [drawingWall, setDrawingWall] = useState<{ from: Point; to: Point } | null>(null);
   /**
@@ -1193,6 +1206,84 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
     // Carry on from where this wall ended.
     setDrawingWall({ from: end, to: end });
+  };
+
+  /**
+   * Moves the canvas to another floor.
+   *
+   * The edit in flight is flushed first: switching away with a coalesced save
+   * still pending would write this floor's zones onto the one being opened.
+   */
+  const openPlan = async (id: string) => {
+    if (!id || id === plan?.id) return;
+
+    flushPlanSave();
+    setLoading(true);
+
+    try {
+      const opened = await fiveSLayoutService.getPlan(id);
+      setPlan(opened);
+      setPlans((current) => current.map((item) => (item.id === opened.id ? opened : item)));
+      setSelectedZoneId(opened.zones[0]?.id || '');
+      setSelectedObjectId('');
+      setSelectedOpeningId('');
+      setSelectedRoomKey('');
+      setStarted(false);
+      setView(FULL_VIEW);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addPlan = async () => {
+    flushPlanSave();
+
+    const created = await fiveSLayoutService.createPlan({
+      name: t('fiveS.planNewName'),
+      site: plan?.site || t('fiveS.planNewSite'),
+      floor: '',
+    });
+
+    // A workspace that keeps a single plan — the demo does — hands back the
+    // one it has. Appending it would put the same plan in the list twice and
+    // make switching between the two copies look broken.
+    if (plans.some((item) => item.id === created.id)) {
+      setActionMessage(t('fiveS.planSingleOnly'));
+      return;
+    }
+
+    setPlans((current) => [...current, created]);
+    setPlan(created);
+    setSelectedZoneId('');
+    setSelectedObjectId('');
+    setStarted(false);
+    setActionMessage(t('fiveS.planAdded'));
+  };
+
+  /**
+   * Removes the plan on the canvas.
+   *
+   * Refused when it is the only one: a workspace with no plan at all has
+   * nothing to draw on, and the editor would have to invent one back — which
+   * is how somebody's building quietly becomes a blank sheet.
+   */
+  const removePlan = async () => {
+    if (!plan || plans.length < 2) {
+      setActionMessage(t('fiveS.planLastOne'));
+      return;
+    }
+
+    const removed = await fiveSLayoutService.deletePlan(plan.id);
+
+    if (!removed.deleted) {
+      setActionMessage(t('fiveS.planRemoveFailed'));
+      return;
+    }
+
+    const remaining = plans.filter((item) => item.id !== plan.id);
+    setPlans(remaining);
+    setPlan(remaining[0]);
+    setActionMessage(t('fiveS.planRemoved'));
   };
 
   const stopDrawingWall = () => setDrawingWall(null);
@@ -2770,8 +2861,59 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
         )}
 
         <div className="grid gap-3 md:grid-cols-3">
+          {/*
+            Which floor is on the canvas. A building has a plan per floor, and
+            without this the editor could only ever open the first one — which
+            is what it did when an organization was allowed exactly one plan.
+          */}
           <label className="block text-sm text-gray-600 dark:text-gray-400">
-            Map name
+            {t('fiveS.planPicker')}
+            <div className="mt-1 flex gap-2">
+              <select
+                className={fieldClass}
+                value={plan.id}
+                onChange={(event) => void openPlan(event.target.value)}
+              >
+                {plans.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {[item.site, item.floor, item.name].filter(Boolean).join(' · ')}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                aria-label={t('fiveS.planAdd')}
+                title={t('fiveS.planAdd')}
+                className="rounded-lg border border-gray-300 px-3 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                onClick={() => void addPlan()}
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label={t('fiveS.planRemove')}
+                title={t('fiveS.planRemove')}
+                disabled={plans.length < 2}
+                className="rounded-lg border border-gray-300 px-3 text-gray-700 hover:bg-gray-100 disabled:opacity-40 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                onClick={() => void removePlan()}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+          </label>
+
+          <label className="block text-sm text-gray-600 dark:text-gray-400">
+            {t('fiveS.floorName')}
+            <input
+              className={fieldClass}
+              value={plan.floor ?? ''}
+              placeholder={t('fiveS.floorPlaceholder')}
+              onChange={(event) => updatePlan((current) => ({ ...current, floor: event.target.value }))}
+            />
+          </label>
+
+          <label className="block text-sm text-gray-600 dark:text-gray-400">
+            {t('fiveS.mapName')}
             <input
               className={fieldClass}
               value={plan.name}
@@ -2779,7 +2921,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             />
           </label>
           <label className="block text-sm text-gray-600 dark:text-gray-400">
-            Site
+            {t('fiveS.siteName')}
             <input
               className={fieldClass}
               value={plan.site}

@@ -47,8 +47,11 @@ person notices within a week of real use.
 The floor plan can now carry these; before the walls existed, none of them
 could be built honestly.
 
-- **Multi-floor and multi-site.** `site` is a single string. MPC has buildings
-  and floors, and an audit score means nothing if two floors share one plan.
+- **Multi-floor is in; multi-site is half.** An organization has a plan per
+  floor, each with a site, a floor and a name, and the editor moves between
+  them. What is still a flat list is the reporting above them: the room
+  register and the monthly report do not group by site, so a plant with two
+  buildings reads as one.
 - **A QR code per zone.** Scanning the label on the wall opens that zone's
   checklist on a phone. This is the thing that turns the mobile app from a
   viewer into a tool, and it needs the zone ids the plan already has.

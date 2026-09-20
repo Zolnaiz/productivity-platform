@@ -7,6 +7,9 @@ import { CANVAS_HEIGHT, CANVAS_WIDTH, GRID_SIZE } from './floorPlanGeometry';
 
 const serviceMocks = vi.hoisted(() => ({
   getPlan: vi.fn(),
+  getPlans: vi.fn(),
+  createPlan: vi.fn(),
+  deletePlan: vi.fn(),
   savePlan: vi.fn(),
   createZone: vi.fn(),
   createObject: vi.fn(),
@@ -22,6 +25,9 @@ const serviceMocks = vi.hoisted(() => ({
 vi.mock('../../services/fiveSLayout.service', () => ({
   fiveSLayoutService: {
     getPlan: serviceMocks.getPlan,
+    getPlans: serviceMocks.getPlans,
+    createPlan: serviceMocks.createPlan,
+    deletePlan: serviceMocks.deletePlan,
     savePlan: serviceMocks.savePlan,
     createZone: serviceMocks.createZone,
     createObject: serviceMocks.createObject,
@@ -136,6 +142,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
   beforeEach(() => {
     Object.values(serviceMocks).forEach((mock) => mock.mockReset?.());
     serviceMocks.getPlan.mockResolvedValue(buildPlan());
+    serviceMocks.getPlans.mockImplementation(async () => [await serviceMocks.getPlan()]);
     serviceMocks.savePlan.mockResolvedValue(undefined);
     serviceMocks.buildZoneLabelsCsv.mockReturnValue('');
     serviceMocks.getAuditRuns.mockResolvedValue([]);
@@ -1526,6 +1533,97 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
       renderEditor();
 
       expect(await screen.findByText('Not inside any room')).toBeTruthy();
+    });
+  });
+
+  describe('a plan per floor', () => {
+    // With zones on them: an empty plan shows the start screen instead of the
+    // editor, which is right, and not what these tests are about.
+    const floorPlan = (over: Record<string, unknown>) => ({ ...buildPlan(), ...over });
+
+    const ground = floorPlan({ id: 'l1', name: 'Machine shop', site: 'Plant', floor: '1st floor' });
+    const upstairs = floorPlan({ id: 'l2', name: 'Offices', site: 'Plant', floor: '2nd floor' });
+
+    beforeEach(() => {
+      serviceMocks.getPlans.mockResolvedValue([ground, upstairs]);
+      serviceMocks.getPlan.mockResolvedValue(ground);
+      serviceMocks.createPlan.mockResolvedValue(floorPlan({ id: 'l3', name: 'New floor plan' }));
+      serviceMocks.deletePlan.mockResolvedValue({ id: 'l2', deleted: true });
+    });
+
+    it('lists every floor by site and floor, not just the first plan', async () => {
+      render(<ThemeProvider><FiveSFloorPlanSetup /></ThemeProvider>);
+
+      expect(await screen.findByText('Plant · 1st floor · Machine shop')).toBeTruthy();
+      expect(screen.getByText('Plant · 2nd floor · Offices')).toBeTruthy();
+    });
+
+    it('opens the floor that was chosen', async () => {
+      serviceMocks.getPlan.mockResolvedValue(upstairs);
+      render(<ThemeProvider><FiveSFloorPlanSetup /></ThemeProvider>);
+      await screen.findByText('Plant · 2nd floor · Offices');
+
+      fireEvent.change(screen.getByDisplayValue('Plant · 1st floor · Machine shop'), {
+        target: { value: 'l2' },
+      });
+
+      await waitFor(() => expect(serviceMocks.getPlan).toHaveBeenCalledWith('l2'));
+      expect(await screen.findByDisplayValue('2nd floor')).toBeTruthy();
+    });
+
+    it('adds a floor and moves to it', async () => {
+      render(<ThemeProvider><FiveSFloorPlanSetup /></ThemeProvider>);
+      await screen.findByText('Plant · 1st floor · Machine shop');
+
+      fireEvent.click(screen.getByLabelText('Add a floor plan'));
+
+      await waitFor(() => expect(serviceMocks.createPlan).toHaveBeenCalled());
+      expect(await screen.findByDisplayValue('New floor plan')).toBeTruthy();
+    });
+
+    it('does not list the same plan twice when a workspace keeps only one', async () => {
+      // The demo hands back the plan it has; appending it would put the same
+      // plan in the list twice and make switching between the copies look
+      // broken.
+      serviceMocks.getPlans.mockResolvedValue([ground]);
+      serviceMocks.createPlan.mockResolvedValue(ground);
+      render(<ThemeProvider><FiveSFloorPlanSetup /></ThemeProvider>);
+      await screen.findByText('Plant · 1st floor · Machine shop');
+
+      fireEvent.click(screen.getByLabelText('Add a floor plan'));
+
+      expect(await screen.findByText(/keeps a single floor plan/)).toBeTruthy();
+      expect(screen.getAllByText('Plant · 1st floor · Machine shop')).toHaveLength(1);
+    });
+
+    it('removes the floor on the canvas', async () => {
+      render(<ThemeProvider><FiveSFloorPlanSetup /></ThemeProvider>);
+      await screen.findByText('Plant · 1st floor · Machine shop');
+
+      fireEvent.click(screen.getByLabelText('Remove this floor plan'));
+
+      await waitFor(() => expect(serviceMocks.deletePlan).toHaveBeenCalledWith('l1'));
+    });
+
+    it('will not remove the only floor there is', async () => {
+      // A workspace with no plan has nothing to draw on, and the editor would
+      // have to invent one back — which is how a building becomes a blank
+      // sheet without anybody asking for it.
+      serviceMocks.getPlans.mockResolvedValue([ground]);
+      render(<ThemeProvider><FiveSFloorPlanSetup /></ThemeProvider>);
+      await screen.findByText('Plant · 1st floor · Machine shop');
+
+      expect(screen.getByLabelText('Remove this floor plan')).toHaveProperty('disabled', true);
+      expect(serviceMocks.deletePlan).not.toHaveBeenCalled();
+    });
+
+    it('keeps which floor a plan is of', async () => {
+      render(<ThemeProvider><FiveSFloorPlanSetup /></ThemeProvider>);
+
+      const floor = await screen.findByDisplayValue('1st floor');
+      fireEvent.change(floor, { target: { value: 'Mezzanine' } });
+
+      expect(await screen.findByDisplayValue('Mezzanine')).toBeTruthy();
     });
   });
 });
