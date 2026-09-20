@@ -113,6 +113,7 @@ import { copyName, duplicateZones, nextZoneCode } from './floorPlanClipboard';
 import { catalogue, catalogueGroups, catalogueItem, sizeForType } from './floorPlanCatalogue';
 import { dropSpot, placeAgainstWall } from './floorPlanPlacement';
 import { labelIn, nameRoom } from './floorPlanRooms';
+import { qrPath, zoneUrl } from './zoneLink';
 import { CanvasColours, canvasColours, strokeInk, tint } from './floorPlanTheme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { crossesAWall, perHundredSquareMetres, roomForZone, zoneCoverage } from './floorPlanZones';
@@ -2697,6 +2698,22 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     if (!plan) return;
 
     const labels = fiveSLayoutService.buildZoneLabelRows(plan);
+    /*
+      A square per label, pointing at that zone's page. It is drawn as an SVG
+      path in module units and scaled by the sheet, so it stays crisp however
+      large the label is printed — a raster at screen resolution does not.
+
+      The address comes from the browser the sheet is printed from, which is
+      the address the people who will scan it can reach. A label printed from
+      a laptop on the plant network that points at `localhost` is a label that
+      works for exactly one person.
+    */
+    const codes = new Map(
+      plan.zones.map((zone) => [
+        zone.id,
+        qrPath(zoneUrl(window.location.origin, plan.id, zone.id)),
+      ]),
+    );
     const printWindow = window.open('', '_blank', 'width=900,height=700');
 
     if (!printWindow) {
@@ -2712,6 +2729,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             body { font-family: Arial, sans-serif; margin: 24px; color: #111827; }
             .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
             .label { border: 2px solid #111827; border-radius: 8px; padding: 14px; min-height: 180px; page-break-inside: avoid; }
+            .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+            .qr { width: 96px; height: 96px; flex: none; }
             .code { font-size: 32px; font-weight: 800; }
             .zone { font-size: 18px; font-weight: 700; margin-top: 4px; }
             .meta { margin-top: 8px; font-size: 13px; line-height: 1.45; }
@@ -2726,22 +2745,38 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               .map(
                 (label) => `
                   <div class="label">
-                    <div class="code">${escapeHtml(label.code)}</div>
-                    <div class="zone">${escapeHtml(label.zone)}</div>
-                    <div class="meta"><strong>{t('fiveS.ui.labelOwner')}</strong> ${escapeHtml(label.owner)}</div>
-                    <div class="meta"><strong>{t('fiveS.ui.labelStage')}</strong> ${escapeHtml(label.stage)}${
-                      showAuditControls ? ` / <strong>{t('fiveS.ui.labelCycle')}</strong> ${escapeHtml(label.auditCycle)}` : ''
+                    <div class="head">
+                      <div>
+                        <div class="code">${escapeHtml(label.code)}</div>
+                        <div class="zone">${escapeHtml(label.zone)}</div>
+                      </div>
+                      ${
+                        codes.has(label.id)
+                          ? `<svg class="qr" viewBox="0 0 ${codes.get(label.id)!.size} ${
+                              codes.get(label.id)!.size
+                            }" shape-rendering="crispEdges" role="img" aria-label="${escapeHtml(label.code)}">
+                              <rect width="${codes.get(label.id)!.size}" height="${
+                                codes.get(label.id)!.size
+                              }" fill="#ffffff"/>
+                              <path d="${codes.get(label.id)!.path}" fill="#111827"/>
+                            </svg>`
+                          : ''
+                      }
+                    </div>
+                    <div class="meta"><strong>${t('fiveS.ui.labelOwner')}</strong> ${escapeHtml(label.owner)}</div>
+                    <div class="meta"><strong>${t('fiveS.ui.labelStage')}</strong> ${escapeHtml(label.stage)}${
+                      showAuditControls ? ` / <strong>${t('fiveS.ui.labelCycle')}</strong> ${escapeHtml(label.auditCycle)}` : ''
                     }</div>
                     ${
                       showAuditControls
-                        ? `<div class="meta"><strong>{t('fiveS.ui.labelLastScore')}</strong> ${escapeHtml(label.lastAuditScore || '-')}</div>
-                    <div class="meta"><strong>{t('fiveS.ui.labelLastAudit')}</strong> ${escapeHtml(label.lastAuditAt || '-')}</div>`
+                        ? `<div class="meta"><strong>${t('fiveS.ui.labelLastScore')}</strong> ${escapeHtml(label.lastAuditScore || '-')}</div>
+                    <div class="meta"><strong>${t('fiveS.ui.labelLastAudit')}</strong> ${escapeHtml(label.lastAuditAt || '-')}</div>`
                         : ''
                     }
-                    <div class="meta"><strong>{t('fiveS.ui.labelRedTags')}</strong> ${escapeHtml(label.redTags)} / <strong>{t('fiveS.ui.labelCleaned')}</strong> ${escapeHtml(label.lastCleaned || '-')}</div>
-                    <div class="meta"><strong>{t('fiveS.ui.labelContents')}</strong> ${escapeHtml(label.contents || '-')}</div>
-                    <div class="standard"><strong>{t('fiveS.ui.labelStandard')}</strong> ${escapeHtml(label.standard || '-')}</div>
-                    <div class="meta"><strong>{t('fiveS.ui.labelLabel')}</strong> ${escapeHtml(label.labelNote || '-')}</div>
+                    <div class="meta"><strong>${t('fiveS.ui.labelRedTags')}</strong> ${escapeHtml(label.redTags)} / <strong>${t('fiveS.ui.labelCleaned')}</strong> ${escapeHtml(label.lastCleaned || '-')}</div>
+                    <div class="meta"><strong>${t('fiveS.ui.labelContents')}</strong> ${escapeHtml(label.contents || '-')}</div>
+                    <div class="standard"><strong>${t('fiveS.ui.labelStandard')}</strong> ${escapeHtml(label.standard || '-')}</div>
+                    <div class="meta"><strong>${t('fiveS.ui.labelLabel')}</strong> ${escapeHtml(label.labelNote || '-')}</div>
                   </div>
                 `,
               )

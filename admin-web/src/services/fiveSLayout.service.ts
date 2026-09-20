@@ -480,6 +480,9 @@ const escapeCsvCell = (value: string | number | undefined) => `"${String(value ?
 
 const buildZoneLabelRows = (plan: FiveSLayoutPlan) =>
   plan.zones.map((zone) => ({
+    // The id travels with the row so a printed label can carry a code that
+    // opens this zone and not another one with the same letter on it.
+    id: zone.id,
     code: zone.code,
     zone: zone.name,
     owner: zone.ownerName || 'Unassigned',

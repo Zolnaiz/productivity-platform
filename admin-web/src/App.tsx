@@ -10,6 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import PlatformModulePage from "./pages/PlatformModulePage";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import ZonePage from "./pages/ZonePage";
 import OperationsDashboardPage from "./pages/OperationsDashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import TasksPage from "./pages/TasksPage";
@@ -92,6 +93,12 @@ function App() {
                 <Route path="work-logs" element={<WorkLogsPage />} />
                 <Route path="time" element={<WorkLogsPage />} />
                 <Route path="fives" element={<FiveSSetupPage />} />
+                {/*
+                  What a zone's label on the wall opens. Inside the protected
+                  layout: an area's standard, its owner and what is still
+                  red-tagged are the organization's, not the public's.
+                */}
+                <Route path="zone/:planId/:zoneId" element={<ZonePage />} />
                 <Route
                   path="audit-templates"
                   element={<AuditTemplatesPage />}
