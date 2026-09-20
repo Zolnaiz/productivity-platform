@@ -477,12 +477,32 @@ class PlanRoomLabelDto {
   name: string;
 }
 
+/** A new plan: everything else about it is drawn afterwards. */
+export class CreateFiveSLayoutDto extends OrganizationScopedDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  site?: string;
+
+  @IsOptional()
+  @IsString()
+  floor?: string;
+}
+
 export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
   @IsString()
   name: string;
 
   @IsString()
   site: string;
+
+  /** Which floor of that site. Empty for a single-storey place. */
+  @IsOptional()
+  @IsString()
+  floor?: string;
 
   @IsString()
   scale: string;

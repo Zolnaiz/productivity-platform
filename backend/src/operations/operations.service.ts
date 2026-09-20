@@ -198,7 +198,15 @@ export class OperationsService {
       return;
     }
 
-    const layout = await this.fiveSLayouts.findOne({ where: this.organizationWhere(user) });
+    // Across every plan the organization has, not the first one. When a
+    // building had one floor plan these were the same thing; with a plan per
+    // floor, looking only at the first means a tag raised upstairs is never
+    // closed and nothing says why.
+    const layout = await this.layoutHolding(user, (candidate) =>
+      (candidate.zones ?? []).some((zone) =>
+        (zone.redTags ?? []).some((redTag: Record<string, any>) => redTag.id === task.sourceId),
+      ),
+    );
 
     if (!layout) {
       return;
@@ -300,10 +308,89 @@ export class OperationsService {
     return this.dailyGoals.save(goal);
   }
 
-  async findFiveSLayout(user: CurrentUser) {
+  /**
+   * The organization's plan that satisfies a test, or null.
+   *
+   * Reading them all and looking is deliberate: an organization has a handful
+   * of floors, not thousands, and a query into JSON would tie the shape of a
+   * zone to the shape of a database index.
+   */
+  private async layoutHolding(user: CurrentUser, holds: (layout: FiveSLayout) => boolean) {
+    const layouts = await this.fiveSLayouts.find({ where: this.organizationWhere(user) });
+
+    return layouts.find(holds) ?? null;
+  }
+
+  /**
+   * Every plan the organization has, in the order somebody would read them.
+   *
+   * By site, then floor, then name: a plant is walked building by building and
+   * floor by floor, and a list in that order is one somebody can find their
+   * way down.
+   */
+  async findFiveSLayouts(user: CurrentUser) {
+    const layouts = await this.fiveSLayouts.find({ where: this.organizationWhere(user) });
+
+    if (layouts.length) {
+      return layouts.sort(
+        (a, b) =>
+          (a.site || '').localeCompare(b.site || '') ||
+          (a.floor || '').localeCompare(b.floor || '') ||
+          (a.name || '').localeCompare(b.name || ''),
+      );
+    }
+
+    // An organization with no plan gets one rather than an empty list, for
+    // the same reason a new workspace gets an empty plan rather than nothing:
+    // there has to be something to draw on.
+    return [await this.findFiveSLayout(user)];
+  }
+
+  async createFiveSLayout(payload: Partial<FiveSLayout>, user: CurrentUser) {
+    const organizationId = this.resolveOrganizationId(user, payload.organizationId);
+
+    return this.fiveSLayouts.save(
+      this.fiveSLayouts.create({
+        name: payload.name || '5S area map',
+        site: payload.site || 'Workspace',
+        floor: payload.floor || '',
+        backgroundImage: '',
+        backgroundOpacity: 0.55,
+        showGrid: true,
+        snapToGrid: true,
+        showDimensions: false,
+        zones: [],
+        objects: [],
+        corners: [],
+        walls: [],
+        openings: [],
+        roomLabels: [],
+        organizationId,
+      }),
+    );
+  }
+
+  /**
+   * Removes a plan.
+   *
+   * Scoped by organization in the delete itself rather than by reading the row
+   * and checking, so an identifier from another organization removes nothing
+   * instead of being caught by a check somebody has to remember to write.
+   */
+  async deleteFiveSLayout(id: string, user: CurrentUser) {
+    const organizationId = this.resolveOrganizationId(user);
+    const result = await this.fiveSLayouts.delete({ id, ...(organizationId ? { organizationId } : {}) });
+
+    return { id, deleted: Boolean(result.affected) };
+  }
+
+  async findFiveSLayout(user: CurrentUser, id?: string) {
     const organizationId = this.resolveOrganizationId(user);
     const where = organizationId ? { organizationId } : {};
-    const layout = await this.fiveSLayouts.findOne({ where });
+    // An id names one plan; without one this is still "the organization's
+    // plan", which is what every caller written before there were several
+    // means by it.
+    const layout = await this.fiveSLayouts.findOne({ where: id ? { ...where, id } : where });
 
     if (layout) {
       return layout;
@@ -328,13 +415,14 @@ export class OperationsService {
     return this.fiveSLayouts.save(defaultLayout);
   }
 
-  async upsertFiveSLayout(payload: Partial<FiveSLayout>, user: CurrentUser) {
+  async upsertFiveSLayout(payload: Partial<FiveSLayout>, user: CurrentUser, id?: string) {
     const organizationId = this.resolveOrganizationId(user, payload.organizationId);
     const where = organizationId ? { organizationId } : {};
-    const existing = await this.fiveSLayouts.findOne({ where });
+    const existing = await this.fiveSLayouts.findOne({ where: id ? { ...where, id } : where });
     const layoutPayload = {
       name: payload.name || '5S area map',
       site: payload.site || 'Workspace',
+      floor: payload.floor ?? existing?.floor ?? '',
       scale: payload.scale || '1 square = 1 meter',
       backgroundImage: payload.backgroundImage || '',
       backgroundOpacity: payload.backgroundOpacity ?? 0.55,
@@ -427,7 +515,11 @@ export class OperationsService {
       return;
     }
 
-    const layout = await this.fiveSLayouts.findOne({ where: this.organizationWhere(user) });
+    // The plan holding this zone, which is not necessarily the first one: an
+    // audit of a zone on the second floor has to repaint the second floor.
+    const layout = await this.layoutHolding(user, (candidate) =>
+      (candidate.zones ?? []).some((zone) => zone.id === run.zoneId),
+    );
 
     if (!layout) {
       return;

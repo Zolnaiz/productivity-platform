@@ -13,6 +13,16 @@ export class FiveSLayout extends BaseEntity {
   @Column({ default: 'Workspace' })
   site: string;
 
+  /**
+   * Which floor of that site this plan is of.
+   *
+   * Empty for a single-storey place, where saying "ground floor" is noise. An
+   * organization has as many layouts as it has floors, so this and `site`
+   * together are how somebody tells one plan from another.
+   */
+  @Column({ default: '' })
+  floor: string;
+
   @Column({ default: '1 square = 1 meter' })
   scale: string;
 

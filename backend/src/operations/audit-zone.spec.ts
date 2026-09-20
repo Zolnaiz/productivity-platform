@@ -75,7 +75,7 @@ describe('audit runs update the zone they audited', () => {
   it('writes the score and date onto the matching zone', async () => {
     const { service, repositories } = createService();
     const layout = layoutWith([zone(), zone({ id: 'zone-b', code: 'A02' })]);
-    repositories.fiveSLayouts.findOne.mockResolvedValue(layout);
+    repositories.fiveSLayouts.find.mockResolvedValue([layout]);
 
     await service.createAuditRun(
       { templateId: 't-1', zoneId: 'zone-a', score: 82, status: 'submitted' } as any,
@@ -91,9 +91,9 @@ describe('audit runs update the zone they audited', () => {
 
   it('leaves every other zone untouched', async () => {
     const { service, repositories } = createService();
-    repositories.fiveSLayouts.findOne.mockResolvedValue(
+    repositories.fiveSLayouts.find.mockResolvedValue([
       layoutWith([zone(), zone({ id: 'zone-b', lastAuditScore: 40 })]),
-    );
+    ]);
 
     await service.createAuditRun(
       { templateId: 't-1', zoneId: 'zone-a', score: 90, status: 'submitted' } as any,
@@ -106,7 +106,7 @@ describe('audit runs update the zone they audited', () => {
 
   it('keeps the first score as the baseline so improvement is measurable', async () => {
     const { service, repositories } = createService();
-    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([zone()]));
+    repositories.fiveSLayouts.find.mockResolvedValue([layoutWith([zone()])]);
 
     await service.createAuditRun(
       { templateId: 't-1', zoneId: 'zone-a', score: 55, status: 'submitted' } as any,
@@ -116,7 +116,7 @@ describe('audit runs update the zone they audited', () => {
     const first = repositories.fiveSLayouts.save.mock.calls[0][0];
     expect(first.zones[0].baselineScore).toBe(55);
 
-    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([first.zones[0]]));
+    repositories.fiveSLayouts.find.mockResolvedValue([layoutWith([first.zones[0]])]);
     repositories.fiveSLayouts.save.mockClear();
 
     await service.createAuditRun(
@@ -131,7 +131,7 @@ describe('audit runs update the zone they audited', () => {
 
   it('ignores a draft run, so a half-finished checklist does not repaint the map', async () => {
     const { service, repositories } = createService();
-    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([zone()]));
+    repositories.fiveSLayouts.find.mockResolvedValue([layoutWith([zone()])]);
 
     await service.createAuditRun(
       { templateId: 't-1', zoneId: 'zone-a', score: 20, status: 'draft' } as any,
@@ -150,12 +150,12 @@ describe('audit runs update the zone they audited', () => {
     );
 
     expect(run).toBeTruthy();
-    expect(repositories.fiveSLayouts.findOne).not.toHaveBeenCalled();
+    expect(repositories.fiveSLayouts.find).not.toHaveBeenCalled();
   });
 
   it('still records the audit when its zone has been removed from the plan', async () => {
     const { service, repositories } = createService();
-    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([zone({ id: 'zone-b' })]));
+    repositories.fiveSLayouts.find.mockResolvedValue([layoutWith([zone({ id: 'zone-b' })])]);
 
     const run = await service.createAuditRun(
       { templateId: 't-1', zoneId: 'deleted-zone', score: 70, status: 'submitted' } as any,
@@ -166,16 +166,33 @@ describe('audit runs update the zone they audited', () => {
     expect(repositories.fiveSLayouts.save).not.toHaveBeenCalled();
   });
 
+  it('repaints the floor the zone is actually on', async () => {
+    // A building with a plan per floor: an audit of a zone upstairs used to
+    // find nothing, because the lookup took the organization's first plan.
+    const { service, repositories } = createService();
+    const ground = { ...layoutWith([zone({ id: 'zone-ground' })]), id: 'layout-ground' };
+    const upstairs = { ...layoutWith([zone({ id: 'zone-upstairs' })]), id: 'layout-upstairs' };
+    repositories.fiveSLayouts.find.mockResolvedValue([ground, upstairs]);
+
+    await service.createAuditRun(
+      { templateId: 't-1', zoneId: 'zone-upstairs', score: 88, status: 'submitted' } as any,
+      user,
+    );
+
+    expect(repositories.fiveSLayouts.save).toHaveBeenCalledTimes(1);
+    expect(repositories.fiveSLayouts.save.mock.calls[0][0].id).toBe('layout-upstairs');
+  });
+
   it('scopes the layout lookup to the auditor organization', async () => {
     const { service, repositories } = createService();
-    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([zone()]));
+    repositories.fiveSLayouts.find.mockResolvedValue([layoutWith([zone()])]);
 
     await service.createAuditRun(
       { templateId: 't-1', zoneId: 'zone-a', score: 70, status: 'submitted' } as any,
       user,
     );
 
-    expect(repositories.fiveSLayouts.findOne).toHaveBeenCalledWith({
+    expect(repositories.fiveSLayouts.find).toHaveBeenCalledWith({
       where: { organizationId: 'org-1' },
     });
   });

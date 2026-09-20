@@ -17,6 +17,7 @@ import {
   UpdateAssessmentTemplateDto,
   UpdateDailyGoalDto,
   UpdateExpenseDto,
+  CreateFiveSLayoutDto,
   UpsertFiveSLayoutDto,
   UpdateProjectDto,
   UpdateTaskDto,
@@ -142,10 +143,41 @@ export class OperationsController {
     return this.operationsService.updateDailyGoal(id, body, req.user);
   }
 
+  /**
+   * Every plan the organization has — one per floor of one per building.
+   *
+   * The singular routes below stay: they mean "the organization's plan", which
+   * is what a client written before there were several means by it, and what a
+   * workspace with one floor still means by it.
+   */
+  @Get('five-s-layouts')
+  @RequirePermission('zones:read')
+  findFiveSLayouts(@Request() req) {
+    return this.operationsService.findFiveSLayouts(req.user);
+  }
+
+  @Post('five-s-layouts')
+  @RequirePermission('zones:create')
+  createFiveSLayout(@Body() body: CreateFiveSLayoutDto, @Request() req) {
+    return this.operationsService.createFiveSLayout(body, req.user);
+  }
+
+  @Patch('five-s-layouts/:id')
+  @RequirePermission('zones:update')
+  updateFiveSLayoutById(@Param('id') id: string, @Body() body: UpsertFiveSLayoutDto, @Request() req) {
+    return this.operationsService.upsertFiveSLayout(body, req.user, id);
+  }
+
+  @Delete('five-s-layouts/:id')
+  @RequirePermission('zones:delete')
+  deleteFiveSLayout(@Param('id') id: string, @Request() req) {
+    return this.operationsService.deleteFiveSLayout(id, req.user);
+  }
+
   @Get('five-s-layout')
   @RequirePermission('zones:read')
-  findFiveSLayout(@Request() req) {
-    return this.operationsService.findFiveSLayout(req.user);
+  findFiveSLayout(@Request() req, @Query('id') id?: string) {
+    return this.operationsService.findFiveSLayout(req.user, id);
   }
 
   @Patch('five-s-layout')

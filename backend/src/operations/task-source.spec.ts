@@ -165,7 +165,7 @@ describe('finishing a task closes the finding it came from', () => {
 
   it('closes the red tag and records when', async () => {
     const { service, repositories } = createService();
-    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([openTag]));
+    repositories.fiveSLayouts.find.mockResolvedValue([layoutWith([openTag])]);
 
     await finishTask(service, repositories);
 
@@ -183,7 +183,7 @@ describe('finishing a task closes the finding it came from', () => {
   it('leaves the other tags in the zone alone', async () => {
     const { service, repositories } = createService();
     const other = { id: 'red-tag-other', status: 'open' };
-    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([openTag, other]));
+    repositories.fiveSLayouts.find.mockResolvedValue([layoutWith([openTag, other])]);
 
     await finishTask(service, repositories);
 
@@ -193,7 +193,7 @@ describe('finishing a task closes the finding it came from', () => {
 
   it('does nothing while the task is still open', async () => {
     const { service, repositories } = createService();
-    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([openTag]));
+    repositories.fiveSLayouts.find.mockResolvedValue([layoutWith([openTag])]);
     repositories.tasks.findOne.mockResolvedValue({
       id: 'task-1',
       organizationId: 'org-1',
@@ -212,23 +212,23 @@ describe('finishing a task closes the finding it came from', () => {
 
     await finishTask(service, repositories, { sourceType: undefined, sourceId: undefined });
 
-    expect(repositories.fiveSLayouts.findOne).not.toHaveBeenCalled();
+    expect(repositories.fiveSLayouts.find).not.toHaveBeenCalled();
   });
 
   it('leaves audit follow-up work to the next audit rather than closing anything', async () => {
     const { service, repositories } = createService();
-    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([openTag]));
+    repositories.fiveSLayouts.find.mockResolvedValue([layoutWith([openTag])]);
 
     await finishTask(service, repositories, { sourceType: TaskSource.AUDIT_RUN, sourceId: 'run-1' });
 
-    expect(repositories.fiveSLayouts.findOne).not.toHaveBeenCalled();
+    expect(repositories.fiveSLayouts.find).not.toHaveBeenCalled();
   });
 
   it('does not rewrite a tag that was already closed', async () => {
     const { service, repositories } = createService();
-    repositories.fiveSLayouts.findOne.mockResolvedValue(
+    repositories.fiveSLayouts.find.mockResolvedValue([
       layoutWith([{ ...openTag, closedAt: '2026-01-01T00:00:00.000Z' }]),
-    );
+    ]);
 
     await finishTask(service, repositories);
 
@@ -237,7 +237,7 @@ describe('finishing a task closes the finding it came from', () => {
 
   it('still finishes the task when its tag has been deleted from the plan', async () => {
     const { service, repositories } = createService();
-    repositories.fiveSLayouts.findOne.mockResolvedValue(layoutWith([{ id: 'someone-else', status: 'open' }]));
+    repositories.fiveSLayouts.find.mockResolvedValue([layoutWith([{ id: 'someone-else', status: 'open' }])]);
 
     const result = await finishTask(service, repositories);
 

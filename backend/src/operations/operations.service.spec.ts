@@ -7,6 +7,9 @@ const createRepository = () => ({
   create: jest.fn((value) => value),
   save: jest.fn((value) => Promise.resolve(value)),
   softRemove: jest.fn((value) => Promise.resolve(value)),
+  // Removing a plan is scoped in the delete itself rather than by reading the
+  // row and checking, so the mock has to answer one.
+  delete: jest.fn(async () => ({ affected: 1 })),
 });
 
 const createService = (allowPublicOperations = false) => {
@@ -461,6 +464,144 @@ describe('OperationsService organization scoping', () => {
 
       expect(report.period).toBe('2026-08');
       expect(report.people[0]).toMatchObject({ userId: 'u1', completedTasks: 1 });
+    });
+  });
+
+  describe('a plan per floor', () => {
+    it('lists them the way somebody walks the place: site, then floor', async () => {
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.find.mockResolvedValue([
+        { id: 'l3', site: 'Plant', floor: '2nd floor', name: 'Offices' },
+        { id: 'l1', site: 'Annex', floor: '', name: 'Store' },
+        { id: 'l2', site: 'Plant', floor: '1st floor', name: 'Machine shop' },
+      ]);
+
+      const layouts = await service.findFiveSLayouts({ id: 'u1', organizationId: 'org-1' });
+
+      expect(layouts.map((layout) => layout.id)).toEqual(['l1', 'l2', 'l3']);
+    });
+
+    it('gives an organization with no plan one to draw on', async () => {
+      // The same reason a new workspace gets an empty plan rather than
+      // nothing: there has to be something to draw on.
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.find.mockResolvedValue([]);
+      repositories.fiveSLayouts.findOne.mockResolvedValue(undefined);
+      repositories.fiveSLayouts.save.mockImplementation(async (value: any) => ({ id: 'made', ...value }));
+
+      const layouts = await service.findFiveSLayouts({ id: 'u1', organizationId: 'org-1' });
+
+      expect(layouts).toHaveLength(1);
+      expect(repositories.fiveSLayouts.create).toHaveBeenCalled();
+    });
+
+    it('creates a new plan empty, with its site and floor', async () => {
+      const { service, repositories } = createService();
+
+      await service.createFiveSLayout(
+        { name: 'Machine shop', site: 'Plant', floor: '1st floor' } as never,
+        { id: 'u1', organizationId: 'org-1' },
+      );
+
+      expect(repositories.fiveSLayouts.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Machine shop',
+          site: 'Plant',
+          floor: '1st floor',
+          organizationId: 'org-1',
+          zones: [],
+          walls: [],
+        }),
+      );
+    });
+
+    it('will not let a payload put a new plan in another organization', async () => {
+      const { service, repositories } = createService();
+
+      await service.createFiveSLayout(
+        { name: 'Machine shop', organizationId: 'org-2' } as never,
+        { id: 'u1', organizationId: 'org-1' },
+      );
+
+      expect(repositories.fiveSLayouts.create).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId: 'org-1' }),
+      );
+    });
+
+    it('reads one plan by name when asked for one', async () => {
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue({ id: 'l2' });
+
+      await service.findFiveSLayout({ id: 'u1', organizationId: 'org-1' }, 'l2');
+
+      expect(repositories.fiveSLayouts.findOne).toHaveBeenCalledWith({
+        where: { organizationId: 'org-1', id: 'l2' },
+      });
+    });
+
+    it('still means the organization\u2019s plan when no id is given', async () => {
+      // What every caller written before there were several means by it.
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue({ id: 'l1' });
+
+      await service.findFiveSLayout({ id: 'u1', organizationId: 'org-1' });
+
+      expect(repositories.fiveSLayouts.findOne).toHaveBeenCalledWith({
+        where: { organizationId: 'org-1' },
+      });
+    });
+
+    it('saves the plan that was named rather than the first one', async () => {
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue({ id: 'l2', organizationId: 'org-1' });
+
+      await service.upsertFiveSLayout(
+        { name: 'Machine shop', site: 'Plant', zones: [], objects: [] } as never,
+        { id: 'u1', organizationId: 'org-1' },
+        'l2',
+      );
+
+      expect(repositories.fiveSLayouts.findOne).toHaveBeenCalledWith({
+        where: { organizationId: 'org-1', id: 'l2' },
+      });
+      expect(repositories.fiveSLayouts.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'l2' }));
+    });
+
+    it('keeps the floor a plan is of when a save does not mention it', async () => {
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue({ id: 'l2', floor: '2nd floor' });
+
+      await service.upsertFiveSLayout(
+        { name: 'Offices', site: 'Plant', zones: [], objects: [] } as never,
+        { id: 'u1', organizationId: 'org-1' },
+        'l2',
+      );
+
+      expect(repositories.fiveSLayouts.save).toHaveBeenCalledWith(
+        expect.objectContaining({ floor: '2nd floor' }),
+      );
+    });
+
+    it('deletes a plan by id, scoped to the organization in the delete itself', async () => {
+      // Not a read and then a check: that is a window in which the identifier
+      // can belong to somebody else.
+      const { service, repositories } = createService();
+
+      expect(await service.deleteFiveSLayout('l2', { id: 'u1', organizationId: 'org-1' })).toEqual({
+        id: 'l2',
+        deleted: true,
+      });
+      expect(repositories.fiveSLayouts.delete).toHaveBeenCalledWith({ id: 'l2', organizationId: 'org-1' });
+    });
+
+    it('says nothing was deleted when the plan belongs to another organization', async () => {
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.delete.mockResolvedValue({ affected: 0 });
+
+      expect(await service.deleteFiveSLayout('l9', { id: 'u1', organizationId: 'org-1' })).toEqual({
+        id: 'l9',
+        deleted: false,
+      });
     });
   });
 
