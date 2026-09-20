@@ -36,10 +36,11 @@ person notices within a week of real use.
   that reaches them when they are not looking at it, and invitations have the
   same hole — the API issues a token and the inviter sends it by hand. One
   transport serves both.
-- **The audit trail.** It records who changed what record through which route,
-  and never what the change was, and nothing ever removes a row. A diff and a
-  retention policy, in that order — the diff has to be taken without writing a
-  password or a token into a table people read.
+- **The audit trail's remaining half.** It now records what a request asked to
+  change and keeps entries two years. What it still cannot say is what a value
+  was *before*, because an interceptor sees the request and the response and
+  never the row as it stood. Doing that means reading the record before the
+  write, on the routes where it is worth the cost.
 
 ### 3. 5S where the building is real
 

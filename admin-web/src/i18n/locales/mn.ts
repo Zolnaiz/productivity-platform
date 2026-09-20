@@ -281,6 +281,8 @@ const mn: Translations<typeof en> = {
     },
   },
   auditLog: {
+    changed: 'Юу өөрчлөгдсөн',
+    moreFields: '+{{count}} бусад',
     unknownActor: 'Тодорхойгүй',
     title: 'Аудитын бүртгэл',
     subtitle: 'Аюулгүй байдлын үйл явдал, экспорт, эрхийн өөрчлөлт, аудитын илгээлт.',

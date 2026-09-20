@@ -283,6 +283,8 @@ const en = {
     },
   },
   auditLog: {
+    changed: 'What changed',
+    moreFields: '+{{count}} more',
     unknownActor: 'Unattributed',
     title: 'Audit Log',
     subtitle: 'Security events, exports, permission changes and audit submissions.',

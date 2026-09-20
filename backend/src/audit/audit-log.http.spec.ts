@@ -139,13 +139,27 @@ describe('audit log over HTTP', () => {
       expect(saved).toHaveLength(0);
     });
 
-    it('records nothing a client put in the body', async () => {
+    it('records what was changed, end to end', async () => {
       await request(app.getHttpServer())
         .patch('/api/organizations/my-organization')
-        .send({ address: 'Ulaanbaatar', description: 'Secret123' })
+        .send({ address: 'Ulaanbaatar' })
         .expect(200);
 
-      expect(JSON.stringify(saved[0])).not.toContain('Secret123');
+      // Through the real pipe and guard stack: the entry says which field was
+      // changed and to what, which is the first thing a reader asks.
+      expect(saved[0].changes).toEqual({ fields: ['address'], values: { address: 'Ulaanbaatar' } });
+    });
+
+    it('cannot be sent a secret to record in the first place', async () => {
+      // The validation pipe refuses a field the route does not declare, so a
+      // credential never reaches the interceptor on a route like this one.
+      // Redaction is the second line, tested where a body does reach it.
+      await request(app.getHttpServer())
+        .patch('/api/organizations/my-organization')
+        .send({ address: 'Ulaanbaatar', password: 'Secret123' })
+        .expect(400);
+
+      expect(saved).toHaveLength(0);
     });
   });
 

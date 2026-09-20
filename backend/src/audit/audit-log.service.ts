@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditLogEntry } from './entities/audit-log-entry.entity';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
+import { ChangeSummary } from './change-summary';
 
 export interface RecordableAction {
   organizationId: string;
@@ -16,6 +17,8 @@ export interface RecordableAction {
   route: string;
   statusCode: number;
   severity: AuditLogEntry['severity'];
+  /** A summary of what the request asked to change; see `change-summary.ts`. */
+  changes?: ChangeSummary | null;
 }
 
 /**

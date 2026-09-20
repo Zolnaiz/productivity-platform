@@ -105,6 +105,7 @@ describe('AuditLogInterceptor', () => {
       route: '/projects/:id',
       statusCode: 200,
       severity: 'info',
+      changes: null,
     });
   });
 
@@ -123,12 +124,33 @@ describe('AuditLogInterceptor', () => {
     expect(recorded).not.toHaveBeenCalled();
   });
 
-  it('takes nothing from the request body', async () => {
-    await run(signedIn({ body: { password: 'Secret123', role: 'super_admin' } }));
+  it('never writes a secret into a table people read', async () => {
+    await run(signedIn({ body: { password: 'Secret123', name: 'Goods in' } }));
 
     const entry = JSON.stringify(recorded.mock.calls[0][0]);
     expect(entry).not.toContain('Secret123');
-    expect(entry).not.toContain('super_admin');
+    // The field's name is kept: "they changed the password" is exactly what a
+    // reader needs, and which password is what must never be written down.
+    expect(recorded.mock.calls[0][0].changes.values.password).toBe('[redacted]');
+  });
+
+  it('records what the request asked to change', async () => {
+    // The trail said somebody updated a zone and never what they updated,
+    // which is the first thing anybody reading it asks.
+    await run(signedIn({ body: { name: 'Goods in', priority: 'high' } }));
+
+    expect(recorded.mock.calls[0][0].changes).toEqual({
+      fields: ['name', 'priority'],
+      values: { name: 'Goods in', priority: 'high' },
+    });
+  });
+
+  it('records an attempt to change something nobody may change', async () => {
+    // The DTO strips it, so the request has no such effect — but an auditor
+    // wants to know it was asked for, which is exactly what a trail is for.
+    await run(signedIn({ body: { role: 'super_admin' } }));
+
+    expect(recorded.mock.calls[0][0].changes.values.role).toBe('super_admin');
   });
 
   it('falls back to the email when a person has no name recorded', async () => {

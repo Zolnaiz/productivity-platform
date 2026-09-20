@@ -1,4 +1,5 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { ChangeSummary } from '../change-summary';
 
 /**
  * One thing somebody did.
@@ -53,6 +54,17 @@ export class AuditLogEntry {
 
   @Column({ default: 'info' })
   severity: 'info' | 'warning' | 'critical';
+
+  /**
+   * What the request asked to change: the field names, and the values with
+   * secrets redacted and anything too large described rather than copied.
+   *
+   * Null for a request that carried no body — a delete, or a named action on
+   * a route. See `change-summary.ts`: the rules there are what make a request
+   * body safe to keep any part of.
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  changes?: ChangeSummary | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

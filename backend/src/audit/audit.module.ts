@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditLogEntry } from './entities/audit-log-entry.entity';
 import { AuditLogController } from './audit-log.controller';
 import { AuditLogService } from './audit-log.service';
+import { AuditRetentionService } from './audit-retention.service';
 import { PermissionsGuard } from '../shared/guards/permissions.guard';
 
 /**
@@ -15,7 +16,7 @@ import { PermissionsGuard } from '../shared/guards/permissions.guard';
 @Module({
   imports: [TypeOrmModule.forFeature([AuditLogEntry])],
   controllers: [AuditLogController],
-  providers: [AuditLogService, PermissionsGuard],
+  providers: [AuditLogService, AuditRetentionService, PermissionsGuard],
   exports: [AuditLogService],
 })
 export class AuditModule {}

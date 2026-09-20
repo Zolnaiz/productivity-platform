@@ -4,6 +4,7 @@ import { tap } from 'rxjs/operators';
 import { AuditLogEntry } from './entities/audit-log-entry.entity';
 import { AuditLogService } from './audit-log.service';
 import { API_PREFIX } from '../app-config';
+import { summariseChange } from './change-summary';
 
 const readOnlyMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
 
@@ -65,10 +66,17 @@ export const severityFor = (method: string, action: string): AuditLogEntry['seve
  * it exists to show. Failures are skipped too: a refused request changed
  * nothing, and `LoggingInterceptor` already records it.
  *
- * Nothing from the request body reaches the entry. The actor comes from the
- * verified token and the rest from the route, so a client cannot write its own
- * history, and a payload containing a password cannot end up in a table people
- * are meant to read.
+ * The actor comes from the verified token and the route from Express, so a
+ * client cannot write its own history. What the request asked to change is
+ * summarised rather than stored: a field whose name says it is a secret keeps
+ * its name and loses its value, and anything too large to read is described
+ * instead — so a password cannot reach a table people are meant to read, and
+ * a floor plan's background image cannot make a row nobody can query. See
+ * `change-summary.ts`.
+ *
+ * What is recorded is the change that was *asked for*. An interceptor sees the
+ * request and the response, never the row as it stood, so this cannot say what
+ * a value was before — and does not pretend to.
  */
 @Injectable()
 export class AuditLogInterceptor implements NestInterceptor {
@@ -116,6 +124,7 @@ export class AuditLogInterceptor implements NestInterceptor {
               route: routePath,
               statusCode: response.statusCode ?? 200,
               severity: severityFor(method, action),
+              changes: summariseChange(request.body),
             })
             .catch((error) => this.logger.error(`Audit entry rejected: ${(error as Error).message}`));
         } catch (error) {

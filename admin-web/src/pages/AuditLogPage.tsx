@@ -120,6 +120,37 @@ const AuditLogPage: React.FC = () => {
               ),
             },
             {
+              key: 'changes',
+              header: t('auditLog.changed'),
+              render: (log) => {
+                if (!log.changes?.fields?.length) {
+                  // Nothing to say rather than an empty cell that reads as a
+                  // change with no detail.
+                  return <span className="text-xs text-gray-400">—</span>;
+                }
+
+                return (
+                  <div className="space-y-0.5">
+                    {log.changes.fields.slice(0, 4).map((field) => (
+                      <div key={field} className="text-xs">
+                        <span className="text-gray-500">{field}</span>
+                        <span className="ml-1 text-gray-800 dark:text-gray-200">
+                          {String(log.changes?.values?.[field] ?? '')}
+                        </span>
+                      </div>
+                    ))}
+                    {(log.changes.fields.length > 4 || log.changes.more) && (
+                      <div className="text-xs text-gray-400">
+                        {t('auditLog.moreFields', {
+                          count: log.changes.fields.length - Math.min(log.changes.fields.length, 4) + (log.changes.more ?? 0),
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              },
+            },
+            {
               key: 'severity',
               header: t('auditLog.severity'),
               render: (log) => (

@@ -68,5 +68,17 @@ export interface AuditLogEntry {
   route: string;
   statusCode: number;
   severity: 'info' | 'warning' | 'critical';
+  /**
+   * What the request asked to change: the fields, and the values with secrets
+   * redacted and anything too large described rather than copied.
+   *
+   * Absent on an entry with no body — a delete, a named action — and on every
+   * entry written before the trail recorded this.
+   */
+  changes?: {
+    fields: string[];
+    values: Record<string, unknown>;
+    more?: number;
+  } | null;
   createdAt: string;
 }
