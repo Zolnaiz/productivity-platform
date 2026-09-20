@@ -21,6 +21,9 @@ import { AttachmentsController } from './attachments.controller';
 import { AttachmentsService } from './attachments.service';
 import { AuditSchedulerService } from './audit-scheduler.service';
 import { PermissionsGuard } from '../shared/guards/permissions.guard';
+import { Notification } from './entities/notification.entity';
+import { NotificationsController } from './notifications.controller';
+import { NotificationsService } from './notifications.service';
 
 @Module({
   imports: [
@@ -44,16 +47,18 @@ import { PermissionsGuard } from '../shared/guards/permissions.guard';
       DailyGoal,
       FiveSLayout,
       Attachment,
+      Notification,
     ]),
   ],
-  controllers: [OperationsController, AttachmentsController],
+  controllers: [OperationsController, AttachmentsController, NotificationsController],
   providers: [
     OperationsService,
     AttachmentsService,
     AuditSchedulerService,
+    NotificationsService,
     OperationsAuthGuard,
     PermissionsGuard,
   ],
-  exports: [OperationsService, AttachmentsService],
+  exports: [OperationsService, AttachmentsService, NotificationsService],
 })
 export class OperationsModule {}

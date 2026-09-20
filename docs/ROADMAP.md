@@ -31,10 +31,11 @@ person notices within a week of real use.
   question to answer first is not how to store a name — it is whether a
   department owns zones, projects, or the people assigned to them. Until that
   is decided the table cannot be designed.
-- **Tell somebody.** The scheduler raises audits and tasks and nobody is
-  notified, so work is found rather than delivered. Invitations have the same
-  hole: the API issues a token and the inviter sends it by hand. One transport
-  serves both.
+- **Tell somebody, outside the application too.** Work raised for somebody now
+  reaches their inbox inside the product; what is still missing is a transport
+  that reaches them when they are not looking at it, and invitations have the
+  same hole — the API issues a token and the inviter sends it by hand. One
+  transport serves both.
 - **The audit trail.** It records who changed what record through which route,
   and never what the change was, and nothing ever removes a row. A diff and a
   retention policy, in that order — the diff has to be taken without writing a

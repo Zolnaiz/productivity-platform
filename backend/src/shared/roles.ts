@@ -50,6 +50,10 @@ export const canAssignRole = (actor: string | undefined, target: UserRole): bool
  * cumulatively is what makes that true rather than merely intended.
  */
 const viewer = [
+  // An inbox is personal, so every role that can sign in has one — including
+  // the viewer, who is told when an audit they have to walk is due.
+  'notifications:read',
+  'notifications:update',
   'projects:read',
   'tasks:read',
   'audits:read',

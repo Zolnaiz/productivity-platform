@@ -34,6 +34,8 @@ const createService = (allowPublicOperations = false) => {
     fiveSLayouts: createRepository(),
   };
 
+  const notifications = { notify: jest.fn(async () => null) };
+
   const service = new OperationsService(
     configService as any,
     repositories.projects as any,
@@ -47,9 +49,12 @@ const createService = (allowPublicOperations = false) => {
     repositories.expenses as any,
     repositories.dailyGoals as any,
     repositories.fiveSLayouts as any,
+    // Raising work now tells whoever it was given to; the spy is what lets a
+    // test say who was told.
+    notifications as any,
   );
 
-  return { service, repositories };
+  return { service, repositories, notifications };
 };
 
 describe('OperationsService organization scoping', () => {
@@ -278,6 +283,88 @@ describe('OperationsService organization scoping', () => {
         completed: true,
       }),
     );
+  });
+
+  describe('raising work', () => {
+    it('tells whoever it was given to', async () => {
+      // The scheduler raised audits and red-tag decisions and told nobody, so
+      // work was discovered rather than delivered — usually late.
+      const { service, repositories, notifications } = createService();
+      repositories.tasks.findOne.mockResolvedValue(undefined);
+      repositories.tasks.create.mockImplementation((value: any) => ({ id: 'task-1', ...value }));
+      repositories.tasks.save.mockImplementation(async (value: any) => value);
+
+      await service.createTask(
+        { title: 'Tier 1 5S audit due: A01', assigneeId: 'u2', dueDate: '2026-09-20' } as never,
+        { id: 'scheduler', organizationId: 'org-1' },
+      );
+
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'u2',
+          title: 'Tier 1 5S audit due: A01',
+          sourceType: 'work_task',
+          sourceId: 'task-1',
+        }),
+      );
+    });
+
+    it('does not tell somebody what they just did themselves', async () => {
+      // "You have a new task" to the person who typed it is how an inbox
+      // becomes something people stop reading.
+      const { service, repositories, notifications } = createService();
+      repositories.tasks.findOne.mockResolvedValue(undefined);
+      repositories.tasks.create.mockImplementation((value: any) => ({ id: 'task-1', ...value }));
+      repositories.tasks.save.mockImplementation(async (value: any) => value);
+
+      await service.createTask(
+        { title: 'Write the standard', assigneeId: 'u1' } as never,
+        { id: 'u1', organizationId: 'org-1' },
+      );
+
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
+    it('tells nobody about work nobody has', async () => {
+      const { service, repositories, notifications } = createService();
+      repositories.tasks.findOne.mockResolvedValue(undefined);
+      repositories.tasks.create.mockImplementation((value: any) => ({ id: 'task-1', ...value }));
+      repositories.tasks.save.mockImplementation(async (value: any) => value);
+
+      await service.createTask({ title: 'Unassigned work' } as never, { id: 'u1', organizationId: 'org-1' });
+
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
+    it('says nothing again when the task already existed', async () => {
+      // The scheduler re-raises the same due audit every morning until it is
+      // done; the dedupe returns the open task, and telling has to stop there.
+      const { service, repositories, notifications } = createService();
+      repositories.tasks.findOne.mockResolvedValue({ id: 'task-1', title: 'Already raised' });
+
+      await service.createTask(
+        { title: 'Already raised', assigneeId: 'u2', sourceType: 'audit_run', sourceId: 'zone-1' } as never,
+        { organizationId: 'org-1' },
+      );
+
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
+    it('still raises the work when telling somebody fails', async () => {
+      // The task is the work. It must survive the telling failing.
+      const { service, repositories, notifications } = createService();
+      repositories.tasks.findOne.mockResolvedValue(undefined);
+      repositories.tasks.create.mockImplementation((value: any) => ({ id: 'task-1', ...value }));
+      repositories.tasks.save.mockImplementation(async (value: any) => value);
+      notifications.notify.mockRejectedValueOnce(new Error('inbox on fire'));
+
+      const task = await service.createTask(
+        { title: 'Tier 1 5S audit due: A01', assigneeId: 'u2' } as never,
+        { id: 'scheduler', organizationId: 'org-1' },
+      );
+
+      expect(task).toMatchObject({ id: 'task-1' });
+    });
   });
 
   describe('the monthly report', () => {

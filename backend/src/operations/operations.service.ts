@@ -15,6 +15,7 @@ import { DailyGoal } from './entities/daily-goal.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { projectProgressPercent, summarisePeople } from './monthly-people';
+import { NotificationsService } from './notifications.service';
 
 type CurrentUser = {
   id?: string;
@@ -40,6 +41,7 @@ export class OperationsService {
     @InjectRepository(ExpenseItem) private expenses: Repository<ExpenseItem>,
     @InjectRepository(DailyGoal) private dailyGoals: Repository<DailyGoal>,
     @InjectRepository(FiveSLayout) private fiveSLayouts: Repository<FiveSLayout>,
+    private readonly notifications: NotificationsService,
   ) {}
 
   findProjects(user: CurrentUser) {
@@ -97,7 +99,11 @@ export class OperationsService {
     });
 
     try {
-      return await this.tasks.save(task);
+      const saved = await this.tasks.save(task);
+
+      await this.tellTheAssignee(saved, user);
+
+      return saved;
     } catch (error) {
       // The lookup above is a read before a write, so two callers can both
       // pass it — two scheduler replicas at six, or a double-clicked button.
@@ -112,6 +118,36 @@ export class OperationsService {
       }
 
       throw error;
+    }
+  }
+
+  /**
+   * Tells whoever the work was given to that it exists.
+   *
+   * Only for a task that was just created: the dedupe above returns the
+   * existing one without coming here, so an audit the scheduler re-raises
+   * every morning until it is done reaches its owner once rather than daily.
+   *
+   * Nobody is told about work they gave themselves — saying "you have a new
+   * task" to the person who has just typed it is how an inbox becomes
+   * something people stop reading. And a failure to deliver is swallowed on
+   * purpose: the task is the work, and it must survive the telling failing.
+   */
+  private async tellTheAssignee(task: WorkTask, user: CurrentUser) {
+    if (!task.assigneeId || task.assigneeId === user?.id) return;
+
+    try {
+      await this.notifications.notify({
+        userId: task.assigneeId,
+        organizationId: task.organizationId,
+        title: task.title,
+        body: task.dueDate ? `Due ${task.dueDate}` : '',
+        link: '/tasks',
+        sourceType: 'work_task',
+        sourceId: task.id,
+      });
+    } catch {
+      // Deliberately silent: see above.
     }
   }
 

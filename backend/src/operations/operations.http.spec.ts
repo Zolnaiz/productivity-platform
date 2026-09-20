@@ -16,6 +16,7 @@ import { AuditTemplate } from './entities/audit-template.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
+import { Notification } from './entities/notification.entity';
 import { Project } from './entities/project.entity';
 import { WorkTask } from './entities/task.entity';
 import { TimeEntry } from './entities/time-entry.entity';
@@ -23,6 +24,8 @@ import { WorkLog } from './entities/work-log.entity';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
 import { OperationsController } from './operations.controller';
 import { OperationsService } from './operations.service';
+import { NotificationsController } from './notifications.controller';
+import { NotificationsService } from './notifications.service';
 
 /**
  * What the operations API lets each role do, over HTTP.
@@ -54,6 +57,7 @@ const entities = [
   DailyGoal,
   FiveSLayout,
   Attachment,
+  Notification,
 ];
 
 const repositoryMock = () => ({
@@ -64,6 +68,9 @@ const repositoryMock = () => ({
   softRemove: jest.fn(async (value) => value),
   softDelete: jest.fn(async () => ({ affected: 1 })),
   count: jest.fn(async () => 0),
+  // Marking a notification read is an update scoped by recipient, so the
+  // mock has to answer one.
+  update: jest.fn(async () => ({ affected: 1 })),
   createQueryBuilder: jest.fn(),
 });
 
@@ -82,9 +89,12 @@ describe('operations API over HTTP', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      controllers: [OperationsController],
+      controllers: [OperationsController, NotificationsController],
       providers: [
         OperationsService,
+        // Telling somebody is part of raising work now, so the service cannot
+        // be built without it.
+        NotificationsService,
         OperationsAuthGuard,
         PermissionsGuard,
         MetricsService,
@@ -140,6 +150,37 @@ describe('operations API over HTTP', () => {
         .delete('/api/projects/p1')
         .set('Authorization', as(role))
         .expect(status);
+    });
+  });
+
+  describe('somebody’s own inbox', () => {
+    it('is readable by every role that can sign in, including a viewer', async () => {
+      // A viewer is told when an audit they have to walk is due; an inbox
+      // nobody can read is a notification nobody receives.
+      await request(app.getHttpServer())
+        .get('/api/notifications')
+        .set('Authorization', as(UserRole.VIEWER))
+        .expect(200);
+    });
+
+    it('is refused without a token, like everything else', async () => {
+      await request(app.getHttpServer()).get('/api/notifications').expect(401);
+    });
+
+    it('can be marked read by the person reading it', async () => {
+      await request(app.getHttpServer())
+        .patch('/api/notifications/n1/read')
+        .set('Authorization', as(UserRole.VIEWER))
+        .expect(200);
+    });
+
+    it('takes no user id, so one inbox cannot be addressed as another', async () => {
+      // The routes are scoped to the caller by construction rather than by a
+      // check somebody has to remember to write.
+      await request(app.getHttpServer())
+        .get('/api/notifications/u2')
+        .set('Authorization', as(UserRole.ADMIN))
+        .expect(404);
     });
   });
 

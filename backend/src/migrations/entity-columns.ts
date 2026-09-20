@@ -41,6 +41,7 @@ export const liveTables = [
   'users',
   'organizations',
   'audit_log_entries',
+  'notifications',
 ];
 
 /** Created by `BaseEntity`, so they come with the table rather than separately. */

@@ -21,6 +21,9 @@ import { OperationsController } from './operations.controller';
 import { OperationsService } from './operations.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
 import { PermissionsGuard } from '../shared/guards/permissions.guard';
+import { Notification } from './entities/notification.entity';
+import { NotificationsController } from './notifications.controller';
+import { NotificationsService } from './notifications.service';
 
 const entities = [
   Project,
@@ -35,6 +38,7 @@ const entities = [
   DailyGoal,
   FiveSLayout,
   Attachment,
+  Notification,
 ];
 
 const repositoryMock = () => ({ find: jest.fn(), findOne: jest.fn(), create: jest.fn(), save: jest.fn() });
@@ -50,11 +54,12 @@ const repositoryMock = () => ({ find: jest.fn(), findOne: jest.fn(), create: jes
 describe('OperationsModule wiring', () => {
   const build = () =>
     Test.createTestingModule({
-      controllers: [OperationsController, AttachmentsController],
+      controllers: [OperationsController, AttachmentsController, NotificationsController],
       providers: [
         OperationsService,
         AttachmentsService,
         AuditSchedulerService,
+        NotificationsService,
         // The controllers are guarded, so the guard and its JwtService are
         // part of the graph the application actually builds.
         OperationsAuthGuard,

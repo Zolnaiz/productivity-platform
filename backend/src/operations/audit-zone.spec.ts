@@ -25,6 +25,8 @@ const createService = () => {
     fiveSLayouts: createRepository(),
   };
 
+  const notifications = { notify: jest.fn(async () => null) };
+
   const service = new OperationsService(
     configService as any,
     repositories.projects as any,
@@ -38,9 +40,12 @@ const createService = () => {
     repositories.expenses as any,
     repositories.dailyGoals as any,
     repositories.fiveSLayouts as any,
+    // Raising work now tells whoever it was given to; the spy is what lets a
+    // test say who was told.
+    notifications as any,
   );
 
-  return { service, repositories };
+  return { service, repositories, notifications };
 };
 
 const user = { id: 'user-1', organizationId: 'org-1' };
