@@ -234,6 +234,12 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
   needs is now produced as a key and its numbers rather than as a finished
   English sentence; the English wording is kept for exports, because a CSV goes
   to somebody who may not share the reader's language.
+- Work raised for somebody is delivered to them. A notification is addressed to
+  one person, carries the task's own words, links to where the work is, and is
+  read once — the scheduler re-raises the same due audit every morning until it
+  is done, and that reaches its owner once rather than daily. The navigation
+  carries the unread count, because a notification that has to be gone looking
+  for is the list it replaced.
 - The plan is drawn as walls, not rectangles. Walls meet at shared corners, snap to the nearest 45 degrees unless Alt is held, and show their length in metres while being drawn. A room is whatever the walls close in — found from the wall graph on every change rather than stored, so a room and its walls cannot part company — and its area is a consequence of the drawing rather than a number somebody typed.
 - Several areas can be worked on at once: shift-click or drag a rubber band to select, move or delete them together, and line them up or space them evenly. The group is clamped as one shape, so hitting an edge does not squash the arrangement.
 - The floor plan zooms and pans: wheel or trackpad pinch to zoom at the pointer, space or middle-drag to pan, a zoom readout with fit and zoom-to-area. Every drag measures the pointer through the current view, so editing works the same at any zoom.
@@ -270,7 +276,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 476 passing
-- Frontend tests: 674 passing
+- Frontend tests: 682 passing
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

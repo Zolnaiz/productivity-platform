@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
+import { notificationService } from "../../services/notification.service";
 
 interface MenuItem {
   icon: React.ReactNode;
@@ -205,6 +206,28 @@ const groups: MenuItem["group"][] = [
 
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = React.useState(false);
+  /**
+   * How many things somebody has been told and not read.
+   *
+   * On the navigation rather than only on the page, because a notification
+   * that has to be gone looking for is not a notification — it is the list it
+   * replaced. Failing to load it shows nothing rather than a zero: a count
+   * that is wrong is worse than a count that is absent.
+   */
+  const [unread, setUnread] = React.useState(0);
+
+  React.useEffect(() => {
+    let active = true;
+
+    notificationService
+      .unreadCount()
+      .then((result) => active && setUnread(result.unread))
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, []);
   const { t } = useTranslation();
   const { user } = useAuth();
   const userRoles = user?.roles || [];
@@ -269,6 +292,14 @@ const Sidebar: React.FC = () => {
                         <span className="flex-shrink-0">{item.icon}</span>
                         {!collapsed && (
                           <span className="flex-1">{t(item.labelKey)}</span>
+                        )}
+                        {item.path === "/notifications" && unread > 0 && (
+                          <span
+                            className="ml-auto rounded-full bg-blue-500 px-2 py-0.5 text-xs font-semibold text-white"
+                            aria-label={t("nav.unread", { count: unread })}
+                          >
+                            {unread}
+                          </span>
                         )}
                       </NavLink>
                     </li>

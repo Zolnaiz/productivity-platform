@@ -7,6 +7,7 @@
  */
 const en = {
   nav: {
+    unread: '{{count}} unread',
     group: {
       work: 'Work',
       quality: 'Quality',
@@ -824,6 +825,15 @@ const en = {
       'This implementation card and everything typed into it will be removed. This cannot be undone.',
   },
   notifications: {
+    inbox: 'Sent to you',
+    inboxSubtitle: 'Work raised for you, by the schedule or by a colleague.',
+    inboxEmpty: 'Nothing has been sent to you.',
+    markRead: 'Mark read',
+    markAllRead: 'Mark {{count}} read',
+    open: 'Open',
+    kind: {
+      task_assigned: 'A task was assigned to you',
+    },
     title: 'Notifications',
     subtitle: 'Open work items, approvals and quality actions that need attention.',
     totalActions: 'Total actions',

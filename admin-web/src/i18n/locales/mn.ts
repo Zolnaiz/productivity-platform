@@ -7,6 +7,7 @@ import type { Translations } from './en';
  */
 const mn: Translations<typeof en> = {
   nav: {
+    unread: 'уншаагүй {{count}}',
     group: {
       work: 'Ажил',
       quality: 'Чанар',
@@ -821,6 +822,15 @@ const mn: Translations<typeof en> = {
       'Энэ хэрэгжүүлэлтийн карт, дотор нь бичсэн бүх зүйл устана. Үүнийг буцаах боломжгүй.',
   },
   notifications: {
+    inbox: 'Танд ирсэн',
+    inboxSubtitle: 'Хуваарийн дагуу эсвэл хамт олноос танд оногдсон ажил.',
+    inboxEmpty: 'Танд ирсэн зүйл алга.',
+    markRead: 'Уншсан гэж тэмдэглэх',
+    markAllRead: '{{count}}-г уншсан гэж тэмдэглэх',
+    open: 'Нээх',
+    kind: {
+      task_assigned: 'Танд ажил оноогдлоо',
+    },
     title: 'Мэдэгдэл',
     subtitle: 'Анхаарал шаардсан ажил, батлалт, чанарын арга хэмжээ.',
     totalActions: 'Нийт ажил',

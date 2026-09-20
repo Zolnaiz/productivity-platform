@@ -61,6 +61,13 @@ could be built honestly.
 
 ### 4. Language and content
 
+- **Task titles are built on the server, in English.** The scheduler writes
+  "Tier 1 5S audit due: A03 - Storage" and that is what the task, the register
+  and now the notification all say, whatever language the reader is in. It is
+  the same fault the 5S page had — a sentence assembled where it cannot be
+  translated — and the same fix: a key and its parts, worded where somebody is
+  reading.
+
 - **Finish the translation.** The 5S page speaks both languages now; the
   monthly report has about nineteen English strings left, and the profile,
   projects and organizations pages a handful each.
