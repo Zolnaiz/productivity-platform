@@ -19,6 +19,17 @@ vi.mock('../services/fiveSLayout.service', () => ({
   },
 }));
 
+/*
+  The photograph slot talks to the attachment API on its own. The page's job is
+  to offer it against the run that was just recorded, and nothing else, so the
+  component itself is stood in for here and tested where it lives.
+*/
+vi.mock('../components/common/PhotoEvidence', () => ({
+  default: ({ ownerType, ownerId }: { ownerType: string; ownerId: string }) => (
+    <div data-testid="photo-evidence">{`${ownerType}:${ownerId}`}</div>
+  ),
+}));
+
 vi.mock('../services/operations.service', () => ({
   operationsService: {
     getAuditTemplates: serviceMocks.getAuditTemplates,
@@ -84,7 +95,7 @@ const renderZone = (planId = 'l1', zoneId = 'z1') =>
 describe('the page a zone label opens', () => {
   beforeEach(() => {
     signedIn.role = 'admin';
-    signedIn.permissions = ['redtags:create', 'zones:clean', 'audits:create'];
+    signedIn.permissions = ['redtags:create', 'zones:clean', 'audits:create', 'attachments:create'];
     serviceMocks.getAuditTemplates.mockReset();
     serviceMocks.getAuditTemplates.mockResolvedValue([
       {
@@ -247,6 +258,38 @@ describe('the page a zone label opens', () => {
     // The page then reads back what was stored, so it agrees with the floor
     // plan the server has just repainted.
     expect(await screen.findByText(/2026-09-22 · 100%/)).toBeTruthy();
+  });
+
+  it('asks for a photograph once there is a check to hang it on', async () => {
+    // A score is an opinion until there is a picture beside it, and the phone
+    // is the one device in the building that always has a camera. Not before:
+    // a photograph needs something to belong to.
+    renderZone();
+    await screen.findByText('A03 · Storage');
+
+    expect(screen.queryByTestId('photo-evidence')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Walk the checklist' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Yes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Record the check' }));
+
+    expect(await screen.findByTestId('photo-evidence')).toHaveProperty(
+      'textContent',
+      'audit_run:run-1',
+    );
+  });
+
+  it('does not offer a photograph to somebody who may not upload one', async () => {
+    signedIn.permissions = ['audits:create'];
+
+    renderZone();
+    await screen.findByText('A03 · Storage');
+    fireEvent.click(screen.getByRole('button', { name: 'Walk the checklist' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Yes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Record the check' }));
+
+    await screen.findByText(/This area now stands at/);
+    expect(screen.queryByTestId('photo-evidence')).toBeNull();
   });
 
   it('records the walk as the layer the person actually is', async () => {

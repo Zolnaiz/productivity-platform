@@ -59,9 +59,11 @@ could be built honestly.
   same walk leads to the same work whether it was recorded on a phone in the
   area or typed up afterwards at a desk — and an operator, who cannot create
   tasks at all, still causes one.
-- **What the phone still cannot do.** Photographs from the walk: a red tag
-  carries a before/after pair, an audit answer carries nothing, and a phone is
-  the one device that always has a camera.
+  A walk can also carry a photograph, taken on the phone that is already in
+  the area, and it is shown again in the zone's history where a manager reads
+  the scores — a picture with nowhere to be looked at is a picture not worth
+  taking. What a walk still cannot carry is a photograph per answer: the
+  attachment belongs to the run, so one picture stands for the whole check.
 - **Routes measured in metres.** The plan knows its scale and its rooms, so a
   spaghetti diagram is now arithmetic rather than a drawing exercise.
 - **Floor plan versions.** An audit from March should still make sense against

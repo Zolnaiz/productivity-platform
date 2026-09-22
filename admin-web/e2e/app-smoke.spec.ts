@@ -194,4 +194,18 @@ test('a checklist can be walked from the label, and a failing area raises work',
     return tasks.filter((task: { sourceType?: string }) => task.sourceType === 'audit_run').length;
   });
   expect(followUps).toBeGreaterThan(0);
+
+  // And the photograph, which is what turns the score from an opinion into
+  // something a manager can look at. The slot appears only once the check
+  // exists for it to belong to.
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: 'aisle.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    ),
+  });
+
+  await expect(page.getByText('aisle.png')).toBeVisible();
 });

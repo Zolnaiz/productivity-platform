@@ -448,6 +448,7 @@ const en = {
     disposeItem: 'Dispose of it',
   },
   zoneHistory: {
+    evidence: 'Photographs from the last check',
     title: 'Audit history',
     latest: 'Latest',
     baseline: 'Baseline',
@@ -548,6 +549,7 @@ const en = {
     emptyDescription: 'Tasks and audits with dates will appear here as a timeline.',
   },
   zone: {
+    auditPhotoPrompt: 'Add a photograph of what you saw.',
     startAudit: 'Walk the checklist',
     auditLoading: 'Loading the checklist...',
     auditNoTemplate: 'No 5S checklist has been set up yet.',

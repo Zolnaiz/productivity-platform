@@ -445,6 +445,7 @@ const mn: Translations<typeof en> = {
     disposeItem: 'Устгах',
   },
   zoneHistory: {
+    evidence: 'Сүүлийн шалгалтын зураг',
     title: 'Аудитын түүх',
     latest: 'Сүүлийн',
     baseline: 'Суурь',
@@ -545,6 +546,7 @@ const mn: Translations<typeof en> = {
     emptyDescription: 'Огноотой ажил, аудит энд цагийн хэлхээ болж харагдана.',
   },
   zone: {
+    auditPhotoPrompt: 'Харсан зүйлээ зургаар нэмнэ үү.',
     startAudit: 'Хяналтын хуудсаар шалгах',
     auditLoading: 'Хяналтын хуудсыг ачаалж байна...',
     auditNoTemplate: '5S хяналтын хуудас хараахан үүсгээгүй байна.',

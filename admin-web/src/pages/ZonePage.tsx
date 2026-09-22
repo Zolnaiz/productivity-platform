@@ -7,6 +7,7 @@ import { FiveSLayoutPlan, FiveSZone } from '../types/fiveS.types';
 import { getAuditDueDate, isAuditDue } from '../components/fives/auditSchedule';
 import { getRedTagCount, isOpenRedTag, stageKeys } from '../components/fives/floorPlanRules';
 import ZoneAuditWalk from '../components/fives/ZoneAuditWalk';
+import PhotoEvidence from '../components/common/PhotoEvidence';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
@@ -58,6 +59,15 @@ const ZonePage: React.FC = () => {
   /** Walking the checklist here, rather than writing it up at a desk after. */
   const [auditing, setAuditing] = useState(false);
   const [auditMessage, setAuditMessage] = useState('');
+  /**
+   * The walk just recorded, so a photograph can be hung on it.
+   *
+   * A score is an opinion until there is a picture beside it, and the phone is
+   * the one device in the building that always has a camera. It appears only
+   * after the check is recorded, because a photograph needs something to
+   * belong to — and the person is still standing in the area.
+   */
+  const [recordedRunId, setRecordedRunId] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -153,7 +163,7 @@ const ZonePage: React.FC = () => {
    * what it wrote onto the zone — so this page and the floor plan agree
    * without either of them recomputing anything.
    */
-  const auditRecorded = (run: { score: number; createdAt?: string }) => {
+  const auditRecorded = (run: { id: string; score: number; createdAt?: string }) => {
     if (!plan || !zone) return;
 
     const lastAuditAt = (run.createdAt || new Date().toISOString()).slice(0, 10);
@@ -168,6 +178,7 @@ const ZonePage: React.FC = () => {
     });
     setAuditing(false);
     setAuditMessage(t('zone.auditRecorded', { score: Number(run.score) || 0 }));
+    setRecordedRunId(run.id);
   };
 
   if (loading) {
@@ -375,6 +386,7 @@ const ZonePage: React.FC = () => {
             className="mt-2 w-full rounded-lg border border-blue-300 py-3 text-sm font-medium text-blue-700 dark:border-blue-800 dark:text-blue-300"
             onClick={() => {
               setAuditMessage('');
+              setRecordedRunId('');
               setAuditing(true);
             }}
           >
@@ -382,6 +394,18 @@ const ZonePage: React.FC = () => {
           </button>
         )}
         {auditMessage && <p className="mt-2 text-sm text-green-700 dark:text-green-400">{auditMessage}</p>}
+
+        {recordedRunId && hasPermission('attachments:create') && (
+          <div className="mt-3">
+            <p className="mb-2 text-sm text-gray-600 dark:text-gray-300">{t('zone.auditPhotoPrompt')}</p>
+            <PhotoEvidence
+              ownerType="audit_run"
+              ownerId={recordedRunId}
+              kinds={['evidence']}
+              label={t('zone.auditPhotoPrompt')}
+            />
+          </div>
+        )}
 
         {auditing && plan && (
           <ZoneAuditWalk

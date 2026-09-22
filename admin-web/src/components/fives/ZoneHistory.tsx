@@ -5,6 +5,7 @@ import { apiErrorMessage } from '../../i18n/apiError';
 import { operationsService } from '../../services/operations.service';
 import { AuditRun } from '../../types/operations.types';
 import { FiveSZone } from '../../types/fiveS.types';
+import PhotoEvidence from '../common/PhotoEvidence';
 
 interface ZoneHistoryProps {
   zone: FiveSZone;
@@ -141,6 +142,25 @@ const ZoneHistory: React.FC<ZoneHistoryProps> = ({ zone }) => {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/*
+        What the last check actually saw. A photograph taken on a phone in the
+        area had nowhere to be looked at, which makes taking it pointless — and
+        a score without a picture beside it stays an opinion.
+      */}
+      {!error && !loading && runs.length > 0 && (
+        <div>
+          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            {t('zoneHistory.evidence')}
+          </div>
+          <PhotoEvidence
+            ownerType="audit_run"
+            ownerId={runs[0].id}
+            kinds={['evidence']}
+            label={t('zoneHistory.evidence')}
+          />
         </div>
       )}
     </div>
