@@ -433,6 +433,10 @@ const writeDemoPlan = (plan: Record<string, any>) => {
 };
 
 /** Mirrors `OperationsService.applyAuditScoreToZone`. */
+/** The same marks the server keeps; see `operations.service.ts` there. */
+const DEMO_PASSING_SCORE = 85;
+const DEMO_URGENT_SCORE = 70;
+
 const applyDemoAuditScoreToZone = (run: Partial<AuditRun> | undefined) => {
   if (!run?.zoneId || run.status === 'draft') return;
 
@@ -465,6 +469,50 @@ const applyDemoAuditScoreToZone = (run: Partial<AuditRun> | undefined) => {
   });
 
   if (matched) writeDemoPlan(plan);
+};
+
+/**
+ * Mirrors `OperationsService.correctiveWorkFor`.
+ *
+ * The demo workspace has no server, so the half of the 5S loop that lives on
+ * the server has to live here too — otherwise the one place a new customer
+ * looks first is the one place a failing audit leads to nothing.
+ */
+const raiseDemoFollowUp = (run: Partial<AuditRun> | undefined) => {
+  const score = Number(run?.score) || 0;
+
+  if (!run?.id || run.status === 'draft' || score >= DEMO_PASSING_SCORE) {
+    return null;
+  }
+
+  // One task per finding, the same rule the server's dedupe enforces.
+  const existing = readDemo<WorkTask>('tasks').find(
+    (task) => task.sourceType === 'audit_run' && task.sourceId === run.id && task.status !== 'done',
+  );
+
+  if (existing) {
+    return existing;
+  }
+
+  const zone = (readDemoPlan()?.zones ?? []).find(
+    (item: Record<string, any>) => item.id === run.zoneId,
+  );
+  const place = zone
+    ? [zone.code, zone.name].filter(Boolean).join(' - ')
+    : run.location || 'the audited area';
+
+  return createDemo<WorkTask>('tasks', {
+    title: `5S follow-up: ${place}`,
+    description: `The audit scored ${score}%. The standard for this area is ${DEMO_PASSING_SCORE}%.`,
+    assigneeId: zone?.ownerId,
+    sourceType: 'audit_run',
+    sourceId: run.id,
+    status: 'todo',
+    priority: score < DEMO_URGENT_SCORE ? 'high' : 'medium',
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    estimatedHours: 2,
+    actualHours: 0,
+  } as Partial<WorkTask>);
 };
 
 /** Mirrors `OperationsService.closeFindingForCompletedTask`. */
@@ -699,8 +747,24 @@ export const operationsService = {
 
     const run = createDemo<AuditRun>('auditRuns', data);
     applyDemoAuditScoreToZone(run);
+    raiseDemoFollowUp(run);
 
     return Promise.resolve(run);
+  },
+  /**
+   * Chases a failing run that raised no work, or raised it long ago.
+   *
+   * The wording of the task is the server's, not this screen's, so work raised
+   * by hand and work raised by recording a run read the same in the list.
+   */
+  raiseAuditFollowUp: (runId: string) => {
+    if (!isDemoMode()) {
+      return post<WorkTask | null>(`/audit-runs/${runId}/follow-up`, {});
+    }
+
+    return Promise.resolve(
+      raiseDemoFollowUp(readDemo<AuditRun>('auditRuns').find((run) => run.id === runId)),
+    );
   },
   getCalendarEvents: async () => {
     const [projects, tasks, auditRuns] = await Promise.all([

@@ -9,16 +9,17 @@ import { operationsService } from '../services/operations.service';
 import { AuditRun, AuditTemplate } from '../types/operations.types';
 import { AuditTier, FiveSZone } from '../types/fiveS.types';
 import { readAuditTiers } from '../components/fives/tierRules';
-
-type Answers = Record<string, string>;
+import { AuditAnswers, answersForRun, scoreAnswers } from '../components/fives/auditAnswers';
 
 /**
- * A run below this score raises corrective work. 85 is the common 5S pass mark;
- * below 70 the area needs attention this week rather than next.
+ * The mark an area has to reach. 85 is the common 5S pass mark.
+ *
+ * Only the wording on this screen depends on it now: what a failing score
+ * actually causes — the corrective task, its urgency and its due date — is
+ * decided in `backend/src/operations/operations.service.ts`, so every way of
+ * submitting a run produces the same work.
  */
 const PASSING_SCORE = 85;
-const URGENT_SCORE = 70;
-const CORRECTIVE_DUE_DAYS = 7;
 
 const AuditTemplatesPage: React.FC = () => {
   const { t } = useTranslation();
@@ -29,7 +30,7 @@ const AuditTemplatesPage: React.FC = () => {
   const [zones, setZones] = useState<FiveSZone[]>([]);
   const [tiers, setTiers] = useState<AuditTier[]>([]);
   const [tier, setTier] = useState('');
-  const [answers, setAnswers] = useState<Answers>({});
+  const [answers, setAnswers] = useState<AuditAnswers>({});
   const [actionMessage, setActionMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,49 +88,25 @@ const AuditTemplatesPage: React.FC = () => {
     [categoryFilter, industryFilter, templates],
   );
 
-  const score = useMemo(() => {
-    if (!selectedTemplate) return 0;
+  // The same arithmetic the phone uses, so a walk scores the same whether it
+  // was recorded at a desk or standing in the area.
+  const score = useMemo(() => scoreAnswers(selectedTemplate, answers), [answers, selectedTemplate]);
 
-    let earned = 0;
-    let possible = 0;
-
-    selectedTemplate.questions.forEach((question) => {
-      if (question.type === 'score') {
-        possible += question.maxScore || 5;
-        earned += Number(answers[question.id] || 0);
-      }
-
-      if (question.type === 'yes_no') {
-        possible += 1;
-        earned += answers[question.id] === 'yes' ? 1 : 0;
-      }
-    });
-
-    return possible ? Math.round((earned / possible) * 100) : 0;
-  }, [answers, selectedTemplate]);
-
-  const createCorrectiveTask = async (run: AuditRun, templateTitle: string, place: string) => {
-    const dueDate = new Date(Date.now() + CORRECTIVE_DUE_DAYS * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10);
-
-    await operationsService.createTask({
-      title: t('auditTemplates.correctiveTitle', { template: templateTitle, place }),
-      description: t('auditTemplates.correctiveDescription', { score: run.score }),
-      // Linking the task to its run keeps the finding reachable from the work,
-      // and stops a second press of the button raising a duplicate.
-      sourceType: 'audit_run',
-      sourceId: run.id,
-      status: 'todo',
-      priority: run.score < URGENT_SCORE ? 'high' : 'medium',
-      dueDate,
-      estimatedHours: 2,
-      actualHours: 0,
-    });
-
-    setActionMessage(t('auditTemplates.correctiveCreated', { place }));
+  /**
+   * Chases a run whose area has not improved.
+   *
+   * Recording a run already raises its own follow-up, so this is for the runs
+   * that predate that and for an area that keeps failing. The server writes
+   * the task, which is why nothing about its wording is decided here.
+   */
+  const raiseFollowUp = async (run: AuditRun) => {
+    await operationsService.raiseAuditFollowUp(run.id);
+    setActionMessage(
+      t('auditTemplates.correctiveCreated', {
+        place: run.location || t('auditTemplates.noZone'),
+      }),
+    );
   };
-
 
   const submitAudit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -148,15 +125,7 @@ const AuditTemplatesPage: React.FC = () => {
       location: zone ? `${zone.code} - ${zone.name}` : undefined,
       score,
       status: 'submitted',
-      answers: selectedTemplate.questions.map((question) => ({
-        questionId: question.id,
-        value:
-          question.type === 'score'
-            ? Number(answers[question.id] || 0)
-            : question.type === 'yes_no'
-              ? answers[question.id] === 'yes'
-              : answers[question.id] || '',
-      })),
+      answers: answersForRun(selectedTemplate, answers),
     };
 
     setRuns((current) => [auditRun, ...current]);
@@ -165,17 +134,22 @@ const AuditTemplatesPage: React.FC = () => {
 
     const place = auditRun.location || selectedTemplate.title;
 
-    // The server writes the score onto the zone, so the map updates even when
-    // the audit is submitted from the mobile app or a second browser.
+    /*
+      The server writes the score onto the zone and raises the corrective work
+      a failing score calls for. Both used to be done here, which meant they
+      happened only for an audit typed up at this desk: a check walked on a
+      phone repainted nothing and raised nothing, and the person walking it
+      usually cannot create tasks at all.
+    */
     await operationsService.createAuditRun(auditRun);
 
-    if (auditRun.score < PASSING_SCORE) {
-      await createCorrectiveTask(auditRun, selectedTemplate.title, place);
-    } else {
-      setActionMessage(
-        zone ? t('auditTemplates.zoneScoreUpdated', { place }) : t('auditTemplates.submitted'),
-      );
-    }
+    setActionMessage(
+      auditRun.score < PASSING_SCORE
+        ? t('auditTemplates.correctiveCreated', { place })
+        : zone
+          ? t('auditTemplates.zoneScoreUpdated', { place })
+          : t('auditTemplates.submitted'),
+    );
   };
 
   return (
@@ -412,13 +386,7 @@ const AuditTemplatesPage: React.FC = () => {
                         variant="outline"
                         size="sm"
                         type="button"
-                        onClick={() =>
-                          createCorrectiveTask(
-                            run,
-                            template?.title || t('auditTemplates.auditRuns'),
-                            run.location || t('auditTemplates.noZone'),
-                          )
-                        }
+                        onClick={() => void raiseFollowUp(run)}
                       >
                         {t('auditTemplates.createCorrectiveTask')}
                       </Button>

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { defaultAuditTiers, readAuditTiers, tierDueDate, tierStatuses } from './tierRules';
+import {
+  defaultAuditTiers,
+  readAuditTiers,
+  tierDueDate,
+  tierForRole,
+  tierStatuses,
+  tiersForRole,
+} from './tierRules';
 import { AuditTier, FiveSZone } from '../../types/fiveS.types';
 
 const zone = (tierAudits?: FiveSZone['tierAudits']): FiveSZone =>
@@ -94,5 +101,47 @@ describe('tierStatuses', () => {
 
     expect(statuses.map((status) => status.tier.tier)).toEqual([1, 2, 3]);
     expect(statuses.every((status) => status.due)).toBe(true);
+  });
+});
+
+describe('which layer a person walks', () => {
+  it('lets a role walk its own layer and the ones below it', () => {
+    // The layers nest the way the permissions do: a supervisor can record the
+    // operator's daily check, an operator cannot record the supervisor's.
+    expect(tiersForRole(defaultAuditTiers, 'user').map((layer) => layer.tier)).toEqual([1]);
+    expect(tiersForRole(defaultAuditTiers, 'manager').map((layer) => layer.tier)).toEqual([1, 2]);
+    expect(tiersForRole(defaultAuditTiers, 'organization_admin').map((layer) => layer.tier)).toEqual([
+      1, 2, 3,
+    ]);
+  });
+
+  it('leaves a layer that names no role open to anyone', () => {
+    // "Who is expected to do it" is optional, and naming nobody names nobody
+    // in particular. What may be recorded at all is the server's decision;
+    // this only says which layer the walk belongs to.
+    const layers = [{ tier: 1, name: 'Anyone', frequency: 'daily' }] as AuditTier[];
+
+    expect(tiersForRole(layers, 'viewer').map((layer) => layer.name)).toEqual(['Anyone']);
+  });
+
+  it('gives a role nobody recognises no layer it was not invited to', () => {
+    // Fails closed: an unknown role records nothing rather than everything.
+    expect(tiersForRole(defaultAuditTiers, 'caretaker')).toEqual([]);
+    expect(tierForRole(defaultAuditTiers, undefined)).toBeUndefined();
+  });
+
+  it('defaults to the most senior layer the person covers', () => {
+    // A supervisor holding a phone is doing the supervisor's check; recording
+    // it as the operator's would reset the wrong clock and leave their own
+    // layer still reading as overdue.
+    expect(tierForRole(defaultAuditTiers, 'manager')?.tier).toBe(2);
+    expect(tierForRole(defaultAuditTiers, 'user')?.tier).toBe(1);
+  });
+
+  it("reads the organization's own layers, not the defaults, when it has them", () => {
+    const layers = [{ tier: 1, name: 'Shift lead', role: 'manager', frequency: 'daily' }] as AuditTier[];
+
+    expect(tiersForRole(layers, 'user')).toEqual([]);
+    expect(tierForRole(layers, 'manager')?.name).toBe('Shift lead');
   });
 });

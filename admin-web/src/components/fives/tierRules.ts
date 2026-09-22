@@ -1,4 +1,5 @@
 import { AuditTier, FiveSZone } from '../../types/fiveS.types';
+import { memberRoles } from '../../types/people.types';
 import { addDaysToDate, auditFrequencyDays, formatLocalDate, getDaysUntilDate } from './auditSchedule';
 
 /**
@@ -64,3 +65,42 @@ export const tierStatuses = (
       neverChecked: !lastAuditAt,
     };
   });
+
+/**
+ * Whether somebody of this role may walk this layer.
+ *
+ * `memberRoles` is already ordered from most senior to least, so seniority is
+ * a position in that list rather than a second table to keep in step. A
+ * supervisor covers the operator layer as well as their own — the layers nest
+ * the same way the permissions do.
+ *
+ * A layer that names no role names nobody in particular, so it is open to
+ * anyone who may record an audit at all; the server decides that, and this is
+ * only about which layer a walk is recorded against.
+ */
+const covers = (role: string | undefined, layerRole: string | undefined) => {
+  if (!layerRole) return true;
+
+  const rank = memberRoles.indexOf(role as (typeof memberRoles)[number]);
+  const needed = memberRoles.indexOf(layerRole as (typeof memberRoles)[number]);
+
+  return rank >= 0 && needed >= 0 && rank <= needed;
+};
+
+/** The layers this role may record, closest to the work first. */
+export const tiersForRole = (tiers: AuditTier[] | undefined, role?: string): AuditTier[] =>
+  readAuditTiers(tiers).filter((tier) => covers(role, tier.role));
+
+/**
+ * The layer to record by default.
+ *
+ * The most senior layer the person covers: a supervisor holding a phone is
+ * doing the supervisor's check, and recording it as the operator's would reset
+ * the wrong clock and leave their own layer reading as overdue. They can still
+ * say otherwise — this is the default, not the rule.
+ */
+export const tierForRole = (tiers: AuditTier[] | undefined, role?: string): AuditTier | undefined => {
+  const covered = tiersForRole(tiers, role);
+
+  return covered[covered.length - 1];
+};

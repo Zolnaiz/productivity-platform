@@ -241,6 +241,20 @@ export class OperationsController {
     return this.operationsService.createAuditRun(body, req.user);
   }
 
+  /**
+   * Chasing a failing run that raised no work, or raised it long ago.
+   *
+   * Recording a run already raises its own follow-up, so this is for the runs
+   * that predate that and for an area that has not improved. `tasks:create`
+   * rather than `audits:create`: walking a checklist is open to the floor,
+   * deciding that somebody is given work is not.
+   */
+  @Post('audit-runs/:id/follow-up')
+  @RequirePermission('tasks:create')
+  raiseAuditFollowUp(@Param('id') id: string, @Request() req) {
+    return this.operationsService.raiseAuditFollowUp(id, req.user);
+  }
+
   @Get('assessment-templates')
   @RequirePermission('templates:read')
   findAssessmentTemplates(@Request() req) {

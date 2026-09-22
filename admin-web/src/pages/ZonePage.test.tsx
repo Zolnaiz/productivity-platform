@@ -7,6 +7,8 @@ const serviceMocks = vi.hoisted(() => ({
   getPlan: vi.fn(),
   addRedTag: vi.fn(),
   markCleaned: vi.fn(),
+  getAuditTemplates: vi.fn(),
+  createAuditRun: vi.fn(),
 }));
 
 vi.mock('../services/fiveSLayout.service', () => ({
@@ -15,6 +17,27 @@ vi.mock('../services/fiveSLayout.service', () => ({
     addRedTag: serviceMocks.addRedTag,
     markCleaned: serviceMocks.markCleaned,
   },
+}));
+
+vi.mock('../services/operations.service', () => ({
+  operationsService: {
+    getAuditTemplates: serviceMocks.getAuditTemplates,
+    createAuditRun: serviceMocks.createAuditRun,
+  },
+}));
+
+/*
+  Who is holding the phone. The page asks the server's own permission list
+  rather than guessing from a role name, so the test says what this person may
+  do in the same words the table uses.
+*/
+const signedIn = vi.hoisted(() => ({ role: 'admin', permissions: [] as string[] }));
+
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { roles: [signedIn.role] },
+    hasPermission: (permission: string) => signedIn.permissions.includes(permission),
+  }),
 }));
 
 const zone = (over: Record<string, unknown> = {}) => ({
@@ -60,6 +83,28 @@ const renderZone = (planId = 'l1', zoneId = 'z1') =>
 
 describe('the page a zone label opens', () => {
   beforeEach(() => {
+    signedIn.role = 'admin';
+    signedIn.permissions = ['redtags:create', 'zones:clean', 'audits:create'];
+    serviceMocks.getAuditTemplates.mockReset();
+    serviceMocks.getAuditTemplates.mockResolvedValue([
+      {
+        id: 't1',
+        title: 'Daily 5S walk',
+        category: '5s',
+        isActive: true,
+        questions: [{ id: 'q1', text: 'Is the aisle clear?', type: 'yes_no' }],
+      },
+    ]);
+    serviceMocks.createAuditRun.mockReset();
+    serviceMocks.createAuditRun.mockResolvedValue({
+      id: 'run-1',
+      templateId: 't1',
+      zoneId: 'z1',
+      score: 100,
+      status: 'submitted',
+      answers: [],
+      createdAt: '2026-09-22T09:00:00.000Z',
+    });
     serviceMocks.getPlan.mockReset();
     serviceMocks.addRedTag.mockReset();
     serviceMocks.markCleaned.mockReset();
@@ -152,17 +197,72 @@ describe('the page a zone label opens', () => {
     expect(await screen.findByText(/no longer on the plan/)).toBeTruthy();
   });
 
-  it('offers two things to do and no way to edit the plan', async () => {
+  it('offers the three things somebody standing here does, and no way to edit the plan', async () => {
     // Standing next to a running machine is not where a plan should be
-    // editable by accident — but noticing clutter and cleaning up are exactly
-    // what the person standing there is for.
+    // editable by accident — but noticing clutter, cleaning up and walking the
+    // daily check are exactly what the person standing there is for.
     renderZone();
     await screen.findByText('A03 · Storage');
 
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
-    expect(screen.getAllByRole('button')).toHaveLength(2);
+    expect(screen.getAllByRole('button')).toHaveLength(3);
     expect(screen.getByRole('button', { name: /Red-tag something here/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Cleaned today' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Walk the checklist' })).toBeTruthy();
+  });
+
+  it('offers a viewer nothing they would only be refused', async () => {
+    // A button that always fails is a worse answer than no button: the page
+    // reads the server's own permission list rather than guessing.
+    signedIn.role = 'viewer';
+    signedIn.permissions = [];
+
+    renderZone();
+    await screen.findByText('A03 · Storage');
+
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+  });
+
+  it('records a walk of the checklist against this zone', async () => {
+    renderZone();
+    await screen.findByText('A03 · Storage');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Walk the checklist' }));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Yes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Record the check' }));
+
+    await waitFor(() =>
+      expect(serviceMocks.createAuditRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateId: 't1',
+          zoneId: 'z1',
+          score: 100,
+          status: 'submitted',
+          answers: [{ questionId: 'q1', value: true }],
+        }),
+      ),
+    );
+
+    // The page then reads back what was stored, so it agrees with the floor
+    // plan the server has just repainted.
+    expect(await screen.findByText(/2026-09-22 · 100%/)).toBeTruthy();
+  });
+
+  it('records the walk as the layer the person actually is', async () => {
+    // An administrator walking the floor is doing the manager's check;
+    // recording it as the operator's would reset the wrong clock.
+    renderZone();
+    await screen.findByText('A03 · Storage');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Walk the checklist' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Record the check' }));
+
+    await waitFor(() =>
+      expect(serviceMocks.createAuditRun).toHaveBeenCalledWith(
+        expect.objectContaining({ tier: 3, location: 'A03 - Storage' }),
+      ),
+    );
   });
 
   it('records that the area was cleaned, and shows the date that was stored', async () => {

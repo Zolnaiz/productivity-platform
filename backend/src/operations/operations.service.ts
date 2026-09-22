@@ -22,6 +22,20 @@ type CurrentUser = {
   organizationId?: string;
 };
 
+/**
+ * The mark a 5S area has to reach, and the one below which it needs attention
+ * this week rather than next.
+ *
+ * These lived in the browser, where only one of the three ways of submitting a
+ * run could see them: an audit walked on a phone raised no follow-up work at
+ * all, and the person walking it usually cannot create tasks in the first
+ * place. Deciding here means the same score produces the same work whoever
+ * recorded it and from wherever.
+ */
+const PASSING_SCORE = 85;
+const URGENT_SCORE = 70;
+const CORRECTIVE_DUE_DAYS = 7;
+
 /** Postgres unique-violation. Other drivers surface it differently. */
 const isUniqueViolation = (error: unknown) =>
   typeof error === 'object' && error !== null && (error as { code?: string }).code === '23505';
@@ -592,8 +606,89 @@ export class OperationsService {
 
     const saved = await this.auditRuns.save(run);
     await this.applyAuditScoreToZone(saved, user);
+    await this.raiseCorrectiveWork(saved, user);
 
     return saved;
+  }
+
+  /**
+   * Raises the work a failing audit calls for.
+   *
+   * A score is a measurement, and a measurement nobody acts on is a number.
+   * The browser used to do this, which meant it happened only when an audit
+   * was typed up at a desk by somebody senior enough to create tasks — the
+   * daily checks that actually find things raised nothing.
+   *
+   * It goes through `createTask`, so the work is deduped by its source and the
+   * person it lands on is told. The audit is the record and must survive the
+   * follow-up failing, so a failure here is logged rather than thrown: losing
+   * the run because a task could not be raised would lose the measurement too.
+   */
+  private async raiseCorrectiveWork(run: AuditRun, user: CurrentUser) {
+    try {
+      await this.correctiveWorkFor(run, user);
+    } catch {
+      // Deliberately swallowed: see above.
+    }
+  }
+
+  /**
+   * Raises the follow-up for a run that has already been recorded.
+   *
+   * The same work the run itself raises, for the case where it did not: a run
+   * recorded before this was the server's job, or an area that has not
+   * improved since its first task was closed. It is the same code, so the task
+   * reads the same either way — a second wording for the same finding is how
+   * two lists of work stop matching.
+   */
+  async raiseAuditFollowUp(id: string, user: CurrentUser) {
+    const run = await this.findOneScoped(this.auditRuns, id, user, 'Audit run');
+
+    return this.correctiveWorkFor(run, user);
+  }
+
+  private async correctiveWorkFor(run: AuditRun, user: CurrentUser) {
+    const score = Number(run.score) || 0;
+
+    if (run.status === 'draft' || score >= PASSING_SCORE) {
+      return null;
+    }
+
+    const layout = run.zoneId
+      ? await this.layoutHolding(user, (candidate) =>
+          (candidate.zones ?? []).some((zone) => zone.id === run.zoneId),
+        )
+      : null;
+    const zone = (layout?.zones ?? []).find((item) => item.id === run.zoneId);
+    const place = zone
+      ? [zone.code, zone.name].filter(Boolean).join(' - ')
+      : run.location || 'the audited area';
+
+    const dueDate = new Date(Date.now() + CORRECTIVE_DUE_DAYS * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+
+    return this.createTask(
+      {
+        title: `5S follow-up: ${place}`,
+        description: [
+          `The audit on ${(run.createdAt ?? new Date()).toISOString().slice(0, 10)} scored ${score}%.`,
+          `The standard for this area is ${PASSING_SCORE}%.`,
+          'Bring the area back to its standard; the next audit verifies it.',
+        ].join('\n'),
+        // The area's owner, because a 5S finding belongs to whoever owns the
+        // area rather than to whoever happened to walk past it.
+        assigneeId: zone?.ownerId,
+        sourceType: TaskSource.AUDIT_RUN,
+        sourceId: run.id,
+        status: TaskStatus.TODO,
+        priority: score < URGENT_SCORE ? 'high' : 'medium',
+        dueDate,
+        estimatedHours: 2,
+        actualHours: 0,
+      } as Partial<WorkTask>,
+      user,
+    );
   }
 
   /**

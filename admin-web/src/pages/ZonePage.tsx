@@ -6,6 +6,8 @@ import { fiveSLayoutService } from '../services/fiveSLayout.service';
 import { FiveSLayoutPlan, FiveSZone } from '../types/fiveS.types';
 import { getAuditDueDate, isAuditDue } from '../components/fives/auditSchedule';
 import { getRedTagCount, isOpenRedTag, stageKeys } from '../components/fives/floorPlanRules';
+import ZoneAuditWalk from '../components/fives/ZoneAuditWalk';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * One area, for somebody standing in front of its label.
@@ -22,6 +24,13 @@ import { getRedTagCount, isOpenRedTag, stageKeys } from '../components/fives/flo
  */
 const ZonePage: React.FC = () => {
   const { t } = useTranslation();
+  /*
+    What this person may do, from the server's own table rather than from a
+    guess about their role. A viewer sees the same page and is offered nothing
+    they would only be refused — a button that always fails is a worse answer
+    than no button.
+  */
+  const { user, hasPermission } = useAuth();
   const { planId = '', zoneId = '' } = useParams();
   const [plan, setPlan] = useState<FiveSLayoutPlan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +55,9 @@ const ZonePage: React.FC = () => {
   */
   const [tagFailed, setTagFailed] = useState(false);
   const [cleanFailed, setCleanFailed] = useState(false);
+  /** Walking the checklist here, rather than writing it up at a desk after. */
+  const [auditing, setAuditing] = useState(false);
+  const [auditMessage, setAuditMessage] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -132,6 +144,30 @@ const ZonePage: React.FC = () => {
     } finally {
       setCleaning(false);
     }
+  };
+
+  /**
+   * Takes the finished walk onto the page.
+   *
+   * The score and the date come from the run the server stored, which is also
+   * what it wrote onto the zone — so this page and the floor plan agree
+   * without either of them recomputing anything.
+   */
+  const auditRecorded = (run: { score: number; createdAt?: string }) => {
+    if (!plan || !zone) return;
+
+    const lastAuditAt = (run.createdAt || new Date().toISOString()).slice(0, 10);
+
+    setPlan({
+      ...plan,
+      zones: plan.zones.map((item) =>
+        item.id === zone.id
+          ? { ...item, lastAuditAt, lastAuditScore: Number(run.score) || 0 }
+          : item,
+      ),
+    });
+    setAuditing(false);
+    setAuditMessage(t('zone.auditRecorded', { score: Number(run.score) || 0 }));
   };
 
   if (loading) {
@@ -222,7 +258,7 @@ const ZonePage: React.FC = () => {
           not where a plan should be editable by accident — but red-tagging
           is exactly what the person standing there is for.
         */}
-        {!tagging && (
+        {!tagging && hasPermission('redtags:create') && (
           <button
             type="button"
             data-testid="zone-red-tag"
@@ -314,16 +350,48 @@ const ZonePage: React.FC = () => {
           The second thing somebody can do from here, and the last: recording
           that an area was cleaned belongs to whoever cleaned it.
         */}
-        <button
-          type="button"
-          data-testid="zone-cleaned"
-          disabled={cleaning}
-          className="mt-3 w-full rounded-lg border border-gray-300 py-3 text-sm font-medium text-gray-700 disabled:opacity-40 dark:border-gray-600 dark:text-gray-200"
-          onClick={() => void markCleaned()}
-        >
-          {t('zone.markCleaned')}
-        </button>
+        {hasPermission('zones:clean') && (
+          <button
+            type="button"
+            data-testid="zone-cleaned"
+            disabled={cleaning}
+            className="mt-3 w-full rounded-lg border border-gray-300 py-3 text-sm font-medium text-gray-700 disabled:opacity-40 dark:border-gray-600 dark:text-gray-200"
+            onClick={() => void markCleaned()}
+          >
+            {t('zone.markCleaned')}
+          </button>
+        )}
         {cleanFailed && <p className="mt-2 text-sm text-red-600">{t('zone.cleanedFailed')}</p>}
+
+        {/*
+          And the check itself. A daily audit is walked in the area, not
+          written up at a desk afterwards from memory, so the questions come
+          to whoever is standing here.
+        */}
+        {!auditing && hasPermission('audits:create') && (
+          <button
+            type="button"
+            data-testid="zone-audit"
+            className="mt-2 w-full rounded-lg border border-blue-300 py-3 text-sm font-medium text-blue-700 dark:border-blue-800 dark:text-blue-300"
+            onClick={() => {
+              setAuditMessage('');
+              setAuditing(true);
+            }}
+          >
+            {t('zone.startAudit')}
+          </button>
+        )}
+        {auditMessage && <p className="mt-2 text-sm text-green-700 dark:text-green-400">{auditMessage}</p>}
+
+        {auditing && plan && (
+          <ZoneAuditWalk
+            plan={plan}
+            zone={zone}
+            role={user?.roles?.[0]}
+            onRecorded={auditRecorded}
+            onClose={() => setAuditing(false)}
+          />
+        )}
       </section>
 
       <Link className="inline-flex items-center gap-2 text-sm font-medium text-blue-600" to="/fives">

@@ -153,3 +153,45 @@ test('cleaning can be recorded from the label, and the stored date is shown', as
   });
   await expect(page.getByText(stored)).toBeVisible();
 });
+
+test('a checklist can be walked from the label, and a failing area raises work', async ({ page }) => {
+  // The whole 5S loop in one gesture: a check walked in the area repaints the
+  // map and raises the work it calls for. Both used to happen only for an
+  // audit typed up afterwards at a desk.
+  await signIn(page);
+  await page.goto('/fives');
+  await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
+
+  const target = await page.evaluate(() => {
+    const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+    return { planId: plan.id as string, zoneId: plan.zones?.[0]?.id as string };
+  });
+
+  await page.goto(`/zone/${target.planId}/${target.zoneId}`);
+  await page.getByTestId('zone-audit').click();
+
+  // The lowest answer to every question, which is the case that has to lead
+  // somewhere rather than the case that passes.
+  const rows = page.locator('form ol li');
+  const count = await rows.count();
+  for (let index = 0; index < count; index += 1) {
+    await rows.nth(index).getByRole('button', { name: '0', exact: true }).click();
+  }
+
+  await page.getByTestId('zone-audit-submit').click();
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+        return plan.zones?.[0]?.lastAuditScore as number;
+      }),
+    )
+    .toBe(0);
+
+  const followUps = await page.evaluate(() => {
+    const tasks = JSON.parse(localStorage.getItem('productivity-demo-tasks') || '[]');
+    return tasks.filter((task: { sourceType?: string }) => task.sourceType === 'audit_run').length;
+  });
+  expect(followUps).toBeGreaterThan(0);
+});
