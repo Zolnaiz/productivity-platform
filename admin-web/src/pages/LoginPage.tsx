@@ -72,7 +72,14 @@ const LoginPage: React.FC = () => {
         </Button>
 
         {isDemoEnabled() && (
-          <Button className="mt-3" fullWidth variant="outline" type="button" onClick={handleDemoLogin}>
+          <Button
+            className="mt-3"
+            fullWidth
+            variant="outline"
+            type="button"
+            data-testid="demo-sign-in"
+            onClick={handleDemoLogin}
+          >
             {t('auth.openDemo')}
           </Button>
         )}

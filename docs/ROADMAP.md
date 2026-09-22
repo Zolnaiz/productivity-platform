@@ -102,10 +102,11 @@ could be built honestly.
 
 ### 7. Keep it honest as it grows
 
-- **A browser-driven smoke run in CI**: sign in, load the dashboard, open the
-  5S page, draw a wall. Every serious defect found in the last month — the
-  pointer mapping, the walls that were never saved, the white canvas — was
-  found by opening the application, not by a unit test.
+- **The browser smoke run is in CI** — sign in, open the plan, draw a wall,
+  switch the theme, open a zone the way its label does. What it does not yet
+  cover is anything that needs the server: signing in for real, saving a plan
+  and reading it back, raising a task and seeing the notification. That needs
+  a Postgres service in the job and a seeded organization.
 - **Visual regression screenshots** for the pages that are now designed rather
   than assembled.
 

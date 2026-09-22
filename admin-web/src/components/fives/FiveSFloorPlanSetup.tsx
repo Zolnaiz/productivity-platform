@@ -3538,6 +3538,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       key={value}
                       type="button"
                       role="radio"
+                      data-testid={`tool-${value}`}
                       aria-checked={tool === value}
                       className={`rounded px-2 py-1 text-xs ${
                         tool === value
