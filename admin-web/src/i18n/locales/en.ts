@@ -548,6 +548,11 @@ const en = {
     emptyDescription: 'Tasks and audits with dates will appear here as a timeline.',
   },
   zone: {
+    addRedTag: 'Red-tag something here',
+    redTagTitle: 'What is it?',
+    redTagDisposition: 'What should happen to it?',
+    redTagSave: 'Raise the tag',
+    redTagFailed: 'That tag was not saved. Try again.',
     loading: 'Opening the area…',
     goneTitle: 'This area is no longer on the plan',
     goneBody: 'The label outlived the area it names — areas get merged, renamed and retired. The plan will say what is there now.',

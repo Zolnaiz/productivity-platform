@@ -346,6 +346,70 @@ export class OperationsService {
     return [await this.findFiveSLayout(user)];
   }
 
+  /**
+   * Raises a red tag on one zone.
+   *
+   * A narrow door into the plan rather than a plan update: everything the
+   * caller can say is the title and what they think should happen to the
+   * item, and everything else — the id, the status, the date, the count — is
+   * the server's. That is what makes it safe to give to whoever is standing
+   * in front of the clutter, which is the only way red-tagging works.
+   */
+  async addRedTag(
+    planId: string,
+    zoneId: string,
+    payload: { title: string; disposition?: string },
+    user: CurrentUser,
+  ) {
+    const organizationId = this.resolveOrganizationId(user);
+    const layout = await this.fiveSLayouts.findOne({
+      where: { id: planId, ...(organizationId ? { organizationId } : {}) },
+    });
+
+    if (!layout) {
+      throw apiError(ErrorCode.ResourceNotFound, 'five-s-layout');
+    }
+
+    const zone = (layout.zones ?? []).find((candidate) => candidate.id === zoneId);
+
+    if (!zone) {
+      throw apiError(ErrorCode.ResourceNotFound, 'zone');
+    }
+
+    const redTag = {
+      id: `redtag-${Date.now()}-${Math.round(Math.random() * 1e6)}`,
+      title: payload.title.trim(),
+      disposition: payload.disposition?.trim() ?? '',
+      status: 'open',
+      // Whoever raised it, so the tag can be asked about later. Names are not
+      // copied: a person's name changes and the account is where it lives.
+      ownerId: user?.id,
+      createdAt: new Date().toISOString(),
+    };
+
+    const redTags = [...((zone.redTags as Record<string, unknown>[]) ?? []), redTag];
+
+    layout.zones = (layout.zones ?? []).map((candidate) =>
+      candidate.id === zoneId
+        ? {
+            ...candidate,
+            redTags,
+            // Kept in step here rather than left to the browser: a count that
+            // disagrees with the list is the kind of wrong number this
+            // application has been full of.
+            redTagCount: redTags.filter(
+              (tag) => !(tag as { closedAt?: string }).closedAt &&
+                ['open', 'review'].includes(String((tag as { status?: string }).status)),
+            ).length,
+          }
+        : candidate,
+    );
+
+    await this.fiveSLayouts.save(layout);
+
+    return redTag;
+  }
+
   async createFiveSLayout(payload: Partial<FiveSLayout>, user: CurrentUser) {
     const organizationId = this.resolveOrganizationId(user, payload.organizationId);
 

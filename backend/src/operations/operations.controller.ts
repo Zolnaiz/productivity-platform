@@ -18,6 +18,7 @@ import {
   UpdateDailyGoalDto,
   UpdateExpenseDto,
   CreateFiveSLayoutDto,
+  CreateRedTagDto,
   UpsertFiveSLayoutDto,
   UpdateProjectDto,
   UpdateTaskDto,
@@ -172,6 +173,24 @@ export class OperationsController {
   @RequirePermission('zones:delete')
   deleteFiveSLayout(@Param('id') id: string, @Request() req) {
     return this.operationsService.deleteFiveSLayout(id, req.user);
+  }
+
+  /**
+   * Raising a red tag from the floor.
+   *
+   * Its own route and its own permission rather than a plan update, so the
+   * person who finds the clutter can say so without being able to redraw the
+   * building.
+   */
+  @Post('five-s-layouts/:planId/zones/:zoneId/red-tags')
+  @RequirePermission('redtags:create')
+  addRedTag(
+    @Param('planId') planId: string,
+    @Param('zoneId') zoneId: string,
+    @Body() body: CreateRedTagDto,
+    @Request() req,
+  ) {
+    return this.operationsService.addRedTag(planId, zoneId, body, req.user);
   }
 
   @Get('five-s-layout')

@@ -77,6 +77,11 @@ const user = [
   'expenses:create',
   'audits:create',
   'attachments:create',
+  // Red-tagging is the one thing on a 5S programme that has to be open to
+  // whoever is standing in front of the clutter. It is deliberately not
+  // `zones:update`: an operator may say "this does not belong here" without
+  // being able to move a wall.
+  'redtags:create',
 ];
 
 const manager = [

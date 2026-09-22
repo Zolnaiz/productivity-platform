@@ -467,6 +467,120 @@ describe('OperationsService organization scoping', () => {
     });
   });
 
+  describe('raising a red tag from the floor', () => {
+    const planWithZone = () => ({
+      id: 'l1',
+      organizationId: 'org-1',
+      zones: [
+        { id: 'z1', code: 'A01', redTags: [], redTagCount: 0 },
+        { id: 'z2', code: 'A02', redTags: [], redTagCount: 0 },
+      ],
+    });
+
+    const raise = (service: any, repositories: any, title = 'Unowned pallet') => {
+      repositories.fiveSLayouts.findOne.mockResolvedValue(planWithZone());
+
+      return service.addRedTag('l1', 'z1', { title, disposition: 'Find the owner' }, {
+        id: 'u3',
+        organizationId: 'org-1',
+      });
+    };
+
+    it('appends the tag to the zone it was raised on', async () => {
+      const { service, repositories } = createService();
+
+      await raise(service, repositories);
+
+      const saved = repositories.fiveSLayouts.save.mock.calls[0][0];
+      expect(saved.zones[0].redTags).toHaveLength(1);
+      expect(saved.zones[0].redTags[0]).toMatchObject({
+        title: 'Unowned pallet',
+        disposition: 'Find the owner',
+        status: 'open',
+        ownerId: 'u3',
+      });
+    });
+
+    it('leaves the other zones alone', async () => {
+      const { service, repositories } = createService();
+
+      await raise(service, repositories);
+
+      expect(repositories.fiveSLayouts.save.mock.calls[0][0].zones[1].redTags).toHaveLength(0);
+    });
+
+    it('keeps the count in step with the list', async () => {
+      // A count that disagrees with the list is the kind of wrong number this
+      // application has been full of.
+      const { service, repositories } = createService();
+
+      await raise(service, repositories);
+
+      expect(repositories.fiveSLayouts.save.mock.calls[0][0].zones[0].redTagCount).toBe(1);
+    });
+
+    it('decides the id, the status and the date itself', async () => {
+      // Everything the caller can say is the title and what should happen to
+      // the item. That is what makes this safe to give to whoever is standing
+      // in front of the clutter.
+      const { service, repositories } = createService();
+
+      const tag = await raise(service, repositories);
+
+      expect(tag.id).toMatch(/^redtag-/);
+      expect(tag.status).toBe('open');
+      expect(tag.createdAt).toEqual(expect.any(String));
+    });
+
+    it('trims what somebody typed on a phone', async () => {
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue(planWithZone());
+
+      const tag = await service.addRedTag(
+        'l1',
+        'z1',
+        { title: '  Unowned pallet  ', disposition: '  ' },
+        { id: 'u3', organizationId: 'org-1' },
+      );
+
+      expect(tag.title).toBe('Unowned pallet');
+      expect(tag.disposition).toBe('');
+    });
+
+    it('refuses a plan in another organization rather than tagging it', async () => {
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue(undefined);
+
+      await expect(
+        service.addRedTag('l9', 'z1', { title: 'Pallet' }, { id: 'u3', organizationId: 'org-1' }),
+      ).rejects.toThrow();
+      expect(repositories.fiveSLayouts.save).not.toHaveBeenCalled();
+    });
+
+    it('refuses a zone that is not on the plan', async () => {
+      // A label outliving its area is the normal end of a 5S zone; tagging
+      // into nowhere would look like it worked.
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue(planWithZone());
+
+      await expect(
+        service.addRedTag('l1', 'gone', { title: 'Pallet' }, { id: 'u3', organizationId: 'org-1' }),
+      ).rejects.toThrow();
+      expect(repositories.fiveSLayouts.save).not.toHaveBeenCalled();
+    });
+
+    it('scopes the lookup to the caller\u2019s organization', async () => {
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue(planWithZone());
+
+      await service.addRedTag('l1', 'z1', { title: 'Pallet' }, { id: 'u3', organizationId: 'org-1' });
+
+      expect(repositories.fiveSLayouts.findOne).toHaveBeenCalledWith({
+        where: { id: 'l1', organizationId: 'org-1' },
+      });
+    });
+  });
+
   describe('a plan per floor', () => {
     it('lists them the way somebody walks the place: site, then floor', async () => {
       const { service, repositories } = createService();

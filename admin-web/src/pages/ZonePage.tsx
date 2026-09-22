@@ -25,6 +25,19 @@ const ZonePage: React.FC = () => {
   const { planId = '', zoneId = '' } = useParams();
   const [plan, setPlan] = useState<FiveSLayoutPlan | null>(null);
   const [loading, setLoading] = useState(true);
+  /**
+   * Raising a tag from here, which is what makes this a tool.
+   *
+   * Two fields, because somebody is typing one-handed next to the thing they
+   * are tagging. The form is closed until asked for: this page is read most
+   * of the time, and a form sitting open pushes what somebody came to read
+   * off the screen.
+   */
+  const [tagging, setTagging] = useState(false);
+  const [title, setTitle] = useState('');
+  const [disposition, setDisposition] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -41,6 +54,50 @@ const ZonePage: React.FC = () => {
   }, [planId]);
 
   const zone: FiveSZone | undefined = plan?.zones.find((item) => item.id === zoneId);
+
+  /**
+   * Adds the tag, and shows it immediately.
+   *
+   * The page is rebuilt from what the server returned rather than from what
+   * was typed, so the tag on screen is the tag that was stored — including
+   * the id and the date, which are the server's to decide.
+   */
+  const raiseTag = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!plan || !zone || !title.trim()) return;
+
+    setSaving(true);
+    setFailed(false);
+
+    try {
+      const raised = await fiveSLayoutService.addRedTag(plan.id, zone.id, {
+        title: title.trim(),
+        disposition: disposition.trim(),
+      });
+
+      setPlan({
+        ...plan,
+        zones: plan.zones.map((item) =>
+          item.id === zone.id
+            ? {
+                ...item,
+                redTags: [...(item.redTags ?? []), raised],
+                redTagCount: (item.redTagCount ?? 0) + 1,
+              }
+            : item,
+        ),
+      });
+      setTitle('');
+      setDisposition('');
+      setTagging(false);
+    } catch {
+      // Said out loud rather than swallowed: somebody who thinks they have
+      // tagged an item and has not is worse off than somebody who knows.
+      setFailed(true);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -124,6 +181,60 @@ const ZonePage: React.FC = () => {
           <AlertTriangle className="h-4 w-4" aria-hidden="true" />
           {t('zone.redTags', { count: getRedTagCount(zone) })}
         </h2>
+        {/*
+          The one thing somebody can do from here. Everything else on this
+          page is read-only, because standing next to a running machine is
+          not where a plan should be editable by accident — but red-tagging
+          is exactly what the person standing there is for.
+        */}
+        {!tagging && (
+          <button
+            type="button"
+            data-testid="zone-red-tag"
+            className="mt-3 w-full rounded-lg border border-red-300 py-3 text-sm font-medium text-red-700 dark:border-red-800 dark:text-red-300"
+            onClick={() => setTagging(true)}
+          >
+            {t('zone.addRedTag')}
+          </button>
+        )}
+
+        {tagging && (
+          <form className="mt-3 space-y-2" onSubmit={raiseTag}>
+            <input
+              autoFocus
+              className="w-full rounded-lg border border-gray-300 px-3 py-3 text-base dark:border-gray-600 dark:bg-gray-900"
+              placeholder={t('zone.redTagTitle')}
+              aria-label={t('zone.redTagTitle')}
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+            <input
+              className="w-full rounded-lg border border-gray-300 px-3 py-3 text-base dark:border-gray-600 dark:bg-gray-900"
+              placeholder={t('zone.redTagDisposition')}
+              aria-label={t('zone.redTagDisposition')}
+              value={disposition}
+              onChange={(event) => setDisposition(event.target.value)}
+            />
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={!title.trim() || saving}
+                className="flex-1 rounded-lg bg-red-600 py-3 text-sm font-medium text-white disabled:opacity-40"
+              >
+                {t('zone.redTagSave')}
+              </button>
+              <button
+                type="button"
+                className="rounded-lg border border-gray-300 px-4 py-3 text-sm dark:border-gray-600"
+                onClick={() => setTagging(false)}
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+            {failed && <p className="text-sm text-red-600">{t('zone.redTagFailed')}</p>}
+          </form>
+        )}
+
         <ul className="mt-2 space-y-2">
           {openTags.map((tag) => (
             <li key={tag.id} className="text-sm text-gray-700 dark:text-gray-300">

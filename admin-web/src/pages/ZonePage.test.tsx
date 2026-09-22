@@ -1,12 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ZonePage from './ZonePage';
 
-const serviceMocks = vi.hoisted(() => ({ getPlan: vi.fn() }));
+const serviceMocks = vi.hoisted(() => ({ getPlan: vi.fn(), addRedTag: vi.fn() }));
 
 vi.mock('../services/fiveSLayout.service', () => ({
-  fiveSLayoutService: { getPlan: serviceMocks.getPlan },
+  fiveSLayoutService: { getPlan: serviceMocks.getPlan, addRedTag: serviceMocks.addRedTag },
 }));
 
 const zone = (over: Record<string, unknown> = {}) => ({
@@ -53,7 +53,15 @@ const renderZone = (planId = 'l1', zoneId = 'z1') =>
 describe('the page a zone label opens', () => {
   beforeEach(() => {
     serviceMocks.getPlan.mockReset();
+    serviceMocks.addRedTag.mockReset();
     serviceMocks.getPlan.mockResolvedValue(plan());
+    serviceMocks.addRedTag.mockResolvedValue({
+      id: 'r-new',
+      title: 'Unowned pallet',
+      disposition: 'Find the owner',
+      status: 'open',
+      createdAt: '2026-09-22T08:00:00.000Z',
+    });
   });
 
   it('opens the plan the label names, not whichever comes back first', async () => {
@@ -134,13 +142,98 @@ describe('the page a zone label opens', () => {
     expect(await screen.findByText(/no longer on the plan/)).toBeTruthy();
   });
 
-  it('offers no way to change anything', async () => {
+  it('offers exactly one thing to do: raise a red tag', async () => {
     // Standing next to a running machine is not where a plan should be
-    // editable by accident.
+    // editable by accident — but red-tagging is exactly what the person
+    // standing there is for.
     renderZone();
     await screen.findByText('A03 · Storage');
 
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
-    expect(screen.queryAllByRole('button')).toHaveLength(0);
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: /Red-tag something here/ })).toBeTruthy();
+  });
+
+  it('keeps the form closed until it is asked for', async () => {
+    // This page is read most of the time; a form sitting open pushes what
+    // somebody came to read off a phone screen.
+    renderZone();
+    await screen.findByText('A03 · Storage');
+
+    expect(screen.queryByPlaceholderText('What is it?')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /Red-tag something here/ }));
+
+    expect(await screen.findByPlaceholderText('What is it?')).toBeTruthy();
+  });
+
+  it('raises the tag against the plan and zone the label named', async () => {
+    renderZone();
+    await screen.findByText('A03 · Storage');
+    fireEvent.click(screen.getByRole('button', { name: /Red-tag something here/ }));
+
+    fireEvent.change(await screen.findByPlaceholderText('What is it?'), {
+      target: { value: 'Unowned pallet' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('What should happen to it?'), {
+      target: { value: 'Find the owner' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Raise the tag' }));
+
+    await waitFor(() =>
+      expect(serviceMocks.addRedTag).toHaveBeenCalledWith('l1', 'z1', {
+        title: 'Unowned pallet',
+        disposition: 'Find the owner',
+      }),
+    );
+  });
+
+  it('shows the tag the server stored, not the words that were typed', async () => {
+    // The id and the date are the server's to decide, and what appears on
+    // screen has to be what was actually kept.
+    serviceMocks.addRedTag.mockResolvedValue({
+      id: 'r-new',
+      title: 'Pallet (as stored)',
+      disposition: '',
+      status: 'open',
+      createdAt: '2026-09-22T08:00:00.000Z',
+    });
+
+    renderZone();
+    await screen.findByText('A03 · Storage');
+    fireEvent.click(screen.getByRole('button', { name: /Red-tag something here/ }));
+    fireEvent.change(await screen.findByPlaceholderText('What is it?'), {
+      target: { value: 'Pallet' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Raise the tag' }));
+
+    expect(await screen.findByText('Pallet (as stored)')).toBeTruthy();
+  });
+
+  it('will not raise a tag with nothing written on it', async () => {
+    renderZone();
+    await screen.findByText('A03 · Storage');
+    fireEvent.click(screen.getByRole('button', { name: /Red-tag something here/ }));
+
+    expect(await screen.findByRole('button', { name: 'Raise the tag' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+  });
+
+  it('says so when the tag was not saved', async () => {
+    // Somebody who thinks they have tagged an item and has not is worse off
+    // than somebody who knows.
+    serviceMocks.addRedTag.mockRejectedValue(new Error('offline'));
+
+    renderZone();
+    await screen.findByText('A03 · Storage');
+    fireEvent.click(screen.getByRole('button', { name: /Red-tag something here/ }));
+    fireEvent.change(await screen.findByPlaceholderText('What is it?'), {
+      target: { value: 'Pallet' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Raise the tag' }));
+
+    expect(await screen.findByText(/was not saved/)).toBeTruthy();
   });
 });

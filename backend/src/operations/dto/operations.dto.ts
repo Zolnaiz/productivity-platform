@@ -12,6 +12,7 @@ import {
   IsString,
   IsUUID,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -475,6 +476,23 @@ class PlanRoomLabelDto {
 
   @IsString()
   name: string;
+}
+
+/**
+ * A red tag raised from the floor.
+ *
+ * Two fields, because somebody is typing this on a phone next to the thing
+ * they are tagging. Everything else about the tag is the server's.
+ */
+export class CreateRedTagDto {
+  @IsString()
+  @MaxLength(200)
+  title: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  disposition?: string;
 }
 
 /** A new plan: everything else about it is drawn afterwards. */

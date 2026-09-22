@@ -62,7 +62,9 @@ const entities = [
 
 const repositoryMock = () => ({
   find: jest.fn(async () => []),
-  findOne: jest.fn(async () => ({ id: 'p1', organizationId: 'org-1' })),
+  // Loosely typed on purpose: a route that needs a richer row — a plan with
+  // a zone on it — replaces this in its own `beforeEach`.
+  findOne: jest.fn(async (): Promise<Record<string, unknown>> => ({ id: 'p1', organizationId: 'org-1' })),
   create: jest.fn((value) => value),
   save: jest.fn(async (value) => ({ id: 'p1', ...value })),
   softRemove: jest.fn(async (value) => value),
@@ -76,6 +78,7 @@ const repositoryMock = () => ({
 
 describe('operations API over HTTP', () => {
   let app: INestApplication;
+  const repositories = new Map<unknown, ReturnType<typeof repositoryMock>>();
   let allowPublicOperations = false;
 
   /** Stands in for a signed token; the guard verifies, so this is its payload. */
@@ -113,7 +116,15 @@ describe('operations API over HTTP', () => {
             get: (key: string) => (key === 'ALLOW_PUBLIC_OPERATIONS' ? allowPublicOperations : undefined),
           },
         },
-        ...entities.map((entity) => ({ provide: getRepositoryToken(entity), useValue: repositoryMock() })),
+        // Kept by entity so a test can say what one of them answers; the
+        // red-tag routes need a plan with a zone on it rather than the
+        // generic row every other route is happy with.
+        ...entities.map((entity) => {
+          const mock = repositoryMock();
+          repositories.set(entity, mock);
+
+          return { provide: getRepositoryToken(entity), useValue: mock };
+        }),
       ],
     }).compile();
 
@@ -150,6 +161,51 @@ describe('operations API over HTTP', () => {
         .delete('/api/projects/p1')
         .set('Authorization', as(role))
         .expect(status);
+    });
+  });
+
+  describe('red-tagging from the floor', () => {
+    beforeEach(() => {
+      repositories.get(FiveSLayout)?.findOne.mockResolvedValue({
+        id: 'l1',
+        organizationId: 'org-1',
+        zones: [{ id: 'z1', code: 'A01', redTags: [], redTagCount: 0 }],
+      });
+    });
+
+    it.each([
+      [UserRole.ORGANIZATION_ADMIN, 201],
+      [UserRole.ADMIN, 201],
+      [UserRole.MANAGER, 201],
+      [UserRole.USER, 201],
+      // A viewer is read-only by definition; everybody who can record
+      // anything can red-tag, because the person who finds the clutter is
+      // usually the person working next to it.
+      [UserRole.VIEWER, 403],
+    ])('answers %s with %i', async (role, status) => {
+      await request(app.getHttpServer())
+        .post('/api/five-s-layouts/l1/zones/z1/red-tags')
+        .set('Authorization', as(role))
+        .send({ title: 'Unowned pallet' })
+        .expect(status);
+    });
+
+    it('refuses a tag with no title rather than storing an empty one', async () => {
+      await request(app.getHttpServer())
+        .post('/api/five-s-layouts/l1/zones/z1/red-tags')
+        .set('Authorization', as(UserRole.USER))
+        .send({ disposition: 'Find the owner' })
+        .expect(400);
+    });
+
+    it('refuses a field the route does not declare', async () => {
+      // Notably `status` and `closedAt`: a tag that arrives already closed is
+      // a tag that was never raised.
+      await request(app.getHttpServer())
+        .post('/api/five-s-layouts/l1/zones/z1/red-tags')
+        .set('Authorization', as(UserRole.USER))
+        .send({ title: 'Pallet', status: 'disposed' })
+        .expect(400);
     });
   });
 

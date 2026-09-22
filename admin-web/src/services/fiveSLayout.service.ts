@@ -1,4 +1,5 @@
-import { FiveSLayoutPlan, FiveSZone, FloorPlanObject, FloorPlanObjectType } from '../types/fiveS.types';
+import { FiveSLayoutPlan, FiveSRedTag, FiveSZone, FloorPlanObject, FloorPlanObjectType } from '../types/fiveS.types';
+import { withSyncedRedTags } from '../components/fives/floorPlanRules';
 import { pruneOpenings } from '../components/fives/floorPlanOpenings';
 import { del, get, getStoredAccessToken, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
 
@@ -547,6 +548,39 @@ export const fiveSLayoutService = {
     fallback<{ id: string; deleted: boolean }>(
       () => del<{ id: string; deleted: boolean }>(`/five-s-layouts/${id}`),
       () => ({ id, deleted: false }),
+    ),
+
+  /**
+   * Raises a red tag on one zone, from wherever somebody is standing.
+   *
+   * Its own route rather than a plan save: whoever finds the clutter may say
+   * so without being able to redraw the building, and the server decides the
+   * id, the status and the date.
+   */
+  addRedTag: (planId: string, zoneId: string, tag: { title: string; disposition?: string }) =>
+    fallback<FiveSRedTag>(
+      () => post<FiveSRedTag>(`/five-s-layouts/${planId}/zones/${zoneId}/red-tags`, tag),
+      () => {
+        const plan = readPlan();
+        const raised: FiveSRedTag = {
+          id: `redtag-${Date.now()}`,
+          title: tag.title.trim(),
+          disposition: tag.disposition?.trim() ?? '',
+          status: 'open',
+          createdAt: now(),
+        };
+
+        savePlan({
+          ...plan,
+          zones: plan.zones.map((zone) =>
+            zone.id === zoneId
+              ? { ...zone, ...withSyncedRedTags([...(zone.redTags ?? []), raised]) }
+              : zone,
+          ),
+        });
+
+        return raised;
+      },
     ),
 
   getPlan: (id?: string) =>

@@ -52,11 +52,11 @@ could be built honestly.
   them. What is still a flat list is the reporting above them: the room
   register and the monthly report do not group by site, so a plant with two
   buildings reads as one.
-- **A QR code per zone is in**, opening a phone-first page for that area. What
-  it does not yet do is let somebody *act* from there: record an audit answer,
-  raise a red tag, or mark the area cleaned. That is the step that turns it
-  from a notice board into a tool, and it needs a form somebody can fill in
-  with one hand.
+- **A QR code per zone is in**, and a red tag can be raised from the page it
+  opens. What is still read-only there: recording an audit answer and marking
+  the area cleaned. Both are the same shape as red-tagging — a narrow route
+  with its own permission — and the audit one also needs the checklist itself
+  on a phone screen.
 - **Routes measured in metres.** The plan knows its scale and its rooms, so a
   spaghetti diagram is now arithmetic rather than a drawing exercise.
 - **Floor plan versions.** An audit from March should still make sense against

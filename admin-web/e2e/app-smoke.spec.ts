@@ -99,3 +99,25 @@ test('a zone label opens the area it names', async ({ page }) => {
 
   await expect(page.locator('h1')).toContainText('A01');
 });
+
+test('a red tag can be raised from the label, one-handed', async ({ page }) => {
+  // The step that turns the zone page from a notice board into a tool: the
+  // person who finds the clutter is usually the person working next to it.
+  await signIn(page);
+  await page.goto('/fives');
+  await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
+
+  const target = await page.evaluate(() => {
+    const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+    return { planId: plan.id as string, zoneId: plan.zones?.[0]?.id as string };
+  });
+
+  await page.goto(`/zone/${target.planId}/${target.zoneId}`);
+  await page.getByTestId('zone-red-tag').click();
+
+  const form = page.locator('form');
+  await form.locator('input').first().fill('Pallet left in the aisle');
+  await form.locator('button[type="submit"]').click();
+
+  await expect(page.getByText('Pallet left in the aisle')).toBeVisible();
+});

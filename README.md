@@ -256,6 +256,10 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
   running machine is not where a plan should be editable by accident. The link
   names the plan and the zone rather than carrying a token, so a label printed
   today still works next year.
+- A red tag can be raised from the label itself. It has its own permission and
+  its own narrow route rather than being a plan update: whoever finds the
+  clutter may say "this does not belong here" without being able to move a
+  wall, and the id, the status and the date are the server's.
 - The plan is drawn as walls, not rectangles. Walls meet at shared corners, snap to the nearest 45 degrees unless Alt is held, and show their length in metres while being drawn. A room is whatever the walls close in — found from the wall graph on every change rather than stored, so a room and its walls cannot part company — and its area is a consequence of the drawing rather than a number somebody typed.
 - Several areas can be worked on at once: shift-click or drag a rubber band to select, move or delete them together, and line them up or space them evenly. The group is clamped as one shape, so hitting an edge does not squash the arrangement.
 - The floor plan zooms and pans: wheel or trackpad pinch to zoom at the pointer, space or middle-drag to pan, a zoom readout with fit and zoom-to-area. Every drag measures the pointer through the current view, so editing works the same at any zoom.
@@ -291,8 +295,8 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 522 passing
-- Frontend tests: 710 passing
+- Backend tests: 538 passing
+- Frontend tests: 715 passing, plus six browser checks
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing
