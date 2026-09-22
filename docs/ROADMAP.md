@@ -89,7 +89,17 @@ could be built honestly.
   its screens have never spoken to the server.
 - Cover `auth_provider` first, since login is the path every user takes.
 
-### 6. Keep it honest as it grows
+### 6. Dependencies
+
+- **NestJS 11 to 12.** The seven `multer` advisories that made the backend's
+  `npm audit` red are fixed by forcing a patched multer through an override,
+  which is the actual fix: the code that runs is the patched one. What it is
+  not is the upgrade — `@nestjs/platform-express` still pins 2.2.0, and the
+  override is the reason that does not matter. Moving the framework itself is
+  a deliberate piece of work rather than something to fold into an unrelated
+  change.
+
+### 7. Keep it honest as it grows
 
 - **A browser-driven smoke run in CI**: sign in, load the dashboard, open the
   5S page, draw a wall. Every serious defect found in the last month — the

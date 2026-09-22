@@ -59,9 +59,9 @@ Each was found by opening the application, not by a test:
 
 Run on the branch head:
 
-- Backend: 451 tests, lint clean, build clean.
-- Frontend: 674 tests, lint clean, build clean.
-- Migrations: all 16 apply to a fresh PGlite database; every mapped column
+- Backend: 522 tests, lint clean, build clean, `npm audit` reports zero.
+- Frontend: 710 tests, lint clean, build clean, `npm audit` reports zero.
+- Migrations: all 18 apply to a fresh PGlite database; every mapped column
   exists, the schema is writable, and the partial unique index holds.
 - The floor plan, the projects page, the monthly report and both themes were
   exercised in a browser against the dev server.
