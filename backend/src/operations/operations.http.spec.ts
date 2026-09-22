@@ -164,6 +164,40 @@ describe('operations API over HTTP', () => {
     });
   });
 
+  describe('marking an area cleaned from the floor', () => {
+    beforeEach(() => {
+      repositories.get(FiveSLayout)?.findOne.mockResolvedValue({
+        id: 'l1',
+        organizationId: 'org-1',
+        zones: [{ id: 'z1', code: 'A01' }],
+      });
+    });
+
+    it.each([
+      [UserRole.MANAGER, 201],
+      [UserRole.USER, 201],
+      // Read-only stays read-only, even for a date.
+      [UserRole.VIEWER, 403],
+    ])('answers %s with %i', async (role, status) => {
+      await request(app.getHttpServer())
+        .post('/api/five-s-layouts/l1/zones/z1/cleaned')
+        .set('Authorization', as(role))
+        .expect(status);
+    });
+
+    it('takes no body, so it cannot be used to write anything else', async () => {
+      await request(app.getHttpServer())
+        .post('/api/five-s-layouts/l1/zones/z1/cleaned')
+        .set('Authorization', as(UserRole.USER))
+        .send({ lastCleanedAt: '2020-01-01', ownerName: 'Somebody else' })
+        .expect(201);
+
+      const saved = repositories.get(FiveSLayout)?.save.mock.calls[0][0] as Record<string, any>;
+      expect(saved.zones[0].lastCleanedAt).not.toBe('2020-01-01');
+      expect(saved.zones[0].ownerName).toBeUndefined();
+    });
+  });
+
   describe('red-tagging from the floor', () => {
     beforeEach(() => {
       repositories.get(FiveSLayout)?.findOne.mockResolvedValue({

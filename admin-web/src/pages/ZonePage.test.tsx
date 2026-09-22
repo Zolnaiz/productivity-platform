@@ -3,10 +3,18 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ZonePage from './ZonePage';
 
-const serviceMocks = vi.hoisted(() => ({ getPlan: vi.fn(), addRedTag: vi.fn() }));
+const serviceMocks = vi.hoisted(() => ({
+  getPlan: vi.fn(),
+  addRedTag: vi.fn(),
+  markCleaned: vi.fn(),
+}));
 
 vi.mock('../services/fiveSLayout.service', () => ({
-  fiveSLayoutService: { getPlan: serviceMocks.getPlan, addRedTag: serviceMocks.addRedTag },
+  fiveSLayoutService: {
+    getPlan: serviceMocks.getPlan,
+    addRedTag: serviceMocks.addRedTag,
+    markCleaned: serviceMocks.markCleaned,
+  },
 }));
 
 const zone = (over: Record<string, unknown> = {}) => ({
@@ -54,6 +62,8 @@ describe('the page a zone label opens', () => {
   beforeEach(() => {
     serviceMocks.getPlan.mockReset();
     serviceMocks.addRedTag.mockReset();
+    serviceMocks.markCleaned.mockReset();
+    serviceMocks.markCleaned.mockResolvedValue({ zoneId: 'z1', lastCleanedAt: '2026-09-22' });
     serviceMocks.getPlan.mockResolvedValue(plan());
     serviceMocks.addRedTag.mockResolvedValue({
       id: 'r-new',
@@ -142,16 +152,39 @@ describe('the page a zone label opens', () => {
     expect(await screen.findByText(/no longer on the plan/)).toBeTruthy();
   });
 
-  it('offers exactly one thing to do: raise a red tag', async () => {
+  it('offers two things to do and no way to edit the plan', async () => {
     // Standing next to a running machine is not where a plan should be
-    // editable by accident — but red-tagging is exactly what the person
-    // standing there is for.
+    // editable by accident — but noticing clutter and cleaning up are exactly
+    // what the person standing there is for.
     renderZone();
     await screen.findByText('A03 · Storage');
 
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
-    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getAllByRole('button')).toHaveLength(2);
     expect(screen.getByRole('button', { name: /Red-tag something here/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Cleaned today' })).toBeTruthy();
+  });
+
+  it('records that the area was cleaned, and shows the date that was stored', async () => {
+    // Not the date this machine thinks it is: a browser's clock is whatever
+    // the machine says, and this date is what the audit schedule reads.
+    renderZone();
+    await screen.findByText('A03 · Storage');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cleaned today' }));
+
+    await waitFor(() => expect(serviceMocks.markCleaned).toHaveBeenCalledWith('l1', 'z1'));
+    expect(await screen.findByText('2026-09-22')).toBeTruthy();
+  });
+
+  it('says so when the cleaning could not be recorded', async () => {
+    serviceMocks.markCleaned.mockRejectedValue(new Error('offline'));
+
+    renderZone();
+    await screen.findByText('A03 · Storage');
+    fireEvent.click(screen.getByRole('button', { name: 'Cleaned today' }));
+
+    expect(await screen.findByText(/was not saved/)).toBeTruthy();
   });
 
   it('keeps the form closed until it is asked for', async () => {

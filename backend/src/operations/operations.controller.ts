@@ -193,6 +193,18 @@ export class OperationsController {
     return this.operationsService.addRedTag(planId, zoneId, body, req.user);
   }
 
+  /**
+   * Marking an area cleaned, from wherever it was cleaned.
+   *
+   * No body: there is nothing to say beyond that it happened, and a route
+   * that takes nothing cannot be used to write anything else.
+   */
+  @Post('five-s-layouts/:planId/zones/:zoneId/cleaned')
+  @RequirePermission('zones:clean')
+  markZoneCleaned(@Param('planId') planId: string, @Param('zoneId') zoneId: string, @Request() req) {
+    return this.operationsService.markZoneCleaned(planId, zoneId, req.user);
+  }
+
   @Get('five-s-layout')
   @RequirePermission('zones:read')
   findFiveSLayout(@Request() req, @Query('id') id?: string) {

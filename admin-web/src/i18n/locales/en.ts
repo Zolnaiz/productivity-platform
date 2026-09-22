@@ -548,6 +548,8 @@ const en = {
     emptyDescription: 'Tasks and audits with dates will appear here as a timeline.',
   },
   zone: {
+    cleanedFailed: 'That was not saved. Try again.',
+    markCleaned: 'Cleaned today',
     addRedTag: 'Red-tag something here',
     redTagTitle: 'What is it?',
     redTagDisposition: 'What should happen to it?',

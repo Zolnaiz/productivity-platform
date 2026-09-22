@@ -545,6 +545,8 @@ const mn: Translations<typeof en> = {
     emptyDescription: 'Огноотой ажил, аудит энд цагийн хэлхээ болж харагдана.',
   },
   zone: {
+    cleanedFailed: 'Хадгалагдсангүй. Дахин оролдоно уу.',
+    markCleaned: 'Өнөөдөр цэвэрлэсэн',
     addRedTag: 'Улаан шошго нэмэх',
     redTagTitle: 'Юу байна?',
     redTagDisposition: 'Үүнийг яах вэ?',

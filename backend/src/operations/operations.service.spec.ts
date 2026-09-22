@@ -581,6 +581,71 @@ describe('OperationsService organization scoping', () => {
     });
   });
 
+  describe('marking an area cleaned', () => {
+    const planWithZone = () => ({
+      id: 'l1',
+      organizationId: 'org-1',
+      zones: [
+        { id: 'z1', code: 'A01', lastCleanedAt: '2026-01-01' },
+        { id: 'z2', code: 'A02', lastCleanedAt: '2026-01-01' },
+      ],
+    });
+
+    it('writes today onto the zone that was cleaned', async () => {
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue(planWithZone());
+
+      const result = await service.markZoneCleaned('l1', 'z1', { id: 'u3', organizationId: 'org-1' });
+
+      const today = new Date().toISOString().slice(0, 10);
+      expect(result).toEqual({ zoneId: 'z1', lastCleanedAt: today });
+      expect(repositories.fiveSLayouts.save.mock.calls[0][0].zones[0].lastCleanedAt).toBe(today);
+    });
+
+    it('takes the date from the server rather than the caller', async () => {
+      // A phone's clock is whatever the phone says it is, and this date is
+      // what the audit schedule and the monthly report read.
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue(planWithZone());
+
+      const result = await service.markZoneCleaned('l1', 'z1', {
+        id: 'u3',
+        organizationId: 'org-1',
+      } as never);
+
+      expect(result.lastCleanedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('leaves the other areas alone', async () => {
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue(planWithZone());
+
+      await service.markZoneCleaned('l1', 'z1', { id: 'u3', organizationId: 'org-1' });
+
+      expect(repositories.fiveSLayouts.save.mock.calls[0][0].zones[1].lastCleanedAt).toBe('2026-01-01');
+    });
+
+    it('refuses a plan in another organization', async () => {
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue(undefined);
+
+      await expect(
+        service.markZoneCleaned('l9', 'z1', { id: 'u3', organizationId: 'org-1' }),
+      ).rejects.toThrow();
+      expect(repositories.fiveSLayouts.save).not.toHaveBeenCalled();
+    });
+
+    it('refuses a zone that is not on the plan', async () => {
+      const { service, repositories } = createService();
+      repositories.fiveSLayouts.findOne.mockResolvedValue(planWithZone());
+
+      await expect(
+        service.markZoneCleaned('l1', 'gone', { id: 'u3', organizationId: 'org-1' }),
+      ).rejects.toThrow();
+      expect(repositories.fiveSLayouts.save).not.toHaveBeenCalled();
+    });
+  });
+
   describe('a plan per floor', () => {
     it('lists them the way somebody walks the place: site, then floor', async () => {
       const { service, repositories } = createService();

@@ -82,6 +82,10 @@ const user = [
   // `zones:update`: an operator may say "this does not belong here" without
   // being able to move a wall.
   'redtags:create',
+  // Recording that an area was cleaned belongs to whoever cleaned it. Like
+  // red-tagging, it is deliberately not `zones:update`: it writes one date
+  // and nothing else.
+  'zones:clean',
 ];
 
 const manager = [

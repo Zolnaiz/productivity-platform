@@ -121,3 +121,35 @@ test('a red tag can be raised from the label, one-handed', async ({ page }) => {
 
   await expect(page.getByText('Pallet left in the aisle')).toBeVisible();
 });
+
+test('cleaning can be recorded from the label, and the stored date is shown', async ({ page }) => {
+  // The other half of what the person standing there is for. The date on
+  // screen has to be the one that was stored, not the one this machine
+  // happens to think it is.
+  await signIn(page);
+  await page.goto('/fives');
+  await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
+
+  const target = await page.evaluate(() => {
+    const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+    return { planId: plan.id as string, zoneId: plan.zones?.[0]?.id as string };
+  });
+
+  await page.goto(`/zone/${target.planId}/${target.zoneId}`);
+  await page.getByTestId('zone-cleaned').click();
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+        return plan.zones?.[0]?.lastCleanedAt as string;
+      }),
+    )
+    .toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+  const stored = await page.evaluate(() => {
+    const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+    return plan.zones?.[0]?.lastCleanedAt as string;
+  });
+  await expect(page.getByText(stored)).toBeVisible();
+});

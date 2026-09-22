@@ -37,7 +37,15 @@ const ZonePage: React.FC = () => {
   const [title, setTitle] = useState('');
   const [disposition, setDisposition] = useState('');
   const [saving, setSaving] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
+  /*
+    One flag per action rather than one for the page. They fail separately and
+    the message has to sit next to the control that failed — a phone screen is
+    too small to go looking for an explanation, and a message under the wrong
+    button is worse than none.
+  */
+  const [tagFailed, setTagFailed] = useState(false);
+  const [cleanFailed, setCleanFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -67,7 +75,7 @@ const ZonePage: React.FC = () => {
     if (!plan || !zone || !title.trim()) return;
 
     setSaving(true);
-    setFailed(false);
+    setTagFailed(false);
 
     try {
       const raised = await fiveSLayoutService.addRedTag(plan.id, zone.id, {
@@ -93,9 +101,36 @@ const ZonePage: React.FC = () => {
     } catch {
       // Said out loud rather than swallowed: somebody who thinks they have
       // tagged an item and has not is worse off than somebody who knows.
-      setFailed(true);
+      setTagFailed(true);
     } finally {
       setSaving(false);
+    }
+  };
+
+  /**
+   * Says the area was cleaned today.
+   *
+   * One tap and no form: there is nothing to say beyond that it happened, and
+   * the date is the server's. The page then shows the date that was stored,
+   * not the one this machine thinks it is.
+   */
+  const markCleaned = async () => {
+    if (!plan || !zone) return;
+
+    setCleaning(true);
+    setCleanFailed(false);
+
+    try {
+      const { lastCleanedAt } = await fiveSLayoutService.markCleaned(plan.id, zone.id);
+
+      setPlan({
+        ...plan,
+        zones: plan.zones.map((item) => (item.id === zone.id ? { ...item, lastCleanedAt } : item)),
+      });
+    } catch {
+      setCleanFailed(true);
+    } finally {
+      setCleaning(false);
     }
   };
 
@@ -231,7 +266,7 @@ const ZonePage: React.FC = () => {
                 {t('common.cancel')}
               </button>
             </div>
-            {failed && <p className="text-sm text-red-600">{t('zone.redTagFailed')}</p>}
+            {tagFailed && <p className="text-sm text-red-600">{t('zone.redTagFailed')}</p>}
           </form>
         )}
 
@@ -274,6 +309,21 @@ const ZonePage: React.FC = () => {
             </dd>
           </div>
         </dl>
+
+        {/*
+          The second thing somebody can do from here, and the last: recording
+          that an area was cleaned belongs to whoever cleaned it.
+        */}
+        <button
+          type="button"
+          data-testid="zone-cleaned"
+          disabled={cleaning}
+          className="mt-3 w-full rounded-lg border border-gray-300 py-3 text-sm font-medium text-gray-700 disabled:opacity-40 dark:border-gray-600 dark:text-gray-200"
+          onClick={() => void markCleaned()}
+        >
+          {t('zone.markCleaned')}
+        </button>
+        {cleanFailed && <p className="mt-2 text-sm text-red-600">{t('zone.cleanedFailed')}</p>}
       </section>
 
       <Link className="inline-flex items-center gap-2 text-sm font-medium text-blue-600" to="/fives">

@@ -410,6 +410,39 @@ export class OperationsService {
     return redTag;
   }
 
+  /**
+   * Records that an area was cleaned, today.
+   *
+   * The date is the server's rather than the caller's: a phone's clock is
+   * whatever the phone says it is, and this date is what the audit schedule
+   * and the monthly report read. Marking twice in a day writes the same date
+   * twice, which is the right amount of fuss to make about it.
+   */
+  async markZoneCleaned(planId: string, zoneId: string, user: CurrentUser) {
+    const organizationId = this.resolveOrganizationId(user);
+    const layout = await this.fiveSLayouts.findOne({
+      where: { id: planId, ...(organizationId ? { organizationId } : {}) },
+    });
+
+    if (!layout) {
+      throw apiError(ErrorCode.ResourceNotFound, 'five-s-layout');
+    }
+
+    if (!(layout.zones ?? []).some((zone) => zone.id === zoneId)) {
+      throw apiError(ErrorCode.ResourceNotFound, 'zone');
+    }
+
+    const lastCleanedAt = new Date().toISOString().slice(0, 10);
+
+    layout.zones = (layout.zones ?? []).map((zone) =>
+      zone.id === zoneId ? { ...zone, lastCleanedAt } : zone,
+    );
+
+    await this.fiveSLayouts.save(layout);
+
+    return { zoneId, lastCleanedAt };
+  }
+
   async createFiveSLayout(payload: Partial<FiveSLayout>, user: CurrentUser) {
     const organizationId = this.resolveOrganizationId(user, payload.organizationId);
 

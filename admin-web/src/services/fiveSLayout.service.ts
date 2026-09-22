@@ -583,6 +583,33 @@ export const fiveSLayoutService = {
       },
     ),
 
+  /**
+   * Records that an area was cleaned, today.
+   *
+   * The date comes back from the server rather than being decided here: a
+   * browser's clock is whatever the machine says it is, and this date is what
+   * the audit schedule and the monthly report read.
+   */
+  markCleaned: (planId: string, zoneId: string) =>
+    fallback<{ zoneId: string; lastCleanedAt: string }>(
+      () =>
+        post<{ zoneId: string; lastCleanedAt: string }>(
+          `/five-s-layouts/${planId}/zones/${zoneId}/cleaned`,
+          {},
+        ),
+      () => {
+        const plan = readPlan();
+        const lastCleanedAt = now().slice(0, 10);
+
+        savePlan({
+          ...plan,
+          zones: plan.zones.map((zone) => (zone.id === zoneId ? { ...zone, lastCleanedAt } : zone)),
+        });
+
+        return { zoneId, lastCleanedAt };
+      },
+    ),
+
   getPlan: (id?: string) =>
     fallback<FiveSLayoutPlan>(
       async () => withOwnLayout(await get<FiveSLayoutPlan>(id ? `/five-s-layout?id=${id}` : '/five-s-layout')),
