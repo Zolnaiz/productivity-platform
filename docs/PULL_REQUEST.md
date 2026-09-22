@@ -1,8 +1,8 @@
 # Pull request: `feat/design-system-adoption` → `main`
 
-Ready to open. Everything below was verified on 2026-09-20 against the branch
+Ready to open. Everything below was verified on 2026-09-22 against the branch
 head; `gh` is not authenticated in the environment these commits were written
-in, so the pull request itself has to be opened by somebody who is signed in.
+in, so the pull request itself has to be opened by somebody who is.
 
 ```bash
 gh pr create --base main --head feat/design-system-adoption --title "Make the floor plan a floor plan, and the numbers true" --body-file docs/PULL_REQUEST.md
@@ -13,7 +13,7 @@ Or open it in the browser:
 
 ## What this branch does
 
-Seventy-one commits. Three threads run through them.
+Four threads run through it.
 
 **The floor plan became a floor-plan tool.** It was rectangles floating in an
 abstract canvas. It now has walls that meet at shared corners and close into
@@ -23,15 +23,25 @@ leaf sweeps; an object catalogue in metres — a desk 1.6 × 0.8 m, a EUR-1 pall
 1.2 × 0.8, a racking bay 2.7 × 1.1 — that snaps flush and square to walls;
 corners you can drag, and drop on each other to close a room that never quite
 closed; named rooms; and separate Grid, Snap and Dimensions switches where one
-checkbox used to answer all three questions.
+checkbox used to answer all three questions. A building has as many plans as it
+has floors, and every printed zone label can carry a QR code that opens that
+area on a phone.
 
 **Numbers that nothing produced were removed.** A new workspace was handed a
 pre-drawn sample office as though it were its own building. A project's progress
 was a slider somebody dragged, and the dashboard and the monthly report averaged
 that figure as if it had been measured. Both are gone: an empty plan stays empty
 and the editor asks how to begin, and a project counts its tasks. The monthly
-report is now compiled person by person from what each of them actually
-recorded.
+report is compiled person by person from what each of them actually recorded,
+and each room reports what its 5S areas add up to.
+
+**Work is delivered rather than discovered.** The scheduler raised audits at six
+in the morning and red-tag decisions when a hold ran out, and told nobody. A
+notification is now a record addressed to one person, carrying the task's own
+words, delivered exactly once however many times the event is re-raised. And
+the audit trail records what a request asked to change — with secrets keeping
+their name and losing their value — rather than only that something changed,
+and stops keeping rows for ever.
 
 **The interface speaks both languages and both themes.** About 120 English
 strings were hardcoded into the 5S page, including the sentences the rules
@@ -49,11 +59,16 @@ Each was found by opening the application, not by a test:
 - **Pointer coordinates ignored the SVG's letterboxing.** In a tall, narrow
   pane a click landed a third of the plan away from where it was aimed, and
   every drag in the editor went through that function.
+- **Two lookups took the organization's first floor plan.** Once a building had
+  a plan per floor, an audit of a zone upstairs would have repainted nothing
+  and a red tag raised upstairs would never have closed — both silently.
 - **Six of fourteen object types were refused by the validation pipe**, so a
   chair or a printer was placeable and unsaveable.
 - **The demo user's id did not match the member list's id for the same person**,
   so everything the demo user did was recorded against somebody not on the
   staff list.
+- **Both `npm audit` steps in CI were failing** before any of this work —
+  eighteen advisories on the backend, twelve on the frontend.
 
 ## Verification
 
@@ -63,14 +78,23 @@ Run on the branch head:
 - Frontend: 710 tests, lint clean, build clean, `npm audit` reports zero.
 - Migrations: all 18 apply to a fresh PGlite database; every mapped column
   exists, the schema is writable, and the partial unique index holds.
-- The floor plan, the projects page, the monthly report and both themes were
-  exercised in a browser against the dev server.
+- The floor plan, the projects page, the monthly report, the notification inbox
+  and both themes were exercised in a browser against the dev server.
 
 ## Risk
 
-Five migrations add columns to `five_s_layouts` (`corners`, `walls`,
-`openings`, `metres_per_unit`, `room_labels`, `snap_to_grid`,
-`show_dimensions`). All are additive with defaults; no column is dropped or
-retyped, and an older client that does not send them still saves.
+**Schema.** Eight migrations add columns to `five_s_layouts` (`corners`,
+`walls`, `openings`, `metres_per_unit`, `room_labels`, `snap_to_grid`,
+`show_dimensions`, `floor`), one adds `changes` to `audit_log_entries`, and one
+creates `notifications`. All are additive with defaults; no column is dropped
+or retyped, and an older client that does not send the new fields still saves.
+
+**Dependencies.** `react-router-dom` moved from 6 to 7 — every router API this
+application uses is unchanged there, and the whole suite and a browser pass —
+and multer is forced to a patched 2.4.0 through an override rather than by
+upgrading NestJS, which is left as its own piece of work.
+
+**Not verified.** Nobody has scanned a printed QR label with a phone, and none
+of this has run against a production deployment.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

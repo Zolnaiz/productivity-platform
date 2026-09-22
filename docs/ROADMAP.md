@@ -74,9 +74,10 @@ could be built honestly.
   translated — and the same fix: a key and its parts, worded where somebody is
   reading.
 
-- **Finish the translation.** The 5S page speaks both languages now; the
-  monthly report has about nineteen English strings left, and the profile,
-  projects and organizations pages a handful each.
+- **The translation is finished for the pages people use daily.** What is left
+  is the pages nobody has needed in Mongolian yet — the platform placeholders
+  and a few admin screens — and the strings the server builds, which is the
+  task-title item above.
 - **Move the guideline registers out of the source.** About a hundred Mongolian
   strings sit in `FiveSGuidelineRegisters.tsx`. They are not UI copy — they are
   one organization's 5S standard — so they belong in seeded organization data,

@@ -68,9 +68,9 @@ const AuditLogPage: React.FC = () => {
             onChange={(event) => setFilter(event.target.value)}
           >
             <option value="all">{t('auditLog.allEvents')}</option>
-            <option value="info">Info</option>
-            <option value="warning">Warning</option>
-            <option value="critical">Critical</option>
+            <option value="info">{t('auditLog.severityInfo')}</option>
+            <option value="warning">{t('auditLog.severityWarning')}</option>
+            <option value="critical">{t('auditLog.severityCritical')}</option>
             {modules.map((module) => (
               <option key={module} value={module}>
                 {module}

@@ -272,35 +272,35 @@ const MonthlyReportPage: React.FC = () => {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-8">
             <Card>
-              <div className="text-sm text-gray-500">Projects</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardProjects')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.totals.projects}</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Completion</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardCompletion')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.kpis.completionRate}%</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Tracked hours</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardHours')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.totals.totalHours}</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Work logs</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardWorkLogs')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.totals.workLogs}</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Daily goals</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardGoals')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.kpis.dailyGoalCompletionRate}%</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Audit runs</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardAudits')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.totals.auditRuns}</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Assessment</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardAssessment')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.kpis.averageAssessmentScore}%</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Approved cost</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardApprovedCost')}</div>
               <div className="mt-2 text-xl font-semibold">{formatMnt(report.totals.approvedExpenseTotal)}</div>
             </Card>
           </div>
@@ -353,9 +353,9 @@ const MonthlyReportPage: React.FC = () => {
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card title="Completed tasks">
+            <Card title={t('monthlyReport.completedTasks')}>
               <div className="space-y-3">
-                {report.completedTasks.length === 0 && <p className="text-sm text-gray-500">Completed task алга.</p>}
+                {report.completedTasks.length === 0 && <p className="text-sm text-gray-500">{t('monthlyReport.emptyCompletedTasks')}</p>}
                 {report.completedTasks.map((task) => (
                   <div key={task.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                     <div className="font-medium text-gray-900 dark:text-white">{task.title}</div>
@@ -365,9 +365,9 @@ const MonthlyReportPage: React.FC = () => {
               </div>
             </Card>
 
-            <Card title="Work log highlights">
+            <Card title={t('monthlyReport.workLogHighlights')}>
               <div className="space-y-3">
-                {report.workLogs.length === 0 && <p className="text-sm text-gray-500">Work log алга.</p>}
+                {report.workLogs.length === 0 && <p className="text-sm text-gray-500">{t('monthlyReport.emptyWorkLogs')}</p>}
                 {report.workLogs.map((log) => (
                   <div key={log.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                     <div className="flex items-center justify-between text-sm">
@@ -380,9 +380,9 @@ const MonthlyReportPage: React.FC = () => {
               </div>
             </Card>
 
-            <Card title="Time entries">
+            <Card title={t('monthlyReport.timeEntries')}>
               <div className="space-y-3">
-                {report.timeEntries.length === 0 && <p className="text-sm text-gray-500">Time entry алга.</p>}
+                {report.timeEntries.length === 0 && <p className="text-sm text-gray-500">{t('monthlyReport.emptyTimeEntries')}</p>}
                 {report.timeEntries.map((entry) => (
                   <div key={entry.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                     <div className="flex items-center justify-between text-sm">
@@ -396,9 +396,9 @@ const MonthlyReportPage: React.FC = () => {
             </Card>
           </div>
 
-          <Card title="Daily goals">
+          <Card title={t('monthlyReport.cardGoals')}>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {dailyGoals.length === 0 && <p className="text-sm text-gray-500">Daily goal алга.</p>}
+              {dailyGoals.length === 0 && <p className="text-sm text-gray-500">{t('monthlyReport.emptyGoals')}</p>}
               {dailyGoals.map((goal) => (
                 <div key={goal.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                   <div className="flex items-start justify-between gap-3">
@@ -427,10 +427,10 @@ const MonthlyReportPage: React.FC = () => {
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card title="Assessment responses">
+            <Card title={t('monthlyReport.assessmentResponses')}>
               <div className="space-y-3">
                 {report.assessmentResponses.length === 0 && (
-                  <p className="text-sm text-gray-500">Assessment response алга.</p>
+                  <p className="text-sm text-gray-500">{t('monthlyReport.emptyAssessments')}</p>
                 )}
                 {report.assessmentResponses.map((response) => (
                   <div key={response.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
@@ -448,16 +448,16 @@ const MonthlyReportPage: React.FC = () => {
               </div>
             </Card>
 
-            <Card title="Expense summary">
+            <Card title={t('monthlyReport.expenseSummary')}>
               <div className="space-y-3">
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div className="text-sm text-gray-500">Approved</div>
+                  <div className="text-sm text-gray-500">{t('monthlyReport.approved')}</div>
                   <div className="mt-1 text-xl font-semibold text-green-600">
                     {formatMnt(report.totals.approvedExpenseTotal)}
                   </div>
                 </div>
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div className="text-sm text-gray-500">Pending approval</div>
+                  <div className="text-sm text-gray-500">{t('monthlyReport.pendingApproval')}</div>
                   <div className="mt-1 text-xl font-semibold text-yellow-600">
                     {formatMnt(report.totals.pendingExpenseTotal)}
                   </div>
@@ -474,15 +474,15 @@ const MonthlyReportPage: React.FC = () => {
               </div>
             </Card>
 
-            <Card title="Management actions">
+            <Card title={t('monthlyReport.managementActions')}>
               <div className="space-y-3 text-sm">
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div className="font-medium text-gray-900 dark:text-white">Improvement actions</div>
+                  <div className="font-medium text-gray-900 dark:text-white">{t('monthlyReport.improvementActions')}</div>
                   <div className="mt-1 text-2xl font-semibold text-blue-600">{improvementActions}</div>
-                  <p className="mt-1 text-gray-500">Assessment score 85%-аас доош байгаа зүйлс.</p>
+                  <p className="mt-1 text-gray-500">{t('monthlyReport.improvementHint')}</p>
                 </div>
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div className="font-medium text-gray-900 dark:text-white">Pending approvals</div>
+                  <div className="font-medium text-gray-900 dark:text-white">{t('monthlyReport.pendingApprovals')}</div>
                   <div className="mt-1 text-2xl font-semibold text-yellow-600">{pendingExpenses.length}</div>
                   <p className="mt-1 text-gray-500">Submitted expenses waiting for owner/admin decision.</p>
                 </div>

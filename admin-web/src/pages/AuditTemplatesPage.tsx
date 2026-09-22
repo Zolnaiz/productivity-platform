@@ -300,8 +300,8 @@ const AuditTemplatesPage: React.FC = () => {
                         setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
                       }
                     >
-                      <option value="no">No</option>
-                      <option value="yes">Yes</option>
+                      <option value="no">{t('auditTemplates.answerNo')}</option>
+                      <option value="yes">{t('auditTemplates.answerYes')}</option>
                     </Select>
                   )}
                   {question.type === 'text' && (

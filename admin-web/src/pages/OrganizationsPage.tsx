@@ -76,11 +76,11 @@ const OrganizationsPage: React.FC = () => {
             onChange={(event) => updateField('industry', event.target.value)}
           >
             <option>Manufacturing / Operations</option>
-            <option>Construction</option>
-            <option>Hospitality</option>
-            <option>Retail</option>
-            <option>Logistics</option>
-            <option>Facility management</option>
+            <option>{t('organizations.industryConstruction')}</option>
+            <option>{t('organizations.industryHospitality')}</option>
+            <option>{t('organizations.industryRetail')}</option>
+            <option>{t('organizations.industryLogistics')}</option>
+            <option>{t('organizations.industryFacility')}</option>
           </Select>
           <Input
             label={t('organizations.contactEmail')}

@@ -293,11 +293,11 @@ const ProjectsPage: React.FC = () => {
                 value={project.status}
                 onChange={(event) => updateStatus(project, event.target.value as Project['status'])}
               >
-                <option value="planned">Planned</option>
-                <option value="active">Active</option>
-                <option value="on_hold">On hold</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="planned">{t('projects.statusPlanned')}</option>
+                <option value="active">{t('projects.statusActive')}</option>
+                <option value="on_hold">{t('projects.statusOnHold')}</option>
+                <option value="completed">{t('projects.statusCompleted')}</option>
+                <option value="cancelled">{t('projects.statusCancelled')}</option>
               </Select>
             </div>
 

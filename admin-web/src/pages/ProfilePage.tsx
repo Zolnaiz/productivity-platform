@@ -156,11 +156,11 @@ const ProfilePage: React.FC = () => {
           <div className="mt-2 text-3xl font-semibold">{summary.focusMinutes}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Goals</div>
+          <div className="text-sm text-gray-500">{t('profile.goals')}</div>
           <div className="mt-2 text-3xl font-semibold">{summary.completedGoals.length}/{goals.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Badges</div>
+          <div className="text-sm text-gray-500">{t('profile.badges')}</div>
           <div className="mt-2 text-3xl font-semibold">{summary.earnedBadges.length}</div>
         </Card>
       </div>
@@ -211,14 +211,14 @@ const ProfilePage: React.FC = () => {
           </div>
         </Card>
 
-        <Card title="Quality signals">
+        <Card title={t('profile.qualitySignals')}>
           <div className="space-y-3">
             <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              <div className="text-sm text-gray-500">Average audit score</div>
+              <div className="text-sm text-gray-500">{t('profile.averageAuditScore')}</div>
               <div className="mt-1 text-2xl font-semibold text-blue-600">{summary.averageAuditScore}%</div>
             </div>
             <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              <div className="text-sm text-gray-500">Average assessment score</div>
+              <div className="text-sm text-gray-500">{t('profile.averageAssessmentScore')}</div>
               <div className="mt-1 text-2xl font-semibold text-purple-600">{summary.averageAssessmentScore}%</div>
             </div>
             {summary.earnedBadges.length ? (
@@ -231,7 +231,7 @@ const ProfilePage: React.FC = () => {
             ) : (
               <EmptyState
                 icon={ClipboardList}
-                title="No earned badges yet"
+                title={t('profile.noBadges')}
                 description="Recognition and quality achievements will appear here."
               />
             )}

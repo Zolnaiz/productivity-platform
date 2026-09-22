@@ -60,15 +60,15 @@ const AdminDashboardPage: React.FC = () => {
             <Card title={t('adminDashboard.workspace')}>
           <div className="space-y-3 text-sm">
             <div>
-              <div className="text-gray-500">Name</div>
+              <div className="text-gray-500">{t('admin.fieldName')}</div>
               <div className="font-medium text-gray-900 dark:text-white">{profile.name}</div>
             </div>
             <div>
-              <div className="text-gray-500">Industry</div>
+              <div className="text-gray-500">{t('admin.fieldIndustry')}</div>
               <div className="font-medium text-gray-900 dark:text-white">{profile.industry}</div>
             </div>
             <div>
-              <div className="text-gray-500">Contact</div>
+              <div className="text-gray-500">{t('admin.fieldContact')}</div>
               <div className="font-medium text-gray-900 dark:text-white">{profile.contactEmail}</div>
             </div>
           </div>
