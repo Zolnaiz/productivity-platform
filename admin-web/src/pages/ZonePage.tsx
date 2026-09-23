@@ -1,13 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, ArrowLeft, CalendarCheck, ClipboardList, MapPin, UserCheck } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Building2,
+  CalendarCheck,
+  ClipboardList,
+  MapPin,
+  UserCheck,
+} from 'lucide-react';
 import { fiveSLayoutService } from '../services/fiveSLayout.service';
 import { FiveSLayoutPlan, FiveSZone } from '../types/fiveS.types';
 import { getAuditDueDate, isAuditDue } from '../components/fives/auditSchedule';
 import { getRedTagCount, isOpenRedTag, stageKeys } from '../components/fives/floorPlanRules';
 import ZoneAuditWalk from '../components/fives/ZoneAuditWalk';
 import PhotoEvidence from '../components/common/PhotoEvidence';
+import { peopleService } from '../services/people.service';
+import { Department } from '../types/people.types';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
@@ -68,6 +78,15 @@ const ZonePage: React.FC = () => {
    * belong to — and the person is still standing in the area.
    */
   const [recordedRunId, setRecordedRunId] = useState('');
+  /**
+   * The department answering for this area.
+   *
+   * The label names a person, and a person leaves. Somebody standing here
+   * wanting to escalate needs to know which part of the organization the area
+   * belongs to — the zone carries the id, and only this list can turn it into
+   * a name.
+   */
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -82,6 +101,22 @@ const ZonePage: React.FC = () => {
       active = false;
     };
   }, [planId]);
+
+  useEffect(() => {
+    let active = true;
+
+    // Its own request, and its own failure: a department list that cannot be
+    // fetched costs one line of this page, not the standard somebody came to
+    // read.
+    peopleService
+      .getDepartments()
+      .then((loaded) => active && setDepartments(loaded))
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const zone: FiveSZone | undefined = plan?.zones.find((item) => item.id === zoneId);
 
@@ -208,6 +243,12 @@ const ZonePage: React.FC = () => {
   }
 
   const openTags = (zone.redTags ?? []).filter(isOpenRedTag);
+  /*
+    Nothing is shown for an area in no department, or one whose department has
+    been retired: a line reading "unknown" tells somebody standing in front of
+    a machine less than no line at all.
+  */
+  const department = departments.find((item) => item.id === zone.departmentId);
   const due = isAuditDue(zone);
 
   return (
@@ -228,6 +269,12 @@ const ZonePage: React.FC = () => {
             <UserCheck className="h-4 w-4" aria-hidden="true" />
             {zone.ownerName || t('fiveS.ui.unassigned')}
           </span>
+          {department && (
+            <span className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
+              <Building2 className="h-4 w-4" aria-hidden="true" />
+              {department.name}
+            </span>
+          )}
         </div>
       </header>
 

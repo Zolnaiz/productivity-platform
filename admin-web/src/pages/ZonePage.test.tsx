@@ -9,6 +9,7 @@ const serviceMocks = vi.hoisted(() => ({
   markCleaned: vi.fn(),
   getAuditTemplates: vi.fn(),
   createAuditRun: vi.fn(),
+  getDepartments: vi.fn(),
 }));
 
 vi.mock('../services/fiveSLayout.service', () => ({
@@ -28,6 +29,10 @@ vi.mock('../components/common/PhotoEvidence', () => ({
   default: ({ ownerType, ownerId }: { ownerType: string; ownerId: string }) => (
     <div data-testid="photo-evidence">{`${ownerType}:${ownerId}`}</div>
   ),
+}));
+
+vi.mock('../services/people.service', () => ({
+  peopleService: { getDepartments: serviceMocks.getDepartments },
 }));
 
 vi.mock('../services/operations.service', () => ({
@@ -96,6 +101,8 @@ describe('the page a zone label opens', () => {
   beforeEach(() => {
     signedIn.role = 'admin';
     signedIn.permissions = ['redtags:create', 'zones:clean', 'audits:create', 'attachments:create'];
+    serviceMocks.getDepartments.mockReset();
+    serviceMocks.getDepartments.mockResolvedValue([{ id: 'dept-1', name: 'Quality' }]);
     serviceMocks.getAuditTemplates.mockReset();
     serviceMocks.getAuditTemplates.mockResolvedValue([
       {
@@ -411,5 +418,33 @@ describe('the page a zone label opens', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Raise the tag' }));
 
     expect(await screen.findByText(/was not saved/)).toBeTruthy();
+  });
+
+  it('names the department answering for the area', async () => {
+    // The label names a person, and a person leaves. Somebody standing here
+    // wanting to escalate needs to know which part of the organization this
+    // area belongs to.
+    serviceMocks.getPlan.mockResolvedValue(plan({ zones: [zone({ departmentId: 'dept-1' })] }));
+
+    renderZone();
+
+    expect(await screen.findByText('Quality')).toBeTruthy();
+  });
+
+  it('says nothing at all for an area in no department', async () => {
+    // A line reading "unknown" tells somebody standing in front of a machine
+    // less than no line at all.
+    renderZone();
+    await screen.findByText('A03 · Storage');
+
+    expect(screen.queryByText('Quality')).toBeNull();
+  });
+
+  it('still shows the standard when the departments cannot be fetched', async () => {
+    serviceMocks.getDepartments.mockRejectedValue(new Error('offline'));
+
+    renderZone();
+
+    expect(await screen.findByText('Every shelf position labelled, min/max stock marked.')).toBeTruthy();
   });
 });
