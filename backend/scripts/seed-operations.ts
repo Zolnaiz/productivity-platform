@@ -1,5 +1,6 @@
 import dataSource from '../src/migrations/data-source';
 import * as bcrypt from 'bcrypt';
+import { defaultGuidelineContent } from '../src/operations/five-s-guideline-content';
 
 const organizationId = process.env.SEED_ORGANIZATION_ID || '11111111-1111-4111-8111-000000000001';
 const ownerId = process.env.SEED_OWNER_ID || '22222222-2222-4222-8222-000000000001';
@@ -388,6 +389,25 @@ async function seed() {
         "updatedAt" = now()
     `,
     [expenseOne, organizationId, projectOne],
+  );
+
+  /*
+    The 5S standard the organization starts with: its cadence, its labelling
+    rules, its assessment criteria and its checklists. These were a hundred
+    Mongolian strings inside a React component, which meant every customer read
+    one customer's standard and that customer could not change a word of their
+    own without a release. Seeded rather than assumed, and theirs to edit.
+
+    Only when there is nothing there: re-seeding must not overwrite a standard
+    somebody has since changed.
+  */
+  await dataSource.query(
+    `
+      INSERT INTO five_s_guidelines (id, organization_id, content, records)
+      VALUES (gen_random_uuid(), $1, $2, '{}'::jsonb)
+      ON CONFLICT DO NOTHING
+    `,
+    [organizationId, json(defaultGuidelineContent)],
   );
 
   await dataSource.destroy();

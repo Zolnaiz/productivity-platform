@@ -54,9 +54,9 @@ const user = { id: 'user-1', organizationId: 'org-1' };
  * it was lost with every new laptop and shared with nobody.
  */
 describe('the 5S register', () => {
-  it('gives an organization that has never had one an empty register', async () => {
+  it('gives an organization that has never had one a standard to start from', async () => {
     // Nothing has gone wrong — the programme simply has not started — and a
-    // refusal would read as a fault.
+    // blank page is a worse answer than a sensible standard they can change.
     const { service, repositories } = createService();
 
     const register = await service.findFiveSGuideline(user);
@@ -64,9 +64,25 @@ describe('the 5S register', () => {
     expect(repositories.guidelines.findOne).toHaveBeenCalledWith({
       where: { organizationId: 'org-1' },
     });
-    expect(register).toMatchObject({ organizationId: 'org-1', content: {}, records: {} });
-    // Not saved: looking at an empty register should not create a row.
+    expect(register.organizationId).toBe('org-1');
+    expect(register.records).toEqual({});
+    expect((register.content as { labelStandards?: string[] }).labelStandards?.length).toBeGreaterThan(0);
+    // Not saved: looking at a register should not create a row.
     expect(repositories.guidelines.save).not.toHaveBeenCalled();
+  });
+
+  it("leaves an organization's own standard alone", async () => {
+    const { service, repositories } = createService();
+    repositories.guidelines.findOne.mockResolvedValue({
+      id: 'g1',
+      organizationId: 'org-1',
+      content: { labelStandards: ['Ours, not theirs'] },
+      records: {},
+    });
+
+    const register = await service.findFiveSGuideline(user);
+
+    expect(register.content).toEqual({ labelStandards: ['Ours, not theirs'] });
   });
 
   it('reads only this organization', async () => {

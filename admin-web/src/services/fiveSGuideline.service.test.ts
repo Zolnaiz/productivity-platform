@@ -43,10 +43,10 @@ describe('the registers a 5S programme keeps', () => {
   it('reads the organization register rather than this browser', async () => {
     apiMocks.get.mockResolvedValue({ records: state({ improvements: [{ id: 'i1' }] }) });
 
-    const loaded = await (await load()).getState();
+    const loaded = await (await load()).getRegister();
 
     expect(apiMocks.get).toHaveBeenCalledWith('/five-s-guidelines');
-    expect(loaded.improvements).toEqual([{ id: 'i1' }]);
+    expect(loaded.records.improvements).toEqual([{ id: 'i1' }]);
   });
 
   it('shows an empty register as empty, not as the demo sample', async () => {
@@ -54,10 +54,10 @@ describe('the registers a 5S programme keeps', () => {
     // shown somebody else's cable-tray finding as though it were theirs.
     apiMocks.get.mockResolvedValue({ records: { updatedAt: '2026-09-01T00:00:00.000Z' } });
 
-    const loaded = await (await load()).getState();
+    const loaded = await (await load()).getRegister();
 
-    expect(loaded.improvements).toEqual([]);
-    expect(loaded.implementationCards).toEqual([]);
+    expect(loaded.records.improvements).toEqual([]);
+    expect(loaded.records.implementationCards).toEqual([]);
   });
 
   it('sends the records and nothing else', async () => {
@@ -96,9 +96,9 @@ describe('the registers a 5S programme keeps', () => {
       JSON.stringify(state({ improvements: [{ id: 'local' }] })),
     );
 
-    const loaded = await (await load()).getState();
+    const loaded = await (await load()).getRegister();
 
-    expect(loaded.improvements).toEqual([{ id: 'local' }]);
+    expect(loaded.records.improvements).toEqual([{ id: 'local' }]);
   });
 
   it('lets the failure through when a deployment forbids the fallback', async () => {
@@ -107,7 +107,7 @@ describe('the registers a 5S programme keeps', () => {
     apiMocks.get.mockRejectedValue(new Error('offline'));
     apiMocks.fallback = false;
 
-    await expect((await load()).getState()).rejects.toThrow('offline');
+    await expect((await load()).getRegister()).rejects.toThrow('offline');
   });
 
   it('stays entirely local in demo mode', async () => {
@@ -118,6 +118,6 @@ describe('the registers a 5S programme keeps', () => {
 
     expect(apiMocks.get).not.toHaveBeenCalled();
     expect(apiMocks.patch).not.toHaveBeenCalled();
-    expect((await service.getState()).improvements).toEqual([{ id: 'demo' }]);
+    expect((await service.getRegister()).records.improvements).toEqual([{ id: 'demo' }]);
   });
 });

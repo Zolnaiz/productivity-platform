@@ -105,11 +105,13 @@ could be built honestly.
   task-title item above.
 - **The 5S registers belong to the organization now.** The improvement record,
   the red-tag cards, the assessment scores and the checklist progress are
-  stored and shared rather than kept in the browser that typed them. What has
-  not moved yet is the standard they are kept against: about a hundred
-  Mongolian strings still sit in `FiveSGuidelineRegisters.tsx`, and the table
-  has a column waiting for them — they are one organization's 5S standard, not
-  UI copy, and a second organization should be able to have its own.
+  stored and shared rather than kept in the browser that typed them. The standard they are
+  kept against moved with them: the cadence, the labelling rules, the
+  thirty-five assessment criteria and the checklists are seeded into the
+  organization's own row rather than living in a React component, and the demo
+  carries a deliberately smaller sample. What is missing is the screen to edit
+  them — the data is the organization's, and changing it still means a
+  database write by hand.
 
 ### 5. Mobile
 

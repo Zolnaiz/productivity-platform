@@ -278,6 +278,26 @@ export interface FiveSChecklistProgress {
   note: string;
 }
 
+/**
+ * The 5S standard an organization works to.
+ *
+ * Not UI copy: the cadence, the labelling rules, the assessment criteria and
+ * the checklists are the customer's own, and they used to be a hundred
+ * Mongolian strings inside the component that drew them — so every
+ * organization read one customer's standard and that customer could not change
+ * a word of it without a release. They come from the organization's register
+ * now; see `backend/src/operations/five-s-guideline-content.ts` for what a new
+ * organization is created with.
+ */
+export interface FiveSGuidelineContent {
+  operatingCadence: Array<{ title: string; timing: string; detail: string }>;
+  labelStandards: string[];
+  assessmentCriteria: Array<{ id: string; category: string; criterion: string }>;
+  publicChecklistGroups: Array<{ code: string; title: string; items: string[] }>;
+  /** What a full assessment adds up to, for the percentage on screen. */
+  maxScore: number;
+}
+
 export interface FiveSGuidelineState {
   improvements: FiveSImprovementRecord[];
   implementationCards: FiveSImplementationCard[];

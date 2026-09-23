@@ -15,6 +15,7 @@ import { DailyGoal } from './entities/daily-goal.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
 import { Department } from './entities/department.entity';
 import { FiveSGuideline } from './entities/five-s-guideline.entity';
+import { defaultGuidelineContent } from './five-s-guideline-content';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { projectProgressPercent, summarisePeople } from './monthly-people';
 import { NotificationsService } from './notifications.service';
@@ -118,7 +119,25 @@ export class OperationsService {
     const where = this.organizationWhere(user);
     const existing = await this.guidelines.findOne({ where });
 
-    return existing ?? this.guidelines.create({ ...where, content: {}, records: {} });
+    if (!existing) {
+      return this.guidelines.create({
+        ...where,
+        content: defaultGuidelineContent as unknown as Record<string, unknown>,
+        records: {},
+      });
+    }
+
+    /*
+      A standard to start from rather than a blank page. The default is one
+      customer's 5S standard written down as data — an organization that has
+      not edited theirs is better served by a sensible one they can change
+      than by nothing at all, which is what the page would otherwise show.
+    */
+    if (!existing.content || !Object.keys(existing.content).length) {
+      existing.content = defaultGuidelineContent as unknown as Record<string, unknown>;
+    }
+
+    return existing;
   }
 
   /**
