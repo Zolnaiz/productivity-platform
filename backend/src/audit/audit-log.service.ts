@@ -19,6 +19,8 @@ export interface RecordableAction {
   severity: AuditLogEntry['severity'];
   /** A summary of what the request asked to change; see `change-summary.ts`. */
   changes?: ChangeSummary | null;
+  /** What those fields held before, when the service could say; see `audit-context.ts`. */
+  before?: ChangeSummary | null;
 }
 
 /**

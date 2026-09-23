@@ -50,11 +50,12 @@ person notices within a week of real use.
   provider — and the fact that no live SMTP send has been exercised: the tests
   cover the wiring, the wording and the failures, against a transport that
   records rather than sends.
-- **The audit trail's remaining half.** It now records what a request asked to
-  change and keeps entries two years. What it still cannot say is what a value
-  was *before*, because an interceptor sees the request and the response and
-  never the row as it stood. Doing that means reading the record before the
-  write, on the routes where it is worth the cost.
+- **The audit trail says what a value was before.** The services that make a
+  change already load the record, so they hand over the fields they are about
+  to overwrite through an async-local context and the interceptor records
+  both halves. What is still one-sided is a delete — the row is gone and the
+  entry says only that it went — and any route whose service does not load
+  the record first.
 
 ### 3. 5S where the building is real
 

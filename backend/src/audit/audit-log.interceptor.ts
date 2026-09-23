@@ -5,6 +5,7 @@ import { AuditLogEntry } from './entities/audit-log-entry.entity';
 import { AuditLogService } from './audit-log.service';
 import { API_PREFIX } from '../app-config';
 import { summariseChange } from './change-summary';
+import { auditBefore } from './audit-context';
 
 const readOnlyMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
 
@@ -74,9 +75,11 @@ export const severityFor = (method: string, action: string): AuditLogEntry['seve
  * a floor plan's background image cannot make a row nobody can query. See
  * `change-summary.ts`.
  *
- * What is recorded is the change that was *asked for*. An interceptor sees the
- * request and the response, never the row as it stood, so this cannot say what
- * a value was before — and does not pretend to.
+ * What is recorded is the change that was *asked for*, and — where the service
+ * making it loaded the record first, which is every update in this application
+ * — what those fields held before. An interceptor still never sees the row
+ * itself; the service hands over what it is about to overwrite, through an
+ * async-local store. See `audit-context.ts`.
  */
 @Injectable()
 export class AuditLogInterceptor implements NestInterceptor {
@@ -125,6 +128,9 @@ export class AuditLogInterceptor implements NestInterceptor {
               statusCode: response.statusCode ?? 200,
               severity: severityFor(method, action),
               changes: summariseChange(request.body),
+              // What those fields held before, when the service that made the
+              // change loaded the record first — which is every update here.
+              before: auditBefore(),
             })
             .catch((error) => this.logger.error(`Audit entry rejected: ${(error as Error).message}`));
         } catch (error) {

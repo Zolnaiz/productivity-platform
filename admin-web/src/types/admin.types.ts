@@ -80,5 +80,16 @@ export interface AuditLogEntry {
     values: Record<string, unknown>;
     more?: number;
   } | null;
+  /**
+   * What those fields held before the change, summarised the same way.
+   *
+   * Absent when nothing could say: a creation has no before, and neither has
+   * an entry written before the trail recorded this.
+   */
+  before?: {
+    fields: string[];
+    values: Record<string, unknown>;
+    more?: number;
+  } | null;
   createdAt: string;
 }

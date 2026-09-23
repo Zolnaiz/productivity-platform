@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Organization } from './entities/organization.entity';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
+import { noteAuditBefore } from '../audit/audit-context';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 
 /**
@@ -86,7 +87,11 @@ export class OrganizationsService {
       }
     }
 
+    // What these fields held before they are overwritten. The record is
+    // already loaded, so the trail gets its other half for nothing.
+    noteAuditBefore(organization, Object.keys(changes));
     Object.assign(organization, changes);
+
     return this.organizations.save(organization);
   }
 

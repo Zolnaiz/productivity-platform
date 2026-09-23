@@ -4,6 +4,7 @@ import { TransformInterceptor } from './shared/interceptors/transform.intercepto
 import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
 import { MetricsInterceptor } from './shared/metrics/metrics.interceptor';
 import { MetricsService } from './shared/metrics/metrics.service';
+import { withAuditContext } from './audit/audit-context';
 
 /**
  * The prefix every route sits under.
@@ -29,6 +30,19 @@ export const API_PREFIX = 'api';
  * stays in `main.ts`, because none of it changes how a handler behaves.
  */
 export const configureRequestHandling = (app: INestApplication, metrics: MetricsService) => {
+  /*
+    Every request runs inside an audit context, so a service can hand over the
+    values it is about to overwrite without knowing a request exists.
+
+    Here rather than as a Nest middleware class: this is the one place both the
+    application and the HTTP specs build their request handling, and an audit
+    trail that is complete in production and empty in the tests proving it is
+    complete is worth nothing. It has to wrap the handler, which an
+    interceptor cannot do — Nest subscribes to an interceptor's observable
+    after the scope opened inside it has closed.
+  */
+  app.use((_request: unknown, _response: unknown, next: () => void) => withAuditContext(next));
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

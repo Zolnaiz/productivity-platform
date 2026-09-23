@@ -72,7 +72,7 @@ describe('audit log over HTTP', () => {
         {
           provide: getRepositoryToken(Organization),
           useValue: {
-            findOne: jest.fn(async () => ({ id: 'org-1', name: 'MPC' })),
+            findOne: jest.fn(async () => ({ id: 'org-1', name: 'MPC', address: 'Darkhan' })),
             create: jest.fn((value) => value),
             save: jest.fn(async (value) => value),
           },
@@ -148,6 +148,29 @@ describe('audit log over HTTP', () => {
       // Through the real pipe and guard stack: the entry says which field was
       // changed and to what, which is the first thing a reader asks.
       expect(saved[0].changes).toEqual({ fields: ['address'], values: { address: 'Ulaanbaatar' } });
+    });
+
+    it('records what the value was before, not only what it became', async () => {
+      // "Somebody set the address to Ulaanbaatar" is half an answer. The
+      // service loads the record before writing it, so the other half costs
+      // nothing — and an interceptor could never have supplied it.
+      await request(app.getHttpServer())
+        .patch('/api/organizations/my-organization')
+        .send({ address: 'Ulaanbaatar' })
+        .expect(200);
+
+      expect(saved[0].before).toEqual({ fields: ['address'], values: { address: 'Darkhan' } });
+    });
+
+    it('records no before for something that did not exist yet', async () => {
+      // A field nobody had set is a creation of that field, and an empty
+      // before would read as if it had held nothing in particular.
+      await request(app.getHttpServer())
+        .patch('/api/organizations/my-organization')
+        .send({ phone: '+976 11 000000' })
+        .expect(200);
+
+      expect(saved[0].before).toBeUndefined();
     });
 
     it('cannot be sent a secret to record in the first place', async () => {

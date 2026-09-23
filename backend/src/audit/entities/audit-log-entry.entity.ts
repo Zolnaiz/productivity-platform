@@ -66,6 +66,17 @@ export class AuditLogEntry {
   @Column({ type: 'jsonb', nullable: true })
   changes?: ChangeSummary | null;
 
+  /**
+   * What those fields held before the change.
+   *
+   * Null when nothing could say — a creation has no before, and a route whose
+   * service does not load the record first has nothing to hand over. Summarised
+   * by the same rules as the change itself, so a secret cannot reach the table
+   * by this door either.
+   */
+  @Column({ type: 'jsonb', name: 'before_values', nullable: true })
+  before?: ChangeSummary | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

@@ -131,14 +131,28 @@ const AuditLogPage: React.FC = () => {
 
                 return (
                   <div className="space-y-0.5">
-                    {log.changes.fields.slice(0, 4).map((field) => (
-                      <div key={field} className="text-xs">
-                        <span className="text-gray-500">{field}</span>
-                        <span className="ml-1 text-gray-800 dark:text-gray-200">
-                          {String(log.changes?.values?.[field] ?? '')}
-                        </span>
-                      </div>
-                    ))}
+                    {log.changes.fields.slice(0, 4).map((field) => {
+                      /*
+                        What it was, when the trail could say. "Set to monthly"
+                        is half an answer; the question a reader is asking is
+                        what it was before they set it.
+                      */
+                      const had = log.before?.fields?.includes(field)
+                        ? String(log.before?.values?.[field] ?? '')
+                        : null;
+
+                      return (
+                        <div key={field} className="text-xs">
+                          <span className="text-gray-500">{field}</span>
+                          {had !== null && (
+                            <span className="ml-1 text-gray-400 line-through">{had}</span>
+                          )}
+                          <span className="ml-1 text-gray-800 dark:text-gray-200">
+                            {String(log.changes?.values?.[field] ?? '')}
+                          </span>
+                        </div>
+                      );
+                    })}
                     {(log.changes.fields.length > 4 || log.changes.more) && (
                       <div className="text-xs text-gray-400">
                         {t('auditLog.moreFields', {

@@ -17,6 +17,7 @@ import { Department } from './entities/department.entity';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { projectProgressPercent, summarisePeople } from './monthly-people';
 import { NotificationsService } from './notifications.service';
+import { noteAuditBefore } from '../audit/audit-context';
 
 type CurrentUser = {
   id?: string;
@@ -1126,6 +1127,12 @@ export class OperationsService {
   private assignWithoutOrganizationChange<T extends { organizationId?: string }>(entity: T, payload: Partial<T>) {
     const safePayload = { ...payload };
     delete safePayload.organizationId;
+    /*
+      Every update here loads the record, assigns and saves, so this is the one
+      place that can say what a value was before it was overwritten — and the
+      trail could only ever say what the change asked for.
+    */
+    noteAuditBefore(entity, Object.keys(safePayload));
     Object.assign(entity, safePayload);
   }
 
@@ -1136,6 +1143,7 @@ export class OperationsService {
     const safePayload = { ...payload };
     delete safePayload.organizationId;
     delete safePayload.userId;
+    noteAuditBefore(entity, Object.keys(safePayload));
     Object.assign(entity, safePayload);
   }
 }
