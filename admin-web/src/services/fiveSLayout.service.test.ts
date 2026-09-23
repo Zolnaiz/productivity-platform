@@ -37,13 +37,73 @@ describe('fiveSLayoutService demo storage', () => {
   });
 
   it('recovers the default layout when stored data is invalid JSON', async () => {
-    localStorage.setItem('productivity-demo-5s-layout', '{broken-json');
+    localStorage.setItem('productivity-demo-5s-layouts', '{broken-json');
     const { fiveSLayoutService } = await import('./fiveSLayout.service');
 
     const plan = await fiveSLayoutService.getPlan();
 
     expect(plan.zones.length).toBeGreaterThan(0);
-    expect(localStorage.getItem('productivity-demo-5s-layout')).not.toBe('{broken-json');
+    expect(localStorage.getItem('productivity-demo-5s-layouts')).not.toBe('{broken-json');
+  });
+
+  it('carries forward a plan drawn before the demo held more than one', async () => {
+    // Somebody's demo is their work: seeding fresh fixtures over it would be
+    // the one thing they would notice.
+    localStorage.setItem(
+      'productivity-demo-5s-layout',
+      JSON.stringify({
+        id: 'their-plan',
+        name: 'Their plan',
+        site: 'Theirs',
+        scale: '1 square = 1 meter',
+        zones: [{ id: 'z1', code: 'A01', name: 'Theirs', stage: 'sort', auditFrequency: 'weekly' }],
+        objects: [],
+      }),
+    );
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    const plans = await fiveSLayoutService.getPlans();
+
+    expect(plans).toHaveLength(1);
+    expect(plans[0].id).toBe('their-plan');
+    expect(localStorage.getItem('productivity-demo-5s-layout')).toBeNull();
+  });
+
+  it('seeds a second building, so a plan per floor is visible without a backend', async () => {
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    const plans = await fiveSLayoutService.getPlans();
+
+    expect(plans.length).toBeGreaterThan(1);
+    expect(new Set(plans.map((plan) => plan.site)).size).toBeGreaterThan(1);
+  });
+
+  it('adds a real second plan rather than pretending to', async () => {
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+    const before = (await fiveSLayoutService.getPlans()).length;
+
+    const added = await fiveSLayoutService.createPlan({ name: 'Mezzanine', site: 'Demo Warehouse', floor: 'Mezzanine' });
+    const after = await fiveSLayoutService.getPlans();
+
+    expect(after).toHaveLength(before + 1);
+    expect(after.some((plan) => plan.id === added.id)).toBe(true);
+    // Empty: a floor somebody adds is a floor they then draw on.
+    expect(added.zones).toHaveLength(0);
+  });
+
+  it('will not delete the last plan an organization has', async () => {
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+    const plans = await fiveSLayoutService.getPlans();
+
+    for (const plan of plans.slice(1)) {
+      await fiveSLayoutService.deletePlan(plan.id);
+    }
+
+    await expect(fiveSLayoutService.deletePlan(plans[0].id)).resolves.toEqual({
+      id: plans[0].id,
+      deleted: false,
+    });
+    expect(await fiveSLayoutService.getPlans()).toHaveLength(1);
   });
 
   it('normalizes stored plans that predate red-tag metadata', async () => {

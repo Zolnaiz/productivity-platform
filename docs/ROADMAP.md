@@ -64,9 +64,9 @@ could be built honestly.
 - **Multi-site reads as multi-site.** The monthly report carries a row per
   building — floors, areas, average score, open red tags, overdue audits —
   shown only once an organization has more than one, because a single-site
-  plant does not need a table telling it so. What is still single-site is the
-  demo workspace: it holds one plan, so nobody evaluating the product sees the
-  second building, or the floor switcher, without a backend.
+  plant does not need a table telling it so. The demo workspace holds two buildings, so the
+  switcher, the per-building rollup and an audit that repaints the right floor
+  are all visible without a backend.
 - **A QR code per zone is in**, and the page it opens is now where the work
   happens: raise a red tag, record that the area was cleaned, or walk the 5S
   checklist itself, question by question, with the score shown before it is

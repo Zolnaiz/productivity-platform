@@ -91,7 +91,7 @@ test('a zone label opens the area it names', async ({ page }) => {
   await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
 
   const target = await page.evaluate(() => {
-    const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+    const [plan] = JSON.parse(localStorage.getItem('productivity-demo-5s-layouts') || '[]');
     return { planId: plan.id as string, zoneId: plan.zones?.[0]?.id as string };
   });
 
@@ -108,7 +108,7 @@ test('a red tag can be raised from the label, one-handed', async ({ page }) => {
   await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
 
   const target = await page.evaluate(() => {
-    const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+    const [plan] = JSON.parse(localStorage.getItem('productivity-demo-5s-layouts') || '[]');
     return { planId: plan.id as string, zoneId: plan.zones?.[0]?.id as string };
   });
 
@@ -131,7 +131,7 @@ test('cleaning can be recorded from the label, and the stored date is shown', as
   await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
 
   const target = await page.evaluate(() => {
-    const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+    const [plan] = JSON.parse(localStorage.getItem('productivity-demo-5s-layouts') || '[]');
     return { planId: plan.id as string, zoneId: plan.zones?.[0]?.id as string };
   });
 
@@ -141,14 +141,14 @@ test('cleaning can be recorded from the label, and the stored date is shown', as
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+        const [plan] = JSON.parse(localStorage.getItem('productivity-demo-5s-layouts') || '[]');
         return plan.zones?.[0]?.lastCleanedAt as string;
       }),
     )
     .toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
   const stored = await page.evaluate(() => {
-    const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+    const [plan] = JSON.parse(localStorage.getItem('productivity-demo-5s-layouts') || '[]');
     return plan.zones?.[0]?.lastCleanedAt as string;
   });
   await expect(page.getByText(stored)).toBeVisible();
@@ -163,7 +163,7 @@ test('a checklist can be walked from the label, and a failing area raises work',
   await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
 
   const target = await page.evaluate(() => {
-    const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+    const [plan] = JSON.parse(localStorage.getItem('productivity-demo-5s-layouts') || '[]');
     return { planId: plan.id as string, zoneId: plan.zones?.[0]?.id as string };
   });
 
@@ -183,7 +183,7 @@ test('a checklist can be walked from the label, and a failing area raises work',
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const plan = JSON.parse(localStorage.getItem('productivity-demo-5s-layout') || '{}');
+        const [plan] = JSON.parse(localStorage.getItem('productivity-demo-5s-layouts') || '[]');
         return plan.zones?.[0]?.lastAuditScore as number;
       }),
     )

@@ -2,8 +2,8 @@ import { FiveSLayoutPlan, FiveSRedTag, FiveSZone, FloorPlanObject, FloorPlanObje
 import { withSyncedRedTags } from '../components/fives/floorPlanRules';
 import { pruneOpenings } from '../components/fives/floorPlanOpenings';
 import { del, get, getStoredAccessToken, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
+import { readDemoPlans, replaceDemoPlan, writeDemoPlans } from './demoPlanStore';
 
-const storageKey = 'productivity-demo-5s-layout';
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
 
 const now = () => new Date().toISOString();
@@ -233,6 +233,7 @@ const defaultPlan: FiveSLayoutPlan = {
   id: 'default-5s-office-plan',
   name: 'Office 5S launch map',
   site: 'Demo Operations Workspace',
+  floor: '1st floor',
   scale: '1 square = 1 meter',
   backgroundImage: '',
   backgroundOpacity: 0.55,
@@ -241,6 +242,80 @@ const defaultPlan: FiveSLayoutPlan = {
   objects: defaultObjects,
   updatedAt: now(),
 };
+
+/**
+ * The demo's second building.
+ *
+ * A plan per floor, a site per building and the switcher between them are
+ * among the most-worked-on parts of this application, and none of it could be
+ * seen in the demo, which held exactly one plan. Somebody evaluating the
+ * product concluded it did one floor of one building.
+ *
+ * Deliberately small: two areas and no furniture. It exists to show that a
+ * second plan is a real thing with its own zones, its own audits and its own
+ * line in the monthly report, not to be a second drawing to admire.
+ */
+const defaultWarehousePlan: FiveSLayoutPlan = {
+  id: 'default-5s-warehouse-plan',
+  name: 'Warehouse 5S map',
+  site: 'Demo Warehouse',
+  floor: 'Ground floor',
+  scale: '1 square = 1 meter',
+  backgroundImage: '',
+  backgroundOpacity: 0.55,
+  showGrid: true,
+  zones: [
+    {
+      id: 'zone-w1',
+      code: 'B01',
+      name: 'Goods in',
+      color: '#f97316',
+      x: 60,
+      y: 60,
+      width: 300,
+      height: 180,
+      ownerId: 'u3',
+      ownerName: 'Employee User',
+      departmentId: 'd1',
+      contents: 'Incoming pallets, hand scanner, wrapping station',
+      standard: 'Pallets squared to the floor marking, aisle kept clear, scanner returned to its dock.',
+      labelText: 'Goods in - pallets on the marked squares',
+      stage: 'set_in_order',
+      auditFrequency: 'weekly',
+      lastAuditScore: 76,
+      lastAuditAt: '2026-06-18',
+      redTagCount: 0,
+      redTags: [],
+      lastCleanedAt: '2026-06-18',
+    },
+    {
+      id: 'zone-w2',
+      code: 'B02',
+      name: 'Racking aisle 1',
+      color: '#0ea5e9',
+      x: 400,
+      y: 60,
+      width: 260,
+      height: 320,
+      ownerId: 'u2',
+      ownerName: 'Quality Manager',
+      departmentId: 'd2',
+      contents: 'Racking bays 1-8, picking trolley',
+      standard: 'Every bay labelled, nothing stored on the floor, trolley parked at the end of the aisle.',
+      labelText: 'Aisle 1 - nothing on the floor',
+      stage: 'sort',
+      auditFrequency: 'monthly',
+      redTagCount: 0,
+      redTags: [],
+      lastCleanedAt: '',
+    },
+  ] as FiveSZone[],
+  objects: [],
+  updatedAt: now(),
+};
+
+/** What a browser with no demo plans is seeded with. */
+const defaultPlans = (): FiveSLayoutPlan[] => [defaultPlan, defaultWarehousePlan];
 
 const unwrap = <T>(response: ApiEnvelope<T>): T => {
   if (response && typeof response === 'object' && 'data' in response) {
@@ -368,27 +443,37 @@ const withOwnLayout = (plan: FiveSLayoutPlan): FiveSLayoutPlan =>
     updatedAt: plan.updatedAt || now(),
   });
 
-const readPlan = () => {
-  const stored = localStorage.getItem(storageKey);
+/** Every plan the demo holds, seeded the first time anybody looks. */
+const readPlans = (): FiveSLayoutPlan[] => {
+  const stored = readDemoPlans<FiveSLayoutPlan & Record<string, unknown>>();
 
-  if (stored) {
-    try {
-      return normalizePlan(JSON.parse(stored) as FiveSLayoutPlan);
-    } catch {
-      localStorage.removeItem(storageKey);
-    }
+  if (stored?.length) {
+    return stored.map(normalizePlan);
   }
 
-  localStorage.setItem(storageKey, JSON.stringify(defaultPlan));
-  return normalizePlan(defaultPlan);
+  return writeDemoPlans(defaultPlans()).map(normalizePlan);
+};
+
+/**
+ * One plan by id, or the first when nothing is asked for.
+ *
+ * A label printed for an area names the plan it is on, so opening it has to
+ * find that plan rather than whichever is stored first — the same rule the
+ * server follows.
+ */
+const readPlan = (id?: string) => {
+  const plans = readPlans();
+
+  return (id && plans.find((plan) => plan.id === id)) || plans[0];
 };
 
 const savePlan = (plan: FiveSLayoutPlan) => {
-  const nextPlan = {
-    ...plan,
-    updatedAt: now(),
-  };
-  localStorage.setItem(storageKey, JSON.stringify(nextPlan));
+  const nextPlan = { ...plan, updatedAt: now() };
+  const plans = readPlans();
+  const known = plans.some((candidate) => candidate.id === nextPlan.id);
+
+  writeDemoPlans(known ? replaceDemoPlan(plans, nextPlan) : [...plans, nextPlan]);
+
   return normalizePlan(nextPlan);
 };
 
@@ -538,21 +623,48 @@ export const fiveSLayoutService = {
   getPlans: () =>
     fallback<FiveSLayoutPlan[]>(
       async () => (await get<FiveSLayoutPlan[]>('/five-s-layouts')).map(withOwnLayout),
-      () => [readPlan()],
+      readPlans,
     ),
 
   createPlan: (plan: { name: string; site: string; floor?: string }) =>
     fallback<FiveSLayoutPlan>(
       async () => withOwnLayout(await post<FiveSLayoutPlan>('/five-s-layouts', plan)),
-      // In demo mode there is one plan and it is the one in the browser;
-      // pretending to add a second would lose the first.
-      readPlan,
+      () => {
+        // A real second plan rather than a pretend one: the demo holds a list,
+        // so a floor somebody adds here is a floor they can then draw on.
+        const added = normalizePlan({
+          ...defaultPlan,
+          id: `demo-plan-${Date.now()}`,
+          name: plan.name,
+          site: plan.site,
+          floor: plan.floor ?? '',
+          zones: [],
+          objects: [],
+          updatedAt: now(),
+        });
+
+        writeDemoPlans([...readPlans(), added]);
+
+        return added;
+      },
     ),
 
   deletePlan: (id: string) =>
     fallback<{ id: string; deleted: boolean }>(
       () => del<{ id: string; deleted: boolean }>(`/five-s-layouts/${id}`),
-      () => ({ id, deleted: false }),
+      () => {
+        const plans = readPlans();
+
+        // Never the last one: an organization with no plan has nowhere to put
+        // an area, and the editor would have nothing to open.
+        if (plans.length <= 1 || !plans.some((plan) => plan.id === id)) {
+          return { id, deleted: false };
+        }
+
+        writeDemoPlans(plans.filter((plan) => plan.id !== id));
+
+        return { id, deleted: true };
+      },
     ),
 
   /**
@@ -566,7 +678,7 @@ export const fiveSLayoutService = {
     fallback<FiveSRedTag>(
       () => post<FiveSRedTag>(`/five-s-layouts/${planId}/zones/${zoneId}/red-tags`, tag),
       () => {
-        const plan = readPlan();
+        const plan = readPlan(planId);
         const raised: FiveSRedTag = {
           id: `redtag-${Date.now()}`,
           title: tag.title.trim(),
@@ -603,7 +715,7 @@ export const fiveSLayoutService = {
           {},
         ),
       () => {
-        const plan = readPlan();
+        const plan = readPlan(planId);
         const lastCleanedAt = now().slice(0, 10);
 
         savePlan({
@@ -618,7 +730,7 @@ export const fiveSLayoutService = {
   getPlan: (id?: string) =>
     fallback<FiveSLayoutPlan>(
       async () => withOwnLayout(await get<FiveSLayoutPlan>(id ? `/five-s-layout?id=${id}` : '/five-s-layout')),
-      readPlan,
+      () => readPlan(id),
     ),
 
   savePlan: (plan: FiveSLayoutPlan) =>
@@ -632,7 +744,7 @@ export const fiveSLayoutService = {
       () => savePlan(plan),
     ).then(normalizePlan),
   resetPlan: async () => {
-    localStorage.setItem(storageKey, JSON.stringify({ ...defaultPlan, updatedAt: now() }));
+    writeDemoPlans(defaultPlans().map((plan) => ({ ...plan, updatedAt: now() })));
     const plan = readPlan();
 
     if (!hasRealAccessToken()) {

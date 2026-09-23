@@ -259,22 +259,31 @@ describe('tasks raised from a finding, in demo mode', () => {
 
 describe('finishing a task closes its red tag, in demo mode', () => {
   const load = async () => (await import('./operations.service')).operationsService;
-  const layoutKey = 'productivity-demo-5s-layout';
+  const layoutKey = 'productivity-demo-5s-layouts';
 
-  const planWith = (status: string) => ({
-    zones: [
-      { id: 'zone-1', redTags: [] },
-      { id: 'zone-2', redTags: [{ id: 'red-tag-9', title: 'Broken pallet', status }] },
-    ],
-  });
+  /*
+    Two plans, and the tag on the second one. The demo holds a building per
+    plan now, and finding a red tag by id means looking across all of them
+    rather than in whichever is stored first.
+  */
+  const plansWith = (status: string) => [
+    { id: 'plan-ground', zones: [{ id: 'zone-0', redTags: [] }] },
+    {
+      id: 'plan-first',
+      zones: [
+        { id: 'zone-1', redTags: [] },
+        { id: 'zone-2', redTags: [{ id: 'red-tag-9', title: 'Broken pallet', status }] },
+      ],
+    },
+  ];
 
   const tagStatus = () =>
-    JSON.parse(localStorage.getItem(layoutKey) || '{}').zones?.[1]?.redTags?.[0];
+    JSON.parse(localStorage.getItem(layoutKey) || '[]')[1]?.zones?.[1]?.redTags?.[0];
 
   beforeEach(() => {
     localStorage.clear();
     localStorage.setItem('token', 'demo-token');
-    localStorage.setItem(layoutKey, JSON.stringify(planWith('open')));
+    localStorage.setItem(layoutKey, JSON.stringify(plansWith('open')));
   });
 
   const raiseTask = async () =>
@@ -323,14 +332,24 @@ describe('finishing a task closes its red tag, in demo mode', () => {
 
 describe('submitting an audit updates the zone, in demo mode', () => {
   const load = async () => (await import('./operations.service')).operationsService;
-  const layoutKey = 'productivity-demo-5s-layout';
+  const layoutKey = 'productivity-demo-5s-layouts';
 
-  const zone = () => JSON.parse(localStorage.getItem(layoutKey) || '{}').zones?.[0];
+  // The audited zone is on the second plan, so a score written onto the first
+  // one — the fault the server had when a building got a second floor — fails
+  // here rather than passing quietly.
+  const zone = () => JSON.parse(localStorage.getItem(layoutKey) || '[]')[1]?.zones?.[0];
+  const groundFloorZone = () => JSON.parse(localStorage.getItem(layoutKey) || '[]')[0]?.zones?.[0];
 
   beforeEach(() => {
     localStorage.clear();
     localStorage.setItem('token', 'demo-token');
-    localStorage.setItem(layoutKey, JSON.stringify({ zones: [{ id: 'zone-1', code: 'A01' }] }));
+    localStorage.setItem(
+      layoutKey,
+      JSON.stringify([
+        { id: 'plan-ground', zones: [{ id: 'zone-0', code: 'G01' }] },
+        { id: 'plan-first', zones: [{ id: 'zone-1', code: 'A01' }] },
+      ]),
+    );
   });
 
   const submit = async (score: number, over: Record<string, unknown> = {}) =>
@@ -348,6 +367,12 @@ describe('submitting an audit updates the zone, in demo mode', () => {
 
     expect(zone().lastAuditScore).toBe(82);
     expect(zone().lastAuditAt).toEqual(expect.any(String));
+  });
+
+  it('repaints the floor the zone is actually on', async () => {
+    await submit(82);
+
+    expect(groundFloorZone().lastAuditScore).toBeUndefined();
   });
 
   it('keeps the first score as the baseline', async () => {

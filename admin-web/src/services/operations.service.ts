@@ -1,4 +1,5 @@
 import { del, get, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
+import { planHoldingZone, readDemoPlans, replaceDemoPlan, writeDemoPlans } from './demoPlanStore';
 import {
   AuditTemplate,
   AuditRun,
@@ -405,7 +406,6 @@ const findOpenDemoTaskForSource = (data: Partial<WorkTask>) => {
   );
 };
 
-const layoutStorageKey = 'productivity-demo-5s-layout';
 
 /**
  * Demo mirrors of rules the server enforces.
@@ -416,20 +416,24 @@ const layoutStorageKey = 'productivity-demo-5s-layout';
  *
  * Each mirror below names the server method it stands in for.
  */
-const readDemoPlan = (): Record<string, any> | null => {
-  try {
-    return JSON.parse(localStorage.getItem(layoutStorageKey) || 'null');
-  } catch {
-    return null;
-  }
+/**
+ * The demo plan holding a zone.
+ *
+ * Not the first plan stored: an audit recorded against an area upstairs must
+ * not repaint the ground floor. The server learned that when a building first
+ * got a second plan, and the demo kept the old behaviour because it held only
+ * one — which is no longer true.
+ */
+const readDemoPlan = (zoneId?: string): Record<string, any> | null => {
+  const plans = readDemoPlans<Record<string, any>>() ?? [];
+
+  return (zoneId ? planHoldingZone(plans, zoneId) : plans[0]) ?? null;
 };
 
 const writeDemoPlan = (plan: Record<string, any>) => {
-  try {
-    localStorage.setItem(layoutStorageKey, JSON.stringify(plan));
-  } catch {
-    // A full or unwritable store is not a reason to fail the action.
-  }
+  const plans = readDemoPlans<Record<string, any>>() ?? [];
+
+  writeDemoPlans(replaceDemoPlan(plans, plan));
 };
 
 /** Mirrors `OperationsService.applyAuditScoreToZone`. */
@@ -440,7 +444,7 @@ const DEMO_URGENT_SCORE = 70;
 const applyDemoAuditScoreToZone = (run: Partial<AuditRun> | undefined) => {
   if (!run?.zoneId || run.status === 'draft') return;
 
-  const plan = readDemoPlan();
+  const plan = readDemoPlan(run.zoneId);
   if (!plan?.zones) return;
 
   const auditedAt = new Date().toISOString();
@@ -494,7 +498,7 @@ const raiseDemoFollowUp = (run: Partial<AuditRun> | undefined) => {
     return existing;
   }
 
-  const zone = (readDemoPlan()?.zones ?? []).find(
+  const zone = (readDemoPlan(run.zoneId)?.zones ?? []).find(
     (item: Record<string, any>) => item.id === run.zoneId,
   );
   const place = zone
@@ -521,7 +525,17 @@ const closeDemoFindingForTask = (task: Partial<WorkTask> | undefined) => {
     return;
   }
 
-  const plan = readDemoPlan();
+  /*
+    The plan carrying this red tag, across every floor — the tag's id is all
+    the finished task knows, and with more than one plan the first one is
+    simply the wrong place to look.
+  */
+  const plan = (readDemoPlans<Record<string, any>>() ?? []).find((candidate) =>
+    (candidate.zones ?? []).some((zone: Record<string, any>) =>
+      (zone.redTags ?? []).some((redTag: Record<string, any>) => redTag.id === task.sourceId),
+    ),
+  );
+
   if (!plan?.zones) return;
 
   const closedAt = new Date().toISOString();
