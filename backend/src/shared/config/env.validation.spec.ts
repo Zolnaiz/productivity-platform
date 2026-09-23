@@ -112,4 +112,25 @@ describe('envValidationSchema', () => {
 
     expect(result.error).toBeDefined();
   });
+
+  it('sends no mail unless a deployment asks for it', () => {
+    const result = envValidationSchema.validate({});
+
+    expect(result.error).toBeUndefined();
+    expect(result.value.MAIL_TRANSPORT).toBe('log');
+  });
+
+  it('refuses SMTP with nowhere to send from or to', () => {
+    expect(envValidationSchema.validate({ MAIL_TRANSPORT: 'smtp' }).error).toBeDefined();
+    expect(
+      envValidationSchema.validate({ MAIL_TRANSPORT: 'smtp', SMTP_HOST: 'mail.local' }).error,
+    ).toBeDefined();
+    expect(
+      envValidationSchema.validate({
+        MAIL_TRANSPORT: 'smtp',
+        SMTP_HOST: 'mail.local',
+        MAIL_FROM: 'platform@plant.local',
+      }).error,
+    ).toBeUndefined();
+  });
 });

@@ -45,9 +45,23 @@ const createService = () => {
     create: jest.fn().mockResolvedValue({ id: 'user-new' }),
   };
 
-  const service = new InvitationsService(invitations as never, usersService as never);
+  // A mailer that records rather than sends, so a test can say what the
+  // invited person would actually have received.
+  const sent: Array<Record<string, unknown>> = [];
+  const mailer = {
+    send: jest.fn(async (mail: Record<string, unknown>) => void sent.push(mail)),
+    describe: () => 'test',
+  };
+  const configService = { get: jest.fn(() => 'https://plant.example.com') };
 
-  return { service, invitations, usersService, rows };
+  const service = new InvitationsService(
+    invitations as never,
+    usersService as never,
+    mailer as never,
+    configService as never,
+  );
+
+  return { service, invitations, usersService, rows, mailer, sent };
 };
 
 const owner = { id: 'user-1', organizationId: 'org-1', role: UserRole.ORGANIZATION_ADMIN };
@@ -243,5 +257,48 @@ describe('listing and revoking', () => {
     await expect(
       service.revoke(invitation.id, { ...owner, organizationId: 'org-2' }),
     ).rejects.toMatchObject({ response: { errorCode: 'RESOURCE_NOT_FOUND' } });
+  });
+});
+
+/**
+ * An invitation nobody receives is a token in a response body, which the
+ * inviter then has to paste into a chat window — a new colleague's first
+ * experience of the system.
+ */
+describe('delivering the invitation', () => {
+  it('sends the invited address a link that carries the token', async () => {
+    const { service, sent } = createService();
+
+    const { token } = await service.invite('new@example.com', UserRole.USER, owner);
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0].to).toBe('new@example.com');
+    expect(String(sent[0].body)).toContain(`https://plant.example.com/accept-invitation?token=${token}`);
+  });
+
+  it('issues the invitation even when it cannot be delivered', async () => {
+    // It exists and can be reissued; failing the request would leave the
+    // inviter believing nothing happened when a seat had been taken.
+    const { service, mailer } = createService();
+    mailer.send.mockRejectedValue(new Error('smtp is down'));
+
+    await expect(service.invite('new@example.com', UserRole.USER, owner)).resolves.toMatchObject({
+      token: expect.any(String),
+    });
+  });
+
+  it('never writes the token to the log', async () => {
+    // The body carries it because that is what an invitation is; a log that
+    // carried it would hand a seat to anybody who can read the logs.
+    const { service } = createService();
+    const logged: string[] = [];
+    const spy = jest
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation((message: unknown) => void logged.push(String(message)));
+
+    const { token } = await service.invite('new@example.com', UserRole.USER, owner);
+
+    expect(logged.join('\n')).not.toContain(token);
+    spy.mockRestore();
   });
 });

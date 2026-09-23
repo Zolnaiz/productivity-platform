@@ -1,7 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { Notification, NotificationKind } from './entities/notification.entity';
+import { User } from '../users/entities/user.entity';
+import { MAILER, Mailer } from '../shared/mail/mailer';
 
 type CurrentUser = { id?: string; organizationId?: string } | undefined;
 
@@ -41,7 +44,49 @@ export class NotificationsService {
 
   constructor(
     @InjectRepository(Notification) private readonly notifications: Repository<Notification>,
+    /*
+      The people, for their addresses. A notification is addressed by user id
+      because that is what the rest of the application knows; an email needs
+      the one thing the notification does not carry.
+    */
+    @InjectRepository(User) private readonly users: Repository<User>,
+    @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly configService: ConfigService,
   ) {}
+
+  /**
+   * Sends the same words to the person's address.
+   *
+   * Only for a notification that was just created — the dedupe above returns
+   * the existing one without coming here — so an audit the scheduler re-raises
+   * every morning is emailed once rather than daily.
+   *
+   * Everything is swallowed on purpose. The notification is the record; work
+   * that was raised and not emailed is still raised, and an inbox that exists
+   * inside the product is what somebody comes back to.
+   */
+  private async alsoByEmail(notification: Notification) {
+    try {
+      const recipient = await this.users.findOne({ where: { id: notification.userId } });
+
+      if (!recipient?.email) return;
+
+      const base = (this.configService.get<string>('APP_BASE_URL') ?? '').replace(/\/$/, '');
+
+      await this.mailer.send({
+        to: recipient.email,
+        subject: notification.title,
+        body: [
+          notification.body,
+          base ? `${base}${notification.link}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n\n'),
+      });
+    } catch {
+      this.logger.warn(`Could not email the notification for ${notification.userId}`);
+    }
+  }
 
   /**
    * Delivers one, unless this event already reached this person.
@@ -69,7 +114,11 @@ export class NotificationsService {
     });
 
     try {
-      return await this.notifications.save(notification);
+      const saved = await this.notifications.save(notification);
+
+      await this.alsoByEmail(saved);
+
+      return saved;
     } catch (error) {
       // Two schedulers at six o'clock both passed the lookup above. Losing
       // that race means somebody else delivered it, which is the right outcome.

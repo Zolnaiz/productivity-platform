@@ -10,6 +10,7 @@ import { DatabaseModule } from './shared/database/database.module';
 import { OperationsModule } from './operations/operations.module';
 import { UsersModule } from './users/users.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { MailModule } from './shared/mail/mail.module';
 import { AuditModule } from './audit/audit.module';
 import { AuditLogInterceptor } from './audit/audit-log.interceptor';
 import { envValidationSchema } from './shared/config/env.validation';
@@ -35,6 +36,9 @@ import { MetricsService } from './shared/metrics/metrics.service';
       }),
     }),
     DatabaseModule,
+    // Global, so an invitation from `auth` and a notification from
+    // `operations` go out through the same configured transport.
+    MailModule,
     AuditModule,
     AuthModule,
     UsersModule,

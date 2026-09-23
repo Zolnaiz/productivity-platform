@@ -1,8 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, LessThan, MoreThan, Repository } from 'typeorm';
 import { Invitation } from './entities/invitation.entity';
 import { UsersService } from '../users/users.service';
+import { MAILER, Mailer } from '../shared/mail/mailer';
 import { UserRole } from '../shared/constants';
 import { canAssignRole } from '../shared/roles';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
@@ -28,7 +30,39 @@ export class InvitationsService {
   constructor(
     @InjectRepository(Invitation) private readonly invitations: Repository<Invitation>,
     private readonly usersService: UsersService,
+    @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly configService: ConfigService,
   ) {}
+
+  /**
+   * Sends the invitation to the person it is for.
+   *
+   * The token is in the message because that is what an invitation is. It is
+   * not logged anywhere, it is returned to the inviter exactly once, and a
+   * failure here does not fail the invitation: it exists, and can be reissued.
+   *
+   * Without a configured transport this logs the subject and the recipient and
+   * sends nothing, which is the state the product was in altogether — the
+   * inviter copies the link out of the response and sends it by hand.
+   */
+  private async deliver(email: string, token: string, organizationId: string) {
+    const base = (this.configService.get<string>('APP_BASE_URL') ?? '').replace(/\/$/, '');
+    const link = base ? `${base}/accept-invitation?token=${token}` : token;
+
+    try {
+      await this.mailer.send({
+        to: email,
+        subject: 'You have been invited to the productivity platform',
+        body: [
+          'Somebody has invited you to their workspace.',
+          base ? `Open this link to accept it:\n${link}` : `Your invitation code is: ${token}`,
+          'The invitation expires; ask whoever invited you to reissue it if it has.',
+        ].join('\n\n'),
+      });
+    } catch {
+      this.logger.warn(`Could not email the invitation for organization ${organizationId}`);
+    }
+  }
 
   private requireOrganization(inviter: Inviter) {
     if (!inviter?.organizationId) {
@@ -79,6 +113,8 @@ export class InvitationsService {
     );
 
     this.logger.log(`Invitation created for ${address} in organization ${organizationId}`);
+
+    await this.deliver(address, token, organizationId);
 
     return { invitation: this.toSummary(invitation), token };
   }

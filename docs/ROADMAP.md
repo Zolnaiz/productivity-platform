@@ -43,11 +43,13 @@ person notices within a week of real use.
   department so the columns still add up. What a department still cannot do is
   own a project or a cost — the expense and project pages know nothing about
   them.
-- **Tell somebody, outside the application too.** Work raised for somebody now
-  reaches their inbox inside the product; what is still missing is a transport
-  that reaches them when they are not looking at it, and invitations have the
-  same hole — the API issues a token and the inviter sends it by hand. One
-  transport serves both.
+- **Mail has a transport, and MPC has to choose one.** Notifications and
+  invitations both go out through it; `MAIL_TRANSPORT=log` is the default and
+  sends nothing, so nothing about a deployment without a mail server changed.
+  What is left is the deployment decision — a relay inside the plant or a
+  provider — and the fact that no live SMTP send has been exercised: the tests
+  cover the wiring, the wording and the failures, against a transport that
+  records rather than sends.
 - **The audit trail's remaining half.** It now records what a request asked to
   change and keeps entries two years. What it still cannot say is what a value
   was *before*, because an interceptor sees the request and the response and

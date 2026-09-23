@@ -11,6 +11,8 @@ import { DailyGoal } from './entities/daily-goal.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
 import { Department } from './entities/department.entity';
+import { User } from '../users/entities/user.entity';
+import { MAILER, LoggingMailer } from '../shared/mail/mailer';
 import { Project } from './entities/project.entity';
 import { WorkTask } from './entities/task.entity';
 import { TimeEntry } from './entities/time-entry.entity';
@@ -40,6 +42,7 @@ const entities = [
   DailyGoal,
   FiveSLayout,
   Department,
+  User,
   Attachment,
   Notification,
 ];
@@ -69,6 +72,9 @@ describe('OperationsModule wiring', () => {
         PermissionsGuard,
         { provide: JwtService, useValue: { verify: jest.fn() } },
         { provide: ConfigService, useValue: { get: jest.fn(() => undefined) } },
+        // The transport a deployment with no mail server runs: the inbox is
+        // the record, and email is an addition to it.
+        { provide: MAILER, useValue: new LoggingMailer() },
         // The real factory, so an unconfigured deployment is proved to fall
         // back to local disk rather than failing to start.
         { provide: ATTACHMENT_STORE, useFactory: createAttachmentStore, inject: [ConfigService] },

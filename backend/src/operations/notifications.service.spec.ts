@@ -9,11 +9,23 @@ const repositoryMock = () => ({
   update: jest.fn(async () => ({ affected: 1 })),
 });
 
-const createService = () => {
+const createService = (recipient: Record<string, unknown> | null = { id: 'u1', email: 'u1@example.com' }) => {
   const notifications = repositoryMock();
-  const service = new NotificationsService(notifications as never);
+  const users = { findOne: jest.fn(async () => recipient) };
+  // A mailer that records rather than sends, so a test can say what somebody
+  // outside the application would have received.
+  const sent: Array<Record<string, unknown>> = [];
+  const mailer = { send: jest.fn(async (mail: Record<string, unknown>) => void sent.push(mail)), describe: () => 'test' };
+  const configService = { get: jest.fn(() => 'https://plant.example.com') };
 
-  return { service, notifications };
+  const service = new NotificationsService(
+    notifications as never,
+    users as never,
+    mailer as never,
+    configService as never,
+  );
+
+  return { service, notifications, users, mailer, sent };
 };
 
 const request = (over: Record<string, unknown> = {}) => ({
@@ -169,5 +181,61 @@ describe('marking as read', () => {
     expect(await service.markRead('n1', undefined)).toEqual({ id: 'n1', read: false });
     expect(await service.markAllRead(undefined)).toEqual({ read: 0 });
     expect(notifications.update).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The inbox is the record; email is how it reaches somebody who is not looking
+ * at the application. Neither may fail because of the other.
+ */
+describe('telling somebody outside the application too', () => {
+  it('emails the person the notification was addressed to', async () => {
+    const { service, notifications, sent } = createService();
+    notifications.findOne.mockResolvedValue(null);
+
+    await service.notify({ userId: 'u1', title: 'Audit due: A01', body: 'Due today', link: '/tasks' });
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({ to: 'u1@example.com', subject: 'Audit due: A01' });
+    // The link is absolute, because a line in an email cannot be clicked
+    // relative to anything.
+    expect(String(sent[0].body)).toContain('https://plant.example.com/tasks');
+  });
+
+  it('emails once, however often the event is re-raised', async () => {
+    // The scheduler raises the same due audit every morning until it is done.
+    // If each run sent mail, the inbox would be the last thing anybody read.
+    const { service, notifications, mailer } = createService();
+    notifications.findOne.mockResolvedValue({ id: 'n1', userId: 'u1', title: 'Audit due: A01' });
+
+    await service.notify({
+      userId: 'u1',
+      title: 'Audit due: A01',
+      sourceType: 'work_task',
+      sourceId: 't1',
+    });
+
+    expect(mailer.send).not.toHaveBeenCalled();
+  });
+
+  it('keeps the notification when there is nobody to send it to', async () => {
+    const { service, notifications, mailer } = createService(null);
+    notifications.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.notify({ userId: 'gone', title: 'Audit due: A01' }),
+    ).resolves.toBeTruthy();
+    expect(mailer.send).not.toHaveBeenCalled();
+  });
+
+  it('keeps the notification when the mail fails', async () => {
+    // Work that was raised and not emailed is still raised.
+    const { service, notifications, mailer } = createService();
+    notifications.findOne.mockResolvedValue(null);
+    mailer.send.mockRejectedValue(new Error('smtp is down'));
+
+    await expect(
+      service.notify({ userId: 'u1', title: 'Audit due: A01' }),
+    ).resolves.toBeTruthy();
   });
 });

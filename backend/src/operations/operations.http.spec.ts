@@ -17,6 +17,8 @@ import { DailyGoal } from './entities/daily-goal.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
 import { Department } from './entities/department.entity';
+import { User } from '../users/entities/user.entity';
+import { MAILER, LoggingMailer } from '../shared/mail/mailer';
 import { Notification } from './entities/notification.entity';
 import { Project } from './entities/project.entity';
 import { WorkTask } from './entities/task.entity';
@@ -58,6 +60,7 @@ const entities = [
   DailyGoal,
   FiveSLayout,
   Department,
+  User,
   Attachment,
   Notification,
 ];
@@ -118,6 +121,9 @@ describe('operations API over HTTP', () => {
             get: (key: string) => (key === 'ALLOW_PUBLIC_OPERATIONS' ? allowPublicOperations : undefined),
           },
         },
+        // What a deployment with no mail server runs: notifications reach the
+        // inbox, and nothing is sent anywhere.
+        { provide: MAILER, useValue: new LoggingMailer() },
         // Kept by entity so a test can say what one of them answers; the
         // red-tag routes need a plan with a zone on it rather than the
         // generic row every other route is happy with.

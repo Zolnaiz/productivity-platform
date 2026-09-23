@@ -63,6 +63,15 @@ services:
       S3_ENDPOINT: ${S3_ENDPOINT:-}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      # Mail. `log` sends nothing, which is the default a plant with no relay
+      # runs; the inbox inside the product still works either way.
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-log}
+      APP_BASE_URL: ${APP_BASE_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
     volumes:
       # Without this the attachments lived inside the container: every row
       # survived a redeploy and every photograph it pointed at did not.
