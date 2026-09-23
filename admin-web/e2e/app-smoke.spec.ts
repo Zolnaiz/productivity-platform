@@ -228,3 +228,35 @@ test('a department counts its people and its areas', async ({ page }) => {
   // Two people and two areas in the demo, both counted rather than stored.
   await expect.poll(async () => (await card.innerText()).match(/[1-9]/g)?.length ?? 0).toBeGreaterThan(1);
 });
+
+test('the editor moves between the buildings an organization has', async ({ page }) => {
+  // A plan per floor and a site per building are only worth having if a person
+  // can get to the second one. The demo held a single plan until now, so this
+  // path had never been opened in a browser at all.
+  await signIn(page);
+  await page.goto('/fives');
+  await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
+
+  const chooser = page.locator('select').filter({ hasText: 'Warehouse' }).first();
+  await expect(chooser).toBeVisible();
+
+  const buildings = await page.evaluate(() => {
+    const plans = JSON.parse(localStorage.getItem('productivity-demo-5s-layouts') || '[]');
+    return {
+      secondId: plans[1]?.id as string,
+      firstZone: plans[0]?.zones?.[0]?.name as string,
+      secondZone: plans[1]?.zones?.[0]?.name as string,
+    };
+  });
+
+  const canvas = page.locator('svg[aria-label="5S floor plan"]');
+  await expect(canvas).toContainText(buildings.firstZone);
+
+  await chooser.selectOption(buildings.secondId);
+
+  // The areas on screen are the second building's, and the first building's
+  // are gone: an editor that moves between plans and keeps drawing the old
+  // one is worse than one that does not move.
+  await expect(canvas).toContainText(buildings.secondZone);
+  await expect(canvas).not.toContainText(buildings.firstZone);
+});
