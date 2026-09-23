@@ -7,6 +7,7 @@ import { operationsService } from '../services/operations.service';
 import { peopleService } from '../services/people.service';
 import { fiveSLayoutService } from '../services/fiveSLayout.service';
 import { summariseDepartments } from '../components/reports/monthlyDepartments';
+import { summariseSites } from '../components/reports/monthlySites';
 import { OperationsMonthlyReport } from '../types/operations.types';
 import { Department, TeamUser, memberName } from '../types/people.types';
 import { FiveSLayoutPlan } from '../types/fiveS.types';
@@ -197,6 +198,14 @@ const MonthlyReportPage: React.FC = () => {
     plans,
   });
 
+  /*
+    And by building. A department crosses buildings; a building does not move,
+    and everything above the plans was a flat list — so a plant with two of
+    them read as one, and a site whose programme had quietly stopped was
+    averaged away by a site where it had not.
+  */
+  const siteRows = summariseSites(plans);
+
   const executiveSummary = report
     ? summaryLines.map((line) => `${line.label}: ${line.text}`).join('\n')
     : 'Monthly productivity report is loading.';
@@ -257,6 +266,18 @@ const MonthlyReportPage: React.FC = () => {
         row.completedTasks,
         row.hours.toFixed(1),
         row.auditRuns,
+        row.zones,
+        row.averageAuditScore === undefined ? '' : `${row.averageAuditScore}%`,
+        row.openRedTags,
+        row.auditsDue,
+      ]),
+      [],
+      // And by building, which is the axis a plant with more than one of them
+      // is actually run along.
+      ['Site', 'Floors', '5S areas', 'Average 5S score', 'Open red tags', 'Audits due'],
+      ...siteRows.map((row) => [
+        row.site || 'No site named',
+        row.floors,
         row.zones,
         row.averageAuditScore === undefined ? '' : `${row.averageAuditScore}%`,
         row.openRedTags,
@@ -453,6 +474,52 @@ const MonthlyReportPage: React.FC = () => {
                           Never audited reads as never, not as nought: a
                           department of unaudited areas is not the worst one.
                         */}
+                        <td className="py-2 pr-4 tabular-nums">
+                          {row.averageAuditScore === undefined
+                            ? t('monthlyReport.departmentNoScore')
+                            : `${row.averageAuditScore}%`}
+                        </td>
+                        <td
+                          className={`py-2 pr-4 tabular-nums ${row.openRedTags ? 'text-amber-600 dark:text-amber-400' : ''}`}
+                        >
+                          {row.openRedTags}
+                        </td>
+                        <td
+                          className={`py-2 tabular-nums ${row.auditsDue ? 'font-medium text-red-600 dark:text-red-400' : ''}`}
+                        >
+                          {row.auditsDue}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {siteRows.length > 1 && (
+            <Card title={t('monthlyReport.sitesTitle')} subtitle={t('monthlyReport.sitesSubtitle')}>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                  <thead className="text-left text-xs font-medium uppercase text-gray-500">
+                    <tr>
+                      <th className="py-2 pr-4">{t('monthlyReport.site')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.siteFloors')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentZones')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentScore')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentRedTags')}</th>
+                      <th className="py-2">{t('monthlyReport.departmentAuditsDue')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {siteRows.map((row) => (
+                      <tr
+                        key={row.site || 'unnamed'}
+                        className={row.site ? '' : 'text-gray-400 dark:text-gray-500'}
+                      >
+                        <td className="py-2 pr-4">{row.site || t('monthlyReport.siteUnnamed')}</td>
+                        <td className="py-2 pr-4 tabular-nums">{row.floors}</td>
+                        <td className="py-2 pr-4 tabular-nums">{row.zones}</td>
                         <td className="py-2 pr-4 tabular-nums">
                           {row.averageAuditScore === undefined
                             ? t('monthlyReport.departmentNoScore')

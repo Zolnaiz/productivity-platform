@@ -61,11 +61,12 @@ person notices within a week of real use.
 The floor plan can now carry these; before the walls existed, none of them
 could be built honestly.
 
-- **Multi-floor is in; multi-site is half.** An organization has a plan per
-  floor, each with a site, a floor and a name, and the editor moves between
-  them. What is still a flat list is the reporting above them: the room
-  register and the monthly report do not group by site, so a plant with two
-  buildings reads as one.
+- **Multi-site reads as multi-site.** The monthly report carries a row per
+  building — floors, areas, average score, open red tags, overdue audits —
+  shown only once an organization has more than one, because a single-site
+  plant does not need a table telling it so. What is still single-site is the
+  demo workspace: it holds one plan, so nobody evaluating the product sees the
+  second building, or the floor switcher, without a backend.
 - **A QR code per zone is in**, and the page it opens is now where the work
   happens: raise a red tag, record that the area was cleaned, or walk the 5S
   checklist itself, question by question, with the score shown before it is

@@ -320,6 +320,11 @@ const en = {
       'Security events, report exports, permission changes, and audit submissions will appear here.',
   },
   monthlyReport: {
+    sitesTitle: 'By building',
+    sitesSubtitle: 'Shown once an organization has more than one; a plant with two of them should not read as one.',
+    site: 'Site',
+    siteFloors: 'Floors',
+    siteUnnamed: 'No site named',
     departmentsTitle: 'By department',
     departmentsSubtitle: 'The same month along the axis that outlasts the people in it.',
     department: 'Department',

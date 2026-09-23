@@ -378,3 +378,44 @@ describe('the month, department by department', () => {
     expect(await screen.findByText('Build report endpoint')).toBeTruthy();
   });
 });
+
+describe('the month, building by building', () => {
+  const withPeople = (people: Array<Record<string, number | string>>) => ({ ...report, people });
+
+  beforeEach(() => {
+    serviceMocks.getMembers.mockResolvedValue([]);
+    serviceMocks.getDepartments.mockResolvedValue([]);
+    serviceMocks.getMonthlyReport.mockResolvedValue(withPeople([]));
+  });
+
+  it('gives each building a line once there is more than one', async () => {
+    // A plant with two buildings read as one, so a site whose programme had
+    // stopped was averaged away by a site where it had not.
+    serviceMocks.getPlans.mockResolvedValue([
+      { id: 'l1', site: 'Plant A', zones: [{ id: 'z1', lastAuditScore: 90 }] },
+      { id: 'l2', site: 'Plant A', zones: [{ id: 'z2', lastAuditScore: 70 }] },
+      { id: 'l3', site: 'Plant B', zones: [{ id: 'z3' }] },
+    ]);
+
+    render(<MonthlyReportPage />);
+
+    const plantA = (await screen.findByText('Plant A')).closest('tr');
+    expect(plantA?.textContent).toContain('80%');
+
+    const plantB = (await screen.findByText('Plant B')).closest('tr');
+    expect(plantB?.textContent).toContain('Never audited');
+  });
+
+  it('says nothing about buildings when there is only one', async () => {
+    // A single-site plant does not need a table telling it so.
+    serviceMocks.getPlans.mockResolvedValue([
+      { id: 'l1', site: 'Plant A', zones: [{ id: 'z1' }] },
+      { id: 'l2', site: 'Plant A', zones: [{ id: 'z2' }] },
+    ]);
+
+    render(<MonthlyReportPage />);
+
+    await screen.findByText('Build report endpoint');
+    expect(screen.queryByText('By building')).toBeNull();
+  });
+});
