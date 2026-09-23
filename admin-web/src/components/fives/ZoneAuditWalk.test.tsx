@@ -174,3 +174,55 @@ describe('walking a checklist in the area it is about', () => {
     await waitFor(() => expect(onRecorded).toHaveBeenCalledWith({ id: 'run-1', score: 62, createdAt: 'x' }));
   });
 });
+
+/**
+ * Higher layers usually ask fewer questions — a manager's monthly walk is not
+ * the operator's daily one. A layer could name its own checklist and nothing
+ * read it, so every layer walked the same questions.
+ */
+describe('the checklist a layer walks', () => {
+  const twoTemplates = () => [
+    template(),
+    template({
+      id: 't-manager',
+      title: 'Monthly 5S review',
+      questions: [{ id: 'q9', text: 'Are the standards being kept?', type: 'yes_no' }],
+    }),
+  ];
+
+  const layeredPlan = () =>
+    plan({
+      auditTiers: [
+        { tier: 1, name: 'Operator', role: 'user', frequency: 'daily' },
+        { tier: 2, name: 'Supervisor', role: 'manager', frequency: 'weekly', templateId: 't-manager' },
+      ],
+    } as never);
+
+  it('opens the checklist the layer names', async () => {
+    serviceMocks.getAuditTemplates.mockResolvedValue(twoTemplates());
+
+    renderWalk({ plan: layeredPlan(), role: 'manager' });
+
+    // The supervisor is the most senior layer this person covers, so their
+    // own checklist is the one that opens.
+    expect(await screen.findByText(/Are the standards being kept/)).toBeTruthy();
+  });
+
+  it('leaves the choice alone for a layer that names none', async () => {
+    serviceMocks.getAuditTemplates.mockResolvedValue(twoTemplates());
+
+    renderWalk({ plan: layeredPlan(), role: 'user' });
+
+    expect(await screen.findByText(/How clear is the aisle/)).toBeTruthy();
+  });
+
+  it('ignores a checklist this organization has retired', async () => {
+    // Otherwise somebody stands in the area holding a phone with nothing to
+    // answer.
+    serviceMocks.getAuditTemplates.mockResolvedValue([template()]);
+
+    renderWalk({ plan: layeredPlan(), role: 'manager' });
+
+    expect(await screen.findByText(/How clear is the aisle/)).toBeTruthy();
+  });
+});

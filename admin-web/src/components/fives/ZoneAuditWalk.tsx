@@ -68,6 +68,26 @@ const ZoneAuditWalk: React.FC<ZoneAuditWalkProps> = ({ plan, zone, role, onRecor
     setTier(String(tierForRole(plan.auditTiers, role)?.tier ?? ''));
   }, [plan.auditTiers, role]);
 
+  /**
+   * A layer can name its own checklist, and now something reads it.
+   *
+   * Higher layers usually ask fewer questions — a manager's monthly walk is
+   * not the operator's daily one — and a layer that says which paper it uses
+   * was being ignored, so every layer walked the same questions.
+   *
+   * Only when that checklist is one this organization still has: a template
+   * that was retired must not leave somebody holding a phone with nothing to
+   * answer.
+   */
+  useEffect(() => {
+    const wanted = layers.find((layer) => String(layer.tier) === tier)?.templateId;
+
+    if (wanted && templates.some((item) => item.id === wanted)) {
+      setTemplateId(wanted);
+      setAnswers({});
+    }
+  }, [tier, layers, templates]);
+
   const template = templates.find((item) => item.id === templateId);
   const score = useMemo(() => scoreAnswers(template, answers), [answers, template]);
 

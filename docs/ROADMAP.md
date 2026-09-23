@@ -87,9 +87,10 @@ could be built honestly.
   browser's types and had no column, so every plant ran on the built-in
   defaults whatever its practice was. The daily check stays with the area's
   owner, and a layer the owner is not senior enough for goes to the
-  department's manager. What a layer still cannot carry is its own checklist:
-  `templateId` is in the shape and nothing reads it, so every layer walks the
-  same questions.
+  department's manager. A layer can also name its own checklist, and the phone
+  opens it: a manager's monthly review asks different questions from the
+  operator's daily walk. What is left is the desk: the audit page still picks
+  a template by hand rather than from the layer being recorded.
 - **What the server raises now reads in the reader's language.** A task and a
   notification carry the key and its parts beside the assembled sentence, and
   a screen words the key. The sentence stays because a CSV export and an email
