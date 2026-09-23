@@ -82,12 +82,12 @@ could be built honestly.
   spaghetti diagram is now arithmetic rather than a drawing exercise.
 - **Floor plan versions.** An audit from March should still make sense against
   the plan of March, not against the wall somebody moved in June.
-- **Audit layers in the interface.** They are read from the layout and default
-  sensibly; nothing lets an organization change them, or assign a layer by role
-  rather than to the zone owner.
-
-### 4. Language and content
-
+- **A layered audit now reaches the right person**: the daily check stays with
+  the area's owner, and a layer the owner is not senior enough for goes to the
+  department's manager. What is still missing is the interface — the layers
+  themselves are read from the layout and default sensibly, and nothing lets an
+  organization change their names, frequencies or roles without editing the
+  stored plan.
 - **What the server raises now reads in the reader's language.** A task and a
   notification carry the key and its parts beside the assembled sentence, and
   a screen words the key. The sentence stays because a CSV export and an email

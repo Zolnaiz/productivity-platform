@@ -11,18 +11,37 @@ const zone = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-const createService = (layouts: Array<Record<string, unknown>>, enabled = true) => {
+const createService = (
+  layouts: Array<Record<string, unknown>>,
+  enabled = true,
+  people: {
+    users?: Array<Record<string, unknown>>;
+    departments?: Array<Record<string, unknown>>;
+  } = {},
+) => {
   const layoutRepository = { find: jest.fn().mockResolvedValue(layouts) };
   const operations = { createTask: jest.fn().mockResolvedValue({ id: 'task-1' }) };
   const configService = { get: jest.fn(() => enabled) };
 
+  // Who the layers land on. An empty staff list is the state every one of
+  // these tests was written in, and it still has to raise the work.
+  const findBy = (rows: Array<Record<string, unknown>>) =>
+    jest.fn(async ({ where }: { where: { id?: string } }) =>
+      rows.find((row) => row.id === where.id) ?? null,
+    );
+
+  const userRepository = { findOne: findBy(people.users ?? []) };
+  const departmentRepository = { findOne: findBy(people.departments ?? []) };
+
   const service = new AuditSchedulerService(
     layoutRepository as never,
+    userRepository as never,
+    departmentRepository as never,
     operations as never,
     configService as never,
   );
 
-  return { service, operations, layoutRepository };
+  return { service, operations, layoutRepository, userRepository, departmentRepository };
 };
 
 
@@ -289,3 +308,72 @@ describe("what a raised task says, in the reader's language", () => {
   });
 });
 
+/**
+ * A layered audit exists so that somebody above the work looks at it. Every
+ * layer's task used to go to the area's owner, which put the supervisor's
+ * weekly check and the manager's monthly one in the operator's list — the one
+ * place they cannot be done from.
+ */
+describe('who each layer of an audit lands on', () => {
+  const area = {
+    id: 'z1',
+    code: 'A03',
+    name: 'Storage',
+    auditFrequency: 'daily',
+    ownerId: 'operator',
+    departmentId: 'd1',
+  };
+
+  const staff = {
+    users: [
+      { id: 'operator', role: 'user' },
+      { id: 'boss', role: 'manager' },
+    ],
+    departments: [{ id: 'd1', managerId: 'boss' }],
+  };
+
+  const assigneeOf = (operations: { createTask: jest.Mock }, tier: number) =>
+    operations.createTask.mock.calls
+      .map(([payload]) => payload)
+      .find((payload) => String(payload.sourceId).endsWith(`-t${tier}`))?.assigneeId;
+
+  it('keeps the daily check with the area owner and sends the weekly one up', async () => {
+    const { service, operations } = createService(
+      [{ organizationId: 'org-1', zones: [area] }],
+      true,
+      staff,
+    );
+
+    await service.raiseDueAudits();
+
+    expect(assigneeOf(operations, 1)).toBe('operator');
+    expect(assigneeOf(operations, 2)).toBe('boss');
+  });
+
+  it('still raises the work when the area has no department', async () => {
+    // Most areas, on the day a plant starts using this.
+    const { service, operations } = createService(
+      [{ organizationId: 'org-1', zones: [{ ...area, departmentId: undefined }] }],
+      true,
+      staff,
+    );
+
+    await service.raiseDueAudits();
+
+    expect(assigneeOf(operations, 1)).toBe('operator');
+    expect(assigneeOf(operations, 2)).toBe('operator');
+  });
+
+  it('raises it unassigned rather than not at all when nobody owns the area', async () => {
+    const { service, operations } = createService(
+      [{ organizationId: 'org-1', zones: [{ ...area, ownerId: undefined, departmentId: undefined }] }],
+      true,
+      staff,
+    );
+
+    await service.raiseDueAudits();
+
+    expect(operations.createTask).toHaveBeenCalled();
+    expect(assigneeOf(operations, 1)).toBeUndefined();
+  });
+});

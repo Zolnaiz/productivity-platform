@@ -4,6 +4,9 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FiveSLayout } from './entities/five-s-layout.entity';
+import { Department } from './entities/department.entity';
+import { User } from '../users/entities/user.entity';
+import { assigneeForTier } from './tier-assignee';
 import { TaskSource } from './entities/task.entity';
 import { OperationsService } from './operations.service';
 import { HeldRedTag, holdTaskSourceId, isHoldExpired, SchedulableZone } from './audit-schedule';
@@ -31,9 +34,48 @@ export class AuditSchedulerService {
 
   constructor(
     @InjectRepository(FiveSLayout) private readonly layouts: Repository<FiveSLayout>,
+    /*
+      The people and the departments, to decide who a layer's check lands on.
+      Read-only here: the scheduler raises work, it does not change anybody.
+    */
+    @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Department) private readonly departments: Repository<Department>,
     private readonly operations: OperationsService,
     private readonly configService: ConfigService,
   ) {}
+
+  /**
+   * Who each layer's check should go to, for one zone.
+   *
+   * Looked up per zone rather than per organization because a plant's areas
+   * belong to different departments, and the point of the exercise is that the
+   * supervisor's check reaches that area's supervisor.
+   */
+  private async candidatesFor(zone: SchedulableZone) {
+    /*
+      The id comes from the plan and the role from the staff list, separately:
+      a zone can name an owner whose row cannot be read — deleted, or simply
+      not there yet in a workspace still being set up — and losing the
+      assignment because of that would silently stop the work reaching
+      anybody. Without a role they cover no layer that asks for one, which
+      sends the higher layers to the department's manager as intended.
+    */
+    const ownerRecord = zone.ownerId
+      ? await this.users.findOne({ where: { id: zone.ownerId } })
+      : null;
+    const owner = zone.ownerId ? { id: zone.ownerId, role: ownerRecord?.role } : null;
+
+    const departmentId = (zone as { departmentId?: string }).departmentId;
+    const department = departmentId
+      ? await this.departments.findOne({ where: { id: departmentId } })
+      : null;
+
+    const departmentManager = department?.managerId
+      ? await this.users.findOne({ where: { id: department.managerId } })
+      : null;
+
+    return { owner, departmentManager };
+  }
 
   private get enabled() {
     return this.configService.get<boolean>('ENABLE_AUDIT_SCHEDULER', true);
@@ -154,6 +196,7 @@ export class AuditSchedulerService {
     const place = [zone.code, zone.name].filter(Boolean).join(' - ') || zone.id!;
     const lastAt = tierAuditOf(zone as TieredZone, tier.tier).lastAuditAt;
     const dueDate = tierDueDate(zone as TieredZone, tier) || today;
+    const candidates = await this.candidatesFor(zone);
 
     await this.operations.createTask(
       {
@@ -166,9 +209,13 @@ export class AuditSchedulerService {
           `Last checked at this layer: ${lastAt ? lastAt.slice(0, 10) : 'never'}`,
           `Due: ${dueDate}`,
         ].join('\n'),
-        // Until a users API exists there is nobody to resolve `tier.role` to,
-        // so the zone owner carries it and the layer is named in the task.
-        assigneeId: zone.ownerId,
+        /*
+          Whoever is expected to walk this layer. Every tier used to go to the
+          zone owner, which put the supervisor's weekly check and the
+          manager's monthly one in the operator's list — the one place they
+          cannot be done from, and the opposite of what a layered audit is for.
+        */
+        assigneeId: assigneeForTier(tier, candidates),
         sourceType: TaskSource.AUDIT_RUN,
         sourceId: tierTaskSourceId(zone.id!, tier.tier),
         priority: tier.tier > 1 ? 'medium' : 'low',
