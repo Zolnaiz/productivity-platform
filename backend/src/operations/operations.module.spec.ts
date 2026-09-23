@@ -16,6 +16,7 @@ import { TimeEntry } from './entities/time-entry.entity';
 import { WorkLog } from './entities/work-log.entity';
 import { AttachmentsController } from './attachments.controller';
 import { AttachmentsService } from './attachments.service';
+import { ATTACHMENT_STORE, createAttachmentStore } from './attachment-store';
 import { AuditSchedulerService } from './audit-scheduler.service';
 import { OperationsController } from './operations.controller';
 import { OperationsService } from './operations.service';
@@ -66,6 +67,9 @@ describe('OperationsModule wiring', () => {
         PermissionsGuard,
         { provide: JwtService, useValue: { verify: jest.fn() } },
         { provide: ConfigService, useValue: { get: jest.fn(() => undefined) } },
+        // The real factory, so an unconfigured deployment is proved to fall
+        // back to local disk rather than failing to start.
+        { provide: ATTACHMENT_STORE, useFactory: createAttachmentStore, inject: [ConfigService] },
         ...entities.map((entity) => ({
           provide: getRepositoryToken(entity),
           useValue: repositoryMock(),

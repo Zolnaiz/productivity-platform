@@ -18,9 +18,13 @@ Nothing below matters if it only exists on a branch and on one laptop.
   first organization. The pieces exist — Dockerfiles, compose files, a backup
   and restore runbook — and have never been run end to end by anyone but the
   author.
-- **Give attachments a real file store.** They write to `UPLOAD_DIR` on local
-  disk, which does not survive a container being replaced. Photographs are
-  evidence in a 5S programme; losing them on a redeploy is losing the evidence.
+- **Attachments have a real file store, and production has to choose one.**
+  `ATTACHMENT_STORE=s3` keeps the bytes in an object store — MinIO or Ceph on
+  the customer's own hardware via `S3_ENDPOINT` — and the default local store
+  now writes to a named volume rather than into the container. What is left is
+  the deployment decision itself: MPC has no object store yet, and until one
+  exists the evidence depends on that volume being backed up alongside the
+  database, which the backup runbook does not yet cover.
 
 ### 2. Make it trustworthy in daily use
 
@@ -163,12 +167,10 @@ could be built honestly.
 - Record the disposition when a tag is closed. `closedAt` is set automatically;
   whether the item was disposed of or returned still has to be filed by hand,
   and nothing prompts for it.
-- Attach photographs to audit answers too. Red tags and zone standards carry
-  them now; a failed checklist item still cannot show what was wrong.
-- Give production a real file store. Attachments write to `UPLOAD_DIR` on local
-  disk, which does not survive a container being replaced.
-- Tell somebody when an audit is raised. The scheduler creates the work; nobody
-  is notified, so it is still found rather than delivered.
+- Attach photographs to a single audit answer. A walk can carry a picture now,
+  but it belongs to the whole run: a checklist of twelve questions with one
+  failing item cannot say which one the photograph is of. The attachment's
+  owner is the run, so this needs a second identifier on the row.
 
 ## Next Frontend Work
 

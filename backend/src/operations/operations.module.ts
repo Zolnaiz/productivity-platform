@@ -19,6 +19,7 @@ import { OperationsService } from './operations.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
 import { AttachmentsController } from './attachments.controller';
 import { AttachmentsService } from './attachments.service';
+import { ATTACHMENT_STORE, createAttachmentStore } from './attachment-store';
 import { AuditSchedulerService } from './audit-scheduler.service';
 import { PermissionsGuard } from '../shared/guards/permissions.guard';
 import { Notification } from './entities/notification.entity';
@@ -54,6 +55,17 @@ import { NotificationsService } from './notifications.service';
   providers: [
     OperationsService,
     AttachmentsService,
+    /*
+      Where attachment bytes live, decided once at startup from the
+      environment. A misconfigured object store fails here, where somebody is
+      watching the service come up, rather than at the first upload from a
+      phone in the middle of an audit.
+    */
+    {
+      provide: ATTACHMENT_STORE,
+      useFactory: createAttachmentStore,
+      inject: [ConfigService],
+    },
     AuditSchedulerService,
     NotificationsService,
     OperationsAuthGuard,

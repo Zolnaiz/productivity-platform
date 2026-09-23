@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AttachmentsService } from './attachments.service';
 import { AttachmentKind, AttachmentOwner } from './entities/attachment.entity';
+import { LocalAttachmentStore } from './attachment-store';
 
 const jpeg = () => Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64, 7)]);
 
@@ -33,8 +34,10 @@ const createService = async () => {
     }),
   };
 
-  const configService = { get: jest.fn((_key: string, fallback: string) => uploadDir || fallback) };
-  const service = new AttachmentsService(repository as any, configService as any);
+  // A real local store on a temporary directory: what this spec is about is
+  // the service's bookkeeping, and stubbing the bytes away would stop it
+  // proving that what was uploaded can be read back.
+  const service = new AttachmentsService(repository as any, new LocalAttachmentStore(uploadDir));
 
   return { service, repository, uploadDir, rows };
 };

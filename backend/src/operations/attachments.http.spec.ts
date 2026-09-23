@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import * as request from 'supertest';
 import { AttachmentsController } from './attachments.controller';
 import { AttachmentsService } from './attachments.service';
+import { ATTACHMENT_STORE, createAttachmentStore } from './attachment-store';
 import { Attachment } from './entities/attachment.entity';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
 import { PermissionsGuard } from '../shared/guards/permissions.guard';
@@ -69,6 +70,10 @@ describe('uploading an attachment over HTTP', () => {
           provide: ConfigService,
           useValue: { get: (key: string, fallback?: string) => (key === 'UPLOAD_DIR' ? uploadDir : fallback) },
         },
+        // The store the factory builds for an unconfigured deployment, on a
+        // temporary directory — so this exercises the path a customer with no
+        // object store actually runs.
+        { provide: ATTACHMENT_STORE, useFactory: createAttachmentStore, inject: [ConfigService] },
         { provide: getRepositoryToken(Attachment), useValue: repository },
       ],
     }).compile();

@@ -28,9 +28,34 @@ export const envValidationSchema = Joi.object({
   DB_LOGGING: Joi.boolean().truthy('true').falsy('false').default(false),
   DB_MIGRATIONS_RUN: Joi.boolean().truthy('true').falsy('false').default(false),
   DB_SSL: Joi.boolean().truthy('true').falsy('false').default(false),
-  // Where attachment bytes are written. Relative paths resolve from the
-  // backend's working directory; give a real volume in production.
+  /*
+    Where attachment bytes live.
+
+    `local` writes to `UPLOAD_DIR`, which is correct for one machine with a
+    real volume mounted there and wrong for a container that gets replaced —
+    the photographs go and the rows that point at them stay. `s3` keeps them
+    in an object store, which is the arrangement that survives a redeploy;
+    `S3_ENDPOINT` points it at MinIO or Ceph on a customer's own hardware,
+    for a plant that will not send its floor photographs to a public cloud.
+  */
+  ATTACHMENT_STORE: Joi.string().valid('local', 's3').default('local'),
+  // Relative paths resolve from the backend's working directory.
   UPLOAD_DIR: Joi.string().default('./uploads'),
+  // Required as soon as the object store is chosen, so a half-configured
+  // bucket fails at startup rather than at the first upload.
+  S3_BUCKET: Joi.string().allow('').default('').when('ATTACHMENT_STORE', {
+    is: 's3',
+    then: Joi.string().required(),
+  }),
+  S3_REGION: Joi.string().default('us-east-1'),
+  S3_ENDPOINT: Joi.string().allow('').default(''),
+  // MinIO and Ceph address buckets by path. Defaults to on when an endpoint
+  // is given, which is the only reason to give one.
+  S3_FORCE_PATH_STYLE: Joi.boolean().truthy('true').falsy('false'),
+  // Left empty to use the SDK's own credential chain — an instance role or a
+  // mounted credentials file — rather than writing a secret down twice.
+  S3_ACCESS_KEY_ID: Joi.string().allow('').default(''),
+  S3_SECRET_ACCESS_KEY: Joi.string().allow('').default(''),
   // The daily job that raises 5S audits whose frequency has come round. On by
   // default: a zone declaring a weekly audit should get one without anyone
   // remembering to press a button.

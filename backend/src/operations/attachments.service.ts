@@ -1,12 +1,10 @@
-import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Attachment, AttachmentKind, AttachmentOwner } from './entities/attachment.entity';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { buildStorageKey, safeFileName, sniffMimeType } from './attachment-storage';
+import { ATTACHMENT_STORE, AttachmentStore } from './attachment-store';
 
 type CurrentUser = {
   id?: string;
@@ -22,10 +20,11 @@ export interface UploadedAttachment {
 /**
  * Photographs and documents attached to 5S records.
  *
- * The bytes live on disk under a server-generated key; the row carries the
- * name a person recognises. Nothing a client sends reaches the filesystem, and
- * every read is filtered by organization — a photograph of one tenant's shop
- * floor must never be reachable from another's session.
+ * The bytes live in whatever store this deployment is configured for — a local
+ * volume or an S3-compatible bucket — under a server-generated key; the row
+ * carries the name a person recognises. Nothing a client sends reaches a path
+ * or an object name, and every read is filtered by organization: a photograph
+ * of one tenant's shop floor must never be reachable from another's session.
  */
 @Injectable()
 export class AttachmentsService {
@@ -33,13 +32,8 @@ export class AttachmentsService {
 
   constructor(
     @InjectRepository(Attachment) private readonly attachments: Repository<Attachment>,
-    private readonly configService: ConfigService,
+    @Inject(ATTACHMENT_STORE) private readonly store: AttachmentStore,
   ) {}
-
-  /** Absolute, resolved once, so a key can never be joined into an escape. */
-  private get storageRoot() {
-    return resolve(this.configService.get<string>('UPLOAD_DIR', './uploads'));
-  }
 
   private organizationWhere(user: CurrentUser) {
     if (!user?.organizationId) {
@@ -70,8 +64,7 @@ export class AttachmentsService {
     }
 
     const storageKey = buildStorageKey(mimeType);
-    await mkdir(this.storageRoot, { recursive: true });
-    await writeFile(join(this.storageRoot, storageKey), file.buffer);
+    await this.store.put(storageKey, file.buffer, mimeType);
 
     const attachment = this.attachments.create({
       ...where,
@@ -111,13 +104,13 @@ export class AttachmentsService {
   /**
    * The bytes, for streaming back.
    *
-   * The path is built from the stored key only, and the key was generated as a
-   * random id plus a known extension — so there is no client-supplied text
-   * anywhere in it.
+   * The key is the one the server generated — a random id plus a known
+   * extension — so there is no client-supplied text anywhere in the path or
+   * the object name.
    */
   async read(id: string, user: CurrentUser) {
     const attachment = await this.findScoped(id, user);
-    const buffer = await readFile(join(this.storageRoot, attachment.storageKey));
+    const buffer = await this.store.get(attachment.storageKey);
 
     return { attachment, buffer };
   }
@@ -130,7 +123,7 @@ export class AttachmentsService {
     // The row is the record; a leftover file is untidy, not incorrect. Losing
     // the row because the file had already gone would be worse.
     try {
-      await unlink(join(this.storageRoot, attachment.storageKey));
+      await this.store.remove(attachment.storageKey);
     } catch {
       this.logger.warn(`Attachment file already gone: ${attachment.storageKey}`);
     }

@@ -80,4 +80,36 @@ describe('envValidationSchema', () => {
 
     expect(result.error).toBeDefined();
   });
+
+  it('keeps attachments on local disk when nothing says otherwise', () => {
+    const result = envValidationSchema.validate({});
+
+    expect(result.error).toBeUndefined();
+    expect(result.value.ATTACHMENT_STORE).toBe('local');
+    expect(result.value.UPLOAD_DIR).toBe('./uploads');
+  });
+
+  it('refuses an object store with no bucket named', () => {
+    // A half-configured store has to fail at startup. The alternative is a
+    // deployment that looks healthy until somebody photographs a red tag.
+    const result = envValidationSchema.validate({ ATTACHMENT_STORE: 's3' });
+
+    expect(result.error).toBeDefined();
+  });
+
+  it("accepts an object store on a customer's own hardware", () => {
+    const result = envValidationSchema.validate({
+      ATTACHMENT_STORE: 's3',
+      S3_BUCKET: 'evidence',
+      S3_ENDPOINT: 'https://minio.plant.local',
+    });
+
+    expect(result.error).toBeUndefined();
+  });
+
+  it('refuses a store nobody has written', () => {
+    const result = envValidationSchema.validate({ ATTACHMENT_STORE: 'dropbox' });
+
+    expect(result.error).toBeDefined();
+  });
 });

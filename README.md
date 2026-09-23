@@ -267,6 +267,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Submitting an audit run writes its score onto the referenced 5S zone, so the area map shows measured condition rather than chosen colours.
 - Tasks raised from a 5S finding record their source, and the API raises at most one open task per finding rather than duplicating work.
 - Attachment uploads are typed by sniffing their bytes, stored under a server-generated key, served with `Content-Disposition: attachment` and a sandboxing CSP, and scoped by `organizationId` on every read. Clients fetch them through the authenticated API rather than linking the guarded endpoint.
+- Where those bytes live is a deployment's choice: `ATTACHMENT_STORE=local` writes to `UPLOAD_DIR` (a named volume in the production compose file, so a replaced container no longer takes the photographs with it), and `ATTACHMENT_STORE=s3` keeps them in an object store — `S3_ENDPOINT` points that at MinIO or Ceph on the customer's own hardware. A store named without a bucket is refused at startup rather than at the first upload.
 - Operations updates preserve the original organization scope and ignore payload attempts to move records across organizations.
 - Operations API supports scoped project soft-delete and the runtime smoke cleans up its write test project.
 - Runtime PostgreSQL smoke uses a seeded organization/user and validates real `/auth/login` JWT flow before exercising operations writes.
@@ -295,7 +296,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 558 passing
+- Backend tests: 574 passing
 - Frontend tests: 747 passing, plus eight browser checks
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
