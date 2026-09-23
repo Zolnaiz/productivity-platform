@@ -13,6 +13,7 @@ import { AssessmentResponse } from './entities/assessment-response.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
+import { Department } from './entities/department.entity';
 import { Attachment } from './entities/attachment.entity';
 import { OperationsController } from './operations.controller';
 import { OperationsService } from './operations.service';
@@ -47,6 +48,7 @@ import { NotificationsService } from './notifications.service';
       ExpenseItem,
       DailyGoal,
       FiveSLayout,
+      Department,
       Attachment,
       Notification,
     ]),

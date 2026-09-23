@@ -59,6 +59,11 @@ const viewer = [
   'audits:read',
   'templates:read',
   'zones:read',
+  // Who is in which department, and which department answers for an area.
+  // Everybody reads it: it is the shape of the organization, and a zone page
+  // that cannot name the department responsible for the area is a worse
+  // answer than one that can.
+  'departments:read',
   'attachments:read',
   'reports:read',
 ];
@@ -114,6 +119,11 @@ const admin = [
   'templates:create',
   'templates:update',
   'templates:delete',
+  // Changing the shape of the organization is an administrator's job, not a
+  // line manager's — the same level as creating and retiring zones.
+  'departments:create',
+  'departments:update',
+  'departments:delete',
   'users:update',
   'users:delete',
   'invitations:delete',

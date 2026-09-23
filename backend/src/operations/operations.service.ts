@@ -13,6 +13,7 @@ import { AssessmentResponse } from './entities/assessment-response.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
+import { Department } from './entities/department.entity';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { projectProgressPercent, summarisePeople } from './monthly-people';
 import { NotificationsService } from './notifications.service';
@@ -55,8 +56,54 @@ export class OperationsService {
     @InjectRepository(ExpenseItem) private expenses: Repository<ExpenseItem>,
     @InjectRepository(DailyGoal) private dailyGoals: Repository<DailyGoal>,
     @InjectRepository(FiveSLayout) private fiveSLayouts: Repository<FiveSLayout>,
+    @InjectRepository(Department) private departments: Repository<Department>,
     private readonly notifications: NotificationsService,
   ) {}
+
+  /**
+   * The organization's departments, in the order a person reads a list.
+   *
+   * By name rather than by when they were created: a department list is the
+   * shape of the organization, and somebody looking for Maintenance should
+   * find it where the alphabet says it is.
+   */
+  async findDepartments(user: CurrentUser) {
+    const departments = await this.departments.find({ where: this.organizationWhere(user) });
+
+    return departments.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }
+
+  createDepartment(payload: Partial<Department>, user: CurrentUser) {
+    return this.departments.save(
+      this.departments.create({
+        ...payload,
+        organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      }),
+    );
+  }
+
+  async updateDepartment(id: string, payload: Partial<Department>, user: CurrentUser) {
+    const department = await this.findOneScoped(this.departments, id, user, 'Department');
+    this.assignWithoutOrganizationChange(department, payload);
+
+    return this.departments.save(department);
+  }
+
+  /**
+   * Retires a department.
+   *
+   * Soft, like every other record here, and the people and areas that pointed
+   * at it are deliberately left pointing at it: a department that is dissolved
+   * does not un-happen, and rewriting a hundred rows to null in the same
+   * breath is how an undo becomes impossible. What reads them resolves an
+   * unknown department to "unassigned", which is the honest answer.
+   */
+  async removeDepartment(id: string, user: CurrentUser) {
+    const department = await this.findOneScoped(this.departments, id, user, 'Department');
+    await this.departments.softRemove(department);
+
+    return { id, deleted: true };
+  }
 
   findProjects(user: CurrentUser) {
     return this.projects.find({

@@ -23,6 +23,7 @@ const createService = () => {
     expenses: createRepository(),
     dailyGoals: createRepository(),
     fiveSLayouts: createRepository(),
+    departments: createRepository(),
   };
 
   const notifications = { notify: jest.fn(async () => null) };
@@ -40,6 +41,7 @@ const createService = () => {
     repositories.expenses as any,
     repositories.dailyGoals as any,
     repositories.fiveSLayouts as any,
+    repositories.departments as any,
     // Raising work now tells whoever it was given to; the spy is what lets a
     // test say who was told.
     notifications as any,

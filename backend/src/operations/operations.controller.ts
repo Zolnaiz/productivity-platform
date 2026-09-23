@@ -6,6 +6,8 @@ import {
   CreateAssessmentResponseDto,
   CreateAssessmentTemplateDto,
   CreateAuditRunDto,
+  CreateDepartmentDto,
+  UpdateDepartmentDto,
   CreateAuditTemplateDto,
   CreateDailyGoalDto,
   CreateExpenseDto,
@@ -227,6 +229,35 @@ export class OperationsController {
   @RequirePermission('templates:create')
   createAuditTemplate(@Body() body: CreateAuditTemplateDto, @Request() req) {
     return this.operationsService.createAuditTemplate(body, req.user);
+  }
+
+  /*
+    Departments: the shape of the organization. Everybody reads it, because a
+    page that cannot name the department answerable for an area is a worse
+    answer than one that can; changing it is an administrator's job.
+  */
+  @Get('departments')
+  @RequirePermission('departments:read')
+  findDepartments(@Request() req) {
+    return this.operationsService.findDepartments(req.user);
+  }
+
+  @Post('departments')
+  @RequirePermission('departments:create')
+  createDepartment(@Body() body: CreateDepartmentDto, @Request() req) {
+    return this.operationsService.createDepartment(body, req.user);
+  }
+
+  @Patch('departments/:id')
+  @RequirePermission('departments:update')
+  updateDepartment(@Param('id') id: string, @Body() body: UpdateDepartmentDto, @Request() req) {
+    return this.operationsService.updateDepartment(id, body, req.user);
+  }
+
+  @Delete('departments/:id')
+  @RequirePermission('departments:delete')
+  removeDepartment(@Param('id') id: string, @Request() req) {
+    return this.operationsService.removeDepartment(id, req.user);
   }
 
   @Get('audit-runs')

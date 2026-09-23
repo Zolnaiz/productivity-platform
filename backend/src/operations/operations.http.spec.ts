@@ -16,6 +16,7 @@ import { AuditTemplate } from './entities/audit-template.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
+import { Department } from './entities/department.entity';
 import { Notification } from './entities/notification.entity';
 import { Project } from './entities/project.entity';
 import { WorkTask } from './entities/task.entity';
@@ -56,6 +57,7 @@ const entities = [
   ExpenseItem,
   DailyGoal,
   FiveSLayout,
+  Department,
   Attachment,
   Notification,
 ];
@@ -195,6 +197,65 @@ describe('operations API over HTTP', () => {
       const saved = repositories.get(FiveSLayout)?.save.mock.calls[0][0] as Record<string, any>;
       expect(saved.zones[0].lastCleanedAt).not.toBe('2020-01-01');
       expect(saved.zones[0].ownerName).toBeUndefined();
+    });
+  });
+
+  describe('departments, which everybody reads and administrators change', () => {
+    beforeEach(() => {
+      repositories.get(Department)?.find.mockResolvedValue([]);
+      repositories.get(Department)?.findOne.mockResolvedValue({
+        id: 'd1',
+        name: 'Warehouse',
+        organizationId: 'org-1',
+      });
+    });
+
+    it.each([
+      [UserRole.ORGANIZATION_ADMIN, 200],
+      [UserRole.ADMIN, 200],
+      [UserRole.MANAGER, 200],
+      [UserRole.USER, 200],
+      // Including a viewer: a zone page that cannot name the department
+      // answerable for an area is a worse answer than one that can.
+      [UserRole.VIEWER, 200],
+    ])('lets %s read the list, answering %i', async (role, status) => {
+      await request(app.getHttpServer())
+        .get('/api/departments')
+        .set('Authorization', as(role))
+        .expect(status);
+    });
+
+    it.each([
+      [UserRole.ORGANIZATION_ADMIN, 201],
+      [UserRole.ADMIN, 201],
+      // A line manager runs their shift; they do not redraw the organization.
+      [UserRole.MANAGER, 403],
+      [UserRole.USER, 403],
+      [UserRole.VIEWER, 403],
+    ])('answers %s creating one with %i', async (role, status) => {
+      await request(app.getHttpServer())
+        .post('/api/departments')
+        .set('Authorization', as(role))
+        .send({ name: 'Maintenance' })
+        .expect(status);
+    });
+
+    it('refuses a department with no name rather than storing a blank card', async () => {
+      await request(app.getHttpServer())
+        .post('/api/departments')
+        .set('Authorization', as(UserRole.ADMIN))
+        .send({ focusArea: 'Keeps the presses running' })
+        .expect(400);
+    });
+
+    it('refuses a field the route does not declare', async () => {
+      // `memberCount` in particular: how many people are in a department is
+      // counted from the people, never sent by a client.
+      await request(app.getHttpServer())
+        .post('/api/departments')
+        .set('Authorization', as(UserRole.ADMIN))
+        .send({ name: 'Maintenance', memberCount: 99 })
+        .expect(400);
     });
   });
 

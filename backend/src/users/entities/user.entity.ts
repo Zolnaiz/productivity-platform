@@ -46,6 +46,16 @@ export class User {
   @Column({ nullable: true })
   position?: string;
 
+  /**
+   * Which department this person belongs to, as a department id.
+   *
+   * Plain column rather than a relation: a department is deleted by a decision
+   * the application makes — its people are left without one, which is a real
+   * state — and not by a database refusing the delete.
+   */
+  @Column({ nullable: true, name: 'department_id' })
+  departmentId?: string;
+
   @Column({ nullable: true })
   phone?: string;
 

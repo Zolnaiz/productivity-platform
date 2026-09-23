@@ -596,6 +596,44 @@ export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
   metresPerUnit?: number;
 }
 
+/**
+ * A department: its name, who answers for it, and what it is for.
+ *
+ * Nothing about its people or its areas is set from here — a person's
+ * department is a field on the person and a zone's is a field on the zone, so
+ * membership is changed where the member is rather than by posting a list.
+ */
+export class CreateDepartmentDto extends OrganizationScopedDto {
+  @IsString()
+  @MaxLength(120)
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  managerId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  focusArea?: string;
+}
+
+export class UpdateDepartmentDto extends OrganizationScopedDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  managerId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  focusArea?: string;
+}
+
 export class CreateAuditTemplateDto extends OrganizationScopedDto {
   @IsString()
   title: string;

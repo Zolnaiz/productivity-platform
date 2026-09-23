@@ -10,6 +10,7 @@ import { AuditTemplate } from './entities/audit-template.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
+import { Department } from './entities/department.entity';
 import { Project } from './entities/project.entity';
 import { WorkTask } from './entities/task.entity';
 import { TimeEntry } from './entities/time-entry.entity';
@@ -38,6 +39,7 @@ const entities = [
   ExpenseItem,
   DailyGoal,
   FiveSLayout,
+  Department,
   Attachment,
   Notification,
 ];
