@@ -187,7 +187,20 @@ export const peopleService = {
 
   getMembers: async (query: MemberQuery = {}) => (await peopleService.listMembers(query)).data,
 
-  updateMember: (id: string, data: Pick<Partial<TeamUser>, 'firstName' | 'lastName' | 'email' | 'position' | 'phone'>) =>
+  /**
+   * Edits a member.
+   *
+   * `departmentId` is here rather than on a department route: membership is
+   * changed where the member is, so one person moving between departments is
+   * one request rather than a list being posted back.
+   */
+  updateMember: (
+    id: string,
+    data: Pick<
+      Partial<TeamUser>,
+      'firstName' | 'lastName' | 'email' | 'position' | 'phone' | 'departmentId'
+    >,
+  ) =>
     isDemoMode()
       ? Promise.resolve(updateDemo(id, data))
       : patch<TeamUser>(`/users/${id}`, data),

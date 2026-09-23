@@ -162,6 +162,8 @@ const mn: Translations<typeof en> = {
     next: 'Дараагийн',
   },
   users: {
+    departmentOf: '{{name}}-ийн хэлтэс',
+    noDepartment: 'Хэлтэсгүй',
     title: 'Хэрэглэгчид',
     subtitle: 'Энэ байгууллагын бүх хүн, тус бүрийн эрх, хүлээгдэж буй урилгууд.',
     invite: 'Хүн урих',

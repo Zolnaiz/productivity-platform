@@ -8,6 +8,8 @@ const people = vi.hoisted(() => ({
   getOwnPermissions: vi.fn(),
   getMembers: vi.fn(),
   getPendingInvitations: vi.fn(),
+  getDepartments: vi.fn(),
+  updateMember: vi.fn(),
   setMemberActive: vi.fn(),
   changeMemberRole: vi.fn(),
   invite: vi.fn(),
@@ -36,6 +38,11 @@ describe('TeamUsersPage', () => {
     vi.clearAllMocks();
     people.getMembers.mockResolvedValue([member()]);
     people.getPendingInvitations.mockResolvedValue([]);
+    people.getDepartments.mockResolvedValue([
+      { id: 'd1', name: 'Assembly' },
+      { id: 'd2', name: 'Warehouse' },
+    ]);
+    people.updateMember.mockResolvedValue(member({ departmentId: 'd2' }));
     signedInAs('organization_admin', [
       'users:read',
       'users:update',
@@ -122,5 +129,49 @@ describe('TeamUsersPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Deactivate' }));
 
     expect(await screen.findByRole('alert')).toBeTruthy();
+  });
+});
+
+/**
+ * Membership is changed where the member is.
+ *
+ * Without this column a department's people could only ever be set through
+ * the API, which would leave every department on the departments page reading
+ * as empty no matter how many people were in it.
+ */
+describe('which department somebody is in', () => {
+  it('moves a member, and says whose department is being changed', async () => {
+    signedInAs('admin', ['users:read', 'users:update']);
+
+    render(<TeamUsersPage />);
+
+    const select = await screen.findByLabelText('Department for Bat Dorj');
+    await userEvent.selectOptions(select, 'd2');
+
+    await waitFor(() =>
+      expect(people.updateMember).toHaveBeenCalledWith('u1', { departmentId: 'd2' }),
+    );
+  });
+
+  it('shows the department as plain text to somebody who may not change it', async () => {
+    people.getMembers.mockResolvedValue([member({ departmentId: 'd1' })]);
+    signedInAs('viewer', ['users:read']);
+
+    render(<TeamUsersPage />);
+
+    expect(await screen.findByText('Assembly')).toBeTruthy();
+    expect(screen.queryByLabelText('Department for Bat Dorj')).toBeNull();
+  });
+
+  it('still shows the staff list when the departments cannot be fetched', async () => {
+    // A column that reads "no department" is not a reason to put an error over
+    // the list somebody came here for.
+    people.getDepartments.mockRejectedValue(new Error('offline'));
+    signedInAs('admin', ['users:read', 'users:update']);
+
+    render(<TeamUsersPage />);
+
+    expect(await screen.findByText('bat@example.com')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

@@ -162,6 +162,8 @@ const en = {
     next: 'Next',
   },
   users: {
+    departmentOf: 'Department for {{name}}',
+    noDepartment: 'No department',
     title: 'Users',
     subtitle: 'Everybody in this organization, the role each one holds, and the invitations still open.',
     invite: 'Invite somebody',

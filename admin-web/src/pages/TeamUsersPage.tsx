@@ -10,6 +10,7 @@ import Select from '../components/common/Select';
 import Table from '../components/common/Table';
 import { apiErrorMessage } from '../i18n/apiError';
 import { peopleService } from '../services/people.service';
+import { Department } from '../types/people.types';
 import {
   IssuedInvitation,
   MemberRole,
@@ -49,6 +50,12 @@ const TeamUsersPage: React.FC = () => {
   const [issued, setIssued] = useState<IssuedInvitation | null>(null);
   const [copied, setCopied] = useState(false);
   const [draft, setDraft] = useState<{ email: string; role: MemberRole }>({ email: '', role: 'user' });
+  /*
+    The departments somebody can be moved between. Without this column a
+    department's member count could only ever be set through the API, which
+    would leave every department on the page reading as empty.
+  */
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   const may = useCallback(
     (permission: string) => permissions.includes('*') || permissions.includes(permission),
@@ -69,6 +76,10 @@ const TeamUsersPage: React.FC = () => {
       setPermissions(access.permissions);
       setOwnRole(access.role);
       setMembers(page);
+      // Tolerated on its own: a department list that cannot be fetched is a
+      // column that reads "no department", not a reason to put an error over
+      // the staff list somebody came here for.
+      setDepartments(await peopleService.getDepartments().catch(() => []));
 
       // Only fetched when the caller may see them; asking anyway would put a
       // refusal on screen for something they never asked for.
@@ -254,6 +265,30 @@ const TeamUsersPage: React.FC = () => {
                 ),
             },
             { key: 'position', header: t('users.position'), render: (member) => member.position || '-' },
+            {
+              key: 'department',
+              header: t('users.department'),
+              render: (member) =>
+                may('users:update') ? (
+                  <Select
+                    aria-label={t('users.departmentOf', { name: memberName(member) })}
+                    value={member.departmentId || ''}
+                    onChange={(event) =>
+                      act(() => peopleService.updateMember(member.id, { departmentId: event.target.value }))
+                    }
+                  >
+                    <option value="">{t('users.noDepartment')}</option>
+                    {departments.map((department) => (
+                      <option key={department.id} value={department.id}>
+                        {department.name}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  departments.find((department) => department.id === member.departmentId)?.name ||
+                  t('users.noDepartment')
+                ),
+            },
             {
               key: 'status',
               header: t('users.status'),
