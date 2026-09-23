@@ -22,6 +22,7 @@ import { AuditCategory } from '../entities/audit-template.entity';
 import { ExpenseCategory, ExpenseStatus } from '../entities/expense.entity';
 import { ProjectStatus } from '../entities/project.entity';
 import { TaskSource, TaskStatus } from '../entities/task.entity';
+import { UserRole } from '../../shared/constants';
 
 class ChecklistQuestionDto {
   @IsString()
@@ -496,6 +497,35 @@ export class CreateRedTagDto {
 }
 
 /** A new plan: everything else about it is drawn afterwards. */
+/**
+ * One layer of a layered audit.
+ *
+ * `role` is what decides who its task lands on, so it is checked against the
+ * platform's own role names rather than accepted as free text — a layer asking
+ * for "supervisor" would silently match nobody.
+ */
+class AuditTierDto {
+  @IsNumber()
+  @Min(1)
+  @Max(9)
+  tier: number;
+
+  @IsString()
+  @MaxLength(60)
+  name: string;
+
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
+
+  @IsIn(['daily', 'weekly', 'monthly'])
+  frequency: 'daily' | 'weekly' | 'monthly';
+
+  @IsOptional()
+  @IsUUID()
+  templateId?: string;
+}
+
 export class CreateFiveSLayoutDto extends OrganizationScopedDto {
   @IsOptional()
   @IsString()
@@ -594,6 +624,19 @@ export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
   @IsNumber()
   @Min(0.000001)
   metresPerUnit?: number;
+
+  /**
+   * The audit layers, or none to keep the defaults.
+   *
+   * Optional for the same reason as the wall graph: a plan saved by an older
+   * client does not send them, and rejecting it would break saving to fix
+   * configuring.
+   */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AuditTierDto)
+  auditTiers?: AuditTierDto[];
 }
 
 /**

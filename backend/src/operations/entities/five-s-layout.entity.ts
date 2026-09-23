@@ -46,6 +46,23 @@ export class FiveSLayout extends BaseEntity {
   @Column({ name: 'show_dimensions', type: 'boolean', default: false })
   showDimensions: boolean;
 
+  /**
+   * The layers this organization audits in, declared once for the whole plan.
+   *
+   * Empty means the defaults — operator daily, supervisor weekly, manager
+   * monthly — which is what every plan ran on until now, because the field
+   * existed in the browser's types and was never stored. A plant that checks
+   * on a different rhythm, or calls its layers something else, can say so.
+   */
+  @Column({ type: 'jsonb', name: 'audit_tiers', default: () => "'[]'" })
+  auditTiers: Array<{
+    tier: number;
+    name: string;
+    role?: string;
+    frequency: 'daily' | 'weekly' | 'monthly';
+    templateId?: string;
+  }>;
+
   @Column({ type: 'jsonb', default: () => "'[]'" })
   zones: Record<string, any>[];
 

@@ -600,6 +600,12 @@ export class OperationsService {
       openings: payload.openings || [],
       roomLabels: payload.roomLabels || [],
       metresPerUnit: payload.metresPerUnit ?? existing?.metresPerUnit,
+      /*
+        The audit layers. A client that does not send them keeps what is
+        stored rather than clearing it — an older browser saving a plan must
+        not silently return an organization to the default rhythm.
+      */
+      auditTiers: payload.auditTiers ?? existing?.auditTiers ?? [],
     };
 
     if (existing) {

@@ -265,6 +265,81 @@ describe('operations API over HTTP', () => {
     });
   });
 
+  describe('the layers a plan is audited in', () => {
+    const plan = {
+      name: 'Ground floor',
+      site: 'Plant',
+      scale: '1 square = 1 metre',
+      zones: [],
+      objects: [],
+    };
+
+    beforeEach(() => {
+      repositories.get(FiveSLayout)?.findOne.mockResolvedValue({
+        id: 'l1',
+        organizationId: 'org-1',
+        zones: [],
+        objects: [],
+      });
+    });
+
+    it('stores what an organization says its layers are', async () => {
+      // They were read by the scheduler and stored nowhere, so every plant ran
+      // on the built-in defaults whatever it had typed.
+      await request(app.getHttpServer())
+        .patch('/api/five-s-layouts/l1')
+        .set('Authorization', as(UserRole.MANAGER))
+        .send({
+          ...plan,
+          auditTiers: [
+            { tier: 1, name: 'Ээлжийн ахлагч', role: UserRole.USER, frequency: 'daily' },
+            { tier: 2, name: 'Хэлтсийн дарга', role: UserRole.MANAGER, frequency: 'monthly' },
+          ],
+        })
+        .expect(200);
+
+      // The last call, not the first: these mocks are shared across the file
+      // and an earlier test's save would otherwise be the one inspected.
+      const calls = repositories.get(FiveSLayout)?.save.mock.calls ?? [];
+      const saved = calls[calls.length - 1][0] as Record<string, any>;
+      expect(saved.auditTiers).toHaveLength(2);
+      expect(saved.auditTiers[1]).toMatchObject({ name: 'Хэлтсийн дарга', frequency: 'monthly' });
+    });
+
+    it('refuses a layer asking for a role nobody has', async () => {
+      // "supervisor" is not one of this platform's roles, so a layer asking
+      // for it would silently match nobody and its checks would land on the
+      // area's owner for ever.
+      await request(app.getHttpServer())
+        .patch('/api/five-s-layouts/l1')
+        .set('Authorization', as(UserRole.MANAGER))
+        .send({
+          ...plan,
+          auditTiers: [{ tier: 1, name: 'Shift lead', role: 'supervisor', frequency: 'daily' }],
+        })
+        .expect(400);
+    });
+
+    it('refuses a rhythm nobody audits on', async () => {
+      await request(app.getHttpServer())
+        .patch('/api/five-s-layouts/l1')
+        .set('Authorization', as(UserRole.MANAGER))
+        .send({
+          ...plan,
+          auditTiers: [{ tier: 1, name: 'Operator', frequency: 'hourly' }],
+        })
+        .expect(400);
+    });
+
+    it('still accepts a plan from a client that has never heard of layers', async () => {
+      await request(app.getHttpServer())
+        .patch('/api/five-s-layouts/l1')
+        .set('Authorization', as(UserRole.MANAGER))
+        .send(plan)
+        .expect(200);
+    });
+  });
+
   describe('red-tagging from the floor', () => {
     beforeEach(() => {
       repositories.get(FiveSLayout)?.findOne.mockResolvedValue({

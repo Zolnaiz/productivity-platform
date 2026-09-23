@@ -82,12 +82,14 @@ could be built honestly.
   spaghetti diagram is now arithmetic rather than a drawing exercise.
 - **Floor plan versions.** An audit from March should still make sense against
   the plan of March, not against the wall somebody moved in June.
-- **A layered audit now reaches the right person**: the daily check stays with
-  the area's owner, and a layer the owner is not senior enough for goes to the
-  department's manager. What is still missing is the interface — the layers
-  themselves are read from the layout and default sensibly, and nothing lets an
-  organization change their names, frequencies or roles without editing the
-  stored plan.
+- **Layered audits are the organization's own.** Their names, rhythms and the
+  role each expects are editable and stored — the field existed in the
+  browser's types and had no column, so every plant ran on the built-in
+  defaults whatever its practice was. The daily check stays with the area's
+  owner, and a layer the owner is not senior enough for goes to the
+  department's manager. What a layer still cannot carry is its own checklist:
+  `templateId` is in the shape and nothing reads it, so every layer walks the
+  same questions.
 - **What the server raises now reads in the reader's language.** A task and a
   notification carry the key and its parts beside the assembled sentence, and
   a screen words the key. The sentence stays because a CSV export and an email

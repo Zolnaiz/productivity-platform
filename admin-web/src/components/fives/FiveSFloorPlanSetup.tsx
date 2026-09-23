@@ -44,6 +44,7 @@ import Card from '../common/Card';
 import PhotoEvidence from '../common/PhotoEvidence';
 import ZoneHistory from './ZoneHistory';
 import AuditTiers from './AuditTiers';
+import AuditTierSettings from './AuditTierSettings';
 import HoldingArea from './HoldingArea';
 import FloorPlanStart from './FloorPlanStart';
 import { holdDatesFor } from './holdingRules';
@@ -5053,6 +5054,16 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 <ZoneHistory zone={selectedZone} />
 
                 <AuditTiers zone={selectedZone} tiers={plan.auditTiers} />
+
+                {/*
+                  And what those layers are. They were read from the plan and
+                  could not be changed, so every organization ran on the
+                  defaults whatever its own practice was.
+                */}
+                <AuditTierSettings
+                  tiers={plan.auditTiers}
+                  onChange={(auditTiers) => updatePlan((current) => ({ ...current, auditTiers }))}
+                />
 
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                   <HoldingArea
