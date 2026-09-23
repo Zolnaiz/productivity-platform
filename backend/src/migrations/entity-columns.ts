@@ -43,6 +43,7 @@ export const liveTables = [
   'audit_log_entries',
   'notifications',
   'departments',
+  'five_s_guidelines',
 ];
 
 /** Created by `BaseEntity`, so they come with the table rather than separately. */

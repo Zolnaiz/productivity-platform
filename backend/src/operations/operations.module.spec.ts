@@ -11,6 +11,7 @@ import { DailyGoal } from './entities/daily-goal.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
 import { Department } from './entities/department.entity';
+import { FiveSGuideline } from './entities/five-s-guideline.entity';
 import { User } from '../users/entities/user.entity';
 import { MAILER, LoggingMailer } from '../shared/mail/mailer';
 import { Project } from './entities/project.entity';
@@ -42,6 +43,7 @@ const entities = [
   DailyGoal,
   FiveSLayout,
   Department,
+  FiveSGuideline,
   User,
   Attachment,
   Notification,

@@ -14,6 +14,7 @@ import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
 import { Department } from './entities/department.entity';
+import { FiveSGuideline } from './entities/five-s-guideline.entity';
 import { User } from '../users/entities/user.entity';
 import { Attachment } from './entities/attachment.entity';
 import { OperationsController } from './operations.controller';
@@ -50,6 +51,7 @@ import { NotificationsService } from './notifications.service';
       DailyGoal,
       FiveSLayout,
       Department,
+      FiveSGuideline,
       // Read-only here, for the address a notification is emailed to.
       User,
       Attachment,

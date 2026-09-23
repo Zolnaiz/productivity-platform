@@ -3,6 +3,7 @@ import {
   FiveSImplementationCard,
   FiveSImprovementRecord,
 } from '../types/fiveS.types';
+import { get, isDemoMode, patch, shouldUseDemoFallback } from './api';
 
 const storageKey = 'productivity-demo-5s-guideline-registers';
 
@@ -51,9 +52,16 @@ const defaultState: FiveSGuidelineState = {
   updatedAt: now(),
 };
 
+/**
+ * Fills in what a stored register does not carry.
+ *
+ * The demo's sample records are only used when there is no register at all —
+ * an organization whose improvement list is genuinely empty must not be shown
+ * somebody else's cable-tray finding as though it were theirs.
+ */
 const normalizeState = (state: Partial<FiveSGuidelineState> | null): FiveSGuidelineState => ({
-  improvements: state?.improvements ?? defaultState.improvements,
-  implementationCards: state?.implementationCards ?? defaultState.implementationCards,
+  improvements: state?.improvements ?? (state ? [] : defaultState.improvements),
+  implementationCards: state?.implementationCards ?? (state ? [] : defaultState.implementationCards),
   assessmentScores: state?.assessmentScores ?? [],
   checklistProgress: state?.checklistProgress ?? [],
   updatedAt: state?.updatedAt ?? now(),
@@ -117,9 +125,50 @@ const createImplementationCard = (): FiveSImplementationCard => ({
   status: 'identified',
 });
 
+/**
+ * The registers a 5S programme keeps.
+ *
+ * These lived in the browser that typed them, which made a programme's memory
+ * — what was found, who decided what, whether it worked — somebody's laptop.
+ * They are the organization's now, and the local copy is what demo mode runs
+ * on and what a browser falls back to when the API cannot be reached.
+ */
 export const fiveSGuidelineService = {
-  getState: readState,
-  saveState,
+  getState: async (): Promise<FiveSGuidelineState> => {
+    if (isDemoMode()) return readState();
+
+    try {
+      const register = await get<{ records?: Partial<FiveSGuidelineState> }>('/five-s-guidelines');
+
+      return normalizeState(register?.records ?? null);
+    } catch (error) {
+      if (!shouldUseDemoFallback()) throw error;
+
+      return readState();
+    }
+  },
+
+  saveState: async (state: FiveSGuidelineState): Promise<FiveSGuidelineState> => {
+    if (isDemoMode()) return saveState(state);
+
+    const records = { ...state, updatedAt: now() };
+
+    try {
+      const saved = await patch<{ records?: Partial<FiveSGuidelineState> }>('/five-s-guidelines', {
+        records,
+      });
+
+      return normalizeState(saved?.records ?? records);
+    } catch (error) {
+      if (!shouldUseDemoFallback()) throw error;
+
+      // Kept locally rather than lost: somebody filling in an improvement
+      // record has typed a paragraph, and a failed save that discards it is
+      // the fastest way to teach them not to use the register.
+      return saveState(state);
+    }
+  },
+
   resetState,
   createImprovementRecord,
   createImplementationCard,

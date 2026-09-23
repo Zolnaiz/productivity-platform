@@ -103,10 +103,13 @@ could be built honestly.
   is the pages nobody has needed in Mongolian yet — the platform placeholders
   and a few admin screens — and the strings the server builds, which is the
   task-title item above.
-- **Move the guideline registers out of the source.** About a hundred Mongolian
-  strings sit in `FiveSGuidelineRegisters.tsx`. They are not UI copy — they are
-  one organization's 5S standard — so they belong in seeded organization data,
-  which also lets a second organization have its own.
+- **The 5S registers belong to the organization now.** The improvement record,
+  the red-tag cards, the assessment scores and the checklist progress are
+  stored and shared rather than kept in the browser that typed them. What has
+  not moved yet is the standard they are kept against: about a hundred
+  Mongolian strings still sit in `FiveSGuidelineRegisters.tsx`, and the table
+  has a column waiting for them — they are one organization's 5S standard, not
+  UI copy, and a second organization should be able to have its own.
 
 ### 5. Mobile
 

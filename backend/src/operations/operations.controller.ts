@@ -7,6 +7,7 @@ import {
   CreateAssessmentTemplateDto,
   CreateAuditRunDto,
   CreateDepartmentDto,
+  SaveFiveSGuidelineRecordsDto,
   UpdateDepartmentDto,
   CreateAuditTemplateDto,
   CreateDailyGoalDto,
@@ -258,6 +259,23 @@ export class OperationsController {
   @RequirePermission('departments:delete')
   removeDepartment(@Param('id') id: string, @Request() req) {
     return this.operationsService.removeDepartment(id, req.user);
+  }
+
+  /*
+    The 5S register: the standard an organization works to, and what its people
+    have filled in against it. Kept in the browser that typed it until now,
+    which made a programme's memory somebody's laptop.
+  */
+  @Get('five-s-guidelines')
+  @RequirePermission('guidelines:read')
+  findFiveSGuideline(@Request() req) {
+    return this.operationsService.findFiveSGuideline(req.user);
+  }
+
+  @Patch('five-s-guidelines')
+  @RequirePermission('guidelines:update')
+  saveFiveSGuidelineRecords(@Body() body: SaveFiveSGuidelineRecordsDto, @Request() req) {
+    return this.operationsService.saveFiveSGuidelineRecords(body.records, req.user);
   }
 
   @Get('audit-runs')

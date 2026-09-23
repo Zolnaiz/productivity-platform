@@ -8,6 +8,7 @@ import {
   IsEnum,
   IsIn,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -646,6 +647,20 @@ export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
  * department is a field on the person and a zone's is a field on the zone, so
  * membership is changed where the member is rather than by posting a list.
  */
+/**
+ * What people have filled in against the 5S standard.
+ *
+ * Deliberately a free-shaped object: it holds an improvement register, red-tag
+ * cards, assessment scores and checklist ticks, all of which the browser
+ * composes. What matters at this boundary is that it is an object and that it
+ * cannot carry the standard itself — a checklist tick must not be able to move
+ * the goalposts it is ticked against.
+ */
+export class SaveFiveSGuidelineRecordsDto extends OrganizationScopedDto {
+  @IsObject()
+  records: Record<string, unknown>;
+}
+
 export class CreateDepartmentDto extends OrganizationScopedDto {
   @IsString()
   @MaxLength(120)

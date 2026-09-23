@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
   CalendarDays,
@@ -209,11 +209,35 @@ const downloadCsv = (filename: string, headers: string[], rows: Array<Array<stri
 /** Which row the trash icon was clicked on, and which register it belongs to. */
 type PendingRemoval = { kind: 'improvement' | 'implementationCard'; id: string };
 
+const emptyState: FiveSGuidelineState = {
+  improvements: [],
+  implementationCards: [],
+  assessmentScores: [],
+  checklistProgress: [],
+  updatedAt: '',
+};
+
 const FiveSGuidelineRegisters: React.FC = () => {
   const { t } = useTranslation();
-  const [state, setState] = useState<FiveSGuidelineState>(() => fiveSGuidelineService.getState());
+  /*
+    The registers are the organization's now rather than this browser's, so
+    they are fetched rather than read out of storage. Empty until they arrive:
+    showing the demo's sample rows for a moment would put somebody else's
+    finding in front of a reader as though it were theirs.
+  */
+  const [state, setState] = useState<FiveSGuidelineState>(emptyState);
   const [actionMessage, setActionMessage] = useState('');
   const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    void fiveSGuidelineService.getState().then((loaded) => active && setState(loaded));
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const scoreById = useMemo(
     () => new Map(state.assessmentScores.map((score) => [score.id, score])),
@@ -239,8 +263,22 @@ const FiveSGuidelineRegisters: React.FC = () => {
   const checklistDone = checklistItems.filter((item) => checklistById.get(item.id)?.done).length;
   const checklistPercent = checklistItems.length ? Math.round((checklistDone / checklistItems.length) * 100) : 0;
 
+  /**
+   * Shows the change at once and sends it afterwards.
+   *
+   * Typing into a register that waits for a round trip before showing the
+   * character is a register nobody types into. The save is what makes it the
+   * organization's; the screen is not made to wait for it, and the service
+   * keeps a local copy if it fails.
+   */
   const updateState = (build: (current: FiveSGuidelineState) => FiveSGuidelineState) => {
-    setState((current) => fiveSGuidelineService.saveState(build(current)));
+    setState((current) => {
+      const next = build(current);
+
+      void fiveSGuidelineService.saveState(next);
+
+      return next;
+    });
   };
 
   const addImprovement = () => {

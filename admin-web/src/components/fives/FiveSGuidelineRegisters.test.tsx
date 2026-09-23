@@ -26,6 +26,9 @@ const storedImprovements = () =>
 describe('FiveSGuidelineRegisters row removal', () => {
   beforeEach(() => {
     localStorage.clear();
+    // Demo mode, so the component reads the local register rather than
+    // reaching for an API that is not there.
+    localStorage.setItem('token', 'demo-token');
     localStorage.setItem(
       storageKey,
       JSON.stringify({
@@ -40,7 +43,9 @@ describe('FiveSGuidelineRegisters row removal', () => {
 
   const clickDeleteRow = async () => {
     render(<FiveSGuidelineRegisters />);
-    await userEvent.click(screen.getByRole('button', { name: 'Delete improvement row' }));
+    // Awaited: the registers belong to the organization now, so they are
+    // fetched rather than read straight out of storage.
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete improvement row' }));
   };
 
   it('asks before removing a row rather than deleting on the first click', async () => {

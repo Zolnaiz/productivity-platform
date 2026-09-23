@@ -14,6 +14,7 @@ import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
 import { Department } from './entities/department.entity';
+import { FiveSGuideline } from './entities/five-s-guideline.entity';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { projectProgressPercent, summarisePeople } from './monthly-people';
 import { NotificationsService } from './notifications.service';
@@ -58,6 +59,7 @@ export class OperationsService {
     @InjectRepository(DailyGoal) private dailyGoals: Repository<DailyGoal>,
     @InjectRepository(FiveSLayout) private fiveSLayouts: Repository<FiveSLayout>,
     @InjectRepository(Department) private departments: Repository<Department>,
+    @InjectRepository(FiveSGuideline) private guidelines: Repository<FiveSGuideline>,
     private readonly notifications: NotificationsService,
   ) {}
 
@@ -104,6 +106,41 @@ export class OperationsService {
     await this.departments.softRemove(department);
 
     return { id, deleted: true };
+  }
+
+  /**
+   * The organization's 5S register: its standard and what has been filled in.
+   *
+   * An organization that has never had one gets an empty register rather than
+   * a refusal — nothing has gone wrong, the programme simply has not started.
+   */
+  async findFiveSGuideline(user: CurrentUser) {
+    const where = this.organizationWhere(user);
+    const existing = await this.guidelines.findOne({ where });
+
+    return existing ?? this.guidelines.create({ ...where, content: {}, records: {} });
+  }
+
+  /**
+   * Saves what people have filled in.
+   *
+   * Records only. The standard is changed elsewhere and by somebody else, and
+   * a register that could rewrite the standard it is kept against would let a
+   * checklist tick quietly move the goalposts.
+   */
+  async saveFiveSGuidelineRecords(records: Record<string, unknown>, user: CurrentUser) {
+    const where = this.organizationWhere(user);
+    const existing = await this.guidelines.findOne({ where });
+
+    if (existing) {
+      existing.records = records ?? {};
+
+      return this.guidelines.save(existing);
+    }
+
+    return this.guidelines.save(
+      this.guidelines.create({ ...where, content: {}, records: records ?? {} }),
+    );
   }
 
   findProjects(user: CurrentUser) {

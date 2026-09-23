@@ -64,6 +64,9 @@ const viewer = [
   // that cannot name the department responsible for the area is a worse
   // answer than one that can.
   'departments:read',
+  // The 5S standard an organization works to, and the registers kept against
+  // it. Read by everybody, because a standard nobody can read is not one.
+  'guidelines:read',
   'attachments:read',
   'reports:read',
 ];
@@ -91,6 +94,9 @@ const user = [
   // red-tagging, it is deliberately not `zones:update`: it writes one date
   // and nothing else.
   'zones:clean',
+  // Filling in the improvement register and the red-tag cards is the same
+  // kind of act as raising a tag: whoever found the thing writes it down.
+  'guidelines:update',
 ];
 
 const manager = [
