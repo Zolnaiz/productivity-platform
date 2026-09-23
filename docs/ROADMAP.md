@@ -88,12 +88,11 @@ could be built honestly.
 
 ### 4. Language and content
 
-- **Task titles are built on the server, in English.** The scheduler writes
-  "Tier 1 5S audit due: A03 - Storage" and that is what the task, the register
-  and now the notification all say, whatever language the reader is in. It is
-  the same fault the 5S page had — a sentence assembled where it cannot be
-  translated — and the same fix: a key and its parts, worded where somebody is
-  reading.
+- **What the server raises now reads in the reader's language.** A task and a
+  notification carry the key and its parts beside the assembled sentence, and
+  a screen words the key. The sentence stays because a CSV export and an email
+  have no reader to ask — which is the piece still outstanding: an email goes
+  out in English, because nothing records what language a person reads in.
 
 - **The translation is finished for the pages people use daily.** What is left
   is the pages nobody has needed in Mongolian yet — the platform placeholders

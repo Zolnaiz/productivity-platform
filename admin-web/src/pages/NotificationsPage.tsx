@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { raisedTitle } from '../components/common/raisedText';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { actionService } from '../services/action.service';
@@ -71,7 +72,7 @@ const NotificationsPage: React.FC = () => {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs ${typeStyles[item.type]}`}>
-              {item.title}
+              {raisedTitle(item, t)}
             </span>
             <span className={`text-xs font-semibold uppercase ${priorityStyles[item.priority]}`}>
               {item.priority}
@@ -123,7 +124,9 @@ const NotificationsPage: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   {!item.readAt && <span className="h-2 w-2 rounded-full bg-blue-600" aria-hidden="true" />}
-                  <span className="font-medium text-gray-900 dark:text-white">{item.title}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {raisedTitle(item, t)}
+                  </span>
                 </div>
                 <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   {item.body || t(`notifications.kind.${item.kind}`)}

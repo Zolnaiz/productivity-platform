@@ -564,6 +564,18 @@ const en = {
     emptyTitle: 'No scheduled work yet',
     emptyDescription: 'Tasks and audits with dates will appear here as a timeline.',
   },
+  /*
+    What the server raises, worded here.
+
+    These are the sentences the scheduler and the audit loop assemble. The
+    server stores an English copy for exports and email; a screen has a reader
+    to ask, so it words the key instead.
+  */
+  raised: {
+    tierAuditDue: '{{layer}} 5S audit due: {{place}}',
+    redTagDecision: 'Red-tag decision due: {{item}}',
+    auditFollowUp: '5S follow-up: {{place}}',
+  },
   zone: {
     auditPhotoPrompt: 'Add a photograph of what you saw.',
     startAudit: 'Walk the checklist',

@@ -13,6 +13,15 @@ export interface Notification {
   userId: string;
   kind: string;
   title: string;
+  /**
+   * The title as a key and its parts, when the server raised it.
+   *
+   * An inbox is read in the reader's own language or it is not read; `title`
+   * is the English copy an email and an export use. See
+   * `components/common/raisedText.ts`.
+   */
+  titleKey?: string;
+  titleParams?: Record<string, string | number>;
   body: string;
   link: string;
   sourceType?: string;
@@ -38,6 +47,10 @@ const demoNotifications = (): Notification[] => [
     userId: 'u1',
     kind: 'task_assigned',
     title: 'Tier 1 5S audit due: A03 - Storage',
+    // The demo carries what the server would: the English copy and the key,
+    // so a Mongolian reader sees the demo in Mongolian too.
+    titleKey: 'raised.tierAuditDue',
+    titleParams: { layer: 'Tier 1', place: 'A03 - Storage' },
     body: 'Due 2026-06-24',
     link: '/tasks',
     sourceType: 'work_task',
@@ -50,6 +63,8 @@ const demoNotifications = (): Notification[] => [
     userId: 'u1',
     kind: 'task_assigned',
     title: 'Red-tag decision due: Unowned supply box',
+    titleKey: 'raised.redTagDecision',
+    titleParams: { item: 'Unowned supply box' },
     body: 'Due 2026-06-23',
     link: '/tasks',
     sourceType: 'work_task',

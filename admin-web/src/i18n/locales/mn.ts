@@ -561,6 +561,11 @@ const mn: Translations<typeof en> = {
     emptyTitle: 'Товлосон ажил алга',
     emptyDescription: 'Огноотой ажил, аудит энд цагийн хэлхээ болж харагдана.',
   },
+  raised: {
+    tierAuditDue: '{{layer}}-ын 5S аудитын хугацаа болсон: {{place}}',
+    redTagDecision: 'Улаан шошготой зүйлд шийдвэр гаргах хугацаа болсон: {{item}}',
+    auditFollowUp: '5S залруулах ажил: {{place}}',
+  },
   zone: {
     auditPhotoPrompt: 'Харсан зүйлээ зургаар нэмнэ үү.',
     startAudit: 'Хяналтын хуудсаар шалгах',

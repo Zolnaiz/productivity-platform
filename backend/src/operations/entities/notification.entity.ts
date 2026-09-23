@@ -49,6 +49,17 @@ export class Notification extends BaseEntity {
   @Column()
   title: string;
 
+  /**
+   * The title again, as a key and its parts. See `WorkTask.titleKey`.
+   *
+   * An inbox is read in the reader's own language or it is not read.
+   */
+  @Column({ name: 'title_key', nullable: true })
+  titleKey?: string;
+
+  @Column({ type: 'jsonb', name: 'title_params', default: {} })
+  titleParams: Record<string, string | number>;
+
   @Column({ type: 'text', default: '' })
   body: string;
 

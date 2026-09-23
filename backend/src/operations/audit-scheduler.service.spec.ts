@@ -266,3 +266,26 @@ describe('chasing expired red-tag holds', () => {
     await expect(service.raiseDueAudits()).resolves.toBeUndefined();
   });
 });
+/**
+ * A sentence the server assembles is a sentence the reader's language cannot
+ * reach. The task still carries the English words — an export and an email
+ * need them — but it also carries the key and its parts.
+ */
+describe("what a raised task says, in the reader's language", () => {
+  it('carries the key and the parts beside the assembled sentence', async () => {
+    const { service, operations } = createService([
+      {
+        organizationId: 'org-1',
+        zones: [{ id: 'z1', code: 'A03', name: 'Storage', auditFrequency: 'daily', ownerId: 'u1' }],
+      },
+    ]);
+
+    await service.raiseDueAudits();
+
+    const raised = operations.createTask.mock.calls[0][0];
+    expect(raised.title).toContain('A03 - Storage');
+    expect(raised.titleKey).toBe('raised.tierAuditDue');
+    expect(raised.titleParams).toEqual({ layer: 'Operator', place: 'A03 - Storage' });
+  });
+});
+

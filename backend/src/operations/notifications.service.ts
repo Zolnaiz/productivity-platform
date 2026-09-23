@@ -13,6 +13,9 @@ export interface NotificationRequest {
   organizationId?: string;
   kind?: NotificationKind;
   title: string;
+  /** The title as a key and its parts, so an inbox reads in its own language. */
+  titleKey?: string;
+  titleParams?: Record<string, string | number>;
   body?: string;
   link?: string;
   sourceType?: string;
@@ -106,6 +109,8 @@ export class NotificationsService {
       organizationId: request.organizationId,
       kind: request.kind ?? NotificationKind.TASK_ASSIGNED,
       title: request.title,
+      titleKey: request.titleKey,
+      titleParams: request.titleParams ?? {},
       body: request.body ?? '',
       link: request.link ?? '/tasks',
       sourceType: request.sourceType,

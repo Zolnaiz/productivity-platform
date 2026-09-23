@@ -202,6 +202,10 @@ export class OperationsService {
         userId: task.assigneeId,
         organizationId: task.organizationId,
         title: task.title,
+        // Carried through rather than re-derived: the inbox says exactly what
+        // the task says, in whatever language the reader has chosen.
+        titleKey: task.titleKey,
+        titleParams: task.titleParams,
         body: task.dueDate ? `Due ${task.dueDate}` : '',
         link: '/tasks',
         sourceType: 'work_task',
@@ -718,6 +722,8 @@ export class OperationsService {
     return this.createTask(
       {
         title: `5S follow-up: ${place}`,
+        titleKey: 'raised.auditFollowUp',
+        titleParams: { place },
         description: [
           `The audit on ${(run.createdAt ?? new Date()).toISOString().slice(0, 10)} scored ${score}%.`,
           `The standard for this area is ${PASSING_SCORE}%.`,

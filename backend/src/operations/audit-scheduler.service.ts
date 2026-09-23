@@ -111,6 +111,8 @@ export class AuditSchedulerService {
         await this.operations.createTask(
           {
             title: `Red-tag decision due: ${redTag.title ?? 'tagged item'}`,
+            titleKey: 'raised.redTagDecision',
+            titleParams: { item: redTag.title ?? 'tagged item' },
             description: [
               `Area: ${place}`,
               `Held since: ${redTag.heldAt ? redTag.heldAt.slice(0, 10) : 'not recorded'}`,
@@ -156,6 +158,8 @@ export class AuditSchedulerService {
     await this.operations.createTask(
       {
         title: `${tier.name} 5S audit due: ${place}`,
+        titleKey: 'raised.tierAuditDue',
+        titleParams: { layer: tier.name, place },
         description: [
           `Layer: tier ${tier.tier} (${tier.name})`,
           `Frequency: ${tier.frequency}`,

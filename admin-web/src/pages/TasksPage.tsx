@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { raisedTitle } from '../components/common/raisedText';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
@@ -165,7 +166,9 @@ const TasksPage: React.FC = () => {
             <div className="space-y-3">
               {column.tasks.map((task) => (
                 <div key={task.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div className="font-medium text-gray-900 dark:text-white">{task.title}</div>
+                  <div className="font-medium text-gray-900 dark:text-white">
+                    {raisedTitle(task, t)}
+                  </div>
                   {/* Work raised by a finding says so, so nobody has to guess
                       why a task they did not write appeared in their column. */}
                   {task.sourceType && (
@@ -183,7 +186,7 @@ const TasksPage: React.FC = () => {
                   <Select
                     className="mt-3"
                     fieldSize="sm"
-                    aria-label={t('tasks.statusFor', { title: task.title })}
+                    aria-label={t('tasks.statusFor', { title: raisedTitle(task, t) })}
                     value={task.status}
                     onChange={(event) => updateStatus(task, event.target.value as WorkTask['status'])}
                   >

@@ -17,7 +17,19 @@ export interface Project {
 /** What produced a task that was not typed by hand. */
 export type TaskSource = 'five_s_red_tag' | 'audit_run' | 'five_s_improvement';
 
-export interface WorkTask {
+/**
+ * What the server raised, as a key and its parts.
+ *
+ * The assembled sentence stays in `title` for an export or an email, which
+ * have no reader to ask. A screen words the key instead — see
+ * `components/common/raisedText.ts`.
+ */
+export interface RaisedTitle {
+  titleKey?: string;
+  titleParams?: Record<string, string | number>;
+}
+
+export interface WorkTask extends RaisedTitle {
   id: string;
   organizationId?: string;
   title: string;

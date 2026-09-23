@@ -34,6 +34,22 @@ export class WorkTask extends BaseEntity {
   @Column()
   title: string;
 
+  /**
+   * The same title as a key and its parts, for a reader in another language.
+   *
+   * `title` stays the assembled English sentence: it is what a CSV export, an
+   * email and any client that has never heard of these columns will show. A
+   * client that knows the key words it itself, so "Tier 1 5S audit due: A03 -
+   * Storage" reads in Mongolian to somebody working in Mongolian.
+   *
+   * Empty for a task somebody typed — their own words need no translating.
+   */
+  @Column({ name: 'title_key', nullable: true })
+  titleKey?: string;
+
+  @Column({ type: 'jsonb', name: 'title_params', default: {} })
+  titleParams: Record<string, string | number>;
+
   @Column({ type: 'text', nullable: true })
   description?: string;
 
