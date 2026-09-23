@@ -62,6 +62,15 @@ export interface FiveSZone {
   height: number;
   ownerId?: string;
   ownerName?: string;
+  /**
+   * The department answerable for this area.
+   *
+   * Beside the owner rather than instead of them: a person is who to ask
+   * today, a department is who still answers for the area when that person
+   * moves on. Held as an id, so renaming a department does not have to rewrite
+   * every plan.
+   */
+  departmentId?: string;
   contents: string;
   standard: string;
   labelText: string;

@@ -53,6 +53,19 @@ export class UpdateUserDto {
   @MaxLength(32)
   phone?: string;
 
+  /**
+   * Which department this person belongs to.
+   *
+   * An empty string means none: a person can leave a department without
+   * joining another, and `undefined` would be indistinguishable from "do not
+   * change it" in a partial update.
+   */
+  @ApiPropertyOptional({ example: '8f0e1c4a-0000-4000-8000-000000000000' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  departmentId?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

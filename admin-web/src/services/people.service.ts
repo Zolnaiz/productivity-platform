@@ -31,6 +31,11 @@ export interface MemberQuery {
   role?: MemberRole;
 }
 
+/*
+  The demo workspace is somebody's first look at the product, so its people
+  belong to its departments: a staff list where nobody is in a department makes
+  the departments page read as broken rather than as empty.
+*/
 const demoMembers: TeamUser[] = [
   {
     id: 'u1',
@@ -40,6 +45,7 @@ const demoMembers: TeamUser[] = [
     role: 'admin',
     position: 'Workspace Owner',
     isActive: true,
+    departmentId: 'd1',
   },
   {
     id: 'u2',
@@ -49,6 +55,7 @@ const demoMembers: TeamUser[] = [
     role: 'manager',
     position: 'Quality Manager',
     isActive: true,
+    departmentId: 'd2',
   },
   {
     id: 'u3',
@@ -58,6 +65,7 @@ const demoMembers: TeamUser[] = [
     role: 'user',
     position: 'Operations Specialist',
     isActive: true,
+    departmentId: 'd1',
   },
   {
     id: 'u4',
@@ -67,13 +75,14 @@ const demoMembers: TeamUser[] = [
     role: 'viewer',
     position: 'Line Operator',
     isActive: false,
+    departmentId: 'd3',
   },
 ];
 
 const demoDepartments: Department[] = [
-  { id: 'd1', name: 'Operations', manager: 'Demo Owner', memberCount: 8, focusArea: 'Projects, audits, daily execution' },
-  { id: 'd2', name: 'Quality', manager: 'Quality Manager', memberCount: 5, focusArea: '5S, safety, quality inspections' },
-  { id: 'd3', name: 'Engineering', manager: 'Engineering Lead', memberCount: 7, focusArea: 'Automation, tooling, reporting' },
+  { id: 'd1', name: 'Operations', managerId: 'u1', focusArea: 'Projects, audits, daily execution' },
+  { id: 'd2', name: 'Quality', managerId: 'u2', focusArea: '5S, safety, quality inspections' },
+  { id: 'd3', name: 'Engineering', managerId: 'u3', focusArea: 'Automation, tooling, reporting' },
 ];
 
 const storageKey = 'productivity-demo-people';
@@ -245,19 +254,55 @@ export const peopleService = {
       : del<{ id: string; revoked: boolean }>(`/auth/invitations/${id}`),
 
   /**
-   * Departments are still browser-local, and the screen says so.
+   * Departments, from the operations API.
    *
-   * There is no departments table behind this. The server has no such concept
-   * yet, and the open question is not how to store a name and a manager but
-   * what a department should own — zones, projects, or the people assigned to
-   * them. Giving it a database before answering that would make a placeholder
-   * look like a record.
+   * This was browser-local until the question behind it was answered: a
+   * department owns its people and its 5S areas. Demo mode keeps its own copy
+   * so the workspace can still be explored without a backend, and every branch
+   * here names the server call it stands in for.
    */
-  getDepartments: () => Promise.resolve(readDepartments()),
-  createDepartment: (data: Omit<Department, 'id'>) => {
+  getDepartments: async () => {
+    if (isDemoMode()) return readDepartments();
+
+    try {
+      return await get<Department[]>('/departments');
+    } catch (error) {
+      if (!shouldUseDemoFallback()) throw error;
+      return readDepartments();
+    }
+  },
+
+  createDepartment: async (data: Omit<Department, 'id'>) => {
+    if (!isDemoMode()) {
+      return post<Department>('/departments', data);
+    }
+
     const department = { ...data, id: localId() } as Department;
     writeDepartments([department, ...readDepartments()]);
 
-    return Promise.resolve(department);
+    return department;
+  },
+
+  updateDepartment: async (id: string, data: Partial<Department>) => {
+    if (!isDemoMode()) {
+      return patch<Department>(`/departments/${id}`, data);
+    }
+
+    const departments = readDepartments().map((department) =>
+      department.id === id ? { ...department, ...data } : department,
+    );
+    writeDepartments(departments);
+
+    return departments.find((department) => department.id === id) as Department;
+  },
+
+  deleteDepartment: async (id: string) => {
+    if (!isDemoMode()) {
+      return del<{ id: string; deleted: boolean }>(`/departments/${id}`);
+    }
+
+    writeDepartments(readDepartments().filter((department) => department.id !== id));
+
+    return { id, deleted: true };
   },
 };

@@ -33,10 +33,13 @@ Nothing below matters if it only exists on a branch and on one laptop.
 Each of these is something the product currently does half of, in a way a
 person notices within a week of real use.
 
-- **Departments.** The last browser-local module, and the page admits it. The
-  question to answer first is not how to store a name — it is whether a
-  department owns zones, projects, or the people assigned to them. Until that
-  is decided the table cannot be designed.
+- **Departments are real, and own two things.** A table, a manager who exists,
+  `department_id` on a person and `departmentId` on a zone — so an area's
+  responsibility outlives the person whose name is on it. The page counts its
+  people from the staff list and its areas from every floor, rather than from
+  numbers somebody typed. What is still missing is the reporting above them:
+  the monthly report is per person and the room register is per room, and
+  neither can yet answer "how is Assembly doing".
 - **Tell somebody, outside the application too.** Work raised for somebody now
   reaches their inbox inside the product; what is still missing is a transport
   that reaches them when they are not looking at it, and invitations have the

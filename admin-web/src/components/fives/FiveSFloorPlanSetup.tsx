@@ -172,6 +172,7 @@ const SAVE_DEBOUNCE_MS = 600;
 import { fiveSLayoutService } from '../../services/fiveSLayout.service';
 import { operationsService } from '../../services/operations.service';
 import { peopleService } from '../../services/people.service';
+import { Department } from '../../types/people.types';
 import {
   FiveSLayoutPlan,
   FiveSRedTag,
@@ -331,6 +332,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const [history, setHistory] = useState<FiveSLayoutPlan[]>([]);
   const [future, setFuture] = useState<FiveSLayoutPlan[]>([]);
   const [users, setUsers] = useState<TeamUser[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   /**
    * 'plan' paints each zone the colour someone chose for it — right while
    * laying the map out. 'condition' paints it by its last audit score, which
@@ -401,14 +403,16 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     Promise.all([
       fiveSLayoutService.getPlans(),
       peopleService.getMembers(),
+      peopleService.getDepartments(),
     ])
-      .then(([layoutPlans, teamUsers]) => {
+      .then(([layoutPlans, teamUsers, teamDepartments]) => {
         if (!active) return;
         const layoutPlan = layoutPlans[0];
         setPlans(layoutPlans);
         setPlan(layoutPlan);
         // A zone owner has to be somebody who can still sign in.
         setUsers(teamUsers.filter((member) => member.isActive));
+        setDepartments(teamDepartments);
         setSelectedZoneId(layoutPlan.zones[0]?.id || '');
         setSelectedObjectId('');
       })
@@ -4799,12 +4803,34 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   </label>
                 </div>
                 <label className="block text-sm text-gray-600 dark:text-gray-400">
-                  Responsible owner
+                  {t('fiveS.ui.responsibleOwner')}
                   <select className={fieldClass} value={selectedZone.ownerId || ''} onChange={(event) => handleOwnerChange(event.target.value)}>
                     <option value="">{t('fiveS.ui.unassigned')}</option>
                     {users.map((user) => (
                       <option key={user.id} value={user.id}>
                         {memberName(user)} / {user.position}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {/*
+                  Who still answers for this area when that person moves on. A
+                  name on a zone is who to ask today; a department is what the
+                  responsibility survives in.
+                */}
+                <label className="block text-sm text-gray-600 dark:text-gray-400">
+                  {t('fiveS.ui.responsibleDepartment')}
+                  <select
+                    className={fieldClass}
+                    value={selectedZone.departmentId || ''}
+                    onChange={(event) =>
+                      updateZone(selectedZone.id, { departmentId: event.target.value || undefined })
+                    }
+                  >
+                    <option value="">{t('fiveS.ui.unassigned')}</option>
+                    {departments.map((department) => (
+                      <option key={department.id} value={department.id}>
+                        {department.name}
                       </option>
                     ))}
                   </select>

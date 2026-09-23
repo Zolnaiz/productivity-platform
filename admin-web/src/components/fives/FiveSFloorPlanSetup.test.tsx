@@ -16,6 +16,7 @@ const serviceMocks = vi.hoisted(() => ({
   resetPlan: vi.fn(),
   buildZoneLabelsCsv: vi.fn(() => ''),
   getMembers: vi.fn(),
+  getDepartments: vi.fn(),
   createTask: vi.fn(),
   getAuditRuns: vi.fn(),
   listAttachments: vi.fn(),
@@ -38,7 +39,10 @@ vi.mock('../../services/fiveSLayout.service', () => ({
 }));
 
 vi.mock('../../services/people.service', () => ({
-  peopleService: { getMembers: serviceMocks.getMembers },
+  peopleService: {
+    getMembers: serviceMocks.getMembers,
+    getDepartments: serviceMocks.getDepartments,
+  },
 }));
 
 vi.mock('../../services/operations.service', () => ({
@@ -151,6 +155,7 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     serviceMocks.getMembers.mockResolvedValue([
       { id: 'u1', firstName: 'Demo', lastName: 'Owner', position: 'Workspace Owner', isActive: true },
     ]);
+    serviceMocks.getDepartments.mockResolvedValue([{ id: 'd1', name: 'Assembly' }]);
   });
 
   it('nudges the selected zone by one unit with an arrow key', async () => {

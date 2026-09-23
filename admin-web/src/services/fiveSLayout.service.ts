@@ -20,6 +20,9 @@ const defaultZones: FiveSZone[] = [
     height: 132,
     ownerId: 'u1',
     ownerName: 'Demo Owner',
+    // The area answers to a department as well as to a person: the name on
+    // a zone is who to ask today, the department is what outlives them.
+    departmentId: 'd1',
     contents: 'Visitor desk, waiting chairs, incoming document tray',
     standard: 'Front desk clear, visitor chairs aligned, documents sorted before 17:00.',
     labelText: 'Reception - owner visible at desk',
@@ -42,6 +45,7 @@ const defaultZones: FiveSZone[] = [
     height: 204,
     ownerId: 'u3',
     ownerName: 'Employee User',
+    departmentId: 'd1',
     contents: 'Employee desks, laptops, printers, shared stationery',
     standard: 'Only active work items on desks, cables tied, shared items returned to labeled shelf.',
     labelText: 'Desk standard photo and cable labels required',
@@ -85,6 +89,7 @@ const defaultZones: FiveSZone[] = [
     height: 170,
     ownerId: 'u2',
     ownerName: 'Quality Manager',
+    departmentId: 'd2',
     contents: 'Office supplies, cleaning tools, spare labels, PPE',
     standard: 'Every shelf position labeled, min/max stock marked, red-tag box checked weekly.',
     labelText: 'Shelf labels + red-tag area',

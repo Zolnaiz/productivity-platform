@@ -135,7 +135,11 @@ describe('peopleService', () => {
       const departments = await (await load()).getDepartments();
 
       expect(departments.length).toBeGreaterThan(0);
-      expect(departments[0]).toHaveProperty('memberCount');
+      // A department is a name, a manager who exists and what it is for. How
+      // many people are in it is counted from the people, so it is not stored
+      // here and never was worth storing.
+      expect(departments[0]).toHaveProperty('name');
+      expect(departments[0]).not.toHaveProperty('memberCount');
       expect(localStorage.getItem('productivity-demo-departments')).not.toBe('{broken-json');
     });
 

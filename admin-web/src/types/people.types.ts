@@ -28,6 +28,8 @@ export interface TeamUser {
   phone?: string;
   isActive: boolean;
   organizationId?: string;
+  /** Which department they belong to. Empty for somebody in none. */
+  departmentId?: string;
 }
 
 /** A pending invitation. The token is returned once, at creation, and never again. */
@@ -46,12 +48,20 @@ export interface IssuedInvitation {
   token: string;
 }
 
+/**
+ * A part of the organization that owns people and 5S areas.
+ *
+ * `manager` used to be a typed-in name and `memberCount` a number somebody
+ * entered — both invented by the screen that showed them. The manager is now
+ * a person who exists, and how many people are in a department is counted
+ * from the people.
+ */
 export interface Department {
   id: string;
+  organizationId?: string;
   name: string;
-  manager: string;
-  memberCount: number;
-  focusArea: string;
+  managerId?: string;
+  focusArea?: string;
 }
 
 export const memberName = (member: Pick<TeamUser, 'firstName' | 'lastName' | 'email'>) =>

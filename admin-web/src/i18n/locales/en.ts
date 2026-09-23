@@ -205,7 +205,11 @@ const en = {
     },
   },
   departments: {
-    localOnly: 'Departments are kept in this browser only. They are not shared with colleagues and are not part of any report yet.',
+    noManager: 'No manager yet',
+    zones: '5S areas',
+    remove: 'Remove {{name}}',
+    removeTitle: 'Remove this department?',
+    removeBody: 'People and areas that name {{name}} keep pointing at it and will read as unassigned. This cannot be undone from here.',
     title: 'Departments',
     subtitle: 'Departments, managers, focus areas and team structure.',
     newDepartment: 'New department',
@@ -665,6 +669,8 @@ const en = {
     },
     setupSubtitle: '{{site}} / {{zones}} areas / {{rate}}% launch ready',
     ui: {
+    responsibleOwner: 'Responsible owner',
+    responsibleDepartment: 'Responsible department',
       stageActive: 'active',
       advanceTo: 'Advance to {{stage}}',
       sustainActive: 'Sustain active',

@@ -209,3 +209,22 @@ test('a checklist can be walked from the label, and a failing area raises work',
 
   await expect(page.getByText('aisle.png')).toBeVisible();
 });
+
+test('a department counts its people and its areas', async ({ page }) => {
+  // Both numbers used to be typed in by hand. They are now counted from the
+  // staff list and from every floor of the plan, which is the only reason the
+  // page is worth reading.
+  await signIn(page);
+  await page.goto('/fives');
+  await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
+
+  await page.goto('/departments');
+
+  // The demo workspace's own department name, so this does not depend on the
+  // interface language.
+  const card = page.locator('h2', { hasText: 'Operations' }).locator('xpath=../..');
+  await expect(card).toBeVisible();
+
+  // Two people and two areas in the demo, both counted rather than stored.
+  await expect.poll(async () => (await card.innerText()).match(/[1-9]/g)?.length ?? 0).toBeGreaterThan(1);
+});

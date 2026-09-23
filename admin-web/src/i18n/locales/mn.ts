@@ -205,7 +205,11 @@ const mn: Translations<typeof en> = {
     },
   },
   departments: {
-    localOnly: 'Хэлтсийн жагсаалт зөвхөн энэ хөтчид хадгалагдана. Хамт олонтой хуваалцагдахгүй бөгөөд тайланд хараахан ороогүй байна.',
+    noManager: 'Менежер хараахан алга',
+    zones: '5S талбай',
+    remove: '{{name}}-г устгах',
+    removeTitle: 'Энэ хэлтсийг устгах уу?',
+    removeBody: '{{name}}-г заасан хүмүүс болон талбайнууд хэвээр үлдэж, "хариуцагчгүй" гэж харагдана. Эндээс буцаах боломжгүй.',
     title: 'Хэлтэс',
     subtitle: 'Байгууллагын хэлтэс, менежер, чиглэл, багийн бүтэц.',
     newDepartment: 'Шинэ хэлтэс',
@@ -662,6 +666,8 @@ const mn: Translations<typeof en> = {
     },
     setupSubtitle: '{{site}} / {{zones}} талбай / {{rate}}% бэлэн',
     ui: {
+    responsibleOwner: 'Хариуцагч',
+    responsibleDepartment: 'Хариуцах хэлтэс',
       stageActive: 'идэвхтэй',
       advanceTo: '{{stage}} шат руу ахиулах',
       sustainActive: 'Сахих шат идэвхтэй',
