@@ -1,6 +1,6 @@
 # Pull request: `feat/design-system-adoption` → `main`
 
-Ready to open. Everything below was verified on 2026-09-22 against the branch
+Ready to open. Everything below was verified on 2026-09-23 against the branch
 head; `gh` is not authenticated in the environment these commits were written
 in, so the pull request itself has to be opened by somebody who is.
 
@@ -13,7 +13,7 @@ Or open it in the browser:
 
 ## What this branch does
 
-Four threads run through it.
+Six threads run through it.
 
 **The floor plan became a floor-plan tool.** It was rectangles floating in an
 abstract canvas. It now has walls that meet at shared corners and close into
@@ -43,6 +43,28 @@ the audit trail records what a request asked to change — with secrets keeping
 their name and losing their value — rather than only that something changed,
 and stops keeping rows for ever.
 
+**The phone became a tool rather than a notice board.** A zone label opens the
+area it names, and from that page the person standing there can raise a red
+tag, record that the area was cleaned, and walk the 5S checklist itself —
+question by question, answers big enough to tap without looking, the score
+shown before it is recorded rather than after. Each of those is a narrow route
+with its own permission (`redtags:create`, `zones:clean`, `audits:create`)
+rather than `zones:update`, so an operator can say what they found without
+being able to move a wall. A walk defaults to the most senior audit layer the
+person covers, because recording a supervisor's check as the operator's resets
+the wrong clock. And a failing score now raises its corrective task on the
+server: it used to be raised by the browser, which meant it happened only for
+an audit typed up at a desk by somebody senior enough to create tasks, so the
+daily checks that actually find things led to nothing.
+
+**The evidence survives a deployment.** Attachment bytes were written inside
+the container and the production compose file mounted nothing at them: every
+row survived a redeploy and every photograph it pointed at did not. Where they
+live is now a choice behind one interface — a local volume, or an S3-compatible
+object store that `S3_ENDPOINT` can point at MinIO on a customer's own
+hardware — and the backup runbook covers both, with `npm run attachments:check`
+reporting any row whose photograph is not in the store.
+
 **The interface speaks both languages and both themes.** About 120 English
 strings were hardcoded into the 5S page, including the sentences the rules
 module assembled to say what an area still needs — so a Mongolian workspace read
@@ -69,17 +91,36 @@ Each was found by opening the application, not by a test:
   staff list.
 - **Both `npm audit` steps in CI were failing** before any of this work —
   eighteen advisories on the backend, twelve on the frontend.
+- **The browser suite had silently stopped running.** It searched for English
+  labels while the interface defaults to Mongolian, so it matched nothing. Two
+  of the checks that replaced it were also passing vacuously — one counted a
+  wall thickness the fixtures never use, one clicked the sidebar.
+- **Production mounted no volume for attachments at all**, and
+  `backend/.env.example` documented `UPLOAD_PATH`, a variable nothing has ever
+  read.
+- **A failed "cleaned today" said nothing.** The failure message was rendered
+  inside the red-tag form, so the one case it exists for — somebody believing
+  they have recorded something they have not — showed an unchanged page.
 
 ## Verification
 
 Run on the branch head:
 
-- Backend: 522 tests, lint clean, build clean, `npm audit` reports zero.
-- Frontend: 710 tests, lint clean, build clean, `npm audit` reports zero.
+- Backend: 576 tests, lint clean, build clean, `npm audit` reports zero.
+- Frontend: 747 tests, lint clean, build clean, `npm audit` reports zero.
+- Eight Playwright checks run against the application in CI, in demo mode, in a
+  real browser: signing in, drawing a wall, the plan at night, the monthly
+  report, a zone label, raising a red tag, recording a cleaning, and walking a
+  checklist through to the follow-up task it raises.
 - Migrations: all 18 apply to a fresh PGlite database; every mapped column
   exists, the schema is writable, and the partial unique index holds.
 - The floor plan, the projects page, the monthly report, the notification inbox
-  and both themes were exercised in a browser against the dev server.
+  and both themes were exercised in a browser against the dev server; the zone
+  page was exercised at phone width, including a photograph attached to a
+  recorded check and read back in the history panel at desk width.
+- `npm run attachments:check` was run against a real PostgreSQL: clean on an
+  empty store, and a row pointing at a file that was never written is found,
+  named and exits non-zero.
 
 ## Risk
 
@@ -89,12 +130,24 @@ Run on the branch head:
 creates `notifications`. All are additive with defaults; no column is dropped
 or retyped, and an older client that does not send the new fields still saves.
 
+**Configuration.** Six new environment variables (`ATTACHMENT_STORE`,
+`S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`,
+`S3_SECRET_ACCESS_KEY`) all default to the behaviour that was there before, so
+an existing deployment needs no change — except that it should now mount a
+volume at `UPLOAD_DIR`, which the production compose file does.
+
+**Permissions.** `zones:clean` is new and sits in the `user` block beside
+`redtags:create`. It writes one date and nothing else.
+
 **Dependencies.** `react-router-dom` moved from 6 to 7 — every router API this
 application uses is unchanged there, and the whole suite and a browser pass —
-and multer is forced to a patched 2.4.0 through an override rather than by
-upgrading NestJS, which is left as its own piece of work.
+multer is forced to a patched 2.4.0 through an override rather than by
+upgrading NestJS, which is left as its own piece of work, and
+`@aws-sdk/client-s3` is new and only loaded to build the S3 store.
 
-**Not verified.** Nobody has scanned a printed QR label with a phone, and none
-of this has run against a production deployment.
+**Not verified.** Nobody has scanned a printed QR label with a phone; the S3
+store has been exercised against a fake client and not against a live object
+store, because no container daemon was available here; and none of this has run
+against a production deployment.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
