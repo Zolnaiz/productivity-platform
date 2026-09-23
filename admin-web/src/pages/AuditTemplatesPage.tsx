@@ -68,6 +68,21 @@ const AuditTemplatesPage: React.FC = () => {
     };
   }, []);
 
+  /*
+    A layer can name its own checklist, and choosing the layer opens it — the
+    same rule the phone follows, so a walk recorded at a desk asks the same
+    questions as the one recorded in the area. Only if that checklist still
+    exists: a retired template must not empty the form.
+  */
+  useEffect(() => {
+    const wanted = tiers.find((item) => String(item.tier) === tier)?.templateId;
+
+    if (wanted && templates.some((template) => template.id === wanted)) {
+      setSelectedTemplateId(wanted);
+      setAnswers({});
+    }
+  }, [tier, tiers, templates]);
+
   const selectedTemplate = templates.find((template) => template.id === selectedTemplateId);
   const industries = useMemo(
     () => Array.from(new Set(templates.map((template) => template.industry || 'General'))).sort(),
