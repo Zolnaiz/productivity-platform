@@ -663,6 +663,9 @@ export class OperationsService {
         not silently return an organization to the default rhythm.
       */
       auditTiers: payload.auditTiers ?? existing?.auditTiers ?? [],
+      // Same rule as the layers: a client that does not send them keeps what
+      // is stored rather than clearing somebody's diagrams.
+      routes: payload.routes ?? existing?.routes ?? [],
     };
 
     if (existing) {

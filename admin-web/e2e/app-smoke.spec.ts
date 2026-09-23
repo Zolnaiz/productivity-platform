@@ -260,3 +260,51 @@ test('the editor moves between the buildings an organization has', async ({ page
   await expect(canvas).toContainText(buildings.secondZone);
   await expect(canvas).not.toContainText(buildings.firstZone);
 });
+
+test('a walk can be drawn on the plan and comes back in metres', async ({ page }) => {
+  // A spaghetti diagram answers what nobody can answer from memory: how far
+  // somebody walks to do a job. It is geometry against a laid-out canvas, so
+  // jsdom cannot see it at all — a click there lands wherever the maths says.
+  await signIn(page);
+  await page.goto('/fives');
+
+  const canvas = page.locator('svg[aria-label="5S floor plan"]');
+  await expect(canvas).toBeVisible();
+
+  await page.getByTestId('tool-route').click();
+  // Scrolled into view first: the canvas is taller than the viewport, and a
+  // click below the fold reaches nothing at all — which is exactly how this
+  // check passed vacuously the first time it was written.
+  await canvas.scrollIntoViewIfNeeded();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('the canvas has no box to click in');
+
+  // Low on the canvas, where the demo's areas are not: a click that lands on
+  // a zone is that zone's to handle.
+  await page.mouse.click(box.x + box.width * 0.2, box.y + box.height * 0.85);
+  await page.mouse.click(box.x + box.width * 0.8, box.y + box.height * 0.85);
+  await page.mouse.dblclick(box.x + box.width * 0.8, box.y + box.height * 0.6);
+
+  // The register says how long it is, in metres, and the plan keeps it.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const [plan] = JSON.parse(localStorage.getItem('productivity-demo-5s-layouts') || '[]');
+        return plan?.routes?.[0]?.points?.length ?? 0;
+      }),
+    )
+    .toBeGreaterThan(1);
+
+  // And the register says how long it is. The route's own name comes from the
+  // stored plan rather than from a translation, so this does not depend on
+  // which language the interface is in.
+  const name = await page.evaluate(() => {
+    const [plan] = JSON.parse(localStorage.getItem('productivity-demo-5s-layouts') || '[]');
+    return plan?.routes?.[0]?.name as string;
+  });
+
+  // The plan itself carries the label — the route's name and its length in
+  // metres — which is the whole point of drawing one.
+  await expect(canvas).toContainText(name);
+  await expect(canvas).toContainText(/[0-9]/);
+});

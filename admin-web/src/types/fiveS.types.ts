@@ -123,6 +123,31 @@ export interface PlanCorner {
   y: number;
 }
 
+/** A position on the plan, in canvas units. */
+export interface PlanPoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * A path somebody or something takes through the area.
+ *
+ * A spaghetti diagram: the oldest tool in this trade, and the one that answers
+ * the question nobody can answer from memory — how far a person actually walks
+ * to do a job, and how much of that is going back over the same ground. The
+ * plan has known its scale for a while; what was missing was somewhere to put
+ * the path.
+ */
+export interface PlanRoute {
+  id: string;
+  name: string;
+  /** Distinguishes one path from another when several are drawn at once. */
+  colour: string;
+  points: PlanPoint[];
+  /** Who or what walks it — an operator, a part, a trolley. Free text. */
+  subject?: string;
+}
+
 export interface PlanWall {
   id: string;
   from: string;
@@ -225,6 +250,8 @@ export interface FiveSLayoutPlan {
   openings?: PlanOpening[];
   /** Names for rooms, each a point inside the room it names. */
   roomLabels?: PlanRoomLabel[];
+  /** Spaghetti diagrams: the paths people and parts actually take. */
+  routes?: PlanRoute[];
   zones: FiveSZone[];
   objects: FloorPlanObject[];
   createdAt?: string;

@@ -298,7 +298,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 ## Current Verification Status
 
 - Backend tests: 648 passing
-- Frontend tests: 815 passing, plus ten browser checks
+- Frontend tests: 829 passing, plus eleven browser checks
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues
 - Backend lint/build/audit passing

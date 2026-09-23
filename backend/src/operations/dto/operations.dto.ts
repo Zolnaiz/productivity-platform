@@ -527,6 +527,38 @@ class AuditTierDto {
   templateId?: string;
 }
 
+class PlanPointDto {
+  @IsNumber()
+  x: number;
+
+  @IsNumber()
+  y: number;
+}
+
+/** One path through the area, in canvas units. */
+class PlanRouteDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  @MaxLength(120)
+  name: string;
+
+  @IsString()
+  @MaxLength(32)
+  colour: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PlanPointDto)
+  points: PlanPointDto[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  subject?: string;
+}
+
 export class CreateFiveSLayoutDto extends OrganizationScopedDto {
   @IsOptional()
   @IsString()
@@ -638,6 +670,13 @@ export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
   @ValidateNested({ each: true })
   @Type(() => AuditTierDto)
   auditTiers?: AuditTierDto[];
+
+  /** Spaghetti diagrams. Optional, like the wall graph, for older clients. */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PlanRouteDto)
+  routes?: PlanRouteDto[];
 }
 
 /**

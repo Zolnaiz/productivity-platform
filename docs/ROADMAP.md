@@ -80,8 +80,12 @@ could be built honestly.
   the scores — a picture with nowhere to be looked at is a picture not worth
   taking. What a walk still cannot carry is a photograph per answer: the
   attachment belongs to the run, so one picture stands for the whole check.
-- **Routes measured in metres.** The plan knows its scale and its rooms, so a
-  spaghetti diagram is now arithmetic rather than a drawing exercise.
+- **Spaghetti diagrams are in.** Draw the path somebody walks and the plan
+  answers in metres: the total for the review, the longest leg for the fix. A
+  route is stored on the plan in canvas units, so one drawn before a
+  recalibration is worth the new number afterwards. What it cannot yet do is
+  compare two of them — a before and after of the same job, which is the
+  drawing that gets a layout changed.
 - **Floor plan versions.** An audit from March should still make sense against
   the plan of March, not against the wall somebody moved in June.
 - **Layered audits are the organization's own.** Their names, rhythms and the

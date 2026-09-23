@@ -119,6 +119,15 @@ import { CanvasColours, canvasColours, strokeInk, tint } from './floorPlanTheme'
 import { useTheme } from '../../contexts/ThemeContext';
 import { crossesAWall, perHundredSquareMetres, roomForZone, zoneCoverage } from './floorPlanZones';
 import { summariseRooms, zonesInNoRoom } from './floorPlanRoomSummary';
+import {
+  addRoutePoint,
+  isDrawnRoute,
+  nextRouteName,
+  routeLabelAnchor,
+  routeLegs,
+  routeLength,
+  routePoints,
+} from './floorPlanRoutes';
 import { OrderMove, canReorder, reorder } from './floorPlanOrder';
 import {
   areaInMetres,
@@ -181,6 +190,7 @@ import {
   FiveSZone,
   FloorPlanObject,
   FloorPlanObjectType,
+  PlanPoint,
 } from '../../types/fiveS.types';
 import { TeamUser, memberName } from '../../types/people.types';
 
@@ -310,6 +320,15 @@ const zoneTemplates: Array<
     stage: 'standardize',
   },
 ];
+
+/**
+ * Colours for the paths, in order.
+ *
+ * Several routes on one plan is the point of the exercise — the operator's
+ * walk against the trolley's — so they have to be told apart at a glance, and
+ * the first one drawn must not change colour when the second is added.
+ */
+const routeColours = ['#ef4444', '#2563eb', '#16a34a', '#a855f7', '#f59e0b', '#0891b2'];
 
 const fieldClass =
   'mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900';
@@ -481,7 +500,16 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
    * else, and a person needs to be able to see which it currently means —
    * guessing from what happens is how a tool feels unpredictable.
    */
-  const [tool, setTool] = useState<'select' | 'wall' | 'door' | 'window'>('select');
+  const [tool, setTool] = useState<'select' | 'wall' | 'door' | 'window' | 'route'>('select');
+  /**
+   * The route being drawn, point by point.
+   *
+   * A spaghetti diagram is drawn the way it is walked: click where the person
+   * starts, click each place they go, and finish where they stop. Held apart
+   * from the plan until it is finished, so an abandoned half-route leaves
+   * nothing behind.
+   */
+  const [drawingRoute, setDrawingRoute] = useState<PlanPoint[]>([]);
   /** Set once somebody has chosen how to begin, so the choice is not asked twice. */
   const [started, setStarted] = useState(false);
   /**
@@ -1295,6 +1323,48 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const stopDrawingWall = () => setDrawingWall(null);
 
   /**
+   * Keeps the route that was drawn, and forgets the one that was not.
+   *
+   * Two points and some distance between them: a single click that started a
+   * route somebody then thought better of is not a path anybody walked, and it
+   * would sit in the register at nought metres for ever.
+   */
+  const finishRoute = () => {
+    setDrawingRoute((points) => {
+      if (isDrawnRoute(points)) {
+        updatePlan((current) => ({
+          ...current,
+          routes: [
+            ...(current.routes ?? []),
+            {
+              id: `route-${Date.now()}`,
+              name: nextRouteName(current.routes ?? [], t('fiveS.routeName')),
+              colour: routeColours[(current.routes ?? []).length % routeColours.length],
+              points,
+            },
+          ],
+        }));
+      }
+
+      return [];
+    });
+  };
+
+  const removeRoute = (routeId: string) =>
+    updatePlan((current) => ({
+      ...current,
+      routes: (current.routes ?? []).filter((route) => route.id !== routeId),
+    }));
+
+  const renameRoute = (routeId: string, name: string) =>
+    updatePlan((current) => ({
+      ...current,
+      routes: (current.routes ?? []).map((route) =>
+        route.id === routeId ? { ...route, name } : route,
+      ),
+    }));
+
+  /**
    * Names the selected room.
    *
    * The name is stored as a point in the middle of the room rather than
@@ -2081,6 +2151,10 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     if (event.key === 'Escape') {
       setContextMenu(null);
       stopDrawingWall();
+      // Escape abandons the route rather than keeping it: a half-drawn walk
+      // is not a measurement, and the gesture for "I have finished" is the
+      // double-click that ends it.
+      setDrawingRoute([]);
       setSelectedZoneIds([]);
       setSelectedZoneId('');
       setSelectedObjectId('');
@@ -3537,7 +3611,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       ['wall', t('fiveS.toolWall')],
                       ['door', t('fiveS.toolDoor')],
                       ['window', t('fiveS.toolWindow')],
-                    ] as Array<['select' | 'wall' | 'door' | 'window', string]>
+                      ['route', t('fiveS.toolRoute')],
+                    ] as Array<['select' | 'wall' | 'door' | 'window' | 'route', string]>
                   ).map(([value, label]) => (
                     <button
                       key={value}
@@ -3552,6 +3627,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       }`}
                       onClick={() => {
                         stopDrawingWall();
+                        finishRoute();
                         setTool(value);
                       }}
                     >
@@ -3916,6 +3992,10 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 spaceHeld || panRef.current ? 'cursor-grab' : 'cursor-crosshair'
               }`}
               onContextMenu={(event) => openContextMenu(event)}
+              onDoubleClick={() => {
+                // The end of a walk: the last click placed the final point.
+                if (tool === 'route') finishRoute();
+              }}
               onPointerDown={(event) => {
                 setContextMenu(null);
                 if (startPanIfRequested(event)) return;
@@ -3925,6 +4005,18 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     pointInView(view, svgRef.current.getBoundingClientRect(), event.clientX, event.clientY),
                     !event.altKey,
                   );
+                  return;
+                }
+
+                if (tool === 'route' && svgRef.current) {
+                  const point = pointInView(
+                    view,
+                    svgRef.current.getBoundingClientRect(),
+                    event.clientX,
+                    event.clientY,
+                  );
+
+                  setDrawingRoute((points) => addRoutePoint(points, point));
                   return;
                 }
 
@@ -4121,6 +4213,89 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   </g>
                 );
               })}
+
+              {/*
+                The paths people and parts take. Drawn over the walls because
+                a route that disappears behind a partition is a route nobody
+                can follow, and dashed so it reads as a movement rather than
+                as something built.
+              */}
+              {(plan.routes ?? []).map((route) => {
+                const anchor = routeLabelAnchor(route.points ?? []);
+
+                return (
+                  <g key={route.id} pointerEvents="none">
+                    <polyline
+                      points={routePoints(route.points ?? [])}
+                      fill="none"
+                      stroke={route.colour}
+                      strokeWidth={Math.max(2, view.width * 0.004)}
+                      strokeDasharray={`${view.width * 0.012} ${view.width * 0.008}`}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity={0.9}
+                    />
+                    {(route.points ?? []).map((point, index) => (
+                      <circle
+                        key={`${route.id}-${index}`}
+                        cx={point.x}
+                        cy={point.y}
+                        r={Math.max(2, view.width * 0.004)}
+                        fill={route.colour}
+                      />
+                    ))}
+                    {anchor && (
+                      <text
+                        x={anchor.x}
+                        y={anchor.y - view.height * 0.012}
+                        textAnchor="middle"
+                        className="tabular-nums"
+                        fill={route.colour}
+                        style={{ fontSize: view.width * 0.016 }}
+                      >
+                        {`${route.name} · ${formatLength(routeLength(route, metresPerUnit))}`}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+
+              {/*
+                The one being drawn, so somebody can see what they have walked
+                so far and how long it is before they commit to it.
+              */}
+              {drawingRoute.length > 0 && (
+                <g pointerEvents="none">
+                  <polyline
+                    points={routePoints(drawingRoute)}
+                    fill="none"
+                    stroke={routeColours[(plan.routes ?? []).length % routeColours.length]}
+                    strokeWidth={Math.max(2, view.width * 0.004)}
+                    strokeDasharray={`${view.width * 0.012} ${view.width * 0.008}`}
+                  />
+                  {drawingRoute.map((point, index) => (
+                    <circle
+                      key={`drawing-${index}`}
+                      cx={point.x}
+                      cy={point.y}
+                      r={Math.max(2, view.width * 0.004)}
+                      fill={routeColours[(plan.routes ?? []).length % routeColours.length]}
+                    />
+                  ))}
+                  {drawingRoute.length > 1 && (
+                    <text
+                      x={drawingRoute[drawingRoute.length - 1].x}
+                      y={drawingRoute[drawingRoute.length - 1].y - view.height * 0.016}
+                      textAnchor="middle"
+                      className="tabular-nums"
+                      fill={routeColours[(plan.routes ?? []).length % routeColours.length]}
+                      style={{ fontSize: view.width * 0.016 }}
+                    >
+                      {formatLength(routeLength({ points: drawingRoute }, metresPerUnit))}
+                    </text>
+                  )}
+                </g>
+              )}
 
               {/*
                 Doors and windows, in the gaps their walls were cut for them.
@@ -5385,6 +5560,73 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             </div>
           )}
         </div>
+
+        {/*
+          The spaghetti diagrams, and what they cost in metres.
+
+          The total is what gets quoted at a review; the longest leg is what
+          gets fixed, because eighty metres made of one long walk is a
+          different problem from eighty made of sixteen short ones — and only
+          the first is worth a trolley.
+        */}
+        {Boolean((plan.routes ?? []).length) && (
+          <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                {t('fiveS.routeRegister')}
+              </div>
+              <span className="text-xs text-gray-500">
+                {t('fiveS.routeTotal', {
+                  length: formatLength(
+                    (plan.routes ?? []).reduce(
+                      (total, route) => total + routeLength(route, metresPerUnit),
+                      0,
+                    ),
+                  ),
+                })}
+              </span>
+            </div>
+            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+              {(plan.routes ?? []).map((route) => {
+                const legs = routeLegs(route, metresPerUnit);
+                const longest = legs.reduce(
+                  (worst, leg) => (leg.metres > worst ? leg.metres : worst),
+                  0,
+                );
+
+                return (
+                  <li key={route.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: route.colour }}
+                      aria-hidden="true"
+                    />
+                    <input
+                      className="min-w-[8rem] flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm text-gray-900 hover:border-gray-300 focus:border-gray-400 dark:text-white dark:hover:border-gray-600"
+                      aria-label={t('fiveS.routeNameOf', { name: route.name })}
+                      value={route.name}
+                      onChange={(event) => renameRoute(route.id, event.target.value)}
+                    />
+                    <span className="tabular-nums text-sm text-gray-700 dark:text-gray-200">
+                      {formatLength(routeLength(route, metresPerUnit))}
+                    </span>
+                    <span className="tabular-nums text-xs text-gray-500">
+                      {t('fiveS.routeLongestLeg', { length: formatLength(longest) })}
+                    </span>
+                    <button
+                      type="button"
+                      className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 dark:border-gray-600 dark:text-gray-300"
+                      aria-label={t('fiveS.routeRemove', { name: route.name })}
+                      onClick={() => removeRoute(route.id)}
+                    >
+                      {t('common.delete')}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         {/*
           The rooms, and what is happening in each. This is the level a plant

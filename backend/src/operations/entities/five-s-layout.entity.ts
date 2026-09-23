@@ -54,6 +54,21 @@ export class FiveSLayout extends BaseEntity {
    * existed in the browser's types and was never stored. A plant that checks
    * on a different rhythm, or calls its layers something else, can say so.
    */
+  /**
+   * Spaghetti diagrams: the paths people and parts take through the areas.
+   *
+   * Points in canvas units, like everything else on the plan, so a route
+   * drawn before a recalibration is worth the new number afterwards.
+   */
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  routes: Array<{
+    id: string;
+    name: string;
+    colour: string;
+    points: Array<{ x: number; y: number }>;
+    subject?: string;
+  }>;
+
   @Column({ type: 'jsonb', name: 'audit_tiers', default: () => "'[]'" })
   auditTiers: Array<{
     tier: number;
