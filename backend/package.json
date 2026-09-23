@@ -30,6 +30,7 @@
     "seed": "ts-node --transpile-only scripts/seed-operations.ts",
     "token:smoke": "ts-node --transpile-only scripts/create-smoke-token.ts",
     "smoke:api": "ts-node --transpile-only scripts/smoke-operations-api.ts",
+    "attachments:check": "ts-node --transpile-only scripts/check-attachments.ts",
     "docker:build": "docker build -t productivity-platform-backend .",
     "docker:run": "docker run -p 3000:3000 productivity-platform-backend",
     "docker:compose": "docker-compose up",

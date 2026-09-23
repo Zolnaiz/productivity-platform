@@ -48,6 +48,17 @@ describe('keeping attachment bytes on a local disk', () => {
     await expect(store.get('missing.jpg')).rejects.toBeDefined();
   });
 
+  it('says whether the bytes are there without reading them', async () => {
+    // What a restore check asks, thousands of times: pulling every photograph
+    // through the process to answer yes or no would move gigabytes.
+    const root = await mkdtemp(join(tmpdir(), 'store-'));
+    const store = new LocalAttachmentStore(root);
+    await writeFile(join(root, 'photo.jpg'), bytes);
+
+    expect(await store.exists('photo.jpg')).toBe(true);
+    expect(await store.exists('missing.jpg')).toBe(false);
+  });
+
   it('removes the bytes it was asked to remove', async () => {
     const root = await mkdtemp(join(tmpdir(), 'store-'));
     const store = new LocalAttachmentStore(root);
@@ -100,6 +111,20 @@ describe('keeping attachment bytes in an object store', () => {
     const store = new S3AttachmentStore({ send: async () => ({}) } as never, 'evidence');
 
     await expect(store.get('photo.jpg')).rejects.toThrow(/without a body/);
+  });
+
+  it('answers no when the object cannot be reached at all', async () => {
+    // Missing, or a bucket this deployment may not read: both answer the
+    // question the caller actually asked, which is whether these bytes can be
+    // served.
+    const gone = new S3AttachmentStore(
+      { send: async () => Promise.reject(new Error('NotFound')) } as never,
+      'evidence',
+    );
+    const { store } = s3();
+
+    expect(await gone.exists('photo.jpg')).toBe(false);
+    expect(await store.exists('photo.jpg')).toBe(true);
   });
 
   it('deletes by key', async () => {

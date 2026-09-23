@@ -1,10 +1,11 @@
-import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -31,6 +32,14 @@ import {
 export interface AttachmentStore {
   put(key: string, bytes: Buffer, mimeType: string): Promise<void>;
   get(key: string): Promise<Buffer>;
+  /**
+   * Whether the bytes are there, without fetching them.
+   *
+   * For checking a restore: a row whose photograph is missing is evidence
+   * that has been lost, and reading every file back to find that out would
+   * mean pulling gigabytes through the process to answer a yes or no.
+   */
+  exists(key: string): Promise<boolean>;
   /** Resolves whether or not the object was there; see the service. */
   remove(key: string): Promise<void>;
   /** For the startup log, so an operator can see which store is in use. */
@@ -61,6 +70,15 @@ export class LocalAttachmentStore implements AttachmentStore {
 
   get(key: string) {
     return readFile(this.path(key));
+  }
+
+  async exists(key: string) {
+    try {
+      await access(this.path(key));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async remove(key: string) {
@@ -114,6 +132,20 @@ export class S3AttachmentStore implements AttachmentStore {
     }
 
     return Buffer.from(await body.transformToByteArray());
+  }
+
+  async exists(key: string) {
+    try {
+      await this.client.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key }) as never,
+      );
+      return true;
+    } catch {
+      // A head that fails for any reason — missing, or a bucket this
+      // deployment cannot read — answers the same question the caller asked:
+      // these bytes are not available to serve.
+      return false;
+    }
   }
 
   async remove(key: string) {

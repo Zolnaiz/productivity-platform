@@ -88,7 +88,7 @@ For PostgreSQL-backed local smoke testing, see:
 
 - [Backend Dev Setup](docs/BACKEND_DEV_SETUP.md)
 - [Verification](docs/VERIFY.md)
-- [PostgreSQL Backup And Restore](docs/POSTGRES_BACKUP_RESTORE.md)
+- [Backup And Restore](docs/POSTGRES_BACKUP_RESTORE.md) — the database and the attachment bytes, which do not travel together
 - [Architecture Decisions](docs/DECISIONS.md)
 - [UI Guidelines](docs/UI_GUIDELINES.md)
 - [Roadmap](docs/ROADMAP.md)
@@ -296,7 +296,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 574 passing
+- Backend tests: 576 passing
 - Frontend tests: 747 passing, plus eight browser checks
 - Mobile tests: 40 passing
 - Mobile `flutter analyze`: no issues

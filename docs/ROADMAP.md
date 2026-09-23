@@ -22,9 +22,11 @@ Nothing below matters if it only exists on a branch and on one laptop.
   `ATTACHMENT_STORE=s3` keeps the bytes in an object store — MinIO or Ceph on
   the customer's own hardware via `S3_ENDPOINT` — and the default local store
   now writes to a named volume rather than into the container. What is left is
-  the deployment decision itself: MPC has no object store yet, and until one
+  the deployment decision itself: MPC has no object store yet, so until one
   exists the evidence depends on that volume being backed up alongside the
-  database, which the backup runbook does not yet cover.
+  database. The runbook now covers both, and `npm run attachments:check`
+  reports any row whose photograph is not in the store — the one failure a
+  restore otherwise hides, because the database comes back complete.
 
 ### 2. Make it trustworthy in daily use
 
