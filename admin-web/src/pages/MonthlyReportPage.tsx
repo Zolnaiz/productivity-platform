@@ -5,8 +5,11 @@ import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import { operationsService } from '../services/operations.service';
 import { peopleService } from '../services/people.service';
+import { fiveSLayoutService } from '../services/fiveSLayout.service';
+import { summariseDepartments } from '../components/reports/monthlyDepartments';
 import { OperationsMonthlyReport } from '../types/operations.types';
-import { TeamUser, memberName } from '../types/people.types';
+import { Department, TeamUser, memberName } from '../types/people.types';
+import { FiveSLayoutPlan } from '../types/fiveS.types';
 
 const formatMnt = (value: number) =>
   new Intl.NumberFormat('mn-MN', {
@@ -29,6 +32,15 @@ const MonthlyReportPage: React.FC = () => {
    * which can only be written by a page that knows who was there.
    */
   const [members, setMembers] = useState<TeamUser[]>([]);
+  /**
+   * What the per-department rows are built from.
+   *
+   * Loaded here rather than asked of the server because the two halves of a
+   * department — its people and its areas — already arrive from two places,
+   * and adding them up is a rule rather than a query.
+   */
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [plans, setPlans] = useState<FiveSLayoutPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +81,16 @@ const MonthlyReportPage: React.FC = () => {
       .then(() => peopleService.getMembers())
       .then((memberData) => {
         if (active) setMembers(memberData ?? []);
+      })
+      .catch(() => undefined);
+
+    // Same rule as the names: the department rollup is worth having when it
+    // can be built, and its absence must not blank the month.
+    Promise.all([peopleService.getDepartments(), fiveSLayoutService.getPlans()])
+      .then(([departmentData, planData]) => {
+        if (!active) return;
+        setDepartments(departmentData ?? []);
+        setPlans(planData ?? []);
       })
       .catch(() => undefined);
 
@@ -163,6 +185,18 @@ const MonthlyReportPage: React.FC = () => {
     });
   })();
 
+  /*
+    The month by department. The table above answers "how is Sara doing" and
+    the room register answers "how is room 2 doing"; this is the question a
+    plant manager actually asks, and nothing could answer it.
+  */
+  const departmentRows = summariseDepartments({
+    departments,
+    members,
+    people: report?.people ?? [],
+    plans,
+  });
+
   const executiveSummary = report
     ? summaryLines.map((line) => `${line.label}: ${line.text}`).join('\n')
     : 'Monthly productivity report is loading.';
@@ -201,6 +235,32 @@ const MonthlyReportPage: React.FC = () => {
         row.month?.workLogs ?? 0,
         row.month?.auditRuns ?? 0,
         row.month?.assessments ?? 0,
+      ]),
+      [],
+      // And the same month along the other axis. A department outlasts the
+      // people in it, so this is the half of the report that can be compared
+      // with last year's.
+      [
+        'Department',
+        'People',
+        'Tasks done',
+        'Hours',
+        'Audits',
+        '5S areas',
+        'Average 5S score',
+        'Open red tags',
+        'Audits due',
+      ],
+      ...departmentRows.map((row) => [
+        row.departmentId ? row.name : 'Unassigned',
+        row.people,
+        row.completedTasks,
+        row.hours.toFixed(1),
+        row.auditRuns,
+        row.zones,
+        row.averageAuditScore === undefined ? '' : `${row.averageAuditScore}%`,
+        row.openRedTags,
+        row.auditsDue,
       ]),
     ];
     const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -351,6 +411,70 @@ const MonthlyReportPage: React.FC = () => {
               </table>
             </div>
           </Card>
+
+          {Boolean(departmentRows.length) && (
+            <Card
+              title={t('monthlyReport.departmentsTitle')}
+              subtitle={t('monthlyReport.departmentsSubtitle')}
+            >
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                  <thead className="text-left text-xs font-medium uppercase text-gray-500">
+                    <tr>
+                      <th className="py-2 pr-4">{t('monthlyReport.department')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentPeople')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.personTasks')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.personHours')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentZones')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentScore')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentRedTags')}</th>
+                      <th className="py-2">{t('monthlyReport.departmentAuditsDue')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {departmentRows.map((row) => (
+                      <tr
+                        key={row.departmentId || 'unassigned'}
+                        className={row.departmentId ? '' : 'text-gray-400 dark:text-gray-500'}
+                      >
+                        <td className="py-2 pr-4">
+                          {row.departmentId ? row.name : t('monthlyReport.departmentUnassigned')}
+                        </td>
+                        <td className="py-2 pr-4 tabular-nums">{row.people}</td>
+                        <td className="py-2 pr-4 tabular-nums">
+                          {t('monthlyReport.personTasksValue', {
+                            done: row.completedTasks,
+                            total: row.assignedTasks,
+                          })}
+                        </td>
+                        <td className="py-2 pr-4 tabular-nums">{row.hours.toFixed(1)}</td>
+                        <td className="py-2 pr-4 tabular-nums">{row.zones}</td>
+                        {/*
+                          Never audited reads as never, not as nought: a
+                          department of unaudited areas is not the worst one.
+                        */}
+                        <td className="py-2 pr-4 tabular-nums">
+                          {row.averageAuditScore === undefined
+                            ? t('monthlyReport.departmentNoScore')
+                            : `${row.averageAuditScore}%`}
+                        </td>
+                        <td
+                          className={`py-2 pr-4 tabular-nums ${row.openRedTags ? 'text-amber-600 dark:text-amber-400' : ''}`}
+                        >
+                          {row.openRedTags}
+                        </td>
+                        <td
+                          className={`py-2 tabular-nums ${row.auditsDue ? 'font-medium text-red-600 dark:text-red-400' : ''}`}
+                        >
+                          {row.auditsDue}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
 
           <div className="grid gap-6 lg:grid-cols-3">
             <Card title={t('monthlyReport.completedTasks')}>

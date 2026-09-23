@@ -37,9 +37,12 @@ person notices within a week of real use.
   `department_id` on a person and `departmentId` on a zone — so an area's
   responsibility outlives the person whose name is on it. The page counts its
   people from the staff list and its areas from every floor, rather than from
-  numbers somebody typed. What is still missing is the reporting above them:
-  the monthly report is per person and the room register is per room, and
-  neither can yet answer "how is Assembly doing".
+  numbers somebody typed, and the monthly report carries a row per department:
+  its people's work, the average score of the areas it answers for, its open
+  red tags and its overdue audits, with a row for everything belonging to no
+  department so the columns still add up. What a department still cannot do is
+  own a project or a cost — the expense and project pages know nothing about
+  them.
 - **Tell somebody, outside the application too.** Work raised for somebody now
   reaches their inbox inside the product; what is still missing is a transport
   that reaches them when they are not looking at it, and invitations have the

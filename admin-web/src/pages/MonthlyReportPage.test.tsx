@@ -5,6 +5,8 @@ import MonthlyReportPage from './MonthlyReportPage';
 const serviceMocks = vi.hoisted(() => ({
   getMonthlyReport: vi.fn(),
   getMembers: vi.fn(),
+  getDepartments: vi.fn(),
+  getPlans: vi.fn(),
 }));
 
 vi.mock('../services/operations.service', () => ({
@@ -14,7 +16,14 @@ vi.mock('../services/operations.service', () => ({
 }));
 
 vi.mock('../services/people.service', () => ({
-  peopleService: { getMembers: serviceMocks.getMembers },
+  peopleService: {
+    getMembers: serviceMocks.getMembers,
+    getDepartments: serviceMocks.getDepartments,
+  },
+}));
+
+vi.mock('../services/fiveSLayout.service', () => ({
+  fiveSLayoutService: { getPlans: serviceMocks.getPlans },
 }));
 
 const report = {
@@ -107,6 +116,10 @@ describe('MonthlyReportPage', () => {
     serviceMocks.getMonthlyReport.mockReset();
     serviceMocks.getMembers.mockReset();
     serviceMocks.getMembers.mockResolvedValue([]);
+    serviceMocks.getDepartments.mockReset();
+    serviceMocks.getDepartments.mockResolvedValue([]);
+    serviceMocks.getPlans.mockReset();
+    serviceMocks.getPlans.mockResolvedValue([]);
     vi.stubGlobal('URL', {
       createObjectURL: vi.fn(() => 'blob:monthly-report'),
       revokeObjectURL: vi.fn(),
@@ -209,9 +222,12 @@ describe('the month, person by person', () => {
 
     render(<MonthlyReportPage />);
 
-    expect(await screen.findByText('Bat Erdene')).toBeTruthy();
-    expect(screen.getByText('4 of 6')).toBeTruthy();
-    expect(screen.getByText('31.5')).toBeTruthy();
+    // Scoped to the person's own row: the same figures appear again in the
+    // department rollup below, which is the point of it.
+    const person = (await screen.findByText('Bat Erdene')).closest('tr');
+
+    expect(person?.textContent).toContain('4 of 6');
+    expect(person?.textContent).toContain('31.5');
   });
 
   it('gives a line to somebody who recorded nothing, rather than leaving them out', async () => {
@@ -276,5 +292,89 @@ describe('the month, person by person', () => {
 
     expect(await screen.findByText('Bat Erdene')).toBeTruthy();
     expect(screen.getAllByText('Nothing recorded')).toHaveLength(2);
+  });
+});
+
+describe('the month, department by department', () => {
+  const withPeople = (people: Array<Record<string, number | string>>) => ({ ...report, people });
+
+  beforeEach(() => {
+    serviceMocks.getMembers.mockResolvedValue([
+      { id: 'u1', firstName: 'Bat', lastName: 'Erdene', isActive: true, departmentId: 'd1' },
+      { id: 'u2', firstName: 'Saran', lastName: 'Tuya', isActive: true, departmentId: 'd1' },
+      { id: 'u3', firstName: 'Nomin', lastName: 'Bold', isActive: true },
+    ]);
+    serviceMocks.getDepartments.mockResolvedValue([{ id: 'd1', name: 'Assembly' }]);
+    serviceMocks.getPlans.mockResolvedValue([
+      {
+        id: 'l1',
+        zones: [
+          { id: 'z1', departmentId: 'd1', lastAuditScore: 90, auditFrequency: 'weekly', lastAuditAt: '2026-06-01' },
+          { id: 'z2', departmentId: 'd1', lastAuditScore: 70, auditFrequency: 'weekly', lastAuditAt: '2026-06-01', redTags: [{ id: 'r1', status: 'open' }] },
+        ],
+      },
+    ]);
+  });
+
+  it('answers the question the per-person table cannot', async () => {
+    // "How is Assembly doing" — people move between areas and areas outlast
+    // the people in them, so this is the axis that can be compared with last
+    // year's.
+    serviceMocks.getMonthlyReport.mockResolvedValue(
+      withPeople([
+        { userId: 'u1', completedTasks: 4, assignedTasks: 6, hours: 31.5, workLogs: 8, auditRuns: 2, assessments: 1 },
+        { userId: 'u2', completedTasks: 1, assignedTasks: 2, hours: 8, workLogs: 1, auditRuns: 0, assessments: 0 },
+      ]),
+    );
+
+    render(<MonthlyReportPage />);
+
+    const assembly = (await screen.findByText('Assembly')).closest('tr');
+
+    expect(assembly?.textContent).toContain('5 of 8');
+    expect(assembly?.textContent).toContain('39.5');
+    // Two areas, averaging eighty, one of them still carrying an open tag.
+    expect(assembly?.textContent).toContain('80%');
+  });
+
+  it('collects what belongs to no department, so the columns still add up', async () => {
+    serviceMocks.getMonthlyReport.mockResolvedValue(
+      withPeople([
+        { userId: 'u3', completedTasks: 2, assignedTasks: 2, hours: 5, workLogs: 1, auditRuns: 0, assessments: 0 },
+      ]),
+    );
+
+    render(<MonthlyReportPage />);
+
+    const unassigned = (await screen.findByText('No department')).closest('tr');
+
+    expect(unassigned?.textContent).toContain('2 of 2');
+  });
+
+  it('says never audited rather than showing nought', async () => {
+    // A department of unaudited areas is not a department scoring nothing,
+    // and zero would sit it at the bottom looking like the worst one.
+    serviceMocks.getPlans.mockResolvedValue([
+      { id: 'l1', zones: [{ id: 'z1', departmentId: 'd1', auditFrequency: 'weekly' }] },
+    ]);
+    serviceMocks.getMonthlyReport.mockResolvedValue(withPeople([]));
+
+    render(<MonthlyReportPage />);
+
+    const assembly = (await screen.findByText('Assembly')).closest('tr');
+
+    expect(assembly?.textContent).toContain('Never audited');
+  });
+
+  it('still shows the month when the departments cannot be loaded', async () => {
+    // The rollup is worth having when it can be built; its absence must not
+    // blank a report that is otherwise complete.
+    serviceMocks.getDepartments.mockRejectedValue(new Error('offline'));
+    serviceMocks.getPlans.mockRejectedValue(new Error('offline'));
+    serviceMocks.getMonthlyReport.mockResolvedValue(withPeople([]));
+
+    render(<MonthlyReportPage />);
+
+    expect(await screen.findByText('Build report endpoint')).toBeTruthy();
   });
 });
