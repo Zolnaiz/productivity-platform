@@ -3636,6 +3636,18 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   ))}
                 </div>
                 {/*
+                  What the tool in hand expects, said where the tool was
+                  chosen. Both of these sentences already existed in the
+                  translations and were displayed nowhere, so somebody who
+                  picked up the wall tool had to guess that a second click
+                  ends a wall and Escape ends the run.
+                */}
+                {(tool === 'wall' || tool === 'route') && (
+                  <p className="basis-full text-xs text-gray-500 dark:text-gray-400" role="note">
+                    {t(tool === 'wall' ? 'fiveS.wallHint' : 'fiveS.routeHint')}
+                  </p>
+                )}
+                {/*
                   Three separate questions, which one checkbox called "Grid"
                   used to answer at once: turning the grid off to look at the
                   plan also turned snapping off, silently, and the next thing
