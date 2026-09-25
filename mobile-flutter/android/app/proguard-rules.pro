@@ -113,3 +113,7 @@
 
 # Keep content provider classes
 -keep public class * extends android.content.ContentProvider
+# Flutter's Play Store deferred-components support refers to Play Core, which
+# this app does not use or include. Without this, shrinking the release build
+# stops on classes that are meant to be absent.
+-dontwarn com.google.android.play.core.**

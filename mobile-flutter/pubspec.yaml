@@ -38,10 +38,6 @@ dependencies:
   # Icons
   cupertino_icons: ^1.0.6
 
-  # Notifications
-  flutter_local_notifications: ^22.0.1
-  firebase_messaging: ^16.3.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -44,6 +44,32 @@ Android Studio ships Java 25, which older Gradle cannot run on.
 The SDK needs platform 36, Build-Tools 36.1.0 and NDK 28.2.13676358; Android
 Studio's SDK Manager installs them.
 
+## Build a release
+
+```sh
+flutter build apk --release --flavor production --dart-define=API_BASE_URL=https://your-server/api
+```
+
+The APK is in `build/app/outputs/flutter-apk/app-production-release.apk`. To
+sign it with the organization's own key rather than the debug key, create
+`android/key.properties` (git ignores it, and the keystore):
+
+```properties
+storeFile=C:/path/to/release.jks
+storePassword=...
+keyAlias=release
+keyPassword=...
+```
+
+Without it the build warns and signs with the debug key, which installs for
+testing but cannot be published or updated from. Keep the keystore and its
+passwords somewhere backed up: an app signed with a lost key cannot be
+updated in place.
+
+The release build shrinks the code, and was checked to install and open on
+an Android 35 emulator; the first attempt crashed on launch, because a
+WorkManager dependency nothing used lost a class to shrinking.
+
 ## Run the Phase 1 backend integration test
 
 Start the backend and seed its database using the commands in the repository

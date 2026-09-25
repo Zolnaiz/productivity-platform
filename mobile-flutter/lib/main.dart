@@ -16,7 +16,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'utils/phase_one_strings.dart';
 // Services
 import 'services/api_service.dart';
-import 'services/notification_service.dart';
 import 'services/storage_service.dart';
 
 void main() async {
@@ -38,11 +37,6 @@ void main() async {
   // Initialize services
   await StorageService().init();
   await ApiService().initialize();
-  try {
-    await NotificationService().initialize();
-  } catch (error) {
-    debugPrint('Notification initialization skipped: $error');
-  }
 
   // No pending font initialization required; fonts loaded when used.
 

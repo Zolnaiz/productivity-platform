@@ -1,14 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!--
-      Only what the app does: talk to the server and show a notification. It
-      used to ask for the camera, the microphone, the person's location, all
-      of their storage and the advertising ID - on a phone an employee is
-      asked to carry at work, for features that do not exist.
+      Only what the app does: talk to the server. It used to ask for the
+      camera, the microphone, the person's location, all of their storage,
+      notifications and the advertising ID - on a phone an employee is asked
+      to carry at work, for features that do not exist. What somebody has
+      been told is read in the app's inbox; push notifications would need the
+      server to send them, and it does not yet.
     -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name="${applicationName}"
@@ -41,11 +41,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
-            <intent-filter>
-                <action android:name="FLUTTER_NOTIFICATION_CLICK" />
-                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
             <intent-filter>

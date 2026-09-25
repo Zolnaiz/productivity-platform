@@ -4,6 +4,20 @@ plugins {
     id 'dev.flutter.flutter-gradle-plugin'
 }
 
+/*
+  The key a release is signed with, from android/key.properties - kept out of
+  git, like the keystore it names. Without it the release is signed with the
+  debug key, which installs for testing and cannot be published or updated
+  from; the build says so rather than letting it pass unnoticed.
+*/
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withReader('UTF-8') { reader -> keystoreProperties.load(reader) }
+} else {
+    logger.warn('android/key.properties not found: release builds are signed with the debug key.')
+}
+
 android {
     namespace 'com.example.productivity_platform'
     compileSdkVersion flutter.compileSdkVersion
@@ -39,13 +53,24 @@ android {
         multiDexEnabled true
     }
 
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
+        }
+    }
+
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
             debuggable true
         }
         release {
-            signingConfig signingConfigs.debug
+            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -80,10 +105,8 @@ flutter {
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
     implementation 'androidx.multidex:multidex:2.0.1'
-    implementation 'androidx.work:work-runtime-ktx:2.9.0'
+    // WorkManager was listed here though nothing in the app schedules work.
+    // In a shrunk release build it crashed the app on launch: R8 removed the
+    // database class its start-up initialiser creates by reflection.
 }
 
-if (file('google-services.json').exists()) {
-    apply plugin: 'com.google.gms.google-services'
-    apply plugin: 'com.google.firebase.crashlytics'
-}
