@@ -38,8 +38,9 @@ APK it expected:
 flutter run --flavor dev --dart-define=API_BASE_URL=http://10.0.2.2:3000/api
 ```
 
-The Android toolchain is Gradle 9.1 with Android Gradle Plugin 8.13, because
-the current Android Studio ships Java 25 and older Gradle cannot run on it.
+The Android toolchain is Gradle 9.3.1 with Android Gradle Plugin 9.1 and
+Kotlin 2.3.20 - Flutter's own current template versions - because the current
+Android Studio ships Java 25, which older Gradle cannot run on.
 The SDK needs platform 36, Build-Tools 36.1.0 and NDK 28.2.13676358; Android
 Studio's SDK Manager installs them.
 

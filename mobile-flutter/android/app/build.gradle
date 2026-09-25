@@ -10,6 +10,12 @@ android {
     buildToolsVersion '36.1.0'
     ndkVersion flutter.ndkVersion
 
+    // AGP 9 turns per-flavor resource values off by default; the flavors
+    // give each build its own app name with one.
+    buildFeatures {
+        resValues true
+    }
+
     compileOptions {
         coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_17
