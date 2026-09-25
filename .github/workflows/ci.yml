@@ -120,6 +120,118 @@ jobs:
           path: admin-web/playwright-report
           retention-days: 7
 
+  mobile:
+    name: Mobile
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-flutter
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      # The live-server test skips itself without API_BASE_URL; the job
+      # below runs it against a real server.
+      - name: Test
+        run: flutter test
+
+  # The whole stack against a real PostgreSQL: migrations, seed, the built
+  # server, then every page's first request and the mobile client's own calls.
+  # The notification inbox and the departments page once answered every
+  # request with a 500 on a real database while every unit test passed,
+  # because the unit tests mock the database. This is the job that sees that.
+  live-api:
+    name: Live API
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: productivity
+          POSTGRES_PASSWORD: productivity-ci
+          POSTGRES_DB: productivity_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U productivity"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: productivity
+      DB_PASSWORD: productivity-ci
+      DB_DATABASE: productivity_ci
+      JWT_SECRET: ci-only-secret-that-signs-nothing-real
+      ENABLE_AUDIT_SCHEDULER: 'false'
+      ENABLE_MONTH_CLOSE: 'false'
+      ENABLE_DAILY_REMINDERS: 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install, migrate and seed
+        working-directory: backend
+        run: |
+          npm ci
+          npm run migration:run
+          npm run seed
+          npm run build
+
+      - name: Start the server
+        working-directory: backend
+        run: |
+          nohup node dist/main > server.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://127.0.0.1:3000/api/health > /dev/null && exit 0
+            sleep 2
+          done
+          cat server.log
+          exit 1
+
+      - name: Smoke every page against the real database
+        working-directory: backend
+        run: npm run smoke:api
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: true
+
+      - name: Mobile client against the real server
+        working-directory: mobile-flutter
+        run: |
+          flutter pub get
+          flutter test test/phase_one_live_backend_test.dart --dart-define=API_BASE_URL=http://127.0.0.1:3000/api
+
+      - name: Server log on failure
+        if: failure()
+        working-directory: backend
+        run: cat server.log || true
+
   docker-config:
     name: Docker Compose Config
     runs-on: ubuntu-latest
