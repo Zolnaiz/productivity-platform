@@ -50,6 +50,31 @@ docker exec productivity-postgres createdb -U postgres productivity_restore_chec
 docker exec productivity-postgres pg_restore -U postgres -d productivity_restore_check --clean --if-exists "/tmp/restore.dump"
 ```
 
+## The backup container writes a different format
+
+The `backup` profile in `docker-compose.prod.yml` runs
+`prodrigestivill/postgres-backup-local`, and it writes **gzipped plain SQL**,
+not the custom-format dump the commands above produce. `pg_restore` cannot
+read it, and the error it gives — `input file does not appear to be a valid
+archive` — reads like a corrupted backup rather than the wrong tool. That is
+the worst possible sentence to meet during a restore.
+
+Restore the container's output with `psql`:
+
+```powershell
+docker compose --env-file .env.production -f docker-compose.prod.yml `
+  exec -T postgres createdb -U $env:DB_USERNAME productivity_restore_check
+
+Get-Content ".\backups\daily\productivity_prod-YYYYMMDD-HHMMSS.sql.gz" -AsByteStream `
+  | docker compose --env-file .env.production -f docker-compose.prod.yml `
+      exec -T postgres sh -c 'gunzip | psql -U $POSTGRES_USER -d productivity_restore_check'
+```
+
+The hand-taken dumps at the top of this page stay custom-format, and
+`pg_restore` is still the right tool for those. Which file you are holding
+decides which command you use, and the file extension says which it is:
+`.dump` is custom-format, `.sql.gz` is the container's.
+
 ## Attachments
 
 Where the bytes live depends on `ATTACHMENT_STORE`, and so does how they are
@@ -99,6 +124,13 @@ you which.
   the application uses. It reports every attachment row whose bytes are not in
   the store and exits non-zero, which is the one failure a restore otherwise
   hides: the database comes back complete and the evidence does not.
+
+  Run it **where the bytes are**. With `ATTACHMENT_STORE=local` in Docker the
+  bytes live on the `attachments_prod` volume and the host has no such
+  directory, so running the check from the host reports every row as missing
+  and exits non-zero — a reader under pressure would conclude they had lost
+  every photograph the programme has. `docs/DEPLOYMENT_RUN.md` has the command
+  that mounts the volume and asks the question properly.
 - Compare record counts for core tables: `projects`, `work_tasks`, `work_logs`, `time_entries`, `audit_templates`, `audit_runs`, `assessment_templates`, `assessment_responses`, and `expenses`.
 
 ## Production Policy

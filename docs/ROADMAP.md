@@ -14,6 +14,16 @@ Nothing below matters if it only exists on a branch and on one laptop.
   CI runs on pull requests and on `main`, so every one of those commits has
   been verified locally and by nothing else. This is one pull request and it
   should happen before the branch grows again.
+- **The production image cannot check its own attachments.**
+  `npm run attachments:check` needs `scripts/` and `src/`, which the
+  production image does not ship, so the check can only be run from the host —
+  where, with the default local store, the bytes are on a Docker volume the
+  host cannot see and every row reports as missing. Somebody verifying a
+  restore under pressure would conclude they had lost every photograph the
+  programme has. The runbook now says how to ask the question properly; the
+  real fix is shipping the check in the image, or making it a route the
+  running API answers.
+
 - **Deploy to MPC for real.** Postgres, the migrations, the environment, and a
   first organization. The pieces exist — Dockerfiles, compose files, a backup
   and restore runbook — and have never been run end to end by anyone but the
