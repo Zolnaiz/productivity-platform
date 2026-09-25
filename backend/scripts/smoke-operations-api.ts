@@ -237,6 +237,82 @@ async function main() {
     }
   }
 
+  /*
+    Every page's first request, read once as the signed-in owner.
+
+    The notification inbox and the departments page answered every request
+    with a 500 on a real database for weeks while every unit test passed: the
+    specs mock the repositories, so a column the database does not have is
+    invisible to them. Reading each route against the real thing is the only
+    check that sees it. Reads only, so this is safe against a live system;
+    a refusal (401/403/404) is the route working, a 5xx is not.
+  */
+  const readRoutes = [
+    '/auth/me',
+    '/users',
+    '/users/profile/me',
+    '/users/profile/permissions',
+    '/organizations/my-organization',
+    '/tasks',
+    '/work-logs',
+    '/time-entries',
+    '/daily-goals',
+    '/five-s-layouts',
+    '/five-s-layout',
+    '/audit-templates',
+    '/audit-runs',
+    '/departments',
+    '/five-s-guidelines',
+    '/assessment-templates',
+    '/assessment-responses',
+    '/expenses',
+    '/notifications',
+    '/notifications/unread-count',
+    '/operations/monthly-report',
+    '/operations/monthly-closes',
+    `/operations/period-report?from=${new Date().getUTCFullYear()}-01&to=${new Date().getUTCFullYear()}-06`,
+    '/auth/invitations',
+  ];
+
+  for (const path of readRoutes) {
+    try {
+      const { response, body } = await request(path, token);
+      results.push({
+        name: `read ${path} with ${tokenLabel}`,
+        ok: response.status < 500,
+        status: response.status,
+        detail: response.status < 500 ? undefined : summarizeBody(body),
+      });
+    } catch (error) {
+      results.push({
+        name: `read ${path}`,
+        ok: false,
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  // A user record must never carry what would let somebody else into the account.
+  try {
+    const { body } = await request('/users', token);
+    const listed = unwrapData(body);
+    const people = Array.isArray(listed) ? listed : (listed?.data ?? []);
+    const leaked = people.flatMap((person: Record<string, unknown>) =>
+      ['password', 'resetPasswordToken', 'verificationToken'].filter((field) => field in person),
+    );
+    results.push({
+      name: 'user list carries no password or reset token',
+      ok: leaked.length === 0,
+      detail: leaked.length ? `exposed: ${[...new Set(leaked)].join(', ')}` : undefined,
+    });
+  } catch (error) {
+    results.push({
+      name: 'user list carries no password or reset token',
+      ok: false,
+      detail: error instanceof Error ? error.message : String(error),
+    });
+  }
+
   for (const result of results) {
     const marker = result.ok ? 'PASS' : 'FAIL';
     const status = result.status ? ` status=${result.status}` : '';
