@@ -8,8 +8,6 @@ import 'package:provider/provider.dart';
 import 'app_router.dart';
 // Providers
 import 'providers/auth_provider.dart';
-import 'providers/expense_provider.dart';
-import 'providers/questionnaire_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/task_provider.dart';
 import 'providers/work_log_provider.dart';
@@ -63,10 +61,6 @@ class ProductivityApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TaskProvider(ApiService())),
         ChangeNotifierProvider(create: (_) => WorkLogProvider(ApiService())),
         ChangeNotifierProvider(create: (_) => InboxProvider(ApiService())),
-        ChangeNotifierProvider(
-          create: (_) => QuestionnaireProvider(ApiService()),
-        ),
-        ChangeNotifierProvider(create: (_) => ExpenseProvider(ApiService())),
       ],
       child: Consumer<ThemeProvider>(
         builder:

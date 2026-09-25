@@ -4,8 +4,12 @@ What it does today, against the real API: sign in (with token refresh), **My
 tasks** — the work assigned to the signed-in person, whose status they can
 move — and **Today**, where they write up the day's work with the hours it
 took. The write-up is saved with its clock entry through `POST
-/work-logs/daily`, so the monthly report counts the hours once. Both screens
-read in Mongolian and English.
+/work-logs/daily`, so the monthly report counts the hours once. **Inbox**
+shows what the person has been told: work given to them and the morning
+reminders. Every screen reads in Mongolian and English, and there is nothing
+else in the app - the earlier expense, questionnaire, report and profile
+screens were built on sample data, never spoke to the server, and have been
+removed.
 
 ## Point the app at an API server
 
@@ -13,7 +17,7 @@ The API base URL includes the `/api` prefix. You can set it at build or run time
 with `--dart-define`:
 
 ```sh
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api
+flutter run --flavor dev --dart-define=API_BASE_URL=http://10.0.2.2:3000/api
 ```
 
 On the Android emulator, `10.0.2.2` reaches the host computer. For an iOS
