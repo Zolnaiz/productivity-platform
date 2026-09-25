@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -10,6 +11,14 @@ import Select from '../components/common/Select';
 import { operationsService } from '../services/operations.service';
 import { Project, TimeEntry, WorkLog, WorkTask } from '../types/operations.types';
 import { isProjectLate, summariseProject } from '../components/projects/projectProgress';
+
+const statusKey: Record<string, string> = {
+  planned: 'projects.statusPlanned',
+  active: 'projects.statusActive',
+  on_hold: 'projects.statusOnHold',
+  completed: 'projects.statusCompleted',
+  cancelled: 'projects.statusCancelled',
+};
 
 const ProjectsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -186,14 +195,16 @@ const ProjectsPage: React.FC = () => {
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{project.description}</p>
               </div>
               <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                {project.status}
+                {t(statusKey[project.status] ?? '', { defaultValue: project.status })}
               </span>
             </div>
 
             <div className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
               <div>
                 <div className="text-gray-500">{t('projects.priority')}</div>
-                <div className="font-medium">{project.priority}</div>
+                <div className="font-medium">
+                  {t(`tasks.priorities.${project.priority}`, { defaultValue: project.priority })}
+                </div>
               </div>
               <div>
                 <div className="text-gray-500">{t('projects.dueDate')}</div>
@@ -301,7 +312,19 @@ const ProjectsPage: React.FC = () => {
               </Select>
             </div>
 
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex items-center justify-between gap-3">
+              {/*
+                From the project to its work: the board, narrowed to this
+                project, where new tasks are filed under it. Preparing a
+                project's work used to mean leaving the project and hoping to
+                remember which one it was.
+              */}
+              <Link
+                to={`/tasks?project=${project.id}`}
+                className="text-sm font-medium text-blue-700 hover:underline dark:text-blue-300"
+              >
+                {t('projects.planWork')}
+              </Link>
               <Button
                 variant="outline"
                 size="sm"

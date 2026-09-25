@@ -108,4 +108,20 @@ describe('giving work to somebody', () => {
     // Moving one's own work along stays.
     expect(screen.getByLabelText('Status for Label the racking')).toBeTruthy();
   });
+
+  it('opened from a project, shows only its work and files new work under it', async () => {
+    window.history.pushState({}, '', '/tasks?project=p1');
+    mocks.createTask.mockResolvedValue({ id: 'server-id', title: 'Mark the walkways', status: 'todo', priority: 'medium', projectId: 'p1' });
+    render(<TasksPage />);
+
+    await waitFor(() => expect(screen.getByTestId('project-filter').textContent).toContain('Warehouse 5S'));
+    expect(screen.getAllByTestId('task-card')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'New task' }));
+    fireEvent.change(screen.getByLabelText('Task title'), { target: { value: 'Mark the walkways' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
+
+    await waitFor(() => expect(mocks.createTask).toHaveBeenCalledWith(expect.objectContaining({ projectId: 'p1' })));
+    window.history.pushState({}, '', '/');
+  });
 });

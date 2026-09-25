@@ -36,6 +36,9 @@ const emptyDraft = {
 /** Everybody, nobody, or one person: what the board is showing. */
 type Filter = 'all' | 'unassigned' | string;
 
+/** The project named in the address, when the board was opened from one. */
+const projectFromAddress = () => new URLSearchParams(window.location.search).get('project') ?? '';
+
 /**
  * The work, by stage, and who it is for.
  *
@@ -55,10 +58,12 @@ const TasksPage: React.FC = () => {
   const [members, setMembers] = useState<TeamUser[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [filter, setFilter] = useState<Filter>('all');
+  const [projectFilter, setProjectFilter] = useState(projectFromAddress);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [draft, setDraft] = useState(emptyDraft);
+  // New work opened from a project is filed under it.
+  const [draft, setDraft] = useState(() => ({ ...emptyDraft, projectId: projectFromAddress() }));
 
   useEffect(() => {
     let active = true;
@@ -107,10 +112,12 @@ const TasksPage: React.FC = () => {
 
   const visible = useMemo(
     () =>
-      tasks.filter((task) =>
-        filter === 'all' ? true : filter === 'unassigned' ? !task.assigneeId : task.assigneeId === filter,
-      ),
-    [filter, tasks],
+      tasks
+        .filter((task) => !projectFilter || task.projectId === projectFilter)
+        .filter((task) =>
+          filter === 'all' ? true : filter === 'unassigned' ? !task.assigneeId : task.assigneeId === filter,
+        ),
+    [filter, projectFilter, tasks],
   );
 
   const grouped = useMemo(
@@ -142,7 +149,7 @@ const TasksPage: React.FC = () => {
     };
 
     setTasks((current) => [optimistic, ...current]);
-    setDraft(emptyDraft);
+    setDraft({ ...emptyDraft, projectId: projectFilter });
     setCreateOpen(false);
 
     try {
@@ -201,6 +208,25 @@ const TasksPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {projectFilter && (
+        <div
+          data-testid="project-filter"
+          className="flex items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200"
+        >
+          <span>{t('tasks.projectOnly', { project: projectName(projectFilter) ?? '…' })}</span>
+          <button
+            type="button"
+            className="font-medium underline"
+            onClick={() => {
+              setProjectFilter('');
+              setDraft((current) => ({ ...current, projectId: '' }));
+            }}
+          >
+            {t('tasks.allProjects')}
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">

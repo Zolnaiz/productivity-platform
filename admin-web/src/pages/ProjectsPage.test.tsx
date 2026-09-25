@@ -75,6 +75,13 @@ describe('ProjectsPage', () => {
     expect(screen.queryByText('62%')).toBeNull();
   });
 
+  it('leads from a project to planning its work', async () => {
+    renderPage();
+
+    const [link] = await screen.findAllByRole('link', { name: 'Plan and assign its work' });
+    expect(link.getAttribute('href')).toMatch(/^\/tasks\?project=/);
+  });
+
   it('says where the number came from', async () => {
     serviceMocks.getTasks.mockResolvedValue([
       task({ id: 't1', status: 'done' }),
