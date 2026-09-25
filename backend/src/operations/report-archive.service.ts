@@ -2,11 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { MonthlyReportClose } from './entities/monthly-report-close.entity';
 import { Organization } from '../organizations/entities/organization.entity';
 import { OperationsService } from './operations.service';
-import { buildMonthlyReport, MonthRecords } from './monthly-report';
+import { buildMonthlyReport, MonthRecords, selectMonthRecords } from './monthly-report';
+import { combineMonths, monthsBetween, PeriodMonth } from './period-report';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 
 type CurrentUser = { id?: string; role?: string; organizationId?: string } | undefined;
@@ -75,6 +76,44 @@ export class ReportArchiveService {
     });
 
     return { ...report, closed: { at: closed.createdAt, by: closed.closedBy ?? null } };
+  }
+
+  /**
+   * A half-year or a year, from its months.
+   *
+   * Closed months are read from their stored records and open ones live, so
+   * the year agrees with every monthly report that was signed off. The live
+   * tables are read once for all the open months, not once per month.
+   */
+  async periodReport(user: CurrentUser, from: string, to: string) {
+    const periods = monthsBetween(from, to);
+    if (!periods.length) {
+      throw apiError(ErrorCode.ValidationFailed, 'from, to');
+    }
+
+    const organizationId = user?.organizationId;
+    const closes = organizationId
+      ? await this.closes.find({ where: { organizationId, period: In(periods) } })
+      : [];
+    const closedBy = new Map(closes.map((close) => [close.period, close]));
+    const live = periods.some((period) => !closedBy.has(period))
+      ? await this.operations.organizationRecords(user)
+      : null;
+    const viewer = { id: user?.id, ownOnly: user?.role === 'user' };
+
+    const months: PeriodMonth[] = periods.map((period) => {
+      const closed = closedBy.get(period);
+      const records = closed
+        ? (closed.records as unknown as MonthRecords)
+        : selectMonthRecords(live as NonNullable<typeof live>, period);
+
+      return {
+        ...buildMonthlyReport(records, period, viewer),
+        closed: closed ? { at: closed.createdAt, by: closed.closedBy ?? null } : null,
+      };
+    });
+
+    return combineMonths(periods[0], periods[periods.length - 1], months);
   }
 
   /** The months that have been closed, newest first, without their records. */

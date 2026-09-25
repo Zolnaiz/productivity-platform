@@ -19,7 +19,7 @@ import { FiveSLayoutVersion } from './entities/five-s-layout-version.entity';
 import { defaultGuidelineContent } from './five-s-guideline-content';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { projectProgressPercent, sumRecordedHours } from './monthly-people';
-import { buildMonthlyReport, MonthRecords, selectMonthRecords } from './monthly-report';
+import { buildMonthlyReport, MonthRecords, OrganizationRecords, selectMonthRecords } from './monthly-report';
 import { NotificationsService } from './notifications.service';
 import { noteAuditBefore } from '../audit/audit-context';
 import { stampCompletion, withoutCompletionDate } from './task-completion';
@@ -1264,6 +1264,11 @@ export class OperationsService {
    * it is decides only how the records are read back.
    */
   async monthRecords(user: CurrentUser, month: string): Promise<MonthRecords> {
+    return selectMonthRecords(await this.organizationRecords(user), month);
+  }
+
+  /** Everything the monthly report counts, for the whole organization, read once. */
+  async organizationRecords(user: CurrentUser): Promise<OrganizationRecords> {
     const organization = this.organizationWhere(user);
     const [projects, tasks, workLogs, timeEntries, auditRuns, assessmentResponses, expenses, dailyGoals] = await Promise.all([
       this.projects.find({ where: organization }),
@@ -1276,10 +1281,7 @@ export class OperationsService {
       this.dailyGoals.find({ where: organization }),
     ]);
 
-    return selectMonthRecords(
-      { projects, tasks, workLogs, timeEntries, auditRuns, assessmentResponses, expenses, dailyGoals },
-      month,
-    );
+    return { projects, tasks, workLogs, timeEntries, auditRuns, assessmentResponses, expenses, dailyGoals };
   }
 
   resolveReportMonth(month?: string) {

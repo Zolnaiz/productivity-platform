@@ -6,6 +6,7 @@ import {
   ClosedMonth,
   OperationsMonthlyReport,
   OperationsSummary,
+  PeriodReport,
   Project,
   TimeEntry,
   WorkLog,
@@ -14,6 +15,7 @@ import {
 import { DailyGoal } from '../types/productivity.types';
 import { summarisePeople } from '../components/reports/monthlyPeople';
 import { completionAfter, completionMonth, doneByEndOf, plannedMonth } from '../components/reports/taskCompletion';
+import { combineMonths, monthsBetween } from '../components/reports/periodReport';
 
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
 type DemoKey = 'projects' | 'tasks' | 'workLogs' | 'timeEntries' | 'auditTemplates' | 'auditRuns' | 'goals';
@@ -685,6 +687,8 @@ const buildMonthlyReport = (month = currentMonth()): OperationsMonthlyReport => 
       projects: projects.length,
       tasks: monthlyTasks.length,
       completedTasks: completedTasks.length,
+      plannedTasks: plannedTasks.length,
+      plannedCompleted: plannedDone.length,
       workLogs: workLogs.length,
       totalHours,
       auditRuns: auditRuns.length,
@@ -776,6 +780,11 @@ export const operationsService = {
     fallback<OperationsMonthlyReport>(
       () => get('/operations/monthly-report', month ? { month } : undefined),
       demoMonthlyReport(month),
+    ),
+  getPeriodReport: (from: string, to: string) =>
+    fallback<PeriodReport>(
+      () => get('/operations/period-report', { from, to }),
+      combineMonths(from, to, monthsBetween(from, to).map((month) => demoMonthlyReport(month))),
     ),
   getClosedMonths: () =>
     fallback<ClosedMonth[]>(

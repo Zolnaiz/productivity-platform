@@ -160,6 +160,26 @@ export interface MonthlyPerson {
   assessments: number;
 }
 
+/**
+ * A half-year or a year, added up from its months. Closed months contribute
+ * exactly what their closed report says.
+ */
+export interface PeriodReport {
+  from: string;
+  to: string;
+  months: Array<{
+    period: string;
+    closed: { at: string; by: string | null } | null;
+    totals: OperationsMonthlyReport['totals'];
+    kpis: OperationsMonthlyReport['kpis'];
+  }>;
+  /** How many of the months are closed, and so will not change. */
+  closedMonths: number;
+  people: MonthlyPerson[];
+  totals: Omit<OperationsMonthlyReport['totals'], 'projects'>;
+  kpis: OperationsMonthlyReport['kpis'];
+}
+
 /** A month whose report has been frozen. */
 export interface ClosedMonth {
   period: string;
@@ -188,6 +208,9 @@ export interface OperationsMonthlyReport {
     projects: number;
     tasks: number;
     completedTasks: number;
+    /** What the completion rate is made of. Absent from servers older than it. */
+    plannedTasks?: number;
+    plannedCompleted?: number;
     workLogs: number;
     totalHours: number;
     auditRuns: number;

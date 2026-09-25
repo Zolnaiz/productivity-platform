@@ -26,6 +26,13 @@ export class ReportsController {
     return this.archive.monthlyReport(req.user, month);
   }
 
+  /** A half-year or a year: `from` and `to` are months, YYYY-MM, at most twelve apart. */
+  @Get('operations/period-report')
+  @RequirePermission('reports:read')
+  periodReport(@Request() req, @Query('from') from: string, @Query('to') to: string) {
+    return this.archive.periodReport(req.user, from, to);
+  }
+
   @Get('operations/monthly-closes')
   @RequirePermission('reports:read')
   listClosed(@Request() req) {

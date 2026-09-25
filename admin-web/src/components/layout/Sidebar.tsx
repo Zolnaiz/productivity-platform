@@ -26,6 +26,7 @@ import {
   Target,
   Trophy,
   Users,
+  CalendarRange,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
@@ -121,6 +122,12 @@ const menuItems: MenuItem[] = [
     icon: <BarChart3 className="h-5 w-5" />,
     labelKey: "nav.reports",
     path: "/reports",
+    group: "Reports",
+  },
+  {
+    icon: <CalendarRange className="h-5 w-5" />,
+    labelKey: "nav.periodReports",
+    path: "/reports/period",
     group: "Reports",
   },
   {
@@ -280,6 +287,9 @@ const Sidebar: React.FC = () => {
                     <li key={item.path}>
                       <NavLink
                         to={item.path}
+                        // The monthly report would otherwise also light up
+                        // on the half-year page, which lives beneath it.
+                        end={item.path === "/reports"}
                         className={({ isActive }) =>
                           `flex items-center rounded-lg p-3 transition-colors ${
                             isActive

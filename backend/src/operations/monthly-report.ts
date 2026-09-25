@@ -152,6 +152,10 @@ export const buildMonthlyReport = (records: MonthRecords, month: string, viewer:
       projects: visibleProjects.length,
       tasks: monthlyTasks.length,
       completedTasks: completedTasks.length,
+      // What the completion rate is made of, so a half-year can be added up
+      // from its months rather than averaging six percentages.
+      plannedTasks: plannedTasks.length,
+      plannedCompleted: plannedDone.length,
       workLogs: monthlyWorkLogs.length,
       totalHours,
       auditRuns: monthlyAuditRuns.length,
