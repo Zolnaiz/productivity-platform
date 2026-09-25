@@ -292,6 +292,83 @@ async function main() {
     }
   }
 
+  /*
+    The write paths, against the real database. Only when SMOKE_WRITES=true:
+    they leave records behind, which is right on CI's throwaway database and
+    wrong on anybody's live one. The reads above found the broken inbox; a
+    column missing from a table that is only ever written would hide from
+    them, so each thing people save is saved once here.
+  */
+  if (process.env.SMOKE_WRITES === 'true' && loginToken) {
+    const write = async (name: string, path: string, method: string, body: unknown, expect: (status: number, data: any) => boolean) => {
+      try {
+        const { response, body: raw } = await request(path, token, {
+          method,
+          body: body === undefined ? undefined : JSON.stringify(body),
+        });
+        const data = unwrapData(raw);
+        const ok = expect(response.status, data);
+        results.push({ name, ok, status: response.status, detail: ok ? undefined : summarizeBody(raw) });
+        return data;
+      } catch (error) {
+        results.push({ name, ok: false, detail: error instanceof Error ? error.message : String(error) });
+        return undefined;
+      }
+    };
+
+    const me = unwrapData((await request('/auth/me', token)).body);
+    const ownerId: string | undefined = me?.id ?? me?.user?.id;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const task = await write('write: create a task for somebody', '/tasks', 'POST',
+      { title: `Smoke task ${Date.now()}`, assigneeId: ownerId, dueDate: today, estimatedHours: 1 },
+      (status, data) => status === 201 && typeof data?.id === 'string');
+    if (task?.id) {
+      await write('write: finishing a task dates it', `/tasks/${task.id}`, 'PATCH', { status: 'done' },
+        (status, data) => status === 200 && typeof data?.completedAt === 'string');
+      await write('write: work cannot go to somebody outside the organization', `/tasks/${task.id}`, 'PATCH',
+        { assigneeId: '00000000-0000-4000-8000-000000000000' }, (status) => status === 400);
+    }
+
+    await write('write: a day written up with its time', '/work-logs/daily', 'POST',
+      { summary: 'Smoke write-up', hours: 1, logDate: today },
+      (status, data) => status === 201 && data?.timeEntry?.workLogId === data?.workLog?.id);
+    await write('write: a clock entry', '/time-entries', 'POST', { hours: 0.5, workDate: today, note: 'Smoke' },
+      (status) => status === 201);
+    await write('write: a daily goal', '/daily-goals', 'POST', { title: 'Smoke goal', date: today },
+      (status) => status === 201);
+    await write('write: an expense', '/expenses', 'POST', { title: 'Smoke expense', amount: 1000, expenseDate: today },
+      (status) => status === 201);
+
+    const department = await write('write: a department', '/departments', 'POST', { name: `Smoke ${Date.now()}` },
+      (status, data) => status === 201 && typeof data?.id === 'string');
+    if (department?.id) {
+      await write('write: retire the department', `/departments/${department.id}`, 'DELETE', undefined,
+        (status) => status === 200);
+    }
+
+    const templates = unwrapData((await request('/audit-templates', token)).body);
+    if (Array.isArray(templates) && templates[0]?.id) {
+      await write('write: an audit run', '/audit-runs', 'POST',
+        { templateId: templates[0].id, location: 'Smoke area', score: 90, answers: [] },
+        (status) => status === 201);
+    }
+
+    const layouts = unwrapData((await request('/five-s-layouts', token)).body);
+    if (Array.isArray(layouts) && layouts[0]?.id) {
+      await write('write: keep a version of the floor plan', `/five-s-layouts/${layouts[0].id}/versions`, 'POST',
+        { label: 'Smoke' }, (status) => status === 200 || status === 201);
+    }
+
+    await write('write: mark the inbox read', '/notifications/read-all', 'PATCH', {}, (status) => status === 200);
+
+    const last = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
+    await write('write: close last month', '/operations/monthly-closes', 'POST', { month: last },
+      (status, data) => (status === 201 || status === 200) && Boolean(data?.closed));
+    await write('write: reopen it', `/operations/monthly-closes/${last}`, 'DELETE', undefined,
+      (status, data) => status === 200 && data?.closed === null);
+  }
+
   // A user record must never carry what would let somebody else into the account.
   try {
     const { body } = await request('/users', token);

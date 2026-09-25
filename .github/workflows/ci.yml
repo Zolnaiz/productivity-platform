@@ -210,8 +210,12 @@ jobs:
           cat server.log
           exit 1
 
-      - name: Smoke every page against the real database
+      # SMOKE_WRITES saves one of everything people save, which is right on
+      # this throwaway database and never on a live one.
+      - name: Smoke every page and every write against the real database
         working-directory: backend
+        env:
+          SMOKE_WRITES: 'true'
         run: npm run smoke:api
 
       - name: Setup Flutter
