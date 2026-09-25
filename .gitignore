@@ -168,3 +168,8 @@ bin/
 *.sql
 *.sqlite
 !backend/init-db.sql
+
+# Working copies the editor's agents check out. They are copies of this
+# repository, not part of it, and committing one would commit the repository
+# into itself.
+.claude/worktrees/
