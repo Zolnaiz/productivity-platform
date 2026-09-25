@@ -12,6 +12,8 @@ export enum NotificationKind {
   TASK_ASSIGNED = 'task_assigned',
   /** The morning's reminder of work due today and work already late. */
   DAILY_DIGEST = 'daily_digest',
+  /** The morning's summary for a manager: the team's late work and the work nobody has. */
+  TEAM_DIGEST = 'team_digest',
 }
 
 /**

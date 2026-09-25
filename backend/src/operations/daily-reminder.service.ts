@@ -2,16 +2,45 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, LessThanOrEqual, Not, Repository } from 'typeorm';
+import { In, LessThanOrEqual, Repository } from 'typeorm';
 import { TaskStatus, WorkTask } from './entities/task.entity';
 import { NotificationKind } from './entities/notification.entity';
 import { NotificationsService } from './notifications.service';
 import { dayIn } from './task-completion';
 import { Organization } from '../organizations/entities/organization.entity';
 import { clockFrom } from './organization-clock';
+import { User } from '../users/entities/user.entity';
+import { UserRole } from '../shared/constants';
 
 /** How many tasks a reminder names before it says "and more". */
 const NAMED = 5;
+
+/** What a manager is told: the organization's late work and the due work with nobody on it. */
+export interface TeamDigest {
+  late: WorkTask[];
+  unassigned: WorkTask[];
+}
+
+/** The roles that run other people's work, and so get the team's summary. */
+const TEAM_ROLES = [UserRole.MANAGER, UserRole.ADMIN, UserRole.ORGANIZATION_ADMIN];
+
+/**
+ * The team's morning: work that is late, and work due by today that nobody
+ * has. Backlog and finished work are left out, as for a person's own.
+ */
+export const teamDigestFor = (tasks: WorkTask[], today: string): TeamDigest => {
+  const committed = tasks.filter(
+    (task) => task.status !== TaskStatus.DONE && task.status !== TaskStatus.BACKLOG && task.dueDate,
+  );
+  const due = (task: WorkTask) => String(task.dueDate).slice(0, 10);
+
+  return {
+    late: committed
+      .filter((task) => due(task) < today)
+      .sort((a, b) => due(a).localeCompare(due(b))),
+    unassigned: committed.filter((task) => !task.assigneeId && due(task) <= today),
+  };
+};
 
 export interface PersonDigest {
   userId: string;
@@ -79,6 +108,8 @@ export class DailyReminderService {
     @InjectRepository(WorkTask) private readonly tasks: Repository<WorkTask>,
     // Read-only, for each organization's own time zone.
     @InjectRepository(Organization) private readonly organizations: Repository<Organization>,
+    // Read-only, for who runs the team and so gets its summary.
+    @InjectRepository(User) private readonly users: Repository<User>,
     private readonly notifications: NotificationsService,
     private readonly configService: ConfigService,
   ) {}
@@ -119,7 +150,8 @@ export class DailyReminderService {
       where: {
         organizationId: In([...todayOf.keys()]),
         status: In([TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.REVIEW]),
-        assigneeId: Not(IsNull()),
+        // Unassigned work too: nobody is reminded of it personally, which is
+        // exactly why the manager's summary has to count it.
         dueDate: LessThanOrEqual(latest),
       },
     });
@@ -131,10 +163,28 @@ export class DailyReminderService {
     let sent = 0;
     for (const [organizationId, today] of todayOf) {
       const theirs = open.filter((task) => task.organizationId === organizationId);
-      for (const digest of digestsFor(theirs, today)) {
-        const delivered = await this.notifications.notify(this.notificationFor(digest, today));
+      const madeNow = (delivered: unknown) => {
         const createdAt = (delivered as { createdAt?: Date | string } | null)?.createdAt;
-        if (createdAt && new Date(createdAt).getTime() >= runStartedAt - 1000) sent += 1;
+        return Boolean(createdAt && new Date(createdAt).getTime() >= runStartedAt - 1000);
+      };
+
+      for (const digest of digestsFor(theirs, today)) {
+        if (madeNow(await this.notifications.notify(this.notificationFor(digest, today)))) sent += 1;
+      }
+
+      // The people who run the work get the team's picture, and only when
+      // there is something in it to act on.
+      const team = teamDigestFor(theirs, today);
+      if (team.late.length || team.unassigned.length) {
+        const managers = await this.users.find({
+          where: { organizationId, role: In(TEAM_ROLES), isActive: true },
+          select: { id: true },
+        });
+        for (const manager of managers) {
+          if (madeNow(await this.notifications.notify(this.teamNotificationFor(team, manager.id, organizationId, today)))) {
+            sent += 1;
+          }
+        }
       }
     }
 
@@ -143,6 +193,28 @@ export class DailyReminderService {
     }
 
     return sent;
+  }
+
+  private teamNotificationFor(team: TeamDigest, userId: string, organizationId: string, today: string) {
+    const late = team.late.length;
+    const unassigned = team.unassigned.length;
+    const named = [...team.unassigned, ...team.late.filter((task) => !team.unassigned.includes(task))].slice(0, NAMED);
+
+    return {
+      userId,
+      organizationId,
+      kind: NotificationKind.TEAM_DIGEST,
+      title: `Team today: ${late} late, ${unassigned} with nobody on it`,
+      titleKey: 'raised.teamDigest',
+      titleParams: { late, unassigned },
+      body: named
+        .map((task) => `- ${task.title} (${String(task.dueDate).slice(0, 10)})${task.assigneeId ? '' : ' - nobody on it'}`)
+        .join('\n'),
+      // The board is where late and unassigned work is dealt with.
+      link: '/progress',
+      sourceType: 'team_digest',
+      sourceId: today,
+    };
   }
 
   private notificationFor(digest: PersonDigest, today: string) {

@@ -859,6 +859,7 @@ const mn: Translations<typeof en> = {
     redTagDecision: 'Улаан шошготой зүйлд шийдвэр гаргах хугацаа болсон: {{item}}',
     auditFollowUp: '5S залруулах ажил: {{place}}',
     dailyDigest: 'Өнөөдөр: {{dueToday}} ажлын хугацаа дуусна, {{overdue}} хоцорсон',
+    teamDigest: 'Багийн өнөөдөр: {{late}} хоцорсон, {{unassigned}} хариуцагчгүй',
   },
   zone: {
     auditPhotoPrompt: 'Харсан зүйлээ зургаар нэмнэ үү.',
@@ -1307,6 +1308,7 @@ const mn: Translations<typeof en> = {
     kind: {
       task_assigned: 'Танд ажил оноогдлоо',
       daily_digest: 'Өнөөдөр дуусах болон хоцорсон ажил',
+      team_digest: 'Багийн хоцорсон болон хариуцагчгүй ажил',
     },
     title: 'Мэдэгдэл',
     subtitle: 'Анхаарал шаардсан ажил, батлалт, чанарын арга хэмжээ.',

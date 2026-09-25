@@ -94,12 +94,15 @@ const _raisedMn = {
   'raised.auditFollowUp': '5S залруулах ажил: {{place}}',
   'raised.dailyDigest':
       'Өнөөдөр: {{dueToday}} ажлын хугацаа дуусна, {{overdue}} хоцорсон',
+  'raised.teamDigest':
+      'Багийн өнөөдөр: {{late}} хоцорсон, {{unassigned}} хариуцагчгүй',
 };
 const _raisedEn = {
   'raised.tierAuditDue': '{{layer}} 5S audit due: {{place}}',
   'raised.redTagDecision': 'Red-tag decision due: {{item}}',
   'raised.auditFollowUp': '5S follow-up: {{place}}',
   'raised.dailyDigest': 'Today: {{dueToday}} due, {{overdue}} late',
+  'raised.teamDigest': 'Team today: {{late}} late, {{unassigned}} with nobody on it',
 };
 
 const _en = {

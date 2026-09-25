@@ -871,6 +871,7 @@ const en = {
     redTagDecision: 'Red-tag decision due: {{item}}',
     auditFollowUp: '5S follow-up: {{place}}',
     dailyDigest: 'Today: {{dueToday}} due, {{overdue}} late',
+    teamDigest: 'Team today: {{late}} late, {{unassigned}} with nobody on it',
   },
   zone: {
     auditPhotoPrompt: 'Add a photograph of what you saw.',
@@ -1319,6 +1320,7 @@ const en = {
     kind: {
       task_assigned: 'A task was assigned to you',
       daily_digest: 'Your work due today and already late',
+      team_digest: 'Your team’s late work and the work nobody has',
     },
     title: 'Notifications',
     subtitle: 'Open work items, approvals and quality actions that need attention.',

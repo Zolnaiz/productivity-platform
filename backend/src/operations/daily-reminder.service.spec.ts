@@ -1,4 +1,4 @@
-import { DailyReminderService, dayIn, digestsFor, hourIn } from './daily-reminder.service';
+import { DailyReminderService, dayIn, digestsFor, hourIn, teamDigestFor } from './daily-reminder.service';
 
 const task = (over: Record<string, unknown>) =>
   ({ id: Math.random().toString(36).slice(2), title: 'Work', status: 'todo', organizationId: 'org-1', ...over }) as never;
@@ -10,14 +10,16 @@ const createService = (config: Record<string, unknown> = {}) => {
   const organizations = {
     find: jest.fn().mockResolvedValue([{ id: 'org-1', settings: {} }]),
   };
+  const users = { find: jest.fn().mockResolvedValue([]) };
   const service = new DailyReminderService(
     tasks as never,
     organizations as never,
+    users as never,
     notifications as never,
     configService as never,
   );
 
-  return { service, tasks, notifications, organizations };
+  return { service, tasks, notifications, organizations, users };
 };
 
 // 08:15 in Ulaanbaatar, which is UTC+8.
@@ -161,5 +163,56 @@ describe('each organization in its own morning', () => {
     expect(tasks.find.mock.calls[0][0].where.organizationId).toBeDefined();
     expect(notifications.notify).toHaveBeenCalledTimes(1);
     expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u1' }));
+  });
+});
+
+describe('the manager’s morning', () => {
+  it('counts the team’s late work and the due work nobody has', () => {
+    const team = teamDigestFor(
+      [
+        task({ id: 'late', assigneeId: 'u1', dueDate: '2026-09-20' }),
+        task({ id: 'orphan', dueDate: '2026-09-25' }),
+        task({ id: 'fine', assigneeId: 'u1', dueDate: '2026-09-25' }),
+        task({ id: 'later', dueDate: '2026-10-01' }),
+        task({ id: 'backlog', dueDate: '2026-09-01', status: 'backlog' }),
+      ],
+      '2026-09-25',
+    );
+
+    expect(team.late.map((t: { id: string }) => t.id)).toEqual(['late']);
+    expect(team.unassigned.map((t: { id: string }) => t.id)).toEqual(['orphan']);
+  });
+
+  it('reaches the people who run the work, pointing at the board', async () => {
+    const { service, tasks, users, notifications } = createService();
+    tasks.find.mockResolvedValue([
+      task({ organizationId: 'org-1', assigneeId: 'u1', dueDate: '2026-09-20' }),
+      task({ organizationId: 'org-1', dueDate: '2026-09-25', title: 'Sweep the dock' }),
+    ]);
+    users.find.mockResolvedValue([{ id: 'boss' }]);
+
+    await service.remind(eightFifteen);
+
+    expect(users.find.mock.calls[0][0].where.organizationId).toBe('org-1');
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'boss',
+        titleKey: 'raised.teamDigest',
+        titleParams: { late: 1, unassigned: 1 },
+        link: '/progress',
+        sourceType: 'team_digest',
+        sourceId: '2026-09-25',
+      }),
+    );
+    expect(notifications.notify.mock.calls.find(([n]) => n.userId === 'boss')[0].body).toContain('Sweep the dock (2026-09-25) - nobody on it');
+  });
+
+  it('says nothing to a manager whose team has nothing late or unowned', async () => {
+    const { service, tasks, users } = createService();
+    tasks.find.mockResolvedValue([task({ organizationId: 'org-1', assigneeId: 'u1', dueDate: '2026-09-25' })]);
+
+    await service.remind(eightFifteen);
+
+    expect(users.find).not.toHaveBeenCalled();
   });
 });
