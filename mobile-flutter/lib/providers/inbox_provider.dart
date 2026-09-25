@@ -11,6 +11,8 @@ class InboxItem {
     this.titleKey,
     this.titleParams = const {},
     this.body = '',
+    this.bodyKey,
+    this.bodyParams = const {},
     this.read = false,
     this.createdAt,
   });
@@ -20,6 +22,10 @@ class InboxItem {
   final String? titleKey;
   final Map<String, dynamic> titleParams;
   final String body;
+
+  /// The body as a key and its parts; [body] is the English, kept for email.
+  final String? bodyKey;
+  final Map<String, dynamic> bodyParams;
   final bool read;
   final DateTime? createdAt;
 
@@ -30,6 +36,9 @@ class InboxItem {
         titleParams:
             (json['titleParams'] as Map?)?.cast<String, dynamic>() ?? const {},
         body: json['body'] as String? ?? '',
+        bodyKey: json['bodyKey'] as String?,
+        bodyParams:
+            (json['bodyParams'] as Map?)?.cast<String, dynamic>() ?? const {},
         read: json['readAt'] != null,
         createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
       );
@@ -40,6 +49,8 @@ class InboxItem {
         titleKey: titleKey,
         titleParams: titleParams,
         body: body,
+        bodyKey: bodyKey,
+        bodyParams: bodyParams,
         read: true,
         createdAt: createdAt,
       );

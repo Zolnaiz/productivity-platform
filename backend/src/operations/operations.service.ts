@@ -332,6 +332,8 @@ export class OperationsService {
         titleKey: task.titleKey,
         titleParams: task.titleParams,
         body: task.dueDate ? `Due ${task.dueDate}` : '',
+        bodyKey: task.dueDate ? 'raised.dueOn' : undefined,
+        bodyParams: task.dueDate ? { date: String(task.dueDate).slice(0, 10) } : undefined,
         link: '/tasks',
         sourceType: 'work_task',
         sourceId: task.id,

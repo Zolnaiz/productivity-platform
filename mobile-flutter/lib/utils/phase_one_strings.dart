@@ -96,6 +96,10 @@ const _raisedMn = {
       'Өнөөдөр: {{dueToday}} ажлын хугацаа дуусна, {{overdue}} хоцорсон',
   'raised.teamDigest':
       'Багийн өнөөдөр: {{late}} хоцорсон, {{unassigned}} хариуцагчгүй',
+  'raised.dueOn': '{{date}}-нд дуусна',
+  'raised.dailyDigestBody':
+      'Хоцорсон:\n{{overdue}}\nӨнөөдөр дуусах:\n{{dueToday}}',
+  'raised.teamDigestBody': 'Хариуцагчгүй:\n{{unassigned}}\nХоцорсон:\n{{late}}',
 };
 const _raisedEn = {
   'raised.tierAuditDue': '{{layer}} 5S audit due: {{place}}',
@@ -103,6 +107,9 @@ const _raisedEn = {
   'raised.auditFollowUp': '5S follow-up: {{place}}',
   'raised.dailyDigest': 'Today: {{dueToday}} due, {{overdue}} late',
   'raised.teamDigest': 'Team today: {{late}} late, {{unassigned}} with nobody on it',
+  'raised.dueOn': 'Due {{date}}',
+  'raised.dailyDigestBody': 'Late:\n{{overdue}}\nDue today:\n{{dueToday}}',
+  'raised.teamDigestBody': 'Nobody on it:\n{{unassigned}}\nLate:\n{{late}}',
 };
 
 const _en = {

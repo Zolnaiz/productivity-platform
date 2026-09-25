@@ -23,6 +23,9 @@ export interface Notification {
   titleKey?: string;
   titleParams?: Record<string, string | number>;
   body: string;
+  /** The body as a key and its parts; `body` is the English, for email. */
+  bodyKey?: string;
+  bodyParams?: Record<string, string | number>;
   link: string;
   sourceType?: string;
   sourceId?: string;
@@ -52,6 +55,8 @@ const demoNotifications = (): Notification[] => [
     titleKey: 'raised.tierAuditDue',
     titleParams: { layer: 'Tier 1', place: 'A03 - Storage' },
     body: 'Due 2026-06-24',
+    bodyKey: 'raised.dueOn',
+    bodyParams: { date: '2026-06-24' },
     link: '/tasks',
     sourceType: 'work_task',
     sourceId: 't4',
@@ -66,6 +71,8 @@ const demoNotifications = (): Notification[] => [
     titleKey: 'raised.redTagDecision',
     titleParams: { item: 'Unowned supply box' },
     body: 'Due 2026-06-23',
+    bodyKey: 'raised.dueOn',
+    bodyParams: { date: '2026-06-23' },
     link: '/tasks',
     sourceType: 'work_task',
     sourceId: 't5',

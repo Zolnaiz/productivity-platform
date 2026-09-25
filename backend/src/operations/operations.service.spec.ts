@@ -322,6 +322,9 @@ describe('OperationsService organization scoping', () => {
           title: 'Tier 1 5S audit due: A01',
           sourceType: 'work_task',
           sourceId: 'task-1',
+          // The due date as a part, so the inbox words it; the sentence is for email.
+          bodyKey: 'raised.dueOn',
+          bodyParams: { date: '2026-09-20' },
         }),
       );
     });

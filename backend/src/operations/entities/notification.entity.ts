@@ -67,6 +67,13 @@ export class Notification extends BaseEntity {
   @Column({ type: 'text', default: '' })
   body: string;
 
+  /** The body as a key and its parts, for the inbox; `body` stays for email. */
+  @Column({ name: 'body_key', nullable: true })
+  bodyKey?: string;
+
+  @Column({ type: 'jsonb', name: 'body_params', default: {} })
+  bodyParams: Record<string, string | number>;
+
   /** Where to go to act on it. */
   @Column({ default: '/tasks' })
   link: string;

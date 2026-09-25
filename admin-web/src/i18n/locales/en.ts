@@ -873,6 +873,9 @@ const en = {
     auditFollowUp: '5S follow-up: {{place}}',
     dailyDigest: 'Today: {{dueToday}} due, {{overdue}} late',
     teamDigest: 'Team today: {{late}} late, {{unassigned}} with nobody on it',
+    dueOn: 'Due {{date}}',
+    dailyDigestBody: 'Late:\n{{overdue}}\nDue today:\n{{dueToday}}',
+    teamDigestBody: 'Nobody on it:\n{{unassigned}}\nLate:\n{{late}}',
   },
   zone: {
     auditPhotoPrompt: 'Add a photograph of what you saw.',

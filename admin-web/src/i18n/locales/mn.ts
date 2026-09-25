@@ -861,6 +861,9 @@ const mn: Translations<typeof en> = {
     auditFollowUp: '5S залруулах ажил: {{place}}',
     dailyDigest: 'Өнөөдөр: {{dueToday}} ажлын хугацаа дуусна, {{overdue}} хоцорсон',
     teamDigest: 'Багийн өнөөдөр: {{late}} хоцорсон, {{unassigned}} хариуцагчгүй',
+    dueOn: '{{date}}-нд дуусна',
+    dailyDigestBody: 'Хоцорсон:\n{{overdue}}\nӨнөөдөр дуусах:\n{{dueToday}}',
+    teamDigestBody: 'Хариуцагчгүй:\n{{unassigned}}\nХоцорсон:\n{{late}}',
   },
   zone: {
     auditPhotoPrompt: 'Харсан зүйлээ зургаар нэмнэ үү.',

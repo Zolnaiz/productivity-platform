@@ -15,6 +15,14 @@ import { UserRole } from '../shared/constants';
 /** How many tasks a reminder names before it says "and more". */
 const NAMED = 5;
 
+/** A list of tasks as data - titles and dates, no words - for the inbox to frame. */
+const listOf = (tasks: WorkTask[]) => {
+  const shown = tasks.slice(0, NAMED).map((task) => `- ${task.title} (${String(task.dueDate).slice(0, 10)})`);
+  const rest = tasks.length - shown.length;
+
+  return [...shown, rest > 0 ? `+${rest}` : ''].filter(Boolean).join('\n');
+};
+
 /** What a manager is told: the organization's late work and the due work with nobody on it. */
 export interface TeamDigest {
   late: WorkTask[];
@@ -210,6 +218,13 @@ export class DailyReminderService {
       body: named
         .map((task) => `- ${task.title} (${String(task.dueDate).slice(0, 10)})${task.assigneeId ? '' : ' - nobody on it'}`)
         .join('\n'),
+      // For the inbox: the two lists as data, the words around them from
+      // the reader's locale.
+      bodyKey: 'raised.teamDigestBody',
+      bodyParams: {
+        unassigned: listOf(team.unassigned) || '-',
+        late: listOf(team.late.filter((task) => task.assigneeId)) || '-',
+      },
       // The board is where late and unassigned work is dealt with.
       link: '/progress',
       sourceType: 'team_digest',
@@ -238,6 +253,8 @@ export class DailyReminderService {
       ]
         .filter(Boolean)
         .join('\n'),
+      bodyKey: 'raised.dailyDigestBody',
+      bodyParams: { overdue: listOf(digest.overdue) || '-', dueToday: listOf(digest.dueToday) || '-' },
       link: '/tasks',
       sourceType: 'daily_digest',
       sourceId: today,

@@ -17,6 +17,9 @@ export interface NotificationRequest {
   titleKey?: string;
   titleParams?: Record<string, string | number>;
   body?: string;
+  /** The body as a key and its parts, so the inbox reads in its own language. */
+  bodyKey?: string;
+  bodyParams?: Record<string, string | number>;
   link?: string;
   sourceType?: string;
   sourceId?: string;
@@ -112,6 +115,8 @@ export class NotificationsService {
       titleKey: request.titleKey,
       titleParams: request.titleParams ?? {},
       body: request.body ?? '',
+      bodyKey: request.bodyKey,
+      bodyParams: request.bodyParams ?? {},
       link: request.link ?? '/tasks',
       sourceType: request.sourceType,
       sourceId: request.sourceId,

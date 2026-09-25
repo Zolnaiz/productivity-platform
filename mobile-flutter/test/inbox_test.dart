@@ -83,4 +83,24 @@ void main() {
 
     expect(find.textContaining('morning reminder arrive here'), findsOneWidget);
   });
+
+  testWidgets('words the text under a title too, not only the title',
+      (tester) async {
+    // It was an English sentence under a Mongolian title.
+    final (api, _, _) = await makeApi((_) => jsonReply(envelope([
+          {
+            'id': 'n2',
+            'title': 'Clear the aisle',
+            'body': 'Due 2026-09-30',
+            'bodyKey': 'raised.dueOn',
+            'bodyParams': {'date': '2026-09-30'},
+            'readAt': null,
+          }
+        ])));
+
+    await _pump(tester, api, locale: const Locale('mn'));
+
+    expect(find.text('2026-09-30-нд дуусна'), findsOneWidget);
+    expect(find.text('Due 2026-09-30'), findsNothing);
+  });
 }

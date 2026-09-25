@@ -131,7 +131,9 @@ const NotificationsPage: React.FC = () => {
                 </div>
                 {/* Line breaks kept: the morning reminder lists one task a line. */}
                 <div className="mt-1 whitespace-pre-line text-sm text-gray-500 dark:text-gray-400">
-                  {item.body || t(`notifications.kind.${item.kind}`)}
+                  {item.bodyKey
+                    ? t(item.bodyKey, { ...(item.bodyParams ?? {}), defaultValue: item.body })
+                    : item.body || t(`notifications.kind.${item.kind}`)}
                 </div>
               </div>
               <div className="flex flex-none items-center gap-3">

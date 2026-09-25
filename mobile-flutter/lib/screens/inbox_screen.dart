@@ -74,7 +74,12 @@ class _InboxScreenState extends State<InboxScreen> {
                             fontWeight:
                                 item.read ? FontWeight.normal : FontWeight.w600),
                       ),
-                      subtitle: item.body.isEmpty ? null : Text(item.body),
+                      subtitle: item.body.isEmpty && item.bodyKey == null
+                          ? null
+                          : Text(strings.taskTitle(
+                              title: item.body,
+                              key: item.bodyKey,
+                              params: item.bodyParams)),
                       isThreeLine: item.body.contains('\n'),
                       onTap: () => inbox.markRead(item),
                     );
