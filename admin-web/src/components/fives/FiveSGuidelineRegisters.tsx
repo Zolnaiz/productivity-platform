@@ -33,27 +33,24 @@ const fieldClass =
 
 const textareaClass = `${fieldClass} min-h-[72px]`;
 
-const improvementStatusOptions: Array<{ value: FiveSImprovementStatus; label: string }> = [
-  { value: 'open', label: 'Open' },
-  { value: 'in_progress', label: 'In progress' },
-  { value: 'management_review', label: 'Management review' },
-  { value: 'closed', label: 'Closed' },
-];
+/*
+  The choices are worded from the locale files. They were half English and
+  half Mongolian here, so each language got a register that was partly in the
+  other one.
+*/
+const improvementStatuses: FiveSImprovementStatus[] = ['open', 'in_progress', 'management_review', 'closed'];
 
-const reasonOptions: Array<{ value: FiveSImplementationReason; label: string }> = [
-  { value: 'defective', label: 'Гэмтэлтэй' },
-  { value: 'unused', label: 'Ашиглаагүй удсан' },
-  { value: 'excess', label: 'Илүүдэлтэй' },
-  { value: 'unnecessary', label: 'Шаардлагагүй' },
-];
+const reasons: FiveSImplementationReason[] = ['defective', 'unused', 'excess', 'unnecessary'];
 
-const implementationStatusOptions: Array<{ value: FiveSImplementationStatus; label: string }> = [
-  { value: 'identified', label: 'Identified' },
-  { value: 'review', label: 'Review' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'removed', label: 'Removed' },
-  { value: 'returned', label: 'Returned' },
-];
+const implementationStatuses: FiveSImplementationStatus[] = ['identified', 'review', 'approved', 'removed', 'returned'];
+
+/** English for the CSV, which has no reader to ask, like every export here. */
+const reasonInEnglish: Record<FiveSImplementationReason, string> = {
+  defective: 'Defective',
+  unused: 'Unused for a long time',
+  excess: 'Excess',
+  unnecessary: 'Unnecessary',
+};
 
 /*
   The standard this page is read against — the cadence, the labelling rules,
@@ -174,7 +171,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
       ...current,
       improvements: [...current.improvements, fiveSGuidelineService.createImprovementRecord()],
     }));
-    setActionMessage('5S improvement row added.');
+    setActionMessage(t('fiveSRegisters.improvementAdded'));
   };
 
   const updateImprovement = (id: string, patch: Partial<FiveSImprovementRecord>) => {
@@ -189,7 +186,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
       ...current,
       improvements: current.improvements.filter((item) => item.id !== id),
     }));
-    setActionMessage('5S improvement row removed.');
+    setActionMessage(t('fiveSRegisters.improvementRemoved'));
   };
 
   const addImplementationCard = () => {
@@ -197,7 +194,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
       ...current,
       implementationCards: [...current.implementationCards, fiveSGuidelineService.createImplementationCard()],
     }));
-    setActionMessage('1C/2C/3C implementation card added.');
+    setActionMessage(t('fiveSRegisters.cardAdded'));
   };
 
   const updateImplementationCard = (id: string, patch: Partial<FiveSImplementationCard>) => {
@@ -212,7 +209,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
       ...current,
       implementationCards: current.implementationCards.filter((item) => item.id !== id),
     }));
-    setActionMessage('1C/2C/3C implementation card removed.');
+    setActionMessage(t('fiveSRegisters.cardRemoved'));
   };
 
   // A row is written to storage the moment it changes and there is no undo
@@ -297,7 +294,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
         item.status,
       ]),
     );
-    setActionMessage('5S improvement register exported.');
+    setActionMessage(t('fiveSRegisters.improvementsExported'));
   };
 
   const exportImplementationCards = () => {
@@ -309,7 +306,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
         item.itemNumber,
         item.quantity,
         item.itemName,
-        reasonOptions.find((option) => option.value === item.reason)?.label,
+        reasonInEnglish[item.reason],
         item.department,
         item.date,
         item.owner,
@@ -317,7 +314,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
         item.status,
       ]),
     );
-    setActionMessage('1C/2C/3C implementation cards exported.');
+    setActionMessage(t('fiveSRegisters.cardsExported'));
   };
 
   const exportAssessment = () => {
@@ -329,7 +326,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
         return [criterion.category, criterion.criterion, score?.score ?? 0, score?.note ?? ''];
       }),
     );
-    setActionMessage('Organization baseline assessment exported.');
+    setActionMessage(t('fiveSRegisters.assessmentExported'));
   };
 
   const exportChecklist = () => {
@@ -341,7 +338,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
         return [item.group, item.item, progress?.done ? 'yes' : 'no', progress?.note ?? ''];
       }),
     );
-    setActionMessage('Public area checklist exported.');
+    setActionMessage(t('fiveSRegisters.checklistExported'));
   };
 
   return (
@@ -353,7 +350,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
       )}
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card title="Guideline operating cadence" subtitle="Word зааварт туссан өдөр тутам, 7 хоног, сар, жилийн хөтлөлт.">
+        <Card title={t('fiveSRegisters.cadenceTitle')} subtitle={t('fiveSRegisters.cadenceSubtitle')}>
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {content.operatingCadence.map((item) => (
               <div key={item.title} className="grid gap-3 py-3 md:grid-cols-[180px_160px_1fr]">
@@ -368,7 +365,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
           </div>
         </Card>
 
-        <Card title="Labeling standards" subtitle="Хавтас, файл, шүүгээ, тавиурын хаягжуулалтын шаардлага.">
+        <Card title={t('fiveSRegisters.labelsTitle')} subtitle={t('fiveSRegisters.labelsSubtitle')}>
           <div className="space-y-3">
             {content.labelStandards.map((item, index) => (
               <div key={item} className="flex gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">
@@ -383,15 +380,15 @@ const FiveSGuidelineRegisters: React.FC = () => {
       </div>
 
       <Card
-        title="5S improvement register"
-        subtitle="Хавсралт дахь '5С Сайжруулалтын бүртгэл': алдагдал, суурь шалтгаан, багийн шийдэл, удирдлагын шийдвэр."
+        title={t('fiveSRegisters.improvementsTitle')}
+        subtitle={t('fiveSRegisters.improvementsSubtitle')}
         actions={
           <>
             <Button variant="outline" size="sm" icon={Download} onClick={exportImprovements} type="button">
               CSV
             </Button>
             <Button size="sm" icon={Plus} onClick={addImprovement} type="button">
-              Add row
+              {t('fiveSRegisters.addRow')}
             </Button>
           </>
         }
@@ -400,17 +397,17 @@ const FiveSGuidelineRegisters: React.FC = () => {
           <table className="min-w-[1280px] divide-y divide-gray-200 text-sm dark:divide-gray-700">
             <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500 dark:bg-gray-800">
               <tr>
-                <th className="px-3 py-3">Area / owner</th>
-                <th className="px-3 py-3">Date</th>
-                <th className="px-3 py-3">When</th>
-                <th className="px-3 py-3">Duration</th>
-                <th className="px-3 py-3">Symptom / loss</th>
-                <th className="px-3 py-3">Root cause</th>
-                <th className="px-3 py-3">Team decision</th>
-                <th className="px-3 py-3">Action plan</th>
-                <th className="px-3 py-3">Management</th>
-                <th className="px-3 py-3">Status</th>
-                <th className="px-3 py-3" aria-label="Actions" />
+                <th className="px-3 py-3">{t('fiveSRegisters.areaOwner')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.date')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.when')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.duration')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.symptomLoss')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.rootCause')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.teamDecision')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.actionPlan')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.management')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.status')}</th>
+                <th className="px-3 py-3" aria-label={t('fiveSRegisters.actions')} />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -418,8 +415,8 @@ const FiveSGuidelineRegisters: React.FC = () => {
                 <tr key={item.id}>
                   <td className="px-3 py-3 align-top">
                     <div className="space-y-2">
-                      <input className={fieldClass} value={item.area} placeholder="A01 - Reception" onChange={(event) => updateImprovement(item.id, { area: event.target.value })} />
-                      <input className={fieldClass} value={item.responsible} placeholder="Responsible owner" onChange={(event) => updateImprovement(item.id, { responsible: event.target.value })} />
+                      <input className={fieldClass} value={item.area} placeholder={t('fiveSRegisters.areaPlaceholder')} onChange={(event) => updateImprovement(item.id, { area: event.target.value })} />
+                      <input className={fieldClass} value={item.responsible} placeholder={t('fiveSRegisters.ownerPlaceholder')} onChange={(event) => updateImprovement(item.id, { responsible: event.target.value })} />
                     </div>
                   </td>
                   <td className="px-3 py-3 align-top">
@@ -448,9 +445,9 @@ const FiveSGuidelineRegisters: React.FC = () => {
                   </td>
                   <td className="px-3 py-3 align-top">
                     <select className={fieldClass} value={item.status} onChange={(event) => updateImprovement(item.id, { status: event.target.value as FiveSImprovementStatus })}>
-                      {improvementStatusOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
+                      {improvementStatuses.map((value) => (
+                        <option key={value} value={value}>
+                          {t(`fiveSRegisters.improvementStatus.${value}`)}
                         </option>
                       ))}
                     </select>
@@ -466,15 +463,15 @@ const FiveSGuidelineRegisters: React.FC = () => {
       </Card>
 
       <Card
-        title="1C / 2C / 3C implementation cards"
-        subtitle="Хэрэгцээгүй, гэмтэлтэй, илүүдэлтэй, удаан ашиглаагүй эд зүйлийг тэмдэглэж шийдвэрлэнэ."
+        title={t('fiveSRegisters.cardsTitle')}
+        subtitle={t('fiveSRegisters.cardsSubtitle')}
         actions={
           <>
             <Button variant="outline" size="sm" icon={Download} onClick={exportImplementationCards} type="button">
               CSV
             </Button>
             <Button size="sm" icon={Tag} onClick={addImplementationCard} type="button">
-              Add card
+              {t('fiveSRegisters.addCard')}
             </Button>
           </>
         }
@@ -483,16 +480,16 @@ const FiveSGuidelineRegisters: React.FC = () => {
           <table className="min-w-[1040px] divide-y divide-gray-200 text-sm dark:divide-gray-700">
             <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500 dark:bg-gray-800">
               <tr>
-                <th className="px-3 py-3">Tag</th>
-                <th className="px-3 py-3">No. / qty</th>
-                <th className="px-3 py-3">Item</th>
-                <th className="px-3 py-3">Reason</th>
-                <th className="px-3 py-3">Department</th>
-                <th className="px-3 py-3">Date</th>
-                <th className="px-3 py-3">Owner</th>
-                <th className="px-3 py-3">Decision</th>
-                <th className="px-3 py-3">Status</th>
-                <th className="px-3 py-3" aria-label="Actions" />
+                <th className="px-3 py-3">{t('fiveSRegisters.tag')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.numberQuantity')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.item')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.reason')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.department')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.date')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.owner')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.decision')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.status')}</th>
+                <th className="px-3 py-3" aria-label={t('fiveSRegisters.actions')} />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -507,8 +504,8 @@ const FiveSGuidelineRegisters: React.FC = () => {
                   </td>
                   <td className="px-3 py-3 align-top">
                     <div className="space-y-2">
-                      <input className={fieldClass} value={item.itemNumber} placeholder="No." onChange={(event) => updateImplementationCard(item.id, { itemNumber: event.target.value })} />
-                      <input className={fieldClass} value={item.quantity} placeholder="Qty" onChange={(event) => updateImplementationCard(item.id, { quantity: event.target.value })} />
+                      <input className={fieldClass} value={item.itemNumber} placeholder={t('fiveSRegisters.numberPlaceholder')} onChange={(event) => updateImplementationCard(item.id, { itemNumber: event.target.value })} />
+                      <input className={fieldClass} value={item.quantity} placeholder={t('fiveSRegisters.quantityPlaceholder')} onChange={(event) => updateImplementationCard(item.id, { quantity: event.target.value })} />
                     </div>
                   </td>
                   <td className="px-3 py-3 align-top">
@@ -516,9 +513,9 @@ const FiveSGuidelineRegisters: React.FC = () => {
                   </td>
                   <td className="px-3 py-3 align-top">
                     <select className={fieldClass} value={item.reason} onChange={(event) => updateImplementationCard(item.id, { reason: event.target.value as FiveSImplementationReason })}>
-                      {reasonOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
+                      {reasons.map((value) => (
+                        <option key={value} value={value}>
+                          {t(`fiveSRegisters.reasons.${value}`)}
                         </option>
                       ))}
                     </select>
@@ -537,9 +534,9 @@ const FiveSGuidelineRegisters: React.FC = () => {
                   </td>
                   <td className="px-3 py-3 align-top">
                     <select className={fieldClass} value={item.status} onChange={(event) => updateImplementationCard(item.id, { status: event.target.value as FiveSImplementationStatus })}>
-                      {implementationStatusOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
+                      {implementationStatuses.map((value) => (
+                        <option key={value} value={value}>
+                          {t(`fiveSRegisters.cardStatus.${value}`)}
                         </option>
                       ))}
                     </select>
@@ -555,8 +552,10 @@ const FiveSGuidelineRegisters: React.FC = () => {
       </Card>
 
       <Card
-        title="Organization baseline assessment"
-        subtitle="Хавсралт дахь байгууллагын одоогийн түвшний үнэлгээ. Нийт онооны зорилт: 170."
+        title={t('fiveSRegisters.assessmentTitle')}
+        // The maximum is the organization's own standard's, not a number
+        // written here: an edited standard has a different one.
+        subtitle={t('fiveSRegisters.assessmentSubtitle', { max: content.maxScore })}
         actions={
           <Button variant="outline" size="sm" icon={Download} onClick={exportAssessment} type="button">
             CSV
@@ -565,15 +564,15 @@ const FiveSGuidelineRegisters: React.FC = () => {
       >
         <div className="mb-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <div className="text-xs text-gray-500">Current score</div>
+            <div className="text-xs text-gray-500">{t('fiveSRegisters.currentScore')}</div>
             <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{assessmentTotal}/{content.maxScore}</div>
           </div>
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <div className="text-xs text-gray-500">Readiness</div>
+            <div className="text-xs text-gray-500">{t('fiveSRegisters.readiness')}</div>
             <div className="mt-1 text-2xl font-semibold text-blue-600 dark:text-blue-300">{assessmentPercent}%</div>
           </div>
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <div className="text-xs text-gray-500">Criteria</div>
+            <div className="text-xs text-gray-500">{t('fiveSRegisters.criteria')}</div>
             <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{content.assessmentCriteria.length}</div>
           </div>
         </div>
@@ -581,10 +580,10 @@ const FiveSGuidelineRegisters: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
             <thead className="sticky top-0 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500 dark:bg-gray-800">
               <tr>
-                <th className="px-3 py-3">Category</th>
-                <th className="px-3 py-3">Criterion</th>
-                <th className="px-3 py-3">Score</th>
-                <th className="px-3 py-3">Note</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.category')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.criterion')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.score')}</th>
+                <th className="px-3 py-3">{t('fiveSRegisters.note')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -615,8 +614,8 @@ const FiveSGuidelineRegisters: React.FC = () => {
       </Card>
 
       <Card
-        title="Public area setup checklist"
-        subtitle="Олон нийтийн ажлын байрны 5С шалгах хуудсыг audit биш, setup стандарт бүрдүүлэлтийн checklist хэлбэрээр хөтөлнө."
+        title={t('fiveSRegisters.checklistTitle')}
+        subtitle={t('fiveSRegisters.checklistSubtitle')}
         actions={
           <Button variant="outline" size="sm" icon={Download} onClick={exportChecklist} type="button">
             CSV
@@ -627,7 +626,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
               <ClipboardList className="h-4 w-4 text-blue-500" />
-              Setup standard completion
+              {t('fiveSRegisters.setupCompletion')}
             </div>
             <div className="text-sm font-semibold text-blue-600 dark:text-blue-300">
               {checklistDone}/{checklistItems.length} ({checklistPercent}%)
@@ -659,7 +658,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
                       <input
                         className={fieldClass}
                         value={progress?.note ?? ''}
-                        placeholder="Note"
+                        placeholder={t('fiveSRegisters.note')}
                         onChange={(event) => updateChecklistProgress(id, { note: event.target.value })}
                       />
                     </div>
@@ -671,14 +670,11 @@ const FiveSGuidelineRegisters: React.FC = () => {
         </div>
       </Card>
 
-      <Card title="Required records from guideline" subtitle="Зааварт дурдсан бүртгэл, баримт бичгийн холбоосыг 5S setup дээр сануулж харуулна.">
+      <Card title={t('fiveSRegisters.recordsTitle')} subtitle={t('fiveSRegisters.recordsSubtitle')}>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            ['5С-ийн үнэлгээний хуудас', 'Audit Templates хэсэгт оноо, checklist хэлбэрээр хөтөлнө.'],
-            ['5С-ийн аудитын бүртгэл', 'Audit process дээр хийсэн шалгалтын түүхээр бүртгэнэ.'],
-            ['5С сайжруулалтын бүртгэл', 'Энэ setup хуудсан дээр алдагдал, root cause, action plan-аар хөтөлнө.'],
-            ['5С мэдээллийн самбар', 'Baseline score, checklist progress, owner coverage-ийг самбарын мэдээлэл болгож ашиглана.'],
-          ].map(([title, detail]) => (
+          {(['assessmentSheet', 'auditLog', 'improvementLog', 'infoBoard'] as const)
+            .map((key) => [t(`fiveSRegisters.records.${key}.title`), t(`fiveSRegisters.records.${key}.detail`)])
+            .map(([title, detail]) => (
             <div key={title} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
               <div className="flex items-center gap-2 font-medium text-gray-900 dark:text-white">
                 <FileText className="h-4 w-4 text-blue-500" />
