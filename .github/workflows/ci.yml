@@ -32,6 +32,14 @@ jobs:
       - name: Lint
         run: npm run lint:check
 
+      # Every migration applied to a real PostgreSQL compiled to WebAssembly,
+      # then the schema checked against what the entities say. Schema drift is
+      # the one class of fault this repository has shipped twice — tables that
+      # existed in the entities and in nobody's database — and it cannot fail
+      # a unit test.
+      - name: Migrations
+        run: npm run migration:check
+
       - name: Build
         run: npm run build
 
