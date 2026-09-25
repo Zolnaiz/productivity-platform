@@ -88,6 +88,7 @@ For PostgreSQL-backed local smoke testing, see:
 
 - [Backend Dev Setup](docs/BACKEND_DEV_SETUP.md)
 - [Verification](docs/VERIFY.md)
+- [Deployment Run](docs/DEPLOYMENT_RUN.md) — the production stack brought up end to end, with the output of each step and the five things that were broken the first time anybody tried
 - [Backup And Restore](docs/POSTGRES_BACKUP_RESTORE.md) — the database and the attachment bytes, which do not travel together
 - [Architecture Decisions](docs/DECISIONS.md)
 - [UI Guidelines](docs/UI_GUIDELINES.md)
@@ -142,8 +143,15 @@ The production compose file includes PostgreSQL, the NestJS API, and a static ng
 Copy-Item .env.production.example .env.production
 notepad .env.production
 docker compose --env-file .env.production -f docker-compose.prod.yml config
-docker compose --env-file .env.production -f docker-compose.prod.yml up --build
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --wait
 ```
+
+`--wait` holds until every health check passes, so a container that starts and
+never becomes healthy fails the command instead of being found later.
+
+[Deployment Run](docs/DEPLOYMENT_RUN.md) walks the whole thing — settings, the
+seed, the smokes, the attachment check and a restore — with the output each step
+produces when it works.
 
 Optional production profiles:
 
