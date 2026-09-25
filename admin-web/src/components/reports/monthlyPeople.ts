@@ -55,6 +55,16 @@ export const summarisePeople = (records: {
   });
 
   // Both places people record hours; counting one reports half the month.
+  /*
+    A work log and a clock entry are the two places somebody records hours, and
+    writing the day's note now saves the measured time with it as one act. The
+    pair carries a link, and counting both records would double every hour
+    logged properly while leaving the sloppily logged ones alone.
+  */
+  const linkedWorkLogIds = new Set(
+    records.timeEntries.map((entry) => entry.workLogId).filter(Boolean) as string[],
+  );
+
   records.timeEntries.forEach((entry) => {
     const person = forUser(entry.userId);
     if (person) person.hours += hoursOf(entry);
@@ -64,7 +74,10 @@ export const summarisePeople = (records: {
     const person = forUser(log.userId);
     if (!person) return;
 
-    person.hours += hoursOf(log);
+    // An unlinked work log is still an hour somebody worked: every one written
+    // before the two were joined, and every one from a client that sends no
+    // time of its own.
+    if (!log.id || !linkedWorkLogIds.has(log.id)) person.hours += hoursOf(log);
     person.workLogs += 1;
   });
 

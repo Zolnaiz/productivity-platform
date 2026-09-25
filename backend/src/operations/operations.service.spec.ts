@@ -950,7 +950,11 @@ describe('OperationsService organization scoping', () => {
     expect(report.period).toBe('2026-06');
     expect(report.totals.tasks).toBe(1);
     expect(report.totals.workLogs).toBe(1);
-    expect(report.totals.totalHours).toBe(4);
+    // Six, not four: a work log and a clock entry are two places a person
+    // records hours, and counting only one of them reported half the month —
+    // which is what the per-person table in this same report has always said.
+    // A pair that is linked is still counted once; the test below holds that.
+    expect(report.totals.totalHours).toBe(6);
     expect(report.totals.auditRuns).toBe(1);
     expect(report.totals.assessmentResponses).toBe(1);
     expect(report.totals.approvedExpenseTotal).toBe(100);

@@ -41,6 +41,33 @@ describe('what each person did this month', () => {
     expect(people[0]).toMatchObject({ userId: 'u1', hours: 8, workLogs: 1 });
   });
 
+  it('counts a linked work log and its clock entry once, not twice', () => {
+    // Writing the day's note now saves the measured time with it, as one act.
+    // Counting both records would double every hour somebody logs properly and
+    // reward the people who do it badly.
+    const people = summarisePeople(
+      records({
+        workLogs: [{ id: 'log-1', userId: 'u1', hours: 4 }],
+        timeEntries: [{ userId: 'u1', hours: 4, workLogId: 'log-1' }],
+      }),
+    );
+
+    expect(people[0]).toMatchObject({ userId: 'u1', hours: 4, workLogs: 1 });
+  });
+
+  it('still counts a work log written without its own clock entry', () => {
+    // Every work log recorded before the two were linked, and every one
+    // written by a client that does not send the time.
+    const people = summarisePeople(
+      records({
+        workLogs: [{ id: 'log-1', userId: 'u1', hours: 4 }],
+        timeEntries: [{ userId: 'u1', hours: 3 }],
+      }),
+    );
+
+    expect(people[0].hours).toBe(7);
+  });
+
   it('reads hours that arrived as strings, which numeric columns do', () => {
     const people = summarisePeople(records({ timeEntries: [{ userId: 'u1', hours: '7.5' }] }));
 
