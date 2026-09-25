@@ -72,6 +72,9 @@ services:
       S3_ENDPOINT: ${S3_ENDPOINT:-}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      # Left empty, the server decides: path-style whenever S3_ENDPOINT is set,
+      # which is what MinIO needs. Set true or false only to overrule it.
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-}
       # Mail. `log` sends nothing, which is the default a plant with no relay
       # runs; the inbox inside the product still works either way.
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-log}
@@ -79,6 +82,9 @@ services:
       MAIL_FROM: ${MAIL_FROM:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
+      # Left empty, the server decides from the port: TLS from the first byte
+      # on 465, STARTTLS otherwise. Set true or false only to overrule it.
+      SMTP_SECURE: ${SMTP_SECURE:-}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       # The jobs that run without anybody pressing anything: 5S audits raised

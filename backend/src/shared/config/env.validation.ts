@@ -51,7 +51,9 @@ export const envValidationSchema = Joi.object({
   S3_ENDPOINT: Joi.string().allow('').default(''),
   // MinIO and Ceph address buckets by path. Defaults to on when an endpoint
   // is given, which is the only reason to give one.
-  S3_FORCE_PATH_STYLE: Joi.boolean().truthy('true').falsy('false'),
+  // Empty means unset, so the store's own default applies; compose passes
+  // an empty value through when the operator has not chosen.
+  S3_FORCE_PATH_STYLE: Joi.boolean().truthy('true').falsy('false').empty(''),
   // Left empty to use the SDK's own credential chain — an instance role or a
   // mounted credentials file — rather than writing a secret down twice.
   S3_ACCESS_KEY_ID: Joi.string().allow('').default(''),
@@ -78,7 +80,7 @@ export const envValidationSchema = Joi.object({
     then: Joi.string().required(),
   }),
   SMTP_PORT: Joi.number().default(587),
-  SMTP_SECURE: Joi.boolean().truthy('true').falsy('false'),
+  SMTP_SECURE: Joi.boolean().truthy('true').falsy('false').empty(''),
   SMTP_USER: Joi.string().allow('').default(''),
   SMTP_PASSWORD: Joi.string().allow('').default(''),
   // The daily job that raises 5S audits whose frequency has come round. On by
