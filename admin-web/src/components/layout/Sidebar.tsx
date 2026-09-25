@@ -28,6 +28,7 @@ import {
   Users,
   CalendarRange,
   Activity,
+  ClipboardList,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
@@ -60,6 +61,12 @@ const menuItems: MenuItem[] = [
     path: "/progress",
     group: "Work",
     roles: managerRoles,
+  },
+  {
+    icon: <ClipboardList className="h-5 w-5" />,
+    labelKey: "nav.monthPlan",
+    path: "/plan",
+    group: "Work",
   },
   {
     icon: <Briefcase className="h-5 w-5" />,
