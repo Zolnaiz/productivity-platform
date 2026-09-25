@@ -650,6 +650,17 @@ const en = {
     saved: 'Saved.',
     failed: 'That was not saved. Try again.',
   },
+  planVersions: {
+    title: 'What this plan looked like',
+    subtitle: 'One snapshot a day, kept before the first change of the day. An audit is only as readable as the drawing it was walked against.',
+    keepToday: 'Keep today',
+    empty: 'No snapshots yet.',
+    restore: 'Restore',
+    restoreDay: 'Restore the plan as it was on {{day}}',
+    restoreTitle: 'Put the plan back?',
+    restoreBody: 'The plan will go back to how it was on {{day}}. What it looks like now is kept first, so this can be undone.',
+    failed: 'That did not work. Try again.',
+  },
   fiveS: {
     toolRoute: 'Route',
     routeName: 'Route',

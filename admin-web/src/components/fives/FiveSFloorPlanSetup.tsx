@@ -45,6 +45,7 @@ import PhotoEvidence from '../common/PhotoEvidence';
 import ZoneHistory from './ZoneHistory';
 import AuditTiers from './AuditTiers';
 import AuditTierSettings from './AuditTierSettings';
+import FloorPlanVersions from './FloorPlanVersions';
 import HoldingArea from './HoldingArea';
 import FloorPlanStart from './FloorPlanStart';
 import { holdDatesFor } from './holdingRules';
@@ -354,6 +355,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const [users, setUsers] = useState<TeamUser[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   /**
+   * Bumped when the plan is replaced from outside this editor.
+   *
+   * Restoring an old version rewrites the drawing on the server; the editor
+   * holds the one it was drawing, and without this it would go on saving that
+   * over the restored one.
+   */
+  const [reloadSignal, setReloadSignal] = useState(0);
+  /**
    * 'plan' paints each zone the colour someone chose for it — right while
    * laying the map out. 'condition' paints it by its last audit score, which
    * is what a manager wants: one glance showing where to walk today.
@@ -443,7 +452,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     return () => {
       active = false;
     };
-  }, [refreshKey]);
+  }, [refreshKey, reloadSignal]);
 
   // Never leave a coalesced edit unsaved when the page is closed or the
   // component goes away.
@@ -5250,6 +5259,17 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 <AuditTierSettings
                   tiers={plan.auditTiers}
                   onChange={(auditTiers) => updatePlan((current) => ({ ...current, auditTiers }))}
+                />
+
+                {/*
+                  And what the plan looked like before today. A score three
+                  months old means nothing against a drawing that has changed
+                  since.
+                */}
+                <FloorPlanVersions
+                  planId={plan.id}
+                  editable
+                  onRestored={() => setReloadSignal((value) => value + 1)}
                 />
 
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">

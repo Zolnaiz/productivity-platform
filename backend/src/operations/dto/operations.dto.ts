@@ -714,6 +714,14 @@ export class SaveFiveSGuidelineContentDto extends OrganizationScopedDto {
   content: Record<string, unknown>;
 }
 
+/** A name for a snapshot — "before the racking moved". Optional. */
+export class KeepLayoutVersionDto extends OrganizationScopedDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  label?: string;
+}
+
 export class CreateDepartmentDto extends OrganizationScopedDto {
   @IsString()
   @MaxLength(120)

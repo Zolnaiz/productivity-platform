@@ -123,6 +123,21 @@ export interface PlanCorner {
   y: number;
 }
 
+/**
+ * What a plan looked like on a given day.
+ *
+ * Listed without the drawing itself: sixty floor plans is megabytes, and the
+ * list is read to choose one.
+ */
+export interface FiveSLayoutVersion {
+  id: string;
+  layoutId: string;
+  takenOn: string;
+  takenBy?: string;
+  label?: string;
+  createdAt?: string;
+}
+
 /** A position on the plan, in canvas units. */
 export interface PlanPoint {
   x: number;

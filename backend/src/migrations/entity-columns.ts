@@ -44,6 +44,7 @@ export const liveTables = [
   'notifications',
   'departments',
   'five_s_guidelines',
+  'five_s_layout_versions',
 ];
 
 /** Created by `BaseEntity`, so they come with the table rather than separately. */

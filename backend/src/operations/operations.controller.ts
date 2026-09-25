@@ -7,6 +7,7 @@ import {
   CreateAssessmentTemplateDto,
   CreateAuditRunDto,
   CreateDepartmentDto,
+  KeepLayoutVersionDto,
   SaveFiveSGuidelineContentDto,
   SaveFiveSGuidelineRecordsDto,
   UpdateDepartmentDto,
@@ -171,6 +172,33 @@ export class OperationsController {
   @RequirePermission('zones:update')
   updateFiveSLayoutById(@Param('id') id: string, @Body() body: UpsertFiveSLayoutDto, @Request() req) {
     return this.operationsService.upsertFiveSLayout(body, req.user, id);
+  }
+
+  /*
+    What the plan looked like on a given day. A score three months old means
+    nothing against a drawing that has changed since, and the plan is a living
+    document.
+  */
+  @Get('five-s-layouts/:id/versions')
+  @RequirePermission('zones:read')
+  findLayoutVersions(@Param('id') id: string, @Request() req) {
+    return this.operationsService.findLayoutVersions(id, req.user);
+  }
+
+  @Post('five-s-layouts/:id/versions')
+  @RequirePermission('zones:update')
+  keepLayoutVersion(@Param('id') id: string, @Body() body: KeepLayoutVersionDto, @Request() req) {
+    return this.operationsService.keepLayoutVersionNow(id, body.label, req.user);
+  }
+
+  @Post('five-s-layouts/:id/versions/:versionId/restore')
+  @RequirePermission('zones:update')
+  restoreLayoutVersion(
+    @Param('id') id: string,
+    @Param('versionId') versionId: string,
+    @Request() req,
+  ) {
+    return this.operationsService.restoreLayoutVersion(id, versionId, req.user);
   }
 
   @Delete('five-s-layouts/:id')

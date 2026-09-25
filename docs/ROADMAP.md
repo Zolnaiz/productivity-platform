@@ -86,8 +86,12 @@ could be built honestly.
   recalibration is worth the new number afterwards. What it cannot yet do is
   compare two of them — a before and after of the same job, which is the
   drawing that gets a layout changed.
-- **Floor plan versions.** An audit from March should still make sense against
-  the plan of March, not against the wall somebody moved in June.
+- **Floor plan versions are kept**: one snapshot a day, taken before the first
+  change of the day, listed by date and restorable — and restoring keeps what
+  was there first, so putting the plan back is itself undoable. What is still
+  missing is the link: an audit run does not record which version it was
+  walked against, so reading a March score still means choosing the March
+  drawing by hand.
 - **Layered audits are the organization's own.** Their names, rhythms and the
   role each expects are editable and stored — the field existed in the
   browser's types and had no column, so every plant ran on the built-in

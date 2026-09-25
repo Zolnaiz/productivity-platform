@@ -3,6 +3,7 @@ import { withSyncedRedTags } from '../components/fives/floorPlanRules';
 import { pruneOpenings } from '../components/fives/floorPlanOpenings';
 import { del, get, getStoredAccessToken, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
 import { readDemoPlans, replaceDemoPlan, writeDemoPlans } from './demoPlanStore';
+import { FiveSLayoutVersion } from '../types/fiveS.types';
 
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
 
@@ -726,6 +727,34 @@ export const fiveSLayoutService = {
         return { zoneId, lastCleanedAt };
       },
     ),
+
+  /**
+   * The days this plan was snapshotted, newest first.
+   *
+   * Demo mode has none: the snapshots are the server's, and inventing a
+   * history for a workspace that has none would be a picture of a feature
+   * rather than the feature.
+   */
+  getPlanVersions: (planId: string) =>
+    fallback<FiveSLayoutVersion[]>(
+      () => get<FiveSLayoutVersion[]>(`/five-s-layouts/${planId}/versions`),
+      () => [],
+    ),
+
+  keepPlanVersion: (planId: string, label?: string) =>
+    fallback<FiveSLayoutVersion | null>(
+      () => post<FiveSLayoutVersion | null>(`/five-s-layouts/${planId}/versions`, { label }),
+      () => null,
+    ),
+
+  restorePlanVersion: (planId: string, versionId: string) =>
+    fallback<FiveSLayoutPlan>(
+      async () =>
+        withOwnLayout(
+          await post<FiveSLayoutPlan>(`/five-s-layouts/${planId}/versions/${versionId}/restore`, {}),
+        ),
+      () => readPlan(planId),
+    ).then(normalizePlan),
 
   getPlan: (id?: string) =>
     fallback<FiveSLayoutPlan>(

@@ -15,6 +15,7 @@ import { DailyGoal } from './entities/daily-goal.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
 import { Department } from './entities/department.entity';
 import { FiveSGuideline } from './entities/five-s-guideline.entity';
+import { FiveSLayoutVersion } from './entities/five-s-layout-version.entity';
 import { defaultGuidelineContent } from './five-s-guideline-content';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { projectProgressPercent, summarisePeople } from './monthly-people';
@@ -61,6 +62,7 @@ export class OperationsService {
     @InjectRepository(FiveSLayout) private fiveSLayouts: Repository<FiveSLayout>,
     @InjectRepository(Department) private departments: Repository<Department>,
     @InjectRepository(FiveSGuideline) private guidelines: Repository<FiveSGuideline>,
+    @InjectRepository(FiveSLayoutVersion) private layoutVersions: Repository<FiveSLayoutVersion>,
     private readonly notifications: NotificationsService,
   ) {}
 
@@ -692,7 +694,18 @@ export class OperationsService {
     };
 
     if (existing) {
+      /*
+        The plan as it stood before this save, kept once a day. An audit from
+        March scored the building as it was in March; without this the score
+        is attached to a drawing that no longer exists, and nobody can tell
+        whether an area improved or was simply redrawn.
+
+        Before the change rather than after, so the day's snapshot is what the
+        plan looked like when the day's audits were walked.
+      */
+      await this.keepLayoutVersion(existing, user);
       Object.assign(existing, layoutPayload);
+
       return this.fiveSLayouts.save(existing);
     }
 
@@ -702,6 +715,114 @@ export class OperationsService {
         organizationId,
       }),
     );
+  }
+
+  /**
+   * Keeps one snapshot of a plan per day.
+   *
+   * The editor saves on a debounce, so a version per save would be thousands
+   * of copies of a drawing that changed by a pixel. A day is the grain at
+   * which somebody actually asks what this looked like.
+   *
+   * Never throws into the save: a plan that could not be snapshotted is still
+   * a plan somebody is drawing, and losing their work to keep a copy of it
+   * would be an odd way to protect it.
+   */
+  private async keepLayoutVersion(layout: FiveSLayout, user: CurrentUser, label?: string) {
+    const takenOn = new Date().toISOString().slice(0, 10);
+
+    try {
+      const already = await this.layoutVersions.findOne({
+        where: { layoutId: layout.id, takenOn },
+      });
+
+      if (already) {
+        // A name given later wins over silence: somebody labelling today's
+        // version means it, and the snapshot is the same either way.
+        if (label && !already.label) {
+          already.label = label;
+          await this.layoutVersions.save(already);
+        }
+
+        return already;
+      }
+
+      return await this.layoutVersions.save(
+        this.layoutVersions.create({
+          organizationId: layout.organizationId,
+          layoutId: layout.id,
+          takenOn,
+          takenBy: user?.id,
+          label,
+          // The whole plan, because the plan is one document and a version of
+          // half of it would answer nothing.
+          snapshot: { ...layout } as unknown as Record<string, unknown>,
+        }),
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  /** The days this plan was snapshotted, newest first. */
+  async findLayoutVersions(layoutId: string, user: CurrentUser) {
+    const layout = await this.findOneScoped(this.fiveSLayouts, layoutId, user, 'five-s-layout');
+
+    const versions = await this.layoutVersions.find({
+      where: { layoutId: layout.id },
+      order: { takenOn: 'DESC' },
+      take: 60,
+    });
+
+    // Without the snapshots themselves: a list of sixty floor plans is
+    // megabytes, and the list is read to choose one.
+    return versions.map(({ snapshot: _snapshot, ...version }) => version);
+  }
+
+  /** Takes a snapshot now, under a name somebody gives it. */
+  async keepLayoutVersionNow(layoutId: string, label: string | undefined, user: CurrentUser) {
+    const layout = await this.findOneScoped(this.fiveSLayouts, layoutId, user, 'five-s-layout');
+
+    return this.keepLayoutVersion(layout, user, label);
+  }
+
+  /**
+   * Puts a plan back the way it was on some day.
+   *
+   * The current plan is snapshotted first, so restoring is itself undoable —
+   * somebody restoring the wrong day must not lose the drawing they had.
+   */
+  async restoreLayoutVersion(layoutId: string, versionId: string, user: CurrentUser) {
+    const layout = await this.findOneScoped(this.fiveSLayouts, layoutId, user, 'five-s-layout');
+    const version = await this.layoutVersions.findOne({
+      where: { id: versionId, layoutId: layout.id },
+    });
+
+    if (!version) {
+      throw apiError(ErrorCode.ResourceNotFound, 'five-s-layout-version');
+    }
+
+    await this.keepLayoutVersion(layout, user);
+
+    const snapshot = version.snapshot as Partial<FiveSLayout>;
+
+    // Only the drawing. The row's own identity, its organization and when it
+    // was created are not somebody else's to restore.
+    layout.name = snapshot.name ?? layout.name;
+    layout.site = snapshot.site ?? layout.site;
+    layout.floor = snapshot.floor ?? layout.floor;
+    layout.scale = snapshot.scale ?? layout.scale;
+    layout.zones = snapshot.zones ?? [];
+    layout.objects = snapshot.objects ?? [];
+    layout.corners = snapshot.corners ?? [];
+    layout.walls = snapshot.walls ?? [];
+    layout.openings = snapshot.openings ?? [];
+    layout.roomLabels = snapshot.roomLabels ?? [];
+    layout.routes = snapshot.routes ?? [];
+    layout.auditTiers = snapshot.auditTiers ?? [];
+    layout.metresPerUnit = snapshot.metresPerUnit ?? layout.metresPerUnit;
+
+    return this.fiveSLayouts.save(layout);
   }
 
   findAuditTemplates(user: CurrentUser) {

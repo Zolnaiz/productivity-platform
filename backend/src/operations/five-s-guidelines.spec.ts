@@ -23,6 +23,7 @@ const createService = () => {
     fiveSLayouts: createRepository(),
     departments: createRepository(),
     guidelines: createRepository(),
+    layoutVersions: createRepository(),
   };
 
   const service = new OperationsService(
@@ -40,6 +41,7 @@ const createService = () => {
     repositories.fiveSLayouts as never,
     repositories.departments as never,
     repositories.guidelines as never,
+    repositories.layoutVersions as never,
     { notify: jest.fn(async () => null) } as never,
   );
 
