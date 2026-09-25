@@ -1392,6 +1392,7 @@ const en = {
     emptyDescription: 'Recognition badges for consistency, quality and audit completion will appear here.',
   },
   adminDashboard: {
+    noOwnerActivityHint: 'Report exports, permission changes and administrator actions appear here.',
     title: 'Admin Dashboard',
     subtitle: 'Workspace health: people, work in flight, audit quality and configuration.',
     users: 'Users',

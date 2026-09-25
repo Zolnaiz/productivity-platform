@@ -100,7 +100,7 @@ const AdminDashboardPage: React.FC = () => {
               <EmptyState
                 icon={ShieldCheck}
                 title={t('adminDashboard.noOwnerActivityTitle')}
-                description="Report exports, permission changes, and admin actions will appear here."
+                description={t('adminDashboard.noOwnerActivityHint')}
               />
             )}
           </div>
