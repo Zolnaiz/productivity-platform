@@ -1,212 +1,91 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/auth_provider.dart';
-import '../widgets/primary_button.dart';
-import '../widgets/input_field.dart';
-import '../widgets/loading_indicator.dart';
-import '../utils/validators.dart';
-import '../utils/constants.dart';
+import '../utils/phase_one_strings.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
-
+  const LoginScreen({super.key});
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _rememberMe = false;
-  bool _obscurePassword = true;
-
-  void _showUnavailable(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature is not available yet')),
-    );
-  }
+  final _email = TextEditingController();
+  final _password = TextEditingController();
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _email.dispose();
+    _password.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    final success = await authProvider.login(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
-
+    final auth = context.read<AuthProvider>();
+    final success = await auth.login(_email.text.trim(), _password.text);
     if (!mounted || success) return;
-
-    if (!success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.error ?? 'Login failed'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+    final strings = PhaseOneStrings(Localizations.localeOf(context));
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.error(auth.error ?? 'error.unknown'))));
   }
 
   @override
   Widget build(BuildContext context) {
+    final strings = PhaseOneStrings(Localizations.localeOf(context));
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppConstants.paddingLarge),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 40),
-              Center(
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  height: 100,
-                  width: 100,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const FlutterLogo(size: 100);
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Center(
-                child: Text(
-                  'Productivity Platform',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Center(
-                child: Text(
-                  'Sign in to your account',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    InputField(
-                      controller: _emailController,
-                      labelText: 'Email',
-                      hintText: 'Enter your email',
-                      prefixIcon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: Validators.validateEmail,
-                    ),
-                    const SizedBox(height: 16),
-                    InputField(
-                      controller: _passwordController,
-                      labelText: 'Password',
-                      hintText: 'Enter your password',
-                      prefixIcon: Icons.lock_outline,
-                      obscureText: _obscurePassword,
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      validator: Validators.validatePassword,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: _rememberMe,
-                          onChanged: (value) {
-                            setState(() {
-                              _rememberMe = value ?? false;
-                            });
-                          },
-                        ),
-                        const Text('Remember me'),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () {
-                            _showUnavailable('Password recovery');
-                          },
-                          child: const Text('Forgot password?'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Consumer<AuthProvider>(
-                      builder: (context, authProvider, child) {
-                        if (authProvider.isLoading) {
-                          return const LoadingIndicator();
-                        }
-                        return PrimaryButton(
-                          text: 'Sign In',
-                          onPressed: _handleLogin,
-                          fullWidth: true,
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+        body: SafeArea(
+            child: Center(
+                child: SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Form(
+            key: _formKey,
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text("Don't have an account?"),
-                  TextButton(
-                    onPressed: () {
-                      context.push('/register');
-                    },
-                    child: const Text('Sign Up'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const Divider(),
-              const SizedBox(height: 20),
-              PrimaryButton(
-                text: 'Continue with Google',
-                onPressed: () {
-                  // Implement Google sign-in
-                },
-                fullWidth: true,
-                backgroundColor: Colors.white,
-                textColor: Colors.black,
-                borderColor: Colors.grey.shade300,
-                icon: Image.asset(
-                  'assets/images/google.png',
-                  height: 24,
-                  width: 24,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.g_mobiledata);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+                  const Icon(Icons.work_outline, size: 64),
+                  const SizedBox(height: 16),
+                  Text(strings.text('tasks'),
+                      style: Theme.of(context).textTheme.headlineMedium,
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 32),
+                  TextFormField(
+                      controller: _email,
+                      keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.username],
+                      decoration:
+                          InputDecoration(labelText: strings.text('email')),
+                      validator: (value) => value != null && value.contains('@')
+                          ? null
+                          : strings.text('error.VALIDATION_FAILED')),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                      controller: _password,
+                      obscureText: true,
+                      autofillHints: const [AutofillHints.password],
+                      decoration:
+                          InputDecoration(labelText: strings.text('password')),
+                      validator: (value) => value != null && value.isNotEmpty
+                          ? null
+                          : strings.text('error.VALIDATION_FAILED'),
+                      onFieldSubmitted: (_) => _submit()),
+                  const SizedBox(height: 24),
+                  Consumer<AuthProvider>(
+                      builder: (context, auth, _) => FilledButton(
+                            onPressed: auth.isLoading ? null : _submit,
+                            child: auth.isLoading
+                                ? const SizedBox.square(
+                                    dimension: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
+                                : Text(strings.text('signIn')),
+                          )),
+                ]),
+          )),
+    ))));
   }
 }

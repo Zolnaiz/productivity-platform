@@ -7,42 +7,81 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
+abstract interface class TokenStore {
+  Future<String?> read(String key);
+  Future<void> write(String key, String value);
+  Future<void> delete(String key);
+}
+
+class _SecureTokenStore implements TokenStore {
+  const _SecureTokenStore();
+  @override
+  Future<String?> read(String key) =>
+      const FlutterSecureStorage().read(key: key);
+  @override
+  Future<void> write(String key, String value) =>
+      const FlutterSecureStorage().write(key: key, value: value);
+  @override
+  Future<void> delete(String key) =>
+      const FlutterSecureStorage().delete(key: key);
+}
+
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
+  ApiService.forTesting({required Dio client, required TokenStore tokenStore})
+      : _instanceOverride = true,
+        _tokenStore = tokenStore {
+    _dio = client;
+  }
+
   late Dio _dio;
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final TokenStore? _tokenStore;
+  final bool _instanceOverride;
+  TokenStore get _tokens => _tokenStore ?? const _SecureTokenStore();
   late SharedPreferences _prefs;
   final Connectivity _connectivity = Connectivity();
+  Future<bool>? _refreshInFlight;
 
-  String get baseUrl =>
-      dotenv.get('API_BASE_URL', fallback: 'http://10.0.2.2:3000/api');
+  String get baseUrl => const String.fromEnvironment('API_BASE_URL').isNotEmpty
+      ? const String.fromEnvironment('API_BASE_URL')
+      : dotenv.get('API_BASE_URL', fallback: 'http://10.0.2.2:3000/api');
 
   bool get isDebug => kDebugMode;
 
-  ApiService._internal();
+  ApiService._internal()
+      : _instanceOverride = false,
+        _tokenStore = null;
 
-  Future<void> initialize() async {
+  Future<String?> _readToken(String key) => _tokens.read(key);
+  Future<void> _writeToken(String key, String value) =>
+      _tokens.write(key, value);
+  Future<void> _deleteToken(String key) => _tokens.delete(key);
+
+  Future<void> initialize({Dio? client}) async {
     _prefs = await SharedPreferences.getInstance();
 
-    _dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-      sendTimeout: const Duration(seconds: 30),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-    ));
+    _dio = client ??
+        Dio(BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        ));
 
     // Add request interceptor
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         // Check internet connection
-        final connectivityResult = await _connectivity.checkConnectivity();
+        final connectivityResult = _instanceOverride
+            ? ConnectivityResult.wifi
+            : await _connectivity.checkConnectivity();
         if (connectivityResult == ConnectivityResult.none) {
           return handler.reject(DioException(
             requestOptions: options,
@@ -52,7 +91,10 @@ class ApiService {
         }
 
         // Add authorization token
-        final token = await _secureStorage.read(key: 'access_token');
+        final isPublicAuthCall = options.path.endsWith('/auth/login') ||
+            options.path.endsWith('/auth/refresh');
+        final token =
+            isPublicAuthCall ? null : await _readToken('access_token');
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
@@ -69,10 +111,6 @@ class ApiService {
 
         if (isDebug) {
           debugPrint('🌐 API Request: ${options.method} ${options.path}');
-          debugPrint('📦 Headers: ${options.headers}');
-          if (options.data != null) {
-            debugPrint('📝 Body: ${options.data}');
-          }
         }
 
         return handler.next(options);
@@ -81,7 +119,6 @@ class ApiService {
         if (isDebug) {
           debugPrint(
               '✅ API Response: ${response.statusCode} ${response.requestOptions.path}');
-          debugPrint('📦 Response Data: ${response.data}');
         }
 
         final responseData = response.data;
@@ -98,17 +135,24 @@ class ApiService {
         if (isDebug) {
           debugPrint(
               '❌ API Error: ${error.response?.statusCode} ${error.requestOptions.path}');
-          debugPrint('📦 Error Data: ${error.response?.data}');
-          debugPrint('📦 Error Message: ${error.message}');
+          final responseBody = error.response?.data;
+          final code = responseBody is Map ? responseBody['errorCode'] : null;
+          if (code is String) debugPrint('API error code: $code');
         }
 
         // Handle 401 Unauthorized (Token expired)
         if (error.response?.statusCode == 401) {
+          if (error.requestOptions.extra['retriedAfterRefresh'] == true ||
+              error.requestOptions.path.endsWith('/auth/login') ||
+              error.requestOptions.path.endsWith('/auth/refresh')) {
+            return handler.next(error);
+          }
           final refreshed = await _refreshToken();
           if (refreshed) {
             // Retry the original request
             final options = error.requestOptions;
-            final token = await _secureStorage.read(key: 'access_token');
+            options.extra['retriedAfterRefresh'] = true;
+            final token = await _readToken('access_token');
             options.headers['Authorization'] = 'Bearer $token';
 
             if (isDebug) {
@@ -139,14 +183,15 @@ class ApiService {
       },
     ));
 
-    // Add logging interceptor for debug
+    // Auth responses contain tokens and user data, so debug traces keep only
+    // request metadata rather than recording credentials or personal details.
     if (isDebug) {
       _dio.interceptors.add(LogInterceptor(
         request: true,
-        requestHeader: true,
-        requestBody: true,
-        responseHeader: true,
-        responseBody: true,
+        requestHeader: false,
+        requestBody: false,
+        responseHeader: false,
+        responseBody: false,
         error: true,
         logPrint: (object) => debugPrint(object.toString()),
       ));
@@ -154,17 +199,30 @@ class ApiService {
   }
 
   Future<String> _getDeviceId() async {
-    String? deviceId = await _secureStorage.read(key: 'device_id');
+    String? deviceId = await _readToken('device_id');
     if (deviceId == null) {
       deviceId = 'device_${DateTime.now().millisecondsSinceEpoch}';
-      await _secureStorage.write(key: 'device_id', value: deviceId);
+      await _writeToken('device_id', deviceId);
     }
     return deviceId;
   }
 
   Future<bool> _refreshToken() async {
+    final ongoingRefresh = _refreshInFlight;
+    if (ongoingRefresh != null) return ongoingRefresh;
+
+    final refresh = _performRefresh();
+    _refreshInFlight = refresh;
     try {
-      final refreshToken = await _secureStorage.read(key: 'refresh_token');
+      return await refresh;
+    } finally {
+      if (identical(_refreshInFlight, refresh)) _refreshInFlight = null;
+    }
+  }
+
+  Future<bool> _performRefresh() async {
+    try {
+      final refreshToken = await _readToken('refresh_token');
       if (refreshToken == null) {
         if (isDebug) debugPrint('❌ No refresh token available');
         return false;
@@ -172,23 +230,19 @@ class ApiService {
 
       if (isDebug) debugPrint('🔄 Refreshing access token');
 
-      final response = await _dio.post('/auth/refresh', data: {
-        'refresh_token': refreshToken,
-      });
+      final response = await _dio.post('/auth/refresh',
+          data: {
+            'refreshToken': refreshToken,
+          },
+          options: Options(headers: {'Authorization': null}));
 
       final newAccessToken = response.data['access_token'];
       final newRefreshToken = response.data['refresh_token'];
 
-      await _secureStorage.write(
-        key: 'access_token',
-        value: newAccessToken,
-      );
+      await _writeToken('access_token', newAccessToken as String);
 
       if (newRefreshToken != null) {
-        await _secureStorage.write(
-          key: 'refresh_token',
-          value: newRefreshToken,
-        );
+        await _writeToken('refresh_token', newRefreshToken as String);
       }
 
       if (isDebug) debugPrint('✅ Token refreshed successfully');
@@ -200,8 +254,8 @@ class ApiService {
   }
 
   Future<void> _clearAuth() async {
-    await _secureStorage.delete(key: 'access_token');
-    await _secureStorage.delete(key: 'refresh_token');
+    await _deleteToken('access_token');
+    await _deleteToken('refresh_token');
     await _prefs.remove('user');
 
     if (isDebug) debugPrint('🧹 Auth data cleared');
@@ -218,21 +272,14 @@ class ApiService {
 
       final data = response.data;
 
-      await _secureStorage.write(
-        key: 'access_token',
-        value: data['access_token'],
-      );
+      await _writeToken('access_token', data['access_token'] as String);
 
-      await _secureStorage.write(
-        key: 'refresh_token',
-        value: data['refresh_token'],
-      );
+      await _writeToken('refresh_token', data['refresh_token'] as String);
 
       await _prefs.setString('user', json.encode(data['user']));
 
       if (isDebug) {
-        debugPrint('✅ Login successful for: $email');
-        debugPrint('🔑 Access Token: ${data['access_token']?.substring(0, 20)}...');
+        debugPrint('✅ Login successful');
       }
 
       return data;
@@ -240,6 +287,17 @@ class ApiService {
       if (isDebug) debugPrint('❌ Login failed: $e');
       rethrow;
     }
+  }
+
+  Future<List<Map<String, dynamic>>> getTasks() async {
+    final response = await _dio.get('/tasks');
+    return (response.data as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> updateTask(
+      String id, Map<String, dynamic> changes) async {
+    final response = await _dio.patch('/tasks/$id', data: changes);
+    return (response.data as Map).cast<String, dynamic>();
   }
 
   Future<Map<String, dynamic>> register(
@@ -258,19 +316,13 @@ class ApiService {
 
       final data = response.data;
 
-      await _secureStorage.write(
-        key: 'access_token',
-        value: data['access_token'],
-      );
+      await _writeToken('access_token', data['access_token'] as String);
 
-      await _secureStorage.write(
-        key: 'refresh_token',
-        value: data['refresh_token'],
-      );
+      await _writeToken('refresh_token', data['refresh_token'] as String);
 
       await _prefs.setString('user', json.encode(data['user']));
 
-      if (isDebug) debugPrint('✅ Registration successful for: $email');
+      if (isDebug) debugPrint('✅ Registration successful');
 
       return data;
     } catch (e) {

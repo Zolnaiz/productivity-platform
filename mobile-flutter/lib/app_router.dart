@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'providers/auth_provider.dart';
-import 'screens/dashboard_screen.dart';
 import 'screens/expense_form_screen.dart';
 import 'screens/expense_list_screen.dart';
 import 'screens/login_screen.dart';
@@ -13,6 +12,7 @@ import 'screens/register_screen.dart';
 import 'screens/report_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
+import 'screens/tasks_screen.dart';
 
 class AppRouter {
   static GoRouter createRouter(AuthProvider? authProvider) {
@@ -36,7 +36,7 @@ class AppRouter {
         GoRoute(
           path: '/dashboard',
           builder: (BuildContext context, GoRouterState state) =>
-              const DashboardScreen(),
+              const TasksScreen(),
         ),
         GoRoute(
           path: '/questionnaires',

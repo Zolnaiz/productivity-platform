@@ -8,10 +8,11 @@ import '../models/user_model.dart';
 import '../services/api_service.dart';
 
 class AuthProvider with ChangeNotifier {
-  AuthProvider() {
+  AuthProvider({ApiService? apiService})
+      : _apiService = apiService ?? ApiService() {
     _prefsFuture.then(_loadUserFromStorage);
   }
-  final ApiService _apiService = ApiService();
+  final ApiService _apiService;
   final Future<SharedPreferences> _prefsFuture =
       SharedPreferences.getInstance();
 
@@ -42,7 +43,7 @@ class AuthProvider with ChangeNotifier {
         }
 
         _isAuthenticated = true;
-        debugPrint('User loaded from storage: ${_user?.email}');
+        debugPrint('User session restored from storage');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -60,7 +61,6 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      debugPrint('Attempting login for: $email');
       final result = await _apiService.login(email, password);
 
       _user = User.fromJson(result['user'] as Map<String, dynamic>);
@@ -73,14 +73,24 @@ class AuthProvider with ChangeNotifier {
 
       final prefs = await _prefsFuture;
       await prefs.setString('user', json.encode(result['user']));
-      debugPrint('Login successful for: ${_user?.email}');
+      debugPrint('Login session restored');
 
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
-      debugPrint('Login error: $_error');
+      try {
+        final dynamic failure = e;
+        final data = failure.response?.data;
+        _error = data is Map && data['errorCode'] is String
+            ? 'error.${data['errorCode']}'
+            : failure.response == null
+                ? 'error.offline'
+                : 'error.unknown';
+      } catch (_) {
+        _error = 'error.unknown';
+      }
+      debugPrint('Login failed');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -133,7 +143,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> logout() async {
     try {
-      debugPrint('Logging out user: ${_user?.email}');
+      debugPrint('Logging out');
       await _apiService.logout();
     } catch (e) {
       debugPrint('Logout error: $e');
@@ -151,6 +161,16 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<void> expireSession() async {
+    _user = null;
+    _organization = null;
+    _isAuthenticated = false;
+    _error = 'error.AUTH_SESSION_EXPIRED';
+    final prefs = await _prefsFuture;
+    await prefs.remove('user');
+    notifyListeners();
+  }
+
   Future<void> refreshUser() async {
     try {
       debugPrint('Refreshing user data');
@@ -165,7 +185,7 @@ class AuthProvider with ChangeNotifier {
 
       final prefs = await _prefsFuture;
       await prefs.setString('user', json.encode(userData));
-      debugPrint('User data refreshed: ${_user?.email}');
+      debugPrint('User data refreshed');
 
       notifyListeners();
     } catch (e) {
