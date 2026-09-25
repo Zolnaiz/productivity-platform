@@ -27,6 +27,21 @@ describe('peopleService', () => {
   });
 
   describe('against the API', () => {
+    it('gathers every page of members, not only the first twenty', async () => {
+      // The headcount stopped at twenty, and the reports could not name
+      // anybody past the twentieth.
+      const person = (id: string) => ({ id, firstName: id, email: `${id}@example.com`, role: 'user', isActive: true });
+      get.mockImplementation(async (_path: string, query: { page: number }) => ({
+        data: query.page === 1 ? [person('a'), person('b')] : [person('c')],
+        meta: { total: 3, page: query.page, limit: 100, totalPages: 2 },
+      }));
+
+      const members = await (await load()).getMembers();
+
+      expect(members.map((member) => member.id)).toEqual(['a', 'b', 'c']);
+      expect(get).toHaveBeenCalledWith('/users', expect.objectContaining({ page: 2, limit: 100 }));
+    });
+
     it('reads the page the users endpoint returns without unwrapping it twice', async () => {
       // `get` already strips the `{ success, data }` envelope, and the page
       // inside is itself `{ data, meta }`. Unwrapping again would silently

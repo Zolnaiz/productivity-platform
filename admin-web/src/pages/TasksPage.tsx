@@ -7,8 +7,11 @@ import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import Modal from '../components/common/Modal';
 import Select from '../components/common/Select';
+import { useAuth } from '../contexts/AuthContext';
 import { operationsService } from '../services/operations.service';
-import { WorkTask } from '../types/operations.types';
+import { peopleService } from '../services/people.service';
+import { Project, WorkTask } from '../types/operations.types';
+import { TeamUser, memberName } from '../types/people.types';
 
 const columns: Array<{ key: WorkTask['status']; labelKey: string }> = [
   { key: 'backlog', labelKey: 'tasks.status.backlog' },
@@ -18,17 +21,44 @@ const columns: Array<{ key: WorkTask['status']; labelKey: string }> = [
   { key: 'done', labelKey: 'tasks.status.done' },
 ];
 
+const priorities = ['low', 'medium', 'high'] as const;
+
+const emptyDraft = {
+  title: '',
+  description: '',
+  assigneeId: '',
+  projectId: '',
+  priority: 'medium',
+  dueDate: '',
+  estimatedHours: '1',
+};
+
+/** Everybody, nobody, or one person: what the board is showing. */
+type Filter = 'all' | 'unassigned' | string;
+
+/**
+ * The work, by stage, and who it is for.
+ *
+ * A task could be written here and given to nobody: the form had a title, a
+ * date and an estimate, and no way to say whose it was or which project it
+ * belonged to. Everything built on assignment — the plan, the progress board,
+ * the morning reminder, a person's month — had nothing to count unless the
+ * work came from a 5S finding.
+ */
 const TasksPage: React.FC = () => {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
+  // Giving work out is a manager's act; the server refuses it to anybody else,
+  // so the button and the choice of person are shown only where it would work.
+  const canAssign = hasPermission('tasks:create');
   const [tasks, setTasks] = useState<WorkTask[]>([]);
+  const [members, setMembers] = useState<TeamUser[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [filter, setFilter] = useState<Filter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [draft, setDraft] = useState({
-    title: '',
-    dueDate: '',
-    estimatedHours: '1',
-  });
+  const [draft, setDraft] = useState(emptyDraft);
 
   useEffect(() => {
     let active = true;
@@ -46,18 +76,50 @@ const TasksPage: React.FC = () => {
 
     loadTasks();
 
+    // Names and projects are the page's labels, not its substance; failing to
+    // load them leaves the board standing.
+    Promise.resolve()
+      .then(() => peopleService.getMembers())
+      .then((data) => {
+        if (active) setMembers((data ?? []).filter((member) => member.isActive !== false));
+      })
+      .catch(() => undefined);
+    Promise.resolve()
+      .then(() => operationsService.getProjects())
+      .then((data) => {
+        if (active) setProjects(data ?? []);
+      })
+      .catch(() => undefined);
+
     return () => {
       active = false;
     };
   }, []);
 
+  const nameOf = (userId?: string) => {
+    if (!userId) return null;
+    const member = members.find((candidate) => candidate.id === userId);
+
+    return member ? memberName(member) : userId;
+  };
+
+  const projectName = (projectId?: string) => projects.find((project) => project.id === projectId)?.name;
+
+  const visible = useMemo(
+    () =>
+      tasks.filter((task) =>
+        filter === 'all' ? true : filter === 'unassigned' ? !task.assigneeId : task.assigneeId === filter,
+      ),
+    [filter, tasks],
+  );
+
   const grouped = useMemo(
     () =>
       columns.map((column) => ({
         ...column,
-        tasks: tasks.filter((task) => task.status === column.key),
+        tasks: visible.filter((task) => task.status === column.key),
       })),
-    [tasks],
+    [visible],
   );
 
   const handleCreate = async (event: React.FormEvent) => {
@@ -65,35 +127,45 @@ const TasksPage: React.FC = () => {
     if (!draft.title.trim()) return;
     setError(null);
 
+    const localId = `local-${Date.now()}`;
     const optimistic: WorkTask = {
-      id: `local-${Date.now()}`,
-      title: draft.title,
+      id: localId,
+      title: draft.title.trim(),
+      description: draft.description.trim() || undefined,
       status: 'todo',
-      priority: 'medium',
-      dueDate: draft.dueDate,
+      priority: draft.priority,
+      assigneeId: draft.assigneeId || undefined,
+      projectId: draft.projectId || undefined,
+      dueDate: draft.dueDate || undefined,
       estimatedHours: Number(draft.estimatedHours || 0),
       actualHours: 0,
     };
 
     setTasks((current) => [optimistic, ...current]);
-    setDraft({ title: '', dueDate: '', estimatedHours: '1' });
+    setDraft(emptyDraft);
     setCreateOpen(false);
 
     try {
-      await operationsService.createTask(optimistic);
+      const saved = await operationsService.createTask(optimistic);
+      // The server's copy replaces the placeholder. Keeping the local id meant
+      // the next change to this task was sent for a task that did not exist.
+      setTasks((current) => current.map((item) => (item.id === localId ? { ...item, ...saved } : item)));
     } catch {
+      setTasks((current) => current.filter((item) => item.id !== localId));
       setError(t('tasks.saveFailed'));
     }
   };
 
-  const updateStatus = async (task: WorkTask, status: WorkTask['status']) => {
+  const updateTask = async (task: WorkTask, changes: Partial<WorkTask>, failureKey: string) => {
     setError(null);
-    setTasks((current) => current.map((item) => (item.id === task.id ? { ...item, status } : item)));
+    setTasks((current) => current.map((item) => (item.id === task.id ? { ...item, ...changes } : item)));
 
     try {
-      await operationsService.updateTask(task.id, { status });
+      const saved = await operationsService.updateTask(task.id, changes);
+      if (saved) setTasks((current) => current.map((item) => (item.id === task.id ? { ...item, ...saved } : item)));
     } catch {
-      setError(t('tasks.statusFailed'));
+      setTasks((current) => current.map((item) => (item.id === task.id ? task : item)));
+      setError(t(failureKey));
     }
   };
 
@@ -104,9 +176,30 @@ const TasksPage: React.FC = () => {
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('tasks.title')}</h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('tasks.subtitle')}</p>
         </div>
-        <Button icon={Plus} type="button" onClick={() => setCreateOpen(true)}>
-          {t('tasks.newTask')}
-        </Button>
+        <div className="flex flex-wrap items-end gap-3">
+          {canAssign && (
+            <div className="w-56">
+              <Select
+                label={t('tasks.showFor')}
+                value={filter}
+                onChange={(event) => setFilter(event.target.value)}
+              >
+                <option value="all">{t('tasks.everyone')}</option>
+                <option value="unassigned">{t('tasks.unassigned')}</option>
+                {members.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {memberName(member)}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+          {canAssign && (
+            <Button icon={Plus} type="button" onClick={() => setCreateOpen(true)}>
+              {t('tasks.newTask')}
+            </Button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -125,11 +218,53 @@ const TasksPage: React.FC = () => {
             required
           />
           <Input
-            label={t('tasks.dueDate')}
-            type="date"
-            value={draft.dueDate}
-            onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))}
+            label={t('tasks.description')}
+            value={draft.description}
+            onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
           />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Select
+              label={t('tasks.assignee')}
+              value={draft.assigneeId}
+              onChange={(event) => setDraft((current) => ({ ...current, assigneeId: event.target.value }))}
+            >
+              <option value="">{t('tasks.nobodyYet')}</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {memberName(member)}
+                </option>
+              ))}
+            </Select>
+            <Select
+              label={t('tasks.project')}
+              value={draft.projectId}
+              onChange={(event) => setDraft((current) => ({ ...current, projectId: event.target.value }))}
+            >
+              <option value="">{t('tasks.noProject')}</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </Select>
+            <Select
+              label={t('tasks.priority')}
+              value={draft.priority}
+              onChange={(event) => setDraft((current) => ({ ...current, priority: event.target.value }))}
+            >
+              {priorities.map((priority) => (
+                <option key={priority} value={priority}>
+                  {t(`tasks.priorities.${priority}`)}
+                </option>
+              ))}
+            </Select>
+            <Input
+              label={t('tasks.dueDate')}
+              type="date"
+              value={draft.dueDate}
+              onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))}
+            />
+          </div>
           <Input
             label={t('tasks.estimatedHours')}
             type="number"
@@ -154,9 +289,7 @@ const TasksPage: React.FC = () => {
       )}
       {!loading && tasks.length === 0 && (
         <Card>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {t('tasks.empty')}
-          </div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('tasks.empty')}</div>
         </Card>
       )}
 
@@ -164,40 +297,85 @@ const TasksPage: React.FC = () => {
         {grouped.map((column) => (
           <Card key={column.key} title={`${t(column.labelKey)} (${column.tasks.length})`}>
             <div className="space-y-3">
-              {column.tasks.map((task) => (
-                <div key={task.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div className="font-medium text-gray-900 dark:text-white">
-                    {raisedTitle(task, t)}
-                  </div>
-                  {/* Work raised by a finding says so, so nobody has to guess
-                      why a task they did not write appeared in their column. */}
-                  {task.sourceType && (
-                    <div className="mt-1 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-                      {t(`tasks.source.${task.sourceType}`)}
-                    </div>
-                  )}
-                  <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-                    <span>{task.priority}</span>
-                    <span>{task.dueDate || '-'}</span>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500">
-                    {task.actualHours || 0}h / {task.estimatedHours || 0}h
-                  </div>
-                  <Select
-                    className="mt-3"
-                    fieldSize="sm"
-                    aria-label={t('tasks.statusFor', { title: raisedTitle(task, t) })}
-                    value={task.status}
-                    onChange={(event) => updateStatus(task, event.target.value as WorkTask['status'])}
+              {column.tasks.map((task) => {
+                const owner = nameOf(task.assigneeId);
+                const project = projectName(task.projectId);
+
+                return (
+                  <div
+                    key={task.id}
+                    data-testid="task-card"
+                    className="rounded-lg border border-gray-200 p-3 dark:border-gray-700"
                   >
-                    {columns.map((option) => (
-                      <option key={option.key} value={option.key}>
-                        {t(option.labelKey)}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              ))}
+                    <div className="font-medium text-gray-900 dark:text-white">{raisedTitle(task, t)}</div>
+                    {/* Work raised by a finding says so, so nobody has to guess
+                        why a task they did not write appeared in their column. */}
+                    {task.sourceType && (
+                      <div className="mt-1 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                        {t(`tasks.source.${task.sourceType}`)}
+                      </div>
+                    )}
+                    {project && <div className="mt-1 truncate text-xs text-blue-700 dark:text-blue-300">{project}</div>}
+                    <div className="mt-2 text-xs">
+                      {owner ? (
+                        <span className="text-gray-700 dark:text-gray-300">{owner}</span>
+                      ) : (
+                        <span className="font-medium text-amber-700 dark:text-amber-300">{t('tasks.unassigned')}</span>
+                      )}
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
+                      <span>
+                        {priorities.includes(task.priority as (typeof priorities)[number])
+                          ? t(`tasks.priorities.${task.priority}`)
+                          : task.priority}
+                      </span>
+                      <span>{task.dueDate || '-'}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      {t('tasks.hoursOf', { actual: task.actualHours || 0, estimated: task.estimatedHours || 0 })}
+                    </div>
+                    {canAssign && (
+                      <Select
+                        className="mt-3"
+                        fieldSize="sm"
+                        aria-label={t('tasks.assigneeFor', { title: raisedTitle(task, t) })}
+                        value={task.assigneeId ?? ''}
+                        onChange={(event) =>
+                          // null, not undefined: an absent field changes nothing on the
+                          // server, so taking the work off somebody needs an explicit null.
+                          updateTask(
+                            task,
+                            { assigneeId: (event.target.value || null) as string | undefined },
+                            'tasks.assignFailed',
+                          )
+                        }
+                      >
+                        <option value="">{t('tasks.nobodyYet')}</option>
+                        {members.map((member) => (
+                          <option key={member.id} value={member.id}>
+                            {memberName(member)}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                    <Select
+                      className="mt-2"
+                      fieldSize="sm"
+                      aria-label={t('tasks.statusFor', { title: raisedTitle(task, t) })}
+                      value={task.status}
+                      onChange={(event) =>
+                        updateTask(task, { status: event.target.value as WorkTask['status'] }, 'tasks.statusFailed')
+                      }
+                    >
+                      {columns.map((option) => (
+                        <option key={option.key} value={option.key}>
+                          {t(option.labelKey)}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                );
+              })}
             </div>
           </Card>
         ))}

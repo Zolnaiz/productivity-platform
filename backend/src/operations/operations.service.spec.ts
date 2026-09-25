@@ -38,6 +38,13 @@ const createService = (allowPublicOperations = false) => {
     departments: createRepository(),
     guidelines: createRepository(),
     layoutVersions: createRepository(),
+    // The people work can be given to: one colleague in org-1 unless a test
+    // says otherwise.
+    users: {
+      findOne: jest.fn(async ({ where }: { where: { id: string; organizationId: string } }) =>
+        where.organizationId === 'org-1' && ['u1', 'u2', 'u3'].includes(where.id) ? { id: where.id } : null,
+      ),
+    },
   };
 
   const notifications = { notify: jest.fn(async () => null) };
@@ -61,6 +68,7 @@ const createService = (allowPublicOperations = false) => {
     // Raising work now tells whoever it was given to; the spy is what lets a
     // test say who was told.
     notifications as any,
+    repositories.users as any,
   );
 
   return { service, repositories, notifications };
@@ -373,6 +381,68 @@ describe('OperationsService organization scoping', () => {
       );
 
       expect(task).toMatchObject({ id: 'task-1' });
+    });
+  });
+
+  describe('giving work to somebody', () => {
+    it('refuses a person from another organization', async () => {
+      // They would otherwise be told, and emailed, the task's title.
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue(undefined);
+
+      await expect(
+        service.createTask({ title: 'Secret plans', assigneeId: 'stranger' } as never, { id: 'm1', organizationId: 'org-1' }),
+      ).rejects.toBeDefined();
+      expect(repositories.tasks.save).not.toHaveBeenCalled();
+    });
+
+    it('still raises the scheduler’s work when the person it names cannot be found', async () => {
+      // A zone owner who has left; refusing would drop the audit entirely.
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue(undefined);
+      repositories.tasks.create.mockImplementation((value: any) => value);
+
+      await service.createTask({ title: 'Tier 1 5S audit due: A01', assigneeId: 'gone' } as never, { organizationId: 'org-1' });
+
+      expect(repositories.tasks.save).toHaveBeenCalledWith(expect.objectContaining({ assigneeId: undefined }));
+    });
+
+    it('refuses to hand an existing task to somebody outside the organization', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({ id: 't1', organizationId: 'org-1', status: 'todo', assigneeId: 'u1' });
+
+      await expect(
+        service.updateTask('t1', { assigneeId: 'stranger' } as never, { id: 'm1', role: 'manager', organizationId: 'org-1' }),
+      ).rejects.toBeDefined();
+    });
+
+    it('tells the new person when work changes hands', async () => {
+      const { service, repositories, notifications } = createService();
+      repositories.tasks.findOne.mockResolvedValue({ id: 't1', organizationId: 'org-1', title: 'Clear the aisle', status: 'todo', assigneeId: 'u1' });
+      repositories.tasks.save.mockImplementation(async (value: any) => value);
+
+      await service.updateTask('t1', { assigneeId: 'u2' } as never, { id: 'm1', role: 'manager', organizationId: 'org-1' });
+
+      expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u2', sourceId: 't1' }));
+    });
+
+    it('does not announce the work again when only something else changed', async () => {
+      const { service, repositories, notifications } = createService();
+      repositories.tasks.findOne.mockResolvedValue({ id: 't1', organizationId: 'org-1', title: 'Clear the aisle', status: 'todo', assigneeId: 'u1' });
+      repositories.tasks.save.mockImplementation(async (value: any) => value);
+
+      await service.updateTask('t1', { dueDate: '2026-10-01' } as never, { id: 'm1', role: 'manager', organizationId: 'org-1' });
+
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
+    it('can take work off somebody', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({ id: 't1', organizationId: 'org-1', status: 'todo', assigneeId: 'u1' });
+
+      await service.updateTask('t1', { assigneeId: null } as never, { id: 'm1', role: 'manager', organizationId: 'org-1' });
+
+      expect(repositories.tasks.save).toHaveBeenCalledWith(expect.objectContaining({ assigneeId: null }));
     });
   });
 

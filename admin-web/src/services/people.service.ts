@@ -185,7 +185,29 @@ export const peopleService = {
       { data: readDemo(), meta: { total: readDemo().length, page: 1, limit: 20, totalPages: 1 } },
     ),
 
-  getMembers: async (query: MemberQuery = {}) => (await peopleService.listMembers(query)).data,
+  /**
+   * Everybody who matches, across every page.
+   *
+   * The API pages its answer, twenty to a page unless asked otherwise, and
+   * this used to return the first page only - so in an organization of more
+   * than twenty the headcount stopped at twenty, and the reports, the board
+   * and the plan could not name anybody past the twentieth. A caller that
+   * asks for a particular page still gets just that page.
+   */
+  getMembers: async (query: MemberQuery = {}) => {
+    if (query.page) return (await peopleService.listMembers(query)).data;
+
+    const limit = 100;
+    const first = await peopleService.listMembers({ ...query, page: 1, limit });
+    const pages = Math.min(first.meta?.totalPages ?? 1, 50);
+    const rest = await Promise.all(
+      Array.from({ length: Math.max(0, pages - 1) }, (_, index) =>
+        peopleService.listMembers({ ...query, page: index + 2, limit }),
+      ),
+    );
+
+    return [...first.data, ...rest.flatMap((page) => page.data)];
+  },
 
   /**
    * Edits a member.

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
@@ -16,6 +16,7 @@ import { FiveSLayout } from './entities/five-s-layout.entity';
 import { Department } from './entities/department.entity';
 import { FiveSGuideline } from './entities/five-s-guideline.entity';
 import { FiveSLayoutVersion } from './entities/five-s-layout-version.entity';
+import { User } from '../users/entities/user.entity';
 import { defaultGuidelineContent } from './five-s-guideline-content';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { projectProgressPercent, sumRecordedHours } from './monthly-people';
@@ -67,7 +68,32 @@ export class OperationsService {
     @InjectRepository(FiveSGuideline) private guidelines: Repository<FiveSGuideline>,
     @InjectRepository(FiveSLayoutVersion) private layoutVersions: Repository<FiveSLayoutVersion>,
     private readonly notifications: NotificationsService,
+    /*
+      Read-only, to check that the person work is given to belongs to the
+      same organization. Optional so the hand-built service in the specs can
+      leave it out; the application always has it.
+    */
+    @Optional() @InjectRepository(User) private readonly users?: Repository<User>,
   ) {}
+
+  /**
+   * Refuses to give work to somebody outside the organization.
+   *
+   * The id arrives from the client. Without this a manager could hand a task
+   * to a person in another workspace, who would then be told — and emailed —
+   * its title: a leak across the one boundary this application promises.
+   */
+  private async isAssignable(assigneeId: string | null | undefined, organizationId: string | undefined) {
+    if (!assigneeId || !organizationId || !this.users) return true;
+
+    return Boolean(await this.users.findOne({ where: { id: assigneeId, organizationId } }));
+  }
+
+  private async assertAssignable(assigneeId: string | null | undefined, organizationId: string | undefined) {
+    if (!(await this.isAssignable(assigneeId, organizationId))) {
+      throw apiError(ErrorCode.ValidationFailed, 'assigneeId');
+    }
+  }
 
   /**
    * The organization's departments, in the order a person reads a list.
@@ -239,6 +265,18 @@ export class OperationsService {
       return existing;
     }
 
+    /*
+      A person asking is told no. The scheduler, which calls with no person,
+      may name a zone owner whose account is gone or has moved on; refusing
+      would drop the audit entirely, so the work is raised with nobody on it
+      and shows up on the board as needing somebody.
+    */
+    if (user?.id) {
+      await this.assertAssignable(payload.assigneeId, organizationId);
+    } else if (!(await this.isAssignable(payload.assigneeId, organizationId))) {
+      payload = { ...payload, assigneeId: undefined };
+    }
+
     const task = this.tasks.create({
       ...withoutCompletionDate(payload),
       organizationId,
@@ -336,11 +374,21 @@ export class OperationsService {
       }
     }
     const statusBefore = task.status;
+    const assigneeBefore = task.assigneeId;
+    if ('assigneeId' in payload) {
+      await this.assertAssignable(payload.assigneeId, task.organizationId);
+    }
     this.assignWithoutOrganizationChange(task, withoutCompletionDate(payload));
     stampCompletion(task, statusBefore);
 
     const saved = await this.tasks.save(task);
     await this.closeFindingForCompletedTask(saved, user);
+
+    // Work handed to somebody new reaches them the way new work does. Told
+    // only when it changed hands, so editing a task does not re-announce it.
+    if (saved.assigneeId && saved.assigneeId !== assigneeBefore) {
+      await this.tellTheAssignee(saved, user);
+    }
 
     return saved;
   }
