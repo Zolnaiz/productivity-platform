@@ -46,6 +46,13 @@ npm run start:prod
 npm run smoke:api
 ```
 
+The smoke test reads every page's first request and fails on any 5xx, and
+checks no user record carries a password or reset token. On a throwaway
+database, `SMOKE_WRITES=true npm run smoke:api` also saves one of everything
+people save - a task, a day's work log, a clock entry, a goal, an expense, a
+department, an audit run, a plan version, a closed month - which is what CI's
+live job runs. Never set it against a live system: it leaves records behind.
+
 Or run the PowerShell helper from the repository root:
 
 ```powershell
@@ -73,19 +80,10 @@ docker compose --env-file .env.production.example -f docker-compose.prod.yml --p
 
 ## Current Local Baseline
 
-As of the latest local verification:
-
-- Backend unit tests: 63 passing
-- Frontend tests: 53 passing
-- Backend lint/build: passing
-- Frontend lint/build: passing
-- Backend dependency audit: 0 vulnerabilities
-- Frontend dependency audit: 0 vulnerabilities
-- Production compose default/cache/backup/monitoring config: passing with `.env.production.example`
-- Docker PostgreSQL runtime smoke: passing
-- Runtime auth migration, operations migration, seed, health, auth-required, seeded owner login, smoke-token projects, login-token summary, and project create/update/delete checks: passing
-- Playwright browser smoke: seeded owner login and Projects page load passing
-- Mobile verification hook: ready, blocked until Flutter CLI is available on PATH
+The current figures live in one place, the README's *Current Verification
+Status*, so this page and that one cannot disagree. This page used to carry
+its own list, and it had fallen to 63 backend tests and "Flutter not
+available" while the README had moved on.
 
 Backend metrics can be checked at:
 
