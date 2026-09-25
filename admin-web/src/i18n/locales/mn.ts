@@ -1093,6 +1093,7 @@ const mn: Translations<typeof en> = {
     open: 'Нээх',
     kind: {
       task_assigned: 'Танд ажил оноогдлоо',
+      daily_digest: 'Өнөөдөр дуусах болон хоцорсон ажил',
     },
     title: 'Мэдэгдэл',
     subtitle: 'Анхаарал шаардсан ажил, батлалт, чанарын арга хэмжээ.',

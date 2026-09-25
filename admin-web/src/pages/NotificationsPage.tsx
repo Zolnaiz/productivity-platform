@@ -128,7 +128,8 @@ const NotificationsPage: React.FC = () => {
                     {raisedTitle(item, t)}
                   </span>
                 </div>
-                <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {/* Line breaks kept: the morning reminder lists one task a line. */}
+                <div className="mt-1 whitespace-pre-line text-sm text-gray-500 dark:text-gray-400">
                   {item.body || t(`notifications.kind.${item.kind}`)}
                 </div>
               </div>

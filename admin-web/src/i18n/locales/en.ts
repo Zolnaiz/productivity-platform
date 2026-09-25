@@ -1105,6 +1105,7 @@ const en = {
     open: 'Open',
     kind: {
       task_assigned: 'A task was assigned to you',
+      daily_digest: 'Your work due today and already late',
     },
     title: 'Notifications',
     subtitle: 'Open work items, approvals and quality actions that need attention.',
