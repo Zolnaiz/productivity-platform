@@ -376,6 +376,60 @@ describe('OperationsService organization scoping', () => {
     });
   });
 
+  describe('when a task was finished', () => {
+    it('is stamped by the server when the task is moved to done', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({ id: 't1', organizationId: 'org-1', status: 'review' });
+
+      await service.updateTask('t1', { status: 'done' } as never, { id: 'u1', organizationId: 'org-1' });
+
+      expect(repositories.tasks.save).toHaveBeenCalledWith(expect.objectContaining({ completedAt: expect.any(Date) }));
+    });
+
+    it('cannot be backdated by the person finishing it', async () => {
+      // A month's figures are only as honest as the dates under them.
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({ id: 't1', organizationId: 'org-1', status: 'review' });
+
+      await service.updateTask('t1', { status: 'done', completedAt: '2026-01-01' } as never, {
+        id: 'u1',
+        organizationId: 'org-1',
+      });
+
+      const saved = repositories.tasks.save.mock.calls[0][0];
+      expect(saved.completedAt).toBeInstanceOf(Date);
+      expect(saved.completedAt.toISOString().slice(0, 7)).not.toBe('2026-01');
+    });
+
+    it('is cleared when the task is reopened', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({
+        id: 't1',
+        organizationId: 'org-1',
+        status: 'done',
+        completedAt: new Date('2026-03-02'),
+      });
+
+      await service.updateTask('t1', { status: 'in_progress' } as never, { id: 'u1', organizationId: 'org-1' });
+
+      expect(repositories.tasks.save).toHaveBeenCalledWith(expect.objectContaining({ completedAt: null }));
+    });
+
+    it('is stamped on a task that is created already done', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue(undefined);
+      repositories.tasks.create.mockImplementation((value: any) => ({ id: 't1', ...value }));
+      repositories.tasks.save.mockImplementation(async (value: any) => value);
+
+      const task = await service.createTask(
+        { title: 'Recorded after the fact', status: 'done', completedAt: '2020-01-01' } as never,
+        { id: 'u1', organizationId: 'org-1' },
+      );
+
+      expect((task as { completedAt: Date }).completedAt).toBeInstanceOf(Date);
+    });
+  });
+
   describe('the monthly report', () => {
     const month = '2026-09';
 

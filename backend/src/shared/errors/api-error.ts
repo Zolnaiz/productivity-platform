@@ -38,6 +38,7 @@ export const ErrorCode = {
   UnsupportedFileType: 'UNSUPPORTED_FILE_TYPE',
   FileTooLarge: 'FILE_TOO_LARGE',
   MetricsDisabled: 'METRICS_DISABLED',
+  ReportMonthNotEnded: 'REPORT_MONTH_NOT_ENDED',
   InternalError: 'INTERNAL_ERROR',
 } as const;
 
@@ -127,6 +128,10 @@ const definitions: Record<ErrorCode, ErrorDefinition> = {
   [ErrorCode.MetricsDisabled]: {
     exception: NotFoundException,
     message: 'Metrics endpoint is disabled',
+  },
+  [ErrorCode.ReportMonthNotEnded]: {
+    exception: ConflictException,
+    message: 'A month can be closed only after it has ended',
   },
   [ErrorCode.InternalError]: {
     exception: InternalServerErrorException,

@@ -115,6 +115,9 @@ const manager = [
   // somebody else's pending invitation stays with administrators.
   'invitations:read',
   'invitations:create',
+  // Signing off a month that has ended. It freezes the report as it stands,
+  // which is a line manager's call about their own month.
+  'reports:close',
 ];
 
 const admin = [
@@ -137,6 +140,9 @@ const admin = [
   'users:update',
   'users:delete',
   'invitations:delete',
+  // Unfreezing a month changes a report people may already have been shown,
+  // so it sits a level above closing one.
+  'reports:reopen',
 ];
 
 const organizationAdmin = [...admin, 'organization:update', 'auditlog:read'];

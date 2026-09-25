@@ -18,9 +18,11 @@ import { FiveSGuideline } from './entities/five-s-guideline.entity';
 import { FiveSLayoutVersion } from './entities/five-s-layout-version.entity';
 import { defaultGuidelineContent } from './five-s-guideline-content';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
-import { projectProgressPercent, summarisePeople, sumRecordedHours } from './monthly-people';
+import { projectProgressPercent, sumRecordedHours } from './monthly-people';
+import { buildMonthlyReport, MonthRecords, selectMonthRecords } from './monthly-report';
 import { NotificationsService } from './notifications.service';
 import { noteAuditBefore } from '../audit/audit-context';
+import { stampCompletion, withoutCompletionDate } from './task-completion';
 
 type CurrentUser = {
   id?: string;
@@ -238,10 +240,11 @@ export class OperationsService {
     }
 
     const task = this.tasks.create({
-      ...payload,
+      ...withoutCompletionDate(payload),
       organizationId,
       reporterId: payload.reporterId || user?.id,
     });
+    stampCompletion(task, undefined);
 
     try {
       const saved = await this.tasks.save(task);
@@ -332,7 +335,9 @@ export class OperationsService {
         throw apiError(ErrorCode.AccessDenied);
       }
     }
-    this.assignWithoutOrganizationChange(task, payload);
+    const statusBefore = task.status;
+    this.assignWithoutOrganizationChange(task, withoutCompletionDate(payload));
+    stampCompletion(task, statusBefore);
 
     const saved = await this.tasks.save(task);
     await this.closeFindingForCompletedTask(saved, user);
@@ -1244,6 +1249,21 @@ export class OperationsService {
   }
 
   async monthlyReport(user: CurrentUser, month?: string) {
+    const reportMonth = this.resolveReportMonth(month);
+    const records = await this.monthRecords(user, reportMonth);
+
+    // Employees can inspect their own monthly results. Managers and
+    // administrators retain the team view for review and planning.
+    return buildMonthlyReport(records, reportMonth, { id: user?.id, ownOnly: user?.role === 'user' });
+  }
+
+  /**
+   * One month of the organization's records, for everybody in it.
+   *
+   * What a closed month stores, so it is always the whole team's: whose view
+   * it is decides only how the records are read back.
+   */
+  async monthRecords(user: CurrentUser, month: string): Promise<MonthRecords> {
     const organization = this.organizationWhere(user);
     const [projects, tasks, workLogs, timeEntries, auditRuns, assessmentResponses, expenses, dailyGoals] = await Promise.all([
       this.projects.find({ where: organization }),
@@ -1256,131 +1276,14 @@ export class OperationsService {
       this.dailyGoals.find({ where: organization }),
     ]);
 
-    // Employees can inspect their own monthly results. Managers and
-    // administrators retain the team view for review and planning.
-    const ownOnly = user?.role === 'user';
-    const reportMonth = this.resolveReportMonth(month);
-    const monthlyTasks = tasks.filter(
-      (task) =>
-        (!ownOnly || task.assigneeId === user?.id) &&
-        this.isInMonth(task.dueDate || task.createdAt, reportMonth),
+    return selectMonthRecords(
+      { projects, tasks, workLogs, timeEntries, auditRuns, assessmentResponses, expenses, dailyGoals },
+      month,
     );
-    const monthlyWorkLogs = workLogs.filter(
-      (log) => (!ownOnly || log.userId === user?.id) && this.isInMonth(log.logDate || log.createdAt, reportMonth),
-    );
-    const monthlyTimeEntries = timeEntries.filter(
-      (entry) =>
-        (!ownOnly || entry.userId === user?.id) &&
-        this.isInMonth(entry.workDate || entry.createdAt, reportMonth),
-    );
-    const monthlyAuditRuns = auditRuns.filter(
-      (run) => (!ownOnly || run.auditorId === user?.id) && this.isInMonth(run.createdAt, reportMonth),
-    );
-    const monthlyAssessmentResponses = assessmentResponses.filter(
-      (response) =>
-        (!ownOnly || response.respondentId === user?.id) &&
-        this.isInMonth(response.submittedAt || response.createdAt, reportMonth),
-    );
-    const monthlyExpenses = expenses.filter(
-      (expense) =>
-        (!ownOnly || expense.submittedBy === user?.id) &&
-        this.isInMonth(expense.expenseDate || expense.createdAt, reportMonth),
-    );
-    const monthlyDailyGoals = dailyGoals.filter(
-      (goal) => (!ownOnly || goal.userId === user?.id) && this.isInMonth(goal.date || goal.createdAt, reportMonth),
-    );
-    const visibleProjects = projects.filter(
-      (project) =>
-        !ownOnly ||
-        project.ownerId === user?.id ||
-        monthlyTasks.some((task) => task.projectId === project.id),
-    );
-    const progressTasks = ownOnly ? monthlyTasks : tasks;
-
-    const completedTasks = monthlyTasks.filter((task) => task.status === 'done');
-    const completedDailyGoals = monthlyDailyGoals.filter((goal) => goal.completed);
-    const totalHours = sumRecordedHours(monthlyWorkLogs, monthlyTimeEntries);
-    const completionRate = monthlyTasks.length ? Math.round((completedTasks.length / monthlyTasks.length) * 100) : 0;
-    const dailyGoalCompletionRate = monthlyDailyGoals.length
-      ? Math.round((completedDailyGoals.length / monthlyDailyGoals.length) * 100)
-      : 0;
-    // Counted from the tasks, the same rule the projects page and the
-    // dashboard use: `project.progress` is a figure somebody set with a slider.
-    const averageProjectProgress = visibleProjects.length
-      ? Math.round(
-          visibleProjects.reduce((sum, project) => sum + projectProgressPercent(project, progressTasks), 0) /
-            visibleProjects.length,
-        )
-      : 0;
-    const averageAssessmentScore = monthlyAssessmentResponses.length
-      ? Math.round(
-          monthlyAssessmentResponses.reduce((sum, response) => sum + Number(response.score || 0), 0) /
-            monthlyAssessmentResponses.length,
-        )
-      : 0;
-    const approvedExpenseTotal = monthlyExpenses
-      .filter((expense) => expense.status === 'approved')
-      .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-    const pendingExpenseTotal = monthlyExpenses
-      .filter((expense) => expense.status === 'submitted')
-      .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-
-    // Group organization-scoped records into per-person rows. A user's own
-    // goals API remains personal; the manager's monthly summary includes them.
-    const people = summarisePeople({
-      tasks: monthlyTasks,
-      workLogs: monthlyWorkLogs,
-      timeEntries: monthlyTimeEntries,
-      dailyGoals: monthlyDailyGoals,
-      auditRuns: monthlyAuditRuns,
-      assessmentResponses: monthlyAssessmentResponses,
-    });
-
-    return {
-      period: reportMonth,
-      people,
-      totals: {
-        projects: visibleProjects.length,
-        tasks: monthlyTasks.length,
-        completedTasks: completedTasks.length,
-        workLogs: monthlyWorkLogs.length,
-        totalHours,
-        auditRuns: monthlyAuditRuns.length,
-        assessmentResponses: monthlyAssessmentResponses.length,
-        expenses: monthlyExpenses.length,
-        dailyGoals: monthlyDailyGoals.length,
-        completedDailyGoals: completedDailyGoals.length,
-        approvedExpenseTotal,
-        pendingExpenseTotal,
-      },
-      kpis: {
-        completionRate,
-        dailyGoalCompletionRate,
-        averageProjectProgress,
-        averageAssessmentScore,
-      },
-      completedTasks,
-      workLogs: monthlyWorkLogs,
-      timeEntries: monthlyTimeEntries,
-      projects: visibleProjects,
-      dailyGoals: monthlyDailyGoals,
-      assessmentResponses: monthlyAssessmentResponses,
-      expenses: monthlyExpenses,
-    };
   }
 
-  private resolveReportMonth(month?: string) {
+  resolveReportMonth(month?: string) {
     return month && /^\d{4}-\d{2}$/.test(month) ? month : new Date().toISOString().slice(0, 7);
-  }
-
-  private isInMonth(value: Date | string | undefined, month: string) {
-    if (!value) return false;
-
-    if (value instanceof Date) {
-      return value.toISOString().slice(0, 7) === month;
-    }
-
-    return String(value).slice(0, 7) === month;
   }
 
   private organizationWhere(user: CurrentUser) {

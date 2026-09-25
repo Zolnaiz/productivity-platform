@@ -44,14 +44,6 @@ describe('OperationsController payload normalization', () => {
     );
   });
 
-  it('passes monthly report query period to the service', () => {
-    const { controller, service, req } = createController();
-
-    controller.monthlyReport(req, '2026-06');
-
-    expect(service.monthlyReport).toHaveBeenCalledWith(req.user, '2026-06');
-  });
-
   it('passes project delete requests to the service with current user scope', () => {
     const { controller, service, req } = createController();
 

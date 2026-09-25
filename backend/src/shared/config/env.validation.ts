@@ -85,6 +85,9 @@ export const envValidationSchema = Joi.object({
   // default: a zone declaring a weekly audit should get one without anyone
   // remembering to press a button.
   ENABLE_AUDIT_SCHEDULER: Joi.boolean().truthy('true').falsy('false').default(true),
+  // The daily job that closes last month's report on the fifth, so the
+  // archive fills itself. On by default for the same reason.
+  ENABLE_MONTH_CLOSE: Joi.boolean().truthy('true').falsy('false').default(true),
   JWT_SECRET: Joi.string().when('NODE_ENV', {
     is: 'production',
     then: Joi.string()

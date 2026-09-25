@@ -45,6 +45,7 @@ export const liveTables = [
   'departments',
   'five_s_guidelines',
   'five_s_layout_versions',
+  'monthly_report_closes',
 ];
 
 /** Created by `BaseEntity`, so they come with the table rather than separately. */

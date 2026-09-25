@@ -4,6 +4,7 @@ import { allPermissions, permissionsFor } from '../shared/roles';
 import { UserRole } from '../shared/constants';
 import { AttachmentsController } from './attachments.controller';
 import { OperationsController } from './operations.controller';
+import { ReportsController } from './reports.controller';
 
 /**
  * Every route says what it needs, and needs something that exists.
@@ -14,7 +15,7 @@ import { OperationsController } from './operations.controller';
  * everybody — both are silent. This walks the controllers and checks each
  * against the table rather than trusting that the decorators were remembered.
  */
-const controllers = [OperationsController, AttachmentsController];
+const controllers = [OperationsController, AttachmentsController, ReportsController];
 
 const handlersOf = (controller: (typeof controllers)[number]) =>
   Object.getOwnPropertyNames(controller.prototype)

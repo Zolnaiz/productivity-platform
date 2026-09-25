@@ -59,12 +59,6 @@ export class OperationsController {
     return this.operationsService.dashboardSummary(req.user);
   }
 
-  @Get('operations/monthly-report')
-  @RequirePermission('reports:read')
-  monthlyReport(@Request() req, @Query('month') month?: string) {
-    return this.operationsService.monthlyReport(req.user, month);
-  }
-
   @Get('projects')
   @RequirePermission('projects:read')
   findProjects(@Request() req) {

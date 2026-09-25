@@ -16,6 +16,10 @@ import { FiveSLayout } from './entities/five-s-layout.entity';
 import { Department } from './entities/department.entity';
 import { FiveSGuideline } from './entities/five-s-guideline.entity';
 import { FiveSLayoutVersion } from './entities/five-s-layout-version.entity';
+import { MonthlyReportClose } from './entities/monthly-report-close.entity';
+import { Organization } from '../organizations/entities/organization.entity';
+import { ReportsController } from './reports.controller';
+import { ReportArchiveService } from './report-archive.service';
 import { User } from '../users/entities/user.entity';
 import { Attachment } from './entities/attachment.entity';
 import { OperationsController } from './operations.controller';
@@ -54,13 +58,16 @@ import { NotificationsService } from './notifications.service';
       Department,
       FiveSGuideline,
       FiveSLayoutVersion,
+      MonthlyReportClose,
       // Read-only here, for the address a notification is emailed to.
       User,
+      // Read-only, for the scheduled close to know whose months to close.
+      Organization,
       Attachment,
       Notification,
     ]),
   ],
-  controllers: [OperationsController, AttachmentsController, NotificationsController],
+  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController],
   providers: [
     OperationsService,
     AttachmentsService,
@@ -76,6 +83,7 @@ import { NotificationsService } from './notifications.service';
       inject: [ConfigService],
     },
     AuditSchedulerService,
+    ReportArchiveService,
     NotificationsService,
     OperationsAuthGuard,
     PermissionsGuard,

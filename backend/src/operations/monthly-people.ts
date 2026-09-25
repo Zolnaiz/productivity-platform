@@ -12,7 +12,11 @@
  */
 
 export interface PersonRecords {
-  tasks: Array<{ assigneeId?: string; status?: string }>;
+  /**
+   * `finishedInPeriod` says whether the task was finished within the period,
+   * which is not the same as being done now. Without it, status today decides.
+   */
+  tasks: Array<{ assigneeId?: string; status?: string; finishedInPeriod?: boolean }>;
   workLogs: Array<{ id?: string; userId?: string; hours?: number | string }>;
   timeEntries: Array<{ userId?: string; hours?: number | string; workLogId?: string }>;
   dailyGoals?: Array<{ userId?: string; completed?: boolean }>;
@@ -95,7 +99,7 @@ export const summarisePeople = (records: PersonRecords): PersonMonth[] => {
     if (!person) return;
 
     person.assignedTasks += 1;
-    if (task.status === 'done') person.completedTasks += 1;
+    if (task.finishedInPeriod ?? task.status === 'done') person.completedTasks += 1;
   });
 
   // The time entry measures a linked work log; count that duration once.

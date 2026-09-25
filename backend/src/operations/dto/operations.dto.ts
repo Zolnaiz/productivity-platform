@@ -13,6 +13,7 @@ import {
   IsString,
   IsUUID,
   Max,
+  Matches,
   MaxLength,
   Min,
   ValidateNested,
@@ -916,3 +917,9 @@ export class CreateExpenseDto extends OrganizationScopedDto {
 }
 
 export class UpdateExpenseDto extends PartialType(CreateExpenseDto) {}
+
+/** The month to close, as YYYY-MM. */
+export class CloseMonthDto {
+  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
+  month: string;
+}

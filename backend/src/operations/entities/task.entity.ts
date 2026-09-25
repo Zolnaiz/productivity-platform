@@ -94,4 +94,16 @@ export class WorkTask extends BaseEntity {
 
   @Column({ type: 'numeric', precision: 8, scale: 2, default: 0, name: 'actual_hours' })
   actualHours: number;
+
+  /**
+   * When the task was moved to done, and nothing when it is not done.
+   *
+   * Without it the only thing a report could say about a finished task was
+   * its status today, so a March report read in May counted the work finished
+   * in April as March's, and a task reopened in May quietly vanished from
+   * March. Set by the server on the transition, never by the caller: a
+   * completion date anybody could type is not evidence of anything.
+   */
+  @Column({ type: 'timestamptz', name: 'completed_at', nullable: true })
+  completedAt?: Date | null;
 }
