@@ -204,7 +204,7 @@ const ExpensesPage: React.FC = () => {
               header: t('expenses.status'),
               render: (expense) => (
                 <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClasses[expense.status]}`}>
-                  {expense.status}
+                  {t(`actions.status.${expense.status}`, { defaultValue: expense.status })}
                 </span>
               ),
             },

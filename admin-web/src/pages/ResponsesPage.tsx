@@ -386,7 +386,7 @@ const ResponsesPage: React.FC = () => {
                 header: t("responses.status"),
                 render: (response) => (
                   <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClasses[response.status]}`}>
-                    {response.status}
+                    {t(`actions.status.${response.status}`, { defaultValue: response.status })}
                   </span>
                 ),
               },

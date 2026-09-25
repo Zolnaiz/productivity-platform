@@ -746,7 +746,7 @@ const MonthlyReportPage: React.FC = () => {
                       </span>
                     </div>
                     <p className="mt-2 text-sm text-gray-500">
-                      {response.department} - {response.status}
+                      {response.department} - {t(`actions.status.${response.status}`, { defaultValue: response.status })}
                     </p>
                   </div>
                 ))}
@@ -773,7 +773,7 @@ const MonthlyReportPage: React.FC = () => {
                       <span className="font-medium text-gray-900 dark:text-white">{expense.title}</span>
                       <span>{formatMnt(expense.amount)}</span>
                     </div>
-                    <div className="mt-1 text-xs text-gray-500">{expense.status}</div>
+                    <div className="mt-1 text-xs text-gray-500">{t(`actions.status.${expense.status}`, { defaultValue: expense.status })}</div>
                   </div>
                 ))}
               </div>

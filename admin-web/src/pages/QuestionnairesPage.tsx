@@ -441,7 +441,7 @@ const QuestionnairesPage: React.FC = () => {
                   {preset.title}
                 </div>
                 <div className="mt-1 text-xs text-gray-500">
-                  {preset.industry} - {preset.questions.length} questions
+                  {preset.industry} - {t("actions.questionsCount", { count: preset.questions.length })}
                 </div>
               </button>
             ))}
@@ -470,12 +470,12 @@ const QuestionnairesPage: React.FC = () => {
                     </p>
                   </div>
                   <span className="w-fit rounded-full bg-gray-100 px-2 py-1 text-xs font-medium capitalize text-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                    {template.status}
+                    {t(`actions.status.${template.status}`, { defaultValue: template.status })}
                   </span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
                   <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-                    {template.type}
+                    {t(`assessments.${template.type}`, { defaultValue: template.type })}
                   </span>
                   <span className="rounded-full bg-gray-50 px-2 py-1 text-gray-600 dark:bg-gray-900 dark:text-gray-300">
                     {template.industry}

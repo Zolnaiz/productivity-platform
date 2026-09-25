@@ -4,14 +4,20 @@ import { CalendarDays } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
+import { raisedTitle } from '../components/common/raisedText';
 import { operationsService } from '../services/operations.service';
 
+/** A dated item, as keys and parts; the English is the fallback. */
 interface CalendarEvent {
   id: string;
   date: string;
-  type: string;
+  type: 'project' | 'task' | 'audit';
   title: string;
+  titleKey?: string;
+  titleParams?: Record<string, string | number>;
   description: string;
+  descriptionKey?: string;
+  descriptionParams?: Record<string, string | number>;
   path: string;
 }
 
@@ -53,13 +59,17 @@ const CalendarPage: React.FC = () => {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-                            {event.type}
+                            {t(`actions.type.${event.type}`)}
                           </span>
-                          <div className="mt-2 font-medium text-gray-900 dark:text-white">{event.title}</div>
-                          <div className="mt-1 text-sm text-gray-500">{event.description}</div>
+                          <div className="mt-2 font-medium text-gray-900 dark:text-white">{raisedTitle(event, t)}</div>
+                          <div className="mt-1 text-sm text-gray-500">
+                            {event.descriptionKey
+                              ? t(event.descriptionKey, { ...(event.descriptionParams ?? {}), defaultValue: event.description })
+                              : event.description}
+                          </div>
                         </div>
                         <Link className="text-sm font-medium text-blue-600 hover:text-blue-500" to={event.path}>
-                          Open
+                          {t('notifications.open')}
                         </Link>
                       </div>
                     </div>

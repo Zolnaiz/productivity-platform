@@ -114,14 +114,14 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         ...projects.map((project) => ({
           id: `project-${project.id}`,
           title: project.name,
-          subtitle: `${project.status} - ${project.progress}% complete`,
+          subtitle: `${t(`actions.status.${project.status}`, { defaultValue: project.status })} - ${t('actions.percentComplete', { percent: project.progress })}`,
           path: '/projects',
           type: t('search.typeProject'),
         })),
         ...tasks.map((task) => ({
           id: `task-${task.id}`,
           title: task.title,
-          subtitle: `${task.status} - ${task.priority}`,
+          subtitle: `${t(`actions.status.${task.status}`, { defaultValue: task.status })} - ${t(`tasks.priorities.${task.priority}`, { defaultValue: task.priority })}`,
           path: '/tasks',
           type: t('search.typeTask'),
         })),
@@ -135,14 +135,14 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         ...responses.map((response) => ({
           id: `response-${response.id}`,
           title: response.respondent,
-          subtitle: `${response.department} - ${response.score}% - ${response.status}`,
+          subtitle: `${response.department} - ${response.score}% - ${t(`actions.status.${response.status}`, { defaultValue: response.status })}`,
           path: '/responses',
           type: t('search.typeResponse'),
         })),
         ...expenses.map((expense) => ({
           id: `expense-${expense.id}`,
           title: expense.title,
-          subtitle: `${expense.category} - ${expense.status}`,
+          subtitle: `${expense.category} - ${t(`actions.status.${expense.status}`, { defaultValue: expense.status })}`,
           path: '/expenses',
           type: t('search.typeExpense'),
         })),

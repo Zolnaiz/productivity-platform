@@ -16,6 +16,7 @@ import { DailyGoal } from '../types/productivity.types';
 import { summarisePeople } from '../components/reports/monthlyPeople';
 import { completionAfter, completionMonth, doneByEndOf, plannedMonth } from '../components/reports/taskCompletion';
 import { combineMonths, monthsBetween } from '../components/reports/periodReport';
+import { localDay } from '../components/progress/progressBoard';
 
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
 type DemoKey = 'projects' | 'tasks' | 'workLogs' | 'timeEntries' | 'auditTemplates' | 'auditRuns' | 'goals';
@@ -919,30 +920,43 @@ export const operationsService = {
         .filter((project) => project.dueDate)
         .map((project) => ({
           id: `project-${project.id}`,
-          date: project.dueDate as string,
-          type: 'project',
+          date: (project.dueDate as string).slice(0, 10),
+          type: 'project' as const,
           title: project.name,
           description: `${project.progress}% complete`,
+          descriptionKey: 'actions.percentComplete',
+          descriptionParams: { percent: project.progress },
           path: '/projects',
         })),
       ...tasks
         .filter((task) => task.dueDate)
         .map((task) => ({
           id: `task-${task.id}`,
-          date: task.dueDate as string,
-          type: 'task',
+          date: (task.dueDate as string).slice(0, 10),
+          type: 'task' as const,
           title: task.title,
+          titleKey: task.titleKey,
+          titleParams: task.titleParams,
           description: task.status,
+          descriptionKey: `actions.status.${task.status}`,
           path: '/tasks',
         })),
-      ...auditRuns.map((run) => ({
-        id: `audit-${run.id}`,
-        date: new Date().toISOString().slice(0, 10),
-        type: 'audit',
-        title: run.location || 'Audit run',
-        description: `${run.score}% score`,
-        path: '/fives',
-      })),
+      // On the day it was walked. Every audit used to land on today, so the
+      // calendar showed the whole history of audits as happening now.
+      ...auditRuns.map((run) => {
+        const walked = (run as { createdAt?: string }).createdAt;
+        return {
+          id: `audit-${run.id}`,
+          date: walked ? localDay(new Date(walked)) : localDay(new Date()),
+          type: 'audit' as const,
+          title: run.location || 'Audit run',
+          titleKey: run.location ? undefined : 'actions.auditRun',
+          description: `${run.score}% score`,
+          descriptionKey: 'actions.percentScore',
+          descriptionParams: { score: run.score },
+          path: '/fives',
+        };
+      }),
     ].sort((a, b) => a.date.localeCompare(b.date));
   },
 };

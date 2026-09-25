@@ -402,3 +402,27 @@ describe('submitting an audit updates the zone, in demo mode', () => {
     expect(zone().lastAuditScore).toBeUndefined();
   });
 });
+
+describe('the calendar', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    localStorage.clear();
+    localStorage.setItem('token', 'demo-token');
+  });
+
+  it('puts an audit on the day it was walked, not on today', async () => {
+    // Every audit used to land on today, so the calendar showed the whole
+    // history of audits as happening now.
+    localStorage.setItem(
+      'productivity-demo-auditRuns',
+      JSON.stringify([{ id: 'r1', templateId: 't1', location: 'Paint store', score: 72, status: 'submitted', createdAt: '2026-03-10T03:00:00.000Z' }]),
+    );
+    const { operationsService } = await import('./operations.service');
+
+    const events = await operationsService.getCalendarEvents();
+    const audit = events.find((event) => event.id === 'audit-r1');
+
+    expect(audit?.date).toBe('2026-03-10');
+    expect(audit).toMatchObject({ descriptionKey: 'actions.percentScore', descriptionParams: { score: 72 } });
+  });
+});
