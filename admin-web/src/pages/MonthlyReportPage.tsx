@@ -22,9 +22,19 @@ const formatMnt = (value: number) =>
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
+/**
+ * The month named in the address, so a link from the half-year report or the
+ * archive opens that month rather than this one.
+ */
+const monthFromAddress = () => {
+  const asked = new URLSearchParams(window.location.search).get('month');
+
+  return asked && /^\d{4}-(0[1-9]|1[0-2])$/.test(asked) ? asked : null;
+};
+
 const MonthlyReportPage: React.FC = () => {
   const { t } = useTranslation();
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth());
+  const [selectedMonth, setSelectedMonth] = useState(() => monthFromAddress() ?? currentMonth());
   const [report, setReport] = useState<OperationsMonthlyReport | null>(null);
   /**
    * The people the report is about.

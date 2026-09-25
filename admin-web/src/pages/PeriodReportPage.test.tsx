@@ -1,6 +1,14 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import PeriodReportPage from './PeriodReportPage';
+
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <PeriodReportPage />
+    </MemoryRouter>,
+  );
 
 const mocks = vi.hoisted(() => ({
   getPeriodReport: vi.fn(),
@@ -47,7 +55,7 @@ describe('the half-year and the year', () => {
   it('opens on the half that has just finished', async () => {
     mocks.getPeriodReport.mockResolvedValue(period([month('2026-01', true, 3)]));
 
-    render(<PeriodReportPage />);
+    renderPage();
 
     await waitFor(() => expect(mocks.getPeriodReport).toHaveBeenCalledWith('2026-01', '2026-06'));
   });
@@ -55,7 +63,7 @@ describe('the half-year and the year', () => {
   it('asks for the whole year when the year is chosen', async () => {
     mocks.getPeriodReport.mockResolvedValue(period([month('2026-01', true, 3)]));
 
-    render(<PeriodReportPage />);
+    renderPage();
     fireEvent.change(await screen.findByLabelText('Period'), { target: { value: 'year' } });
 
     await waitFor(() => expect(mocks.getPeriodReport).toHaveBeenCalledWith('2026-01', '2026-12'));
@@ -65,7 +73,7 @@ describe('the half-year and the year', () => {
     // A figure quoted in an annual report has to be one that stays.
     mocks.getPeriodReport.mockResolvedValue(period([month('2026-01', true, 3), month('2026-02', false, 4)]));
 
-    render(<PeriodReportPage />);
+    renderPage();
 
     const status = await screen.findByTestId('period-close-status');
     expect(status.textContent).toContain('1 of 2 months closed');
@@ -75,7 +83,7 @@ describe('the half-year and the year', () => {
   it('says so plainly when every month is closed', async () => {
     mocks.getPeriodReport.mockResolvedValue(period([month('2026-01', true, 3), month('2026-02', true, 4)]));
 
-    render(<PeriodReportPage />);
+    renderPage();
 
     expect((await screen.findByTestId('period-close-status')).textContent).toContain('no longer change');
   });
@@ -83,7 +91,7 @@ describe('the half-year and the year', () => {
   it('shows each month and each person', async () => {
     mocks.getPeriodReport.mockResolvedValue(period([month('2026-01', true, 3), month('2026-02', false, 4)]));
 
-    render(<PeriodReportPage />);
+    renderPage();
 
     expect(await screen.findAllByTestId('period-month-row')).toHaveLength(2);
     const person = (await screen.findByText('Bat Erdene')).closest('tr');
@@ -94,8 +102,17 @@ describe('the half-year and the year', () => {
   it('says in words when the period cannot be loaded', async () => {
     mocks.getPeriodReport.mockRejectedValue(new Error('offline'));
 
-    render(<PeriodReportPage />);
+    renderPage();
 
     expect(await screen.findByText('The period report could not be loaded.')).toBeTruthy();
+  });
+
+  it('opens each month’s own report from its row', async () => {
+    mocks.getPeriodReport.mockResolvedValue(period([month('2026-01', true, 3)]));
+
+    renderPage();
+
+    const link = await screen.findByRole('link', { name: '2026-01' });
+    expect(link.getAttribute('href')).toBe('/reports?month=2026-01');
   });
 });

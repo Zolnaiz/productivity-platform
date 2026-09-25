@@ -533,3 +533,16 @@ describe('closing a month', () => {
     );
   });
 });
+
+describe('opening a particular month', () => {
+  it('opens the month named in the address', async () => {
+    // A link from the half-year report or the archive names the month.
+    window.history.pushState({}, '', '/reports?month=2026-03');
+    serviceMocks.getMonthlyReport.mockResolvedValue(report);
+
+    render(<MonthlyReportPage />);
+
+    await waitFor(() => expect(serviceMocks.getMonthlyReport).toHaveBeenCalledWith('2026-03'));
+    window.history.pushState({}, '', '/');
+  });
+});

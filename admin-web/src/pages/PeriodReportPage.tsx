@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Select from '../components/common/Select';
@@ -235,7 +236,14 @@ const PeriodReportPage: React.FC = () => {
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {report.months.map((month) => (
                     <tr key={month.period} data-testid="period-month-row">
-                      <td className="py-2 pr-4 tabular-nums">{month.period}</td>
+                      <td className="py-2 pr-4 tabular-nums">
+                        <Link
+                          to={`/reports?month=${month.period}`}
+                          className="font-medium text-blue-700 hover:underline dark:text-blue-300"
+                        >
+                          {month.period}
+                        </Link>
+                      </td>
                       <td className="py-2 pr-4">
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
