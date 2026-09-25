@@ -25,17 +25,27 @@ import { liveTables, mappedColumns, migrationFiles } from '../src/migrations/ent
  * exercises connection handling, pooling and the seed.
  */
 
-/** TypeORM hands migrations a query runner; they only ever call `query`. */
+/**
+ * TypeORM hands migrations a query runner; they only ever call `query`.
+ *
+ * It answers the way TypeORM's does — rows back, parameters honoured — because
+ * a migration that reads the schema before changing it would otherwise be
+ * told every table is empty and do nothing, and the check would pass for it.
+ */
 const queryRunnerFor = (db: PGlite) => ({
-  query: async (sql: string) => {
+  query: async (sql: string, parameters?: unknown[]) => {
     // `CREATE EXTENSION "pgcrypto"` is not available in PGlite and is not
     // needed: the only thing the migrations want from it is
     // `gen_random_uuid()`, which PostgreSQL has had built in since 13. The
     // line stays in the migrations for older servers that predate that.
     if (/CREATE EXTENSION/i.test(sql)) return [];
 
-    await db.exec(sql);
-    return [];
+    if (parameters?.length) {
+      return (await db.query(sql, parameters)).rows;
+    }
+
+    const results = await db.exec(sql);
+    return results[results.length - 1]?.rows ?? [];
   },
 });
 

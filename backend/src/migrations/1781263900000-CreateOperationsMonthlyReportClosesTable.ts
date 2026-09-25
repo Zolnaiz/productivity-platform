@@ -13,9 +13,9 @@ export class CreateOperationsMonthlyReportClosesTable1781263900000 implements Mi
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS monthly_report_closes (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now(),
-        deleted_at timestamptz,
+        "createdAt" timestamptz NOT NULL DEFAULT now(),
+        "updatedAt" timestamptz NOT NULL DEFAULT now(),
+        "deletedAt" timestamptz,
         organization_id varchar,
         period varchar(7) NOT NULL,
         closed_by varchar,
@@ -31,7 +31,7 @@ export class CreateOperationsMonthlyReportClosesTable1781263900000 implements Mi
     await queryRunner.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_monthly_report_closes_one_per_month
       ON monthly_report_closes (organization_id, period)
-      WHERE deleted_at IS NULL
+      WHERE "deletedAt" IS NULL
     `);
   }
 

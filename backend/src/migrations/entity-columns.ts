@@ -48,8 +48,19 @@ export const liveTables = [
   'monthly_report_closes',
 ];
 
-/** Created by `BaseEntity`, so they come with the table rather than separately. */
+/** Declared by `BaseEntity` rather than by the entity, so they are counted separately below. */
 export const baseColumns = new Set(['id', 'createdAt', 'updatedAt', 'deletedAt']);
+
+/**
+ * The timestamps every `BaseEntity` table must have, under the names TypeORM
+ * reads: the property names, as written.
+ *
+ * These were once exempt from the check on the reasoning that they "come with
+ * the table". They come with whatever the migration wrote, and five migrations
+ * wrote `created_at` — so departments and the notification inbox answered
+ * every request with a 500 on a real database while every test passed.
+ */
+export const inheritedColumns = ['createdAt', 'updatedAt', 'deletedAt'];
 
 export interface MappedColumn {
   table: string;
@@ -76,12 +87,19 @@ export const mappedColumns = (): MappedColumn[] => {
     // `name:` wins; otherwise TypeORM uses the property name as written.
     const declarations = [...source.matchAll(/@Column\(([\s\S]*?)\)\s*(?:\/\*[\s\S]*?\*\/\s*)?(\w+)[?!]?:/g)];
 
-    return declarations
-      .map(([, options, property]) => ({
-        table,
-        column: options.match(/name:\s*'([^']+)'/)?.[1] ?? property,
-      }))
-      .filter(({ column }) => !baseColumns.has(column));
+    const inherited = /extends BaseEntity\b/.test(source)
+      ? inheritedColumns.map((column) => ({ table, column }))
+      : [];
+
+    return [
+      ...declarations
+        .map(([, options, property]) => ({
+          table,
+          column: options.match(/name:\s*'([^']+)'/)?.[1] ?? property,
+        }))
+        .filter(({ column }) => !baseColumns.has(column)),
+      ...inherited,
+    ];
   });
 };
 
