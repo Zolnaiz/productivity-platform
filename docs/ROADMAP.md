@@ -132,13 +132,27 @@ could be built honestly.
 
 ### 6. Dependencies
 
-- **NestJS 11 to 12.** The seven `multer` advisories that made the backend's
-  `npm audit` red are fixed by forcing a patched multer through an override,
-  which is the actual fix: the code that runs is the patched one. What it is
-  not is the upgrade — `@nestjs/platform-express` still pins 2.2.0, and the
-  override is the reason that does not matter. Moving the framework itself is
-  a deliberate piece of work rather than something to fold into an unrelated
-  change.
+- **NestJS 11 to 12, which is three changes wearing one name.** The seven
+  `multer` advisories that made the backend's `npm audit` red are already
+  fixed by forcing a patched multer through an override — the code that runs
+  is the patched one — so this is about currency rather than security.
+
+  The upgrade itself is not mechanical here, and the reasons are worth writing
+  down rather than rediscovering:
+
+  - The v12 packages are ESM-only. A CommonJS application can still consume
+    them through `require(esm)`, but Jest can only load them on Node 24.9 or
+    later; below that it fails with `ERR_REQUIRE_ASYNC_MODULE`. CI runs Node
+    20, so the upgrade means either raising CI's Node or moving 677 backend
+    tests from Jest to Vitest.
+  - `nest upgrade` also moves TypeScript to 6, which is its own migration
+    across a codebase this size.
+  - The CLI's own generators need Node 22.22+, which is a second version floor
+    for anybody scaffolding.
+
+  So it is a deliberate piece of work for its own branch, after this one
+  merges, and it starts with the Node and test-runner decision rather than
+  with `npm install`.
 
 ### 7. Keep it honest as it grows
 
