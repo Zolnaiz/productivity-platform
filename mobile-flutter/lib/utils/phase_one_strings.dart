@@ -63,6 +63,16 @@ class PhaseOneStrings {
     return 'unknown';
   }
 
+  String hoursValue(double hours) {
+    final shown =
+        hours == hours.roundToDouble() ? hours.toInt().toString() : '$hours';
+    return mn ? '$shown цаг' : '$shown h';
+  }
+
+  String hoursToday(double hours) => mn
+      ? 'Өнөөдөр: ${hoursValue(hours)}'
+      : 'Today: ${hoursValue(hours)}';
+
   String taskTitle(
       {required String title,
       String? key,
@@ -82,15 +92,29 @@ const _raisedMn = {
   'raised.redTagDecision':
       'Улаан шошготой зүйлд шийдвэр гаргах хугацаа болсон: {{item}}',
   'raised.auditFollowUp': '5S залруулах ажил: {{place}}',
+  'raised.dailyDigest':
+      'Өнөөдөр: {{dueToday}} ажлын хугацаа дуусна, {{overdue}} хоцорсон',
 };
 const _raisedEn = {
   'raised.tierAuditDue': '{{layer}} 5S audit due: {{place}}',
   'raised.redTagDecision': 'Red-tag decision due: {{item}}',
   'raised.auditFollowUp': '5S follow-up: {{place}}',
+  'raised.dailyDigest': 'Today: {{dueToday}} due, {{overdue}} late',
 };
 
 const _en = {
   'tasks': 'My tasks',
+  'today': 'Today',
+  'whatDidYouDo': 'What did you do?',
+  'summaryRequired': 'Say what you did.',
+  'hours': 'Hours',
+  'hoursInvalid': 'Enter the hours it took, up to 24.',
+  'forTask': 'For which task',
+  'noTask': 'Not for a particular task',
+  'blockers': 'Anything in the way',
+  'saveLog': 'Save',
+  'logSaved': 'Saved.',
+  'nothingLogged': 'Nothing written up for today yet.',
   'noTasks': 'No tasks assigned to you.',
   'retry': 'Try again',
   'signIn': 'Sign in',
@@ -140,6 +164,17 @@ const _en = {
 };
 const _mn = {
   'tasks': 'Миний ажлууд',
+  'today': 'Өнөөдөр',
+  'whatDidYouDo': 'Юу хийсэн бэ?',
+  'summaryRequired': 'Юу хийснээ бичнэ үү.',
+  'hours': 'Цаг',
+  'hoursInvalid': 'Зарцуулсан цагаа 24 хүртэл оруулна уу.',
+  'forTask': 'Аль ажилд',
+  'noTask': 'Тодорхой ажилд хамаарахгүй',
+  'blockers': 'Саад болж буй зүйл',
+  'saveLog': 'Хадгалах',
+  'logSaved': 'Хадгаллаа.',
+  'nothingLogged': 'Өнөөдрийн бүртгэл одоогоор алга.',
   'noTasks': 'Танд оноосон ажил алга.',
   'retry': 'Дахин оролдох',
   'signIn': 'Нэвтрэх',

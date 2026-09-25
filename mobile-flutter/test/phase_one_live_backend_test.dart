@@ -56,6 +56,22 @@ void main() {
     final updated =
         await api.updateTask(task['id'] as String, {'status': nextStatus});
     expect(updated['status'], nextStatus);
+    // The server dates the finish itself, and forgets it on reopening; the
+    // monthly report counts the work by that date.
+    if (nextStatus == 'done') {
+      expect(updated['completedAt'], isA<String>());
+    } else {
+      expect(updated['completedAt'], isNull);
+    }
+
+    // The day's write-up, saved with its measured time as one act.
+    final summary = 'Live check ${DateTime.now().toIso8601String()}';
+    final saved = await api.createDailyWorkLog(
+        {'summary': summary, 'hours': 1.5, 'taskId': task['id']});
+    expect(saved['workLog']['id'], isA<String>());
+    expect(saved['timeEntry']['workLogId'], saved['workLog']['id']);
+    final logs = await api.getWorkLogs();
+    expect(logs.map((log) => log['summary']), contains(summary));
   },
       skip: const String.fromEnvironment('API_BASE_URL').isEmpty
           ? 'Set API_BASE_URL to run against a live server.'

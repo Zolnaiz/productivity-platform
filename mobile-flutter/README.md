@@ -1,5 +1,12 @@
 # Flutter mobile app
 
+What it does today, against the real API: sign in (with token refresh), **My
+tasks** — the work assigned to the signed-in person, whose status they can
+move — and **Today**, where they write up the day's work with the hours it
+took. The write-up is saved with its clock entry through `POST
+/work-logs/daily`, so the monthly report counts the hours once. Both screens
+read in Mongolian and English.
+
 ## Point the app at an API server
 
 The API base URL includes the `/api` prefix. You can set it at build or run time

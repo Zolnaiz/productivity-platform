@@ -305,6 +305,21 @@ class ApiService {
     return (response.data as Map).cast<String, dynamic>();
   }
 
+  /// The signed-in person's work logs. The server sends an employee only
+  /// their own.
+  Future<List<Map<String, dynamic>>> getWorkLogs() async {
+    final response = await _dio.get('/work-logs');
+    return (response.data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Records a day's work and the time it took, as one act: the server saves
+  /// the note and its clock entry together, so the hours are counted once.
+  Future<Map<String, dynamic>> createDailyWorkLog(
+      Map<String, dynamic> entry) async {
+    final response = await _dio.post('/work-logs/daily', data: entry);
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
   Future<Map<String, dynamic>> register(
     String email,
     String password,

@@ -1,0 +1,87 @@
+import 'package:flutter/foundation.dart';
+
+import '../models/work_log_model.dart';
+import '../services/api_service.dart';
+
+/// Today's record of work, for the person holding the phone.
+///
+/// The work log was the one thing an operator was asked to do every day and
+/// could only do at a desk — so it was written from memory on Friday, or not
+/// at all, and the monthly report counted whatever survived.
+class WorkLogProvider extends ChangeNotifier {
+  WorkLogProvider(this._api, {DateTime Function()? clock})
+      : _clock = clock ?? DateTime.now;
+
+  final ApiService _api;
+  final DateTime Function() _clock;
+
+  List<WorkLog> today = [];
+  bool loading = false;
+  bool saving = false;
+  Object? error;
+
+  String get day => localDay(_clock());
+
+  double get hoursToday => today.fold(0, (sum, log) => sum + log.hours);
+
+  bool get sessionExpired {
+    try {
+      final dynamic failure = error;
+      return failure.response?.statusCode == 401;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    notifyListeners();
+    try {
+      final logs = (await _api.getWorkLogs()).map(WorkLog.fromJson);
+      final date = day;
+      today = logs.where((log) => log.logDate == date).toList();
+    } catch (e) {
+      error = e;
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Saves one entry. Returns whether it was saved, so the form knows whether
+  /// to clear itself: losing what somebody typed because the network dropped
+  /// is how people stop typing it.
+  Future<bool> submit({
+    required String summary,
+    required double hours,
+    String? taskId,
+    String? blockers,
+    String? nextSteps,
+  }) async {
+    saving = true;
+    error = null;
+    notifyListeners();
+    try {
+      final saved = await _api.createDailyWorkLog({
+        'summary': summary,
+        'hours': hours,
+        'logDate': day,
+        if (taskId != null) 'taskId': taskId,
+        if (blockers != null && blockers.isNotEmpty) 'blockers': blockers,
+        if (nextSteps != null && nextSteps.isNotEmpty) 'nextSteps': nextSteps,
+      });
+      final raw = saved['workLog'];
+      final log = WorkLog.fromJson(
+          raw is Map ? raw.cast<String, dynamic>() : saved);
+      today = [log, ...today];
+      return true;
+    } catch (e) {
+      error = e;
+      return false;
+    } finally {
+      saving = false;
+      notifyListeners();
+    }
+  }
+}

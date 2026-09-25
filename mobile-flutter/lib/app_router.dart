@@ -12,7 +12,7 @@ import 'screens/register_screen.dart';
 import 'screens/report_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
-import 'screens/tasks_screen.dart';
+import 'screens/home_screen.dart';
 
 class AppRouter {
   static GoRouter createRouter(AuthProvider? authProvider) {
@@ -36,7 +36,7 @@ class AppRouter {
         GoRoute(
           path: '/dashboard',
           builder: (BuildContext context, GoRouterState state) =>
-              const TasksScreen(),
+              const HomeScreen(),
         ),
         GoRoute(
           path: '/questionnaires',
