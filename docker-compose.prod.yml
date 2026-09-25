@@ -88,7 +88,7 @@ services:
       ENABLE_AUDIT_SCHEDULER: ${ENABLE_AUDIT_SCHEDULER:-true}
       ENABLE_MONTH_CLOSE: ${ENABLE_MONTH_CLOSE:-true}
       ENABLE_DAILY_REMINDERS: ${ENABLE_DAILY_REMINDERS:-true}
-      REMINDER_TIME_ZONE: ${REMINDER_TIME_ZONE:-Asia/Ulaanbaatar}
+      APP_TIME_ZONE: ${APP_TIME_ZONE:-Asia/Ulaanbaatar}
       REMINDER_HOUR: ${REMINDER_HOUR:-8}
     volumes:
       # Without this the attachments lived inside the container: every row

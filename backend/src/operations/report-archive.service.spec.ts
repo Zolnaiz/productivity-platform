@@ -89,7 +89,16 @@ describe('a month that has been closed', () => {
     expect(closes.save).not.toHaveBeenCalled();
   });
 
-  it('refuses something that is not a month', async () => {
+  it('lets a month be closed as soon as it has ended where the organization is', async () => {
+    // 07:00 on 1 April in Ulaanbaatar; UTC still says 31 March.
+    const { service, closes } = createService();
+
+    await service.closeMonth(manager, '2026-03', new Date('2026-03-31T23:00:00Z'));
+
+    expect(closes.save).toHaveBeenCalled();
+  });
+
+    it('refuses something that is not a month', async () => {
     const { service } = createService();
 
     await expect(service.closeMonth(manager, 'last-month', aprilTenth)).rejects.toBeDefined();
@@ -202,7 +211,16 @@ describe('closing last month without being asked', () => {
     expect(closes.save).not.toHaveBeenCalled();
   });
 
-  it('knows the month before January is last December', () => {
+  it('counts the fifth on the organization’s calendar', async () => {
+    // 23:30 on the 4th in UTC is 07:30 on the 5th in Ulaanbaatar.
+    const { service, closes } = createService();
+
+    await service.closePreviousMonth(new Date('2026-04-04T23:30:00Z'));
+
+    expect(closes.save).toHaveBeenCalledWith(expect.objectContaining({ period: '2026-03' }));
+  });
+
+    it('knows the month before January is last December', () => {
     expect(previousMonth(new Date('2026-01-07T06:30:00Z'))).toBe('2025-12');
   });
 });

@@ -6,6 +6,7 @@ import { In, IsNull, LessThanOrEqual, Not, Repository } from 'typeorm';
 import { TaskStatus, WorkTask } from './entities/task.entity';
 import { NotificationKind } from './entities/notification.entity';
 import { NotificationsService } from './notifications.service';
+import { dayIn } from './task-completion';
 
 /** How many tasks a reminder names before it says "and more". */
 const NAMED = 5;
@@ -17,9 +18,7 @@ export interface PersonDigest {
   overdue: WorkTask[];
 }
 
-/** The calendar day in a time zone, as YYYY-MM-DD. */
-export const dayIn = (timeZone: string, now: Date) =>
-  new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+export { dayIn };
 
 /** The hour in a time zone, 0–23. */
 export const hourIn = (timeZone: string, now: Date) =>
@@ -81,7 +80,7 @@ export class DailyReminderService {
   ) {}
 
   private get timeZone() {
-    return this.configService.get<string>('REMINDER_TIME_ZONE') || 'Asia/Ulaanbaatar';
+    return this.configService.get<string>('APP_TIME_ZONE') || 'Asia/Ulaanbaatar';
   }
 
   private get hour() {

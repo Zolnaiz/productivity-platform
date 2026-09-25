@@ -89,10 +89,13 @@ export const envValidationSchema = Joi.object({
   // archive fills itself. On by default for the same reason.
   ENABLE_MONTH_CLOSE: Joi.boolean().truthy('true').falsy('false').default(true),
   // The morning reminder of work due today and work already late, sent at the
-  // first hourly run after REMINDER_HOUR in REMINDER_TIME_ZONE — the
+  // first hourly run after REMINDER_HOUR in APP_TIME_ZONE — the
   // organization's clock, not the container's.
   ENABLE_DAILY_REMINDERS: Joi.boolean().truthy('true').falsy('false').default(true),
-  REMINDER_TIME_ZONE: Joi.string().default('Asia/Ulaanbaatar'),
+  // The organization's clock. Reports count months on it, the reminder is
+  // sent by it, and a closed month is "ended" by it — never by the server's,
+  // which in a container is UTC.
+  APP_TIME_ZONE: Joi.string().default('Asia/Ulaanbaatar'),
   REMINDER_HOUR: Joi.number().integer().min(0).max(11).default(8),
   JWT_SECRET: Joi.string().when('NODE_ENV', {
     is: 'production',

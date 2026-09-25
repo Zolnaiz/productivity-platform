@@ -66,3 +66,16 @@ describe('which month a finished task belongs to', () => {
     expect(doneByEndOf(lateTask, '2026-04')).toBe(true);
   });
 });
+
+describe('the organization’s calendar', () => {
+  it('puts work finished early on the first in the new month, not the old one', () => {
+    // 07:00 on 1 October in Ulaanbaatar is 23:00 on 30 September in UTC.
+    const early = { status: 'done', dueDate: '2026-09-30', completedAt: '2026-09-30T23:00:00.000Z' };
+
+    expect(completionMonth(early)).toBe('2026-10');
+  });
+
+  it('reads a plain date as the day it names', () => {
+    expect(completionMonth({ status: 'done', dueDate: '2026-09-30' })).toBe('2026-09');
+  });
+});

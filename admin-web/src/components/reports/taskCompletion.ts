@@ -13,7 +13,21 @@ interface CompletableTask {
   createdAt?: string | null;
 }
 
-const monthOf = (value?: string | null) => (value ? String(value).slice(0, 7) : undefined);
+/**
+ * YYYY-MM on the reader's calendar. A plain date is already a calendar day; a
+ * moment such as a completion time arrives in UTC and is placed on the local
+ * calendar first, as the server places it on the organization's — otherwise
+ * work finished at 07:00 on the first in Ulaanbaatar lands in the month before.
+ */
+const monthOf = (value?: string | null) => {
+  if (!value) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value.slice(0, 7);
+
+  const moment = new Date(value);
+  if (Number.isNaN(moment.getTime())) return String(value).slice(0, 7);
+
+  return `${moment.getFullYear()}-${String(moment.getMonth() + 1).padStart(2, '0')}`;
+};
 
 /** The month a task was planned for: when it is due, or when it was raised. */
 export const plannedMonth = (task: CompletableTask) => monthOf(task.dueDate || task.createdAt);

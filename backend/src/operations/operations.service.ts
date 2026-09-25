@@ -22,7 +22,7 @@ import { projectProgressPercent, sumRecordedHours } from './monthly-people';
 import { buildMonthlyReport, MonthRecords, OrganizationRecords, selectMonthRecords } from './monthly-report';
 import { NotificationsService } from './notifications.service';
 import { noteAuditBefore } from '../audit/audit-context';
-import { stampCompletion, withoutCompletionDate } from './task-completion';
+import { dayIn, organizationTimeZone, stampCompletion, withoutCompletionDate } from './task-completion';
 
 type CurrentUser = {
   id?: string;
@@ -1285,7 +1285,8 @@ export class OperationsService {
   }
 
   resolveReportMonth(month?: string) {
-    return month && /^\d{4}-\d{2}$/.test(month) ? month : new Date().toISOString().slice(0, 7);
+    // This month on the organization's calendar, not the server's UTC one.
+    return month && /^\d{4}-\d{2}$/.test(month) ? month : dayIn(organizationTimeZone(), new Date()).slice(0, 7);
   }
 
   private organizationWhere(user: CurrentUser) {

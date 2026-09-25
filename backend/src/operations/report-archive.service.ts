@@ -8,6 +8,7 @@ import { Organization } from '../organizations/entities/organization.entity';
 import { OperationsService } from './operations.service';
 import { buildMonthlyReport, MonthRecords, selectMonthRecords } from './monthly-report';
 import { combineMonths, monthsBetween, PeriodMonth } from './period-report';
+import { dayIn, organizationTimeZone } from './task-completion';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 
 type CurrentUser = { id?: string; role?: string; organizationId?: string } | undefined;
@@ -18,9 +19,13 @@ const isUniqueViolation = (error: unknown) =>
 
 const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-/** YYYY-MM of the month before the one `today` is in. */
+/** Today on the organization's calendar, as YYYY-MM-DD. */
+const organizationToday = (now: Date) => dayIn(organizationTimeZone(), now);
+
+/** YYYY-MM of the month before the one `today` is in, on the organization's calendar. */
 export const previousMonth = (today: Date) => {
-  const first = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1));
+  const [year, month] = organizationToday(today).split('-').map(Number);
+  const first = new Date(Date.UTC(year, month - 2, 1));
 
   return first.toISOString().slice(0, 7);
 };
@@ -140,7 +145,9 @@ export class ReportArchiveService {
       throw apiError(ErrorCode.ValidationFailed, 'month');
     }
 
-    if (month >= now.toISOString().slice(0, 7)) {
+    // Ended on the organization's calendar: at 07:00 on the first in
+    // Ulaanbaatar the old month is over, whatever UTC still says.
+    if (month >= organizationToday(now).slice(0, 7)) {
       throw apiError(ErrorCode.ReportMonthNotEnded);
     }
 
@@ -209,7 +216,7 @@ export class ReportArchiveService {
    */
   @Cron('0 30 6 * * *', { name: 'monthly-report-close' })
   async closePreviousMonth(now = new Date()) {
-    if (!this.enabled || now.getUTCDate() < CLOSE_AFTER_DAY) {
+    if (!this.enabled || Number(organizationToday(now).slice(8, 10)) < CLOSE_AFTER_DAY) {
       return;
     }
 

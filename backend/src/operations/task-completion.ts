@@ -14,11 +14,37 @@ interface CompletableTask {
   createdAt?: Date | string | null;
 }
 
-/** YYYY-MM for a date, whether it arrived as a Date or as stored text. */
+/**
+ * The organization's clock, as an IANA zone.
+ *
+ * Months are counted on it rather than on UTC. Ulaanbaatar is eight hours
+ * ahead, so work finished at seven in the morning on the first of October is
+ * still the thirtieth of September in UTC — and a plant's early shift would
+ * have had its first morning's work credited to the month before.
+ */
+export const organizationTimeZone = () => process.env.APP_TIME_ZONE || 'Asia/Ulaanbaatar';
+
+/** The calendar day of a moment in a time zone, as YYYY-MM-DD. */
+export const dayIn = (timeZone: string, moment: Date) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(moment);
+
+const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * YYYY-MM for a date, whether it arrived as a Date or as stored text.
+ *
+ * A plain date — a work log's day, a due date — is already a calendar day and
+ * is read as written. A moment — when a task was finished, when an audit was
+ * saved — is placed on the organization's calendar first.
+ */
 export const monthOf = (value?: Date | string | null): string | undefined => {
   if (!value) return undefined;
+  if (typeof value === 'string' && dateOnly.test(value)) return value.slice(0, 7);
 
-  return value instanceof Date ? value.toISOString().slice(0, 7) : String(value).slice(0, 7);
+  const moment = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(moment.getTime())) return String(value).slice(0, 7);
+
+  return dayIn(organizationTimeZone(), moment).slice(0, 7);
 };
 
 /** The month a task was planned for: when it is due, or when it was raised. */
