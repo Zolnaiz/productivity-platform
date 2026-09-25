@@ -199,10 +199,23 @@ PASS operations summary with login token status=200
 PASS create project with login token status=201
 PASS update project with login token status=200
 PASS delete project with login token status=200
+PASS read /auth/me with login token status=200
+...
+PASS read /operations/period-report?from=2026-01&to=2026-06 with login token status=200
+PASS read /auth/invitations with login token status=200
+PASS user list carries no password or reset token
 ```
 
-Eight checks. The third is a real `/auth/login` with the seeded owner, and the
-last three create, update and delete a project and clean up after themselves.
+Thirty-three checks. The third is a real `/auth/login` with the seeded owner;
+the next three create, update and delete a project and clean up after
+themselves. Then every page's first request is read once, and any 5xx fails
+the run: the notification inbox and the departments page once answered every
+request with a 500 on a real database while every unit test passed, because
+the tests mock the database and cannot see a column it lacks. The last check
+makes sure no user record carries a password hash or a reset token.
+
+All thirty-three passed against this compose stack, built from scratch with
+all thirty migrations applied inside the container, on 2026-09-25.
 
 ## 7. Every attachment still has its bytes
 
