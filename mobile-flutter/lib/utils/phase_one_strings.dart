@@ -105,6 +105,8 @@ const _raisedEn = {
 const _en = {
   'tasks': 'My tasks',
   'today': 'Today',
+  'inbox': 'Inbox',
+  'inboxEmpty': 'Nothing here yet. Work given to you and the morning reminder arrive here.',
   'whatDidYouDo': 'What did you do?',
   'summaryRequired': 'Say what you did.',
   'hours': 'Hours',
@@ -165,6 +167,8 @@ const _en = {
 const _mn = {
   'tasks': 'Миний ажлууд',
   'today': 'Өнөөдөр',
+  'inbox': 'Мэдэгдэл',
+  'inboxEmpty': 'Одоогоор алга. Танд оноосон ажил, өглөөний сануулга энд ирнэ.',
   'whatDidYouDo': 'Юу хийсэн бэ?',
   'summaryRequired': 'Юу хийснээ бичнэ үү.',
   'hours': 'Цаг',

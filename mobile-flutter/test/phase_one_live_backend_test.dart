@@ -72,6 +72,10 @@ void main() {
     expect(saved['timeEntry']['workLogId'], saved['workLog']['id']);
     final logs = await api.getWorkLogs();
     expect(logs.map((log) => log['summary']), contains(summary));
+
+    // The inbox, which answered with a 500 on a real database until its
+    // timestamp columns were repaired.
+    expect(await api.getNotifications(), isA<List>());
   },
       skip: const String.fromEnvironment('API_BASE_URL').isEmpty
           ? 'Set API_BASE_URL to run against a live server.'

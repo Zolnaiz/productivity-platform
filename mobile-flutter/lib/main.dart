@@ -13,6 +13,7 @@ import 'providers/questionnaire_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/task_provider.dart';
 import 'providers/work_log_provider.dart';
+import 'providers/inbox_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'utils/phase_one_strings.dart';
 // Services
@@ -61,6 +62,7 @@ class ProductivityApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider(ApiService())),
         ChangeNotifierProvider(create: (_) => WorkLogProvider(ApiService())),
+        ChangeNotifierProvider(create: (_) => InboxProvider(ApiService())),
         ChangeNotifierProvider(
           create: (_) => QuestionnaireProvider(ApiService()),
         ),
