@@ -1491,6 +1491,10 @@ const en = {
       'Create templates for inspections, quality feedback, safety checks, and operational audits.',
   },
   responses: {
+    submittedWithScore: 'Response submitted with a {{score}}% score.',
+    improveTitle: 'Improve the response score: {{template}}',
+    improveDescription: '{{respondent}} scored {{score}}%. Review the answers and assign improvement work.',
+    assessment: 'Assessment',
     title: 'Responses',
     subtitle: 'Review submitted checklists and questionnaires, and turn low scores into action.',
     filterResponses: 'Filter responses',

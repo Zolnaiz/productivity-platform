@@ -132,7 +132,7 @@ const ResponsesPage: React.FC = () => {
 
     setResponses((current) => [response, ...current]);
     setAnswers({});
-    setMessage(`Response submitted with ${draftScore}% score.`);
+    setMessage(t("responses.submittedWithScore", { score: draftScore }));
   };
 
   const reviewResponse = async (
@@ -148,8 +148,9 @@ const ResponsesPage: React.FC = () => {
   const createActionTask = async (response: AssessmentResponse) => {
     const template = templateById[response.templateId];
     await operationsService.createTask({
-      title: `Improve response score: ${template?.title || "Assessment"}`,
-      description: `${response.respondent} submitted ${response.score}%. Review answers and assign improvement work.`,
+      // Written in the language of whoever raises it, like a typed task.
+      title: t("responses.improveTitle", { template: template?.title || t("responses.assessment") }),
+      description: t("responses.improveDescription", { respondent: response.respondent, score: response.score }),
       status: "todo",
       priority: response.score < 75 ? "high" : "medium",
       dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
