@@ -24,6 +24,21 @@ device, for example `http://192.168.1.20:3000/api`. The default is
 You can also copy `.env.example` to `.env` and change `API_BASE_URL`; `.env` is
 ignored by git. `--dart-define` takes precedence over `.env`.
 
+## Build for Android
+
+The app has three flavors - `dev`, `staging`, `production` - so every Android
+build names one; without it Flutter builds all three and then cannot find the
+APK it expected:
+
+```sh
+flutter run --flavor dev --dart-define=API_BASE_URL=http://10.0.2.2:3000/api
+```
+
+The Android toolchain is Gradle 9.1 with Android Gradle Plugin 8.13, because
+the current Android Studio ships Java 25 and older Gradle cannot run on it.
+The SDK needs platform 36, Build-Tools 36.1.0 and NDK 28.2.13676358; Android
+Studio's SDK Manager installs them.
+
 ## Run the Phase 1 backend integration test
 
 Start the backend and seed its database using the commands in the repository
@@ -32,7 +47,7 @@ device that can reach the server):
 
 ```sh
 cd mobile-flutter
-flutter test integration_test/phase_one_backend_test.dart -d emulator-5554 \
+flutter test integration_test/phase_one_backend_test.dart -d emulator-5554 --flavor dev \
   --dart-define=API_BASE_URL=http://10.0.2.2:3000/api
 ```
 

@@ -27,5 +27,30 @@ void main() {
 
     final tasks = await api.getTasks();
     expect(tasks, isA<List<Map<String, dynamic>>>());
+
+    // Moving a task along, as the My tasks screen does. The server dates the
+    // finish itself, and forgets it on reopening.
+    final mine = tasks
+        .where((task) => task['assigneeId'] == session['user']['id'])
+        .toList();
+    if (mine.isNotEmpty) {
+      final task = mine.first;
+      final next = task['status'] == 'done' ? 'todo' : 'done';
+      final updated = await api.updateTask(task['id'] as String, {'status': next});
+      expect(updated['status'], next);
+      expect(updated['completedAt'], next == 'done' ? isA<String>() : isNull);
+    }
+
+    // Writing up the day from the phone, as the Today screen does: the note
+    // and its clock entry saved together.
+    final summary = 'Emulator check ${DateTime.now().toIso8601String()}';
+    final saved =
+        await api.createDailyWorkLog({'summary': summary, 'hours': 1.5});
+    expect(saved['timeEntry']['workLogId'], saved['workLog']['id']);
+    expect((await api.getWorkLogs()).map((log) => log['summary']),
+        contains(summary));
+
+    // The inbox, as the Inbox screen reads it.
+    expect(await api.getNotifications(), isA<List>());
   });
 }
