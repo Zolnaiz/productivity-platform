@@ -148,6 +148,18 @@ jobs:
       - name: Test
         run: flutter test
 
+      # The Android release build, shrunk as it would be shipped. It had never
+      # been built until it was, and then it stopped on missing resources and,
+      # once built, crashed on launch - none of which analyze or the tests see.
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build the Android release
+        run: flutter build apk --release --flavor production --dart-define=API_BASE_URL=https://example.invalid/api
+
   # The whole stack against a real PostgreSQL: migrations, seed, the built
   # server, then every page's first request and the mobile client's own calls.
   # The notification inbox and the departments page once answered every
