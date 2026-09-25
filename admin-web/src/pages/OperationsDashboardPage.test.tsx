@@ -11,8 +11,12 @@ const serviceMocks = vi.hoisted(() => ({
 vi.mock('../services/operations.service', () => ({
   operationsService: {
     getSummary: serviceMocks.getSummary,
+    // The "my day" card at the top reads the signed-in person's tasks.
+    getTasks: async () => [],
   },
 }));
+
+vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1' } }) }));
 
 vi.mock('../services/action.service', () => ({
   actionService: {

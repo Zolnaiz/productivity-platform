@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { raisedTitle } from '../components/common/raisedText';
+import { actionText } from '../components/common/actionText';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { actionService } from '../services/action.service';
@@ -72,14 +73,14 @@ const NotificationsPage: React.FC = () => {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs ${typeStyles[item.type]}`}>
-              {raisedTitle(item, t)}
+              {actionText(item, t).title}
             </span>
             <span className={`text-xs font-semibold uppercase ${priorityStyles[item.priority]}`}>
-              {item.priority}
+              {actionText(item, t).priority}
             </span>
           </div>
-          <div className="mt-2 font-medium text-gray-900 dark:text-white">{item.message}</div>
-          <div className="mt-1 text-sm text-gray-500">{item.meta}</div>
+          <div className="mt-2 font-medium text-gray-900 dark:text-white">{actionText(item, t).message}</div>
+          <div className="mt-1 text-sm text-gray-500">{actionText(item, t).meta}</div>
         </div>
         <Link className="text-sm font-medium text-blue-600 hover:text-blue-500" to={item.path}>
           {t('notifications.open')}

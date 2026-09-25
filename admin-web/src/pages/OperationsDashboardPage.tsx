@@ -3,10 +3,19 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import Card from '../components/common/Card';
 import KpiCard from '../components/widgets/KpiCard';
+import MyDayCard from '../components/widgets/MyDayCard';
+import { actionText } from '../components/common/actionText';
 import { actionService } from '../services/action.service';
 import { operationsService } from '../services/operations.service';
 import { ActionItem } from '../types/action.types';
 import { OperationsSummary } from '../types/operations.types';
+
+/** `on_hold` → `statusOnHold`, the key the projects page already words it with. */
+const projectStatusKey = (status: string) =>
+  `projects.status${status
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')}`;
 
 const OperationsDashboardPage: React.FC = () => {
   const { t } = useTranslation();
@@ -57,6 +66,8 @@ const OperationsDashboardPage: React.FC = () => {
         </div>
       )}
 
+      <MyDayCard />
+
       {loading && (
         <Card loading>
           <div />
@@ -77,7 +88,7 @@ const OperationsDashboardPage: React.FC = () => {
         <KpiCard
           title={t('dashboard.auditScore')}
           value={`${summary?.kpis.averageAuditScore || 0}%`}
-          description={`${summary?.totals.auditRuns || 0} audit runs`}
+          description={t('dashboard.auditRunsCount', { count: summary?.totals.auditRuns || 0 })}
         />
       </div>
 
@@ -94,15 +105,15 @@ const OperationsDashboardPage: React.FC = () => {
               to={item.path}
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium capitalize text-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                  {item.type}
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                  {actionText(item, t).type}
                 </span>
                 <span className={item.priority === 'high' ? 'text-xs font-semibold text-red-600' : 'text-xs font-semibold text-yellow-600'}>
-                  {item.priority}
+                  {actionText(item, t).priority}
                 </span>
               </div>
-              <div className="mt-2 font-medium text-gray-900 dark:text-white">{item.message}</div>
-              <div className="mt-1 text-sm text-gray-500">{item.meta}</div>
+              <div className="mt-2 font-medium text-gray-900 dark:text-white">{actionText(item, t).message}</div>
+              <div className="mt-1 text-sm text-gray-500">{actionText(item, t).meta}</div>
             </Link>
           ))}
           {!actions.length && <p className="text-sm text-gray-500">{t('dashboard.noOpenActions')}</p>}
@@ -117,7 +128,9 @@ const OperationsDashboardPage: React.FC = () => {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="font-medium text-gray-900 dark:text-white">{project.name}</div>
-                    <div className="text-sm text-gray-500">{project.status}</div>
+                    <div className="text-sm text-gray-500">
+                      {t(projectStatusKey(project.status), { defaultValue: project.status })}
+                    </div>
                   </div>
                   <div className="text-lg font-semibold text-blue-600">{project.progress}%</div>
                 </div>
@@ -127,7 +140,7 @@ const OperationsDashboardPage: React.FC = () => {
               </div>
             ))}
             {!summary?.recent.projects.length && (
-              <p className="text-sm text-gray-500">Одоогоор төсөл бүртгэгдээгүй байна.</p>
+              <p className="text-sm text-gray-500">{t('dashboard.noProjectsYet')}</p>
             )}
           </div>
         </Card>
@@ -138,13 +151,13 @@ const OperationsDashboardPage: React.FC = () => {
               <div key={log.id} className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div className="font-medium text-gray-900 dark:text-white">{log.logDate}</div>
-                  <div className="text-sm text-gray-500">{log.hours}h</div>
+                  <div className="text-sm text-gray-500">{t('profile.hoursValue', { hours: log.hours })}</div>
                 </div>
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{log.summary}</p>
               </div>
             ))}
             {!summary?.recent.workLogs.length && (
-              <p className="text-sm text-gray-500">Одоогоор өдрийн ажлын бүртгэл алга.</p>
+              <p className="text-sm text-gray-500">{t('dashboard.noWorkLogsYet')}</p>
             )}
           </div>
         </Card>
@@ -155,15 +168,15 @@ const OperationsDashboardPage: React.FC = () => {
               <div key={run.id} className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-gray-900 dark:text-white">{run.location || 'Audit run'}</div>
-                    <div className="text-sm text-gray-500">{run.status}</div>
+                    <div className="font-medium text-gray-900 dark:text-white">{run.location || t('actions.auditRun')}</div>
+                    <div className="text-sm text-gray-500">{t(`actions.status.${run.status}`, { defaultValue: run.status })}</div>
                   </div>
                   <div className="text-lg font-semibold text-blue-600">{run.score}%</div>
                 </div>
               </div>
             ))}
             {!summary?.recent.auditRuns?.length && (
-              <p className="text-sm text-gray-500">Одоогоор audit run бүртгэгдээгүй байна.</p>
+              <p className="text-sm text-gray-500">{t('dashboard.noAuditsYet')}</p>
             )}
           </div>
         </Card>

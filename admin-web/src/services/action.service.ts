@@ -2,6 +2,7 @@ import { assessmentService } from './assessment.service';
 import { financeService } from './finance.service';
 import { operationsService } from './operations.service';
 import { ActionItem } from '../types/action.types';
+import { localDay } from '../components/progress/progressBoard';
 
 export const actionService = {
   getActionItems: async (): Promise<ActionItem[]> => {
@@ -12,7 +13,9 @@ export const actionService = {
       assessmentService.getResponses(),
       financeService.getExpenses(),
     ]);
-    const today = new Date().toISOString().slice(0, 10);
+    // The reader's day, not UTC's: before 08:00 in Ulaanbaatar the UTC date
+    // is still yesterday, and nothing due today would read as overdue.
+    const today = localDay(new Date());
 
     return [
       ...tasks
@@ -23,8 +26,13 @@ export const actionService = {
             id: `task-${task.id}`,
             type: overdue ? 'overdue' : 'task',
             title: overdue ? 'Overdue task' : 'Open task',
+            titleKey: overdue ? 'actions.overdueTask' : 'actions.openTask',
             message: task.title,
+            messageKey: task.titleKey,
+            messageParams: task.titleParams,
             meta: task.dueDate ? `Due ${task.dueDate}` : task.priority,
+            metaKey: task.dueDate ? 'actions.due' : `tasks.priorities.${task.priority}`,
+            metaParams: task.dueDate ? { date: task.dueDate.slice(0, 10) } : undefined,
             path: '/tasks',
             priority: overdue || task.priority === 'high' ? 'high' : 'medium',
           };
@@ -35,8 +43,11 @@ export const actionService = {
           id: `project-${project.id}`,
           type: 'project',
           title: 'Project progress',
+          titleKey: 'actions.projectProgress',
           message: project.name,
           meta: `${project.progress}% complete`,
+          metaKey: 'actions.percentComplete',
+          metaParams: { percent: project.progress },
           path: '/projects',
           priority: project.progress < 40 ? 'high' : 'medium',
         })),
@@ -46,8 +57,12 @@ export const actionService = {
           id: `audit-${run.id}`,
           type: 'audit',
           title: 'Audit needs action',
+          titleKey: 'actions.auditNeedsAction',
           message: run.location || 'Audit run',
+          messageKey: run.location ? undefined : 'actions.auditRun',
           meta: `${run.score}% score`,
+          metaKey: 'actions.percentScore',
+          metaParams: { score: run.score },
           path: '/fives',
           priority: run.score < 70 ? 'high' : 'medium',
         })),
@@ -57,8 +72,11 @@ export const actionService = {
           id: `response-${response.id}`,
           type: 'assessment',
           title: response.score < 85 ? 'Assessment needs action' : 'Response needs review',
+          titleKey: response.score < 85 ? 'actions.assessmentNeedsAction' : 'actions.responseNeedsReview',
           message: response.respondent,
           meta: `${response.department} - ${response.score}% - ${response.status}`,
+          metaKey: 'actions.assessmentMeta',
+          metaParams: { department: response.department, score: response.score, status: response.status },
           path: '/responses',
           priority: response.score < 75 ? 'high' : 'medium',
         })),
@@ -68,8 +86,11 @@ export const actionService = {
           id: `expense-${expense.id}`,
           type: 'expense',
           title: 'Expense approval',
+          titleKey: 'actions.expenseApproval',
           message: expense.title,
           meta: `${expense.category} - ${expense.amount.toLocaleString()} MNT`,
+          metaKey: 'actions.expenseMeta',
+          metaParams: { category: expense.category, amount: expense.amount.toLocaleString() },
           path: '/expenses',
           priority: expense.amount > 300000 ? 'high' : 'medium',
         })),

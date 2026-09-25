@@ -24,6 +24,9 @@ describe('translations', () => {
       // "Demo workspace" is the product's own name for the mode and stays in
       // Latin script in Mongolian copy, as it already does in `auth.openDemo`.
       'auth.demoWorkspace',
+      // Only its parts and the separators between them; there is no word in
+      // it to translate.
+      'actions.assessmentMeta',
     ];
 
     const untranslated = flatten(en)
