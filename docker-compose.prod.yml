@@ -90,6 +90,10 @@ services:
       ENABLE_DAILY_REMINDERS: ${ENABLE_DAILY_REMINDERS:-true}
       APP_TIME_ZONE: ${APP_TIME_ZONE:-Asia/Ulaanbaatar}
       REMINDER_HOUR: ${REMINDER_HOUR:-8}
+      # How long the audit trail keeps who-changed-what: two years by default,
+      # 0 to keep it for ever. The work itself - tasks, closed months, audits,
+      # plan versions - is not affected.
+      AUDIT_LOG_RETENTION_DAYS: ${AUDIT_LOG_RETENTION_DAYS:-730}
     volumes:
       # Without this the attachments lived inside the container: every row
       # survived a redeploy and every photograph it pointed at did not.
