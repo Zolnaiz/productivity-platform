@@ -1034,7 +1034,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     }));
     setSelectedZoneId(zone.id);
     setSelectedObjectId('');
-    setActionMessage(`${zone.code} - ${zone.name} area added.`);
+    setActionMessage(t('fiveS.ui.msgAreaAdded', { area: `${zone.code} - ${zone.name}` }));
   };
 
   /**
@@ -1114,7 +1114,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setSelectedZoneIds(copies.map((zone) => zone.id));
     setSelectedZoneId(copies[copies.length - 1].id);
     setSelectedObjectId('');
-    setActionMessage(`${copies.length} area(s) copied.`);
+    setActionMessage(t('fiveS.ui.msgAreasCopied', { count: copies.length }));
   };
 
   /**
@@ -1132,7 +1132,11 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     if (objects === plan.objects) return;
 
     updatePlan((current) => ({ ...current, objects }));
-    setActionMessage(`${selectedObject.label} moved ${move === 'front' || move === 'forward' ? 'forward' : 'back'}.`);
+    setActionMessage(
+      t(move === 'front' || move === 'forward' ? 'fiveS.ui.msgMovedForward' : 'fiveS.ui.msgMovedBack', {
+        label: selectedObject.label,
+      }),
+    );
   };
 
   /**
@@ -1188,7 +1192,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setCalibration(null);
     setCalibrationMode(false);
     setActionMessage(
-      `Plan calibrated: it is now ${toMetres(CANVAS_WIDTH, next).toFixed(1)} m across.`,
+      t('fiveS.ui.msgCalibrated', { metres: toMetres(CANVAS_WIDTH, next).toFixed(1) }),
     );
   };
 
@@ -1544,7 +1548,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       objects: current.objects.filter((object) => object.id !== selectedObject.id),
     }));
     setSelectedObjectId('');
-    setActionMessage(`${selectedObject.label} removed from the floorplan.`);
+    setActionMessage(t('fiveS.ui.msgObjectRemoved', { label: selectedObject.label }));
   };
 
   const duplicateSelectedObject = () => {
@@ -1564,7 +1568,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     }));
     setSelectedZoneId('');
     setSelectedObjectId(duplicate.id);
-    setActionMessage(`${duplicate.label} duplicated.`);
+    setActionMessage(t('fiveS.ui.msgDuplicated', { label: duplicate.label }));
   };
 
   const resetPlan = async () => {
@@ -1603,7 +1607,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       backgroundOpacity: current.backgroundOpacity ?? 0.55,
       showGrid: current.showGrid ?? true,
     }));
-    setActionMessage(`Blueprint image imported: ${file.name}.`);
+    setActionMessage(t('fiveS.ui.msgBlueprintImported', { file: file.name }));
   };
 
   const clearBackgroundImage = () => {
@@ -1742,9 +1746,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     }));
 
     setActionMessage(
-      'align' in action
-        ? `${items.length} areas aligned.`
-        : `${items.length} areas spaced evenly.`,
+      t('align' in action ? 'fiveS.ui.msgAligned' : 'fiveS.ui.msgSpaced', { count: items.length }),
     );
   };
 
@@ -2104,9 +2106,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     });
 
     setActionMessage(
-      status === 'disposed'
-        ? `Disposed of an item held in ${zone.code}.`
-        : `Returned an item held in ${zone.code}.`,
+      t(status === 'disposed' ? 'fiveS.ui.msgDisposed' : 'fiveS.ui.msgReturned', { code: zone.code }),
     );
   };
 
@@ -2133,7 +2133,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
       event.preventDefault();
       setClipboard(copying);
-      setActionMessage(`${copying.length} area(s) copied to the clipboard.`);
+      setActionMessage(t('fiveS.ui.msgCopiedToClipboard', { count: copying.length }));
       return;
     }
 
@@ -2250,7 +2250,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const useSelectedZoneForAudit = () => {
     if (!selectedZone || !onAuditZoneSelect) return;
     onAuditZoneSelect(`${selectedZone.code} - ${selectedZone.name}`);
-    setActionMessage(`Audit location selected: ${selectedZone.code} - ${selectedZone.name}.`);
+    setActionMessage(t('fiveS.ui.msgAuditLocation', { area: `${selectedZone.code} - ${selectedZone.name}` }));
   };
 
   const useZoneForAudit = (zone: FiveSZone) => {
@@ -2258,24 +2258,24 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setSelectedObjectId('');
 
     if (!onAuditZoneSelect) {
-      setActionMessage(`${zone.code} - ${zone.name} selected.`);
+      setActionMessage(t('fiveS.ui.msgSelected', { area: `${zone.code} - ${zone.name}` }));
       return;
     }
 
     onAuditZoneSelect(`${zone.code} - ${zone.name}`);
-    setActionMessage(`Audit location selected: ${zone.code} - ${zone.name}.`);
+    setActionMessage(t('fiveS.ui.msgAuditLocation', { area: `${zone.code} - ${zone.name}` }));
   };
 
   const markZoneWalkedToday = (zone: FiveSZone) => {
     updateZone(zone.id, { lastAuditAt: formatLocalDate() });
-    setActionMessage(`${zone.code} audit walk marked for today.`);
+    setActionMessage(t('fiveS.ui.msgWalkToday', { code: zone.code }));
   };
 
   const advanceSelectedZoneStage = () => {
     if (!selectedZone || !selectedStageGate?.nextStage) return;
 
     if (!selectedStageGate.complete) {
-      setActionMessage(`${selectedZone.code} gate is not complete yet.`);
+      setActionMessage(t('fiveS.ui.msgGateIncomplete', { code: selectedZone.code }));
       return;
     }
 
@@ -2307,7 +2307,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     };
 
     updateZone(selectedZone.id, withSyncedRedTags([...redTags, redTag]));
-    setActionMessage(`Red-tag item added to ${selectedZone.code}.`);
+    setActionMessage(t('fiveS.ui.msgRedTagAdded', { code: selectedZone.code }));
   };
 
   const updateSelectedZoneRedTag = (redTagId: string, patch: Partial<FiveSRedTag>) => {
@@ -2350,7 +2350,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
     const redTags = (selectedZone.redTags || []).filter((redTag) => redTag.id !== redTagId);
     updateZone(selectedZone.id, withSyncedRedTags(redTags));
-    setActionMessage(`Red-tag item removed from ${selectedZone.code}.`);
+    setActionMessage(t('fiveS.ui.msgRedTagRemoved', { code: selectedZone.code }));
   };
 
   const markSelectedZoneCleanedToday = () => {
@@ -2380,18 +2380,16 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
     try {
       await createTaskForZone(selectedZone);
-      setActionMessage(`Setup task created for ${selectedZone.code} - ${selectedZone.name}.`);
+      setActionMessage(t('fiveS.ui.msgSetupTaskCreated', { area: `${selectedZone.code} - ${selectedZone.name}` }));
     } catch {
-      setActionMessage(`Could not create setup task for ${selectedZone.code} - ${selectedZone.name}.`);
+      setActionMessage(t('fiveS.ui.msgSetupTaskFailed', { area: `${selectedZone.code} - ${selectedZone.name}` }));
     }
   };
 
   const createLaunchTasks = async () => {
     if (!zonesNeedingLaunchTasks.length) {
       setActionMessage(
-        showAuditControls
-          ? 'All 5S zones already have owners, contents, standards, and audit scores.'
-          : 'All 5S zones already have owners, contents, and standards.',
+        t(showAuditControls ? 'fiveS.ui.msgAllCompleteWithAudit' : 'fiveS.ui.msgAllComplete'),
       );
       return;
     }
@@ -2405,7 +2403,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
         ),
       );
 
-      setActionMessage(`${zonesNeedingLaunchTasks.length} 5S launch task(s) created.`);
+      setActionMessage(t('fiveS.ui.msgLaunchTasks', { count: zonesNeedingLaunchTasks.length }));
     } catch {
       setActionMessage(t('fiveS.ui.msgLaunchTasksFailed'));
     }
@@ -2414,9 +2412,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const createRolloutQueueTask = async (zone: FiveSZone) => {
     try {
       await createTaskForZone(zone, '5S rollout');
-      setActionMessage(`Rollout task created for ${zone.code} - ${zone.name}.`);
+      setActionMessage(t('fiveS.ui.msgRolloutTaskCreated', { area: `${zone.code} - ${zone.name}` }));
     } catch {
-      setActionMessage(`Could not create rollout task for ${zone.code} - ${zone.name}.`);
+      setActionMessage(t('fiveS.ui.msgRolloutTaskFailed', { area: `${zone.code} - ${zone.name}` }));
     }
   };
 
@@ -2428,7 +2426,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
     try {
       await Promise.all(rolloutQueue.map((item) => createTaskForZone(item.zone, '5S rollout')));
-      setActionMessage(`${rolloutQueue.length} filtered rollout task(s) created.`);
+      setActionMessage(t('fiveS.ui.msgRolloutTasks', { count: rolloutQueue.length }));
     } catch {
       setActionMessage(t('fiveS.ui.msgRolloutTasksFailed'));
     }
@@ -2453,7 +2451,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
         return nextStage ? { ...zone, stage: nextStage } : zone;
       }),
     }));
-    setActionMessage(`${readyToAdvanceZones.length} filtered area(s) advanced to the next 5S stage.`);
+    setActionMessage(t('fiveS.ui.msgAdvancedMany', { count: readyToAdvanceZones.length }));
   };
 
   const createRedTagTasks = async () => {
@@ -2510,7 +2508,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
         ),
       ]);
 
-      setActionMessage(`${taskCount} red tag(s) now have a cleanup task.`);
+      setActionMessage(t('fiveS.ui.msgCleanupTasks', { count: taskCount }));
     } catch {
       setActionMessage(t('fiveS.ui.msgRedTagTasksFailed'));
     }
@@ -2547,7 +2545,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
         ),
       );
 
-      setActionMessage(`${zonesAuditDue.length} 5S audit task(s) created.`);
+      setActionMessage(t('fiveS.ui.msgAuditTasks', { count: zonesAuditDue.length }));
     } catch {
       setActionMessage(t('fiveS.ui.msgAuditTasksFailed'));
     }
@@ -2609,7 +2607,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     link.download = `${plan.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-area-register.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    setActionMessage(`Area register exported with ${filteredZones.length} row(s).`);
+    setActionMessage(t('fiveS.ui.msgAreaRegisterExported', { count: filteredZones.length }));
   };
 
   const downloadRolloutQueueCsv = () => {
@@ -2638,7 +2636,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     link.download = `${plan.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-rollout-queue.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    setActionMessage(`Rollout queue exported with ${rolloutQueue.length} open action(s).`);
+    setActionMessage(t('fiveS.ui.msgRolloutExported', { count: rolloutQueue.length }));
   };
 
   const downloadRedTagRegisterCsv = () => {
@@ -2664,7 +2662,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     link.download = `${plan.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-red-tag-register.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    setActionMessage(`Red-tag register exported with ${redTagRegister.length} item(s).`);
+    setActionMessage(t('fiveS.ui.msgRedTagExported', { count: redTagRegister.length }));
   };
 
   const downloadAuditWalkCsv = () => {
@@ -2691,7 +2689,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     link.download = `${plan.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-audit-walk.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    setActionMessage(`Audit walk exported with ${auditWalkItems.length} area(s).`);
+    setActionMessage(t('fiveS.ui.msgAuditWalkExported', { count: auditWalkItems.length }));
   };
 
   const downloadPlanJson = () => {
@@ -2736,7 +2734,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       setPlan(savedPlan);
       setSelectedZoneId(savedPlan.zones[0]?.id || '');
       setSelectedObjectId('');
-      setActionMessage(`Imported ${savedPlan.zones.length} zone(s) and ${savedPlan.objects.length} object(s).`);
+      setActionMessage(t('fiveS.ui.msgImported', { zones: savedPlan.zones.length, objects: savedPlan.objects.length }));
     } catch {
       setActionMessage(t('fiveS.ui.msgImportFailed'));
     }
