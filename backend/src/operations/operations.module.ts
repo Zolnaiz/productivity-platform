@@ -20,6 +20,7 @@ import { MonthlyReportClose } from './entities/monthly-report-close.entity';
 import { Organization } from '../organizations/entities/organization.entity';
 import { ReportsController } from './reports.controller';
 import { ReportArchiveService } from './report-archive.service';
+import { DailyReminderService } from './daily-reminder.service';
 import { User } from '../users/entities/user.entity';
 import { Attachment } from './entities/attachment.entity';
 import { OperationsController } from './operations.controller';
@@ -84,6 +85,7 @@ import { NotificationsService } from './notifications.service';
     },
     AuditSchedulerService,
     ReportArchiveService,
+    DailyReminderService,
     NotificationsService,
     OperationsAuthGuard,
     PermissionsGuard,

@@ -10,6 +10,8 @@ import { BaseEntity } from '../../shared/entities/base.entity';
  */
 export enum NotificationKind {
   TASK_ASSIGNED = 'task_assigned',
+  /** The morning's reminder of work due today and work already late. */
+  DAILY_DIGEST = 'daily_digest',
 }
 
 /**

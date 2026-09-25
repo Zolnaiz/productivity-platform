@@ -672,6 +672,7 @@ const en = {
     tierAuditDue: '{{layer}} 5S audit due: {{place}}',
     redTagDecision: 'Red-tag decision due: {{item}}',
     auditFollowUp: '5S follow-up: {{place}}',
+    dailyDigest: 'Today: {{dueToday}} due, {{overdue}} late',
   },
   zone: {
     auditPhotoPrompt: 'Add a photograph of what you saw.',

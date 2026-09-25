@@ -88,6 +88,12 @@ export const envValidationSchema = Joi.object({
   // The daily job that closes last month's report on the fifth, so the
   // archive fills itself. On by default for the same reason.
   ENABLE_MONTH_CLOSE: Joi.boolean().truthy('true').falsy('false').default(true),
+  // The morning reminder of work due today and work already late, sent at the
+  // first hourly run after REMINDER_HOUR in REMINDER_TIME_ZONE — the
+  // organization's clock, not the container's.
+  ENABLE_DAILY_REMINDERS: Joi.boolean().truthy('true').falsy('false').default(true),
+  REMINDER_TIME_ZONE: Joi.string().default('Asia/Ulaanbaatar'),
+  REMINDER_HOUR: Joi.number().integer().min(0).max(11).default(8),
   JWT_SECRET: Joi.string().when('NODE_ENV', {
     is: 'production',
     then: Joi.string()
