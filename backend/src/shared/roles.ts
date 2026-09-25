@@ -127,6 +127,10 @@ const admin = [
   'templates:delete',
   // Changing the shape of the organization is an administrator's job, not a
   // line manager's — the same level as creating and retiring zones.
+  // Rewriting the standard everybody else is judged against is not the same
+  // act as filling in a register against it, so it sits with the other
+  // administrator powers rather than beside `guidelines:update`.
+  'guidelines:manage',
   'departments:create',
   'departments:update',
   'departments:delete',

@@ -1,9 +1,21 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FiveSGuidelineRegisters from './FiveSGuidelineRegisters';
 
 const storageKey = 'productivity-demo-5s-guideline-registers';
+
+/*
+  Who is reading the page. Rewriting the standard everybody is judged against
+  is an administrator's act, and these tests are about the registers rather
+  than about that, so the person here may fill them in and nothing more.
+*/
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { roles: ['user'] },
+    hasPermission: (permission: string) => permission === 'guidelines:update',
+  }),
+}));
 
 const improvement = {
   id: 'improvement-1',

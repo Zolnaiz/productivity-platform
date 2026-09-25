@@ -342,6 +342,56 @@ describe('operations API over HTTP', () => {
     });
   });
 
+  describe('the 5S standard, and who may rewrite it', () => {
+    beforeEach(() => {
+      repositories.get(FiveSGuideline)?.findOne.mockResolvedValue({
+        id: 'g1',
+        organizationId: 'org-1',
+        content: {},
+        records: {},
+      });
+    });
+
+    it.each([
+      [UserRole.ORGANIZATION_ADMIN, 200],
+      [UserRole.ADMIN, 200],
+      // A line manager runs their shift. Rewriting what everybody is judged
+      // against is not part of running a shift.
+      [UserRole.MANAGER, 403],
+      [UserRole.USER, 403],
+      [UserRole.VIEWER, 403],
+    ])('answers %s rewriting the standard with %i', async (role, status) => {
+      await request(app.getHttpServer())
+        .patch('/api/five-s-guidelines/content')
+        .set('Authorization', as(role))
+        .send({ content: { labelStandards: ['Ours'] } })
+        .expect(status);
+    });
+
+    it.each([
+      [UserRole.MANAGER, 200],
+      [UserRole.USER, 200],
+      // A viewer records nothing anywhere.
+      [UserRole.VIEWER, 403],
+    ])('answers %s filling in the register with %i', async (role, status) => {
+      await request(app.getHttpServer())
+        .patch('/api/five-s-guidelines')
+        .set('Authorization', as(role))
+        .send({ records: { checklistProgress: [] } })
+        .expect(status);
+    });
+
+    it('refuses a request that tries to change both at once', async () => {
+      // The standard and the records are saved on separate routes precisely so
+      // that one cannot arrive dressed as the other.
+      await request(app.getHttpServer())
+        .patch('/api/five-s-guidelines/content')
+        .set('Authorization', as(UserRole.ADMIN))
+        .send({ content: {}, records: {} })
+        .expect(400);
+    });
+  });
+
   describe('red-tagging from the floor', () => {
     beforeEach(() => {
       repositories.get(FiveSLayout)?.findOne.mockResolvedValue({

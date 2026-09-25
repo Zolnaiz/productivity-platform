@@ -145,4 +145,42 @@ describe('the 5S register', () => {
     await expect(service.findFiveSGuideline({ id: 'nobody' })).rejects.toBeDefined();
     await expect(service.saveFiveSGuidelineRecords({}, { id: 'nobody' })).rejects.toBeDefined();
   });
+
+  it('lets an administrator rewrite the standard without touching the records', async () => {
+    // One is what the organization is judged against; the other is what its
+    // people filled in today. A route that wrote both would let the last
+    // request in win over whichever came first.
+    const { service, repositories } = createService();
+    repositories.guidelines.findOne.mockResolvedValue({
+      id: 'g1',
+      organizationId: 'org-1',
+      content: { labelStandards: ['Old rule'] },
+      records: { improvements: [{ id: 'i1' }] },
+    });
+
+    await service.saveFiveSGuidelineContent({ labelStandards: ['New rule'] }, user);
+
+    expect(repositories.guidelines.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: { labelStandards: ['New rule'] },
+        records: { improvements: [{ id: 'i1' }] },
+      }),
+    );
+  });
+
+  it('starts a register when an organization writes its standard first', async () => {
+    const { service, repositories } = createService();
+
+    await service.saveFiveSGuidelineContent({ labelStandards: ['Ours'] }, user);
+
+    expect(repositories.guidelines.save).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'org-1', records: {} }),
+    );
+  });
+
+  it('will not write a standard for a caller with no organization', async () => {
+    const { service } = createService();
+
+    await expect(service.saveFiveSGuidelineContent({}, { id: 'nobody' })).rejects.toBeDefined();
+  });
 });

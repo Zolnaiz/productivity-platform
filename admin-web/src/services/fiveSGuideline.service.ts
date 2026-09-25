@@ -208,6 +208,29 @@ export const fiveSGuidelineService = {
     }
   },
 
+  /**
+   * Rewrites the standard the organization is judged against.
+   *
+   * Its own call rather than part of saving the records: one is what people
+   * filled in today and the other is what they are measured against, and a
+   * request carrying both would let whichever arrived last win.
+   */
+  saveContent: async (content: FiveSGuidelineContent): Promise<FiveSGuidelineContent> => {
+    if (isDemoMode()) {
+      // The demo's standard is a fixture rather than a record, so there is
+      // nothing to write it to. Handing it straight back keeps the page
+      // honest about what just happened.
+      return content;
+    }
+
+    const saved = await patch<{ content?: Partial<FiveSGuidelineContent> }>(
+      '/five-s-guidelines/content',
+      { content },
+    );
+
+    return normalizeContent(saved?.content ?? content);
+  },
+
   resetState,
   createImprovementRecord,
   createImplementationCard,

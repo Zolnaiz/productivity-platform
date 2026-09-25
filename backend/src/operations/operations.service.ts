@@ -162,6 +162,29 @@ export class OperationsService {
     );
   }
 
+  /**
+   * Rewrites the standard the organization is judged against.
+   *
+   * Content only, and by an administrator only. The records are what people
+   * fill in day to day and they are saved on a different route — a page that
+   * could write both would let a checklist tick and a change of standard
+   * arrive in the same request, and the last one in would win.
+   */
+  async saveFiveSGuidelineContent(content: Record<string, unknown>, user: CurrentUser) {
+    const where = this.organizationWhere(user);
+    const existing = await this.guidelines.findOne({ where });
+
+    if (existing) {
+      existing.content = content ?? {};
+
+      return this.guidelines.save(existing);
+    }
+
+    return this.guidelines.save(
+      this.guidelines.create({ ...where, content: content ?? {}, records: {} }),
+    );
+  }
+
   findProjects(user: CurrentUser) {
     return this.projects.find({
       where: this.organizationWhere(user),

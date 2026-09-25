@@ -700,6 +700,20 @@ export class SaveFiveSGuidelineRecordsDto extends OrganizationScopedDto {
   records: Record<string, unknown>;
 }
 
+/**
+ * The 5S standard an organization works to.
+ *
+ * Free-shaped for the same reason the records are: the browser composes the
+ * cadence, the labelling rules, the criteria and the checklists, and what
+ * matters at this boundary is that it is an object and that it cannot carry
+ * the records — a change of standard must not be able to rewrite what people
+ * filled in against the old one.
+ */
+export class SaveFiveSGuidelineContentDto extends OrganizationScopedDto {
+  @IsObject()
+  content: Record<string, unknown>;
+}
+
 export class CreateDepartmentDto extends OrganizationScopedDto {
   @IsString()
   @MaxLength(120)

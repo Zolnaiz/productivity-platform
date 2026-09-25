@@ -14,6 +14,8 @@ import Button from '../common/Button';
 import Card from '../common/Card';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { fiveSGuidelineService } from '../../services/fiveSGuideline.service';
+import { useAuth } from '../../contexts/AuthContext';
+import FiveSStandardEditor from './FiveSStandardEditor';
 import {
   FiveSAssessmentScore,
   FiveSGuidelineContent,
@@ -95,6 +97,11 @@ const emptyState: FiveSGuidelineState = {
 
 const FiveSGuidelineRegisters: React.FC = () => {
   const { t } = useTranslation();
+  /*
+    Rewriting what everybody is judged against is an administrator's act, and
+    the page asks the server's own table rather than guessing from a role.
+  */
+  const { hasPermission } = useAuth();
   /*
     The registers are the organization's now rather than this browser's, so
     they are fetched rather than read out of storage. Empty until they arrive:
@@ -682,6 +689,16 @@ const FiveSGuidelineRegisters: React.FC = () => {
           ))}
         </div>
       </Card>
+
+      {hasPermission('guidelines:manage') && (
+        <FiveSStandardEditor
+          content={content}
+          onSave={async (next) => {
+            const saved = await fiveSGuidelineService.saveContent(next);
+            setContent(saved);
+          }}
+        />
+      )}
 
       <ConfirmDialog
         isOpen={Boolean(pendingRemoval)}

@@ -7,6 +7,7 @@ import {
   CreateAssessmentTemplateDto,
   CreateAuditRunDto,
   CreateDepartmentDto,
+  SaveFiveSGuidelineContentDto,
   SaveFiveSGuidelineRecordsDto,
   UpdateDepartmentDto,
   CreateAuditTemplateDto,
@@ -276,6 +277,18 @@ export class OperationsController {
   @RequirePermission('guidelines:update')
   saveFiveSGuidelineRecords(@Body() body: SaveFiveSGuidelineRecordsDto, @Request() req) {
     return this.operationsService.saveFiveSGuidelineRecords(body.records, req.user);
+  }
+
+  /**
+   * The standard itself, which only an administrator rewrites.
+   *
+   * Separate from the records route on purpose: one is what an organization
+   * is judged against and the other is what its people filled in today.
+   */
+  @Patch('five-s-guidelines/content')
+  @RequirePermission('guidelines:manage')
+  saveFiveSGuidelineContent(@Body() body: SaveFiveSGuidelineContentDto, @Request() req) {
+    return this.operationsService.saveFiveSGuidelineContent(body.content, req.user);
   }
 
   @Get('audit-runs')

@@ -113,9 +113,10 @@ could be built honestly.
   kept against moved with them: the cadence, the labelling rules, the
   thirty-five assessment criteria and the checklists are seeded into the
   organization's own row rather than living in a React component, and the demo
-  carries a deliberately smaller sample. What is missing is the screen to edit
-  them — the data is the organization's, and changing it still means a
-  database write by hand.
+  carries a deliberately smaller sample. An administrator can now edit them on the
+  page: the cadence and the labelling rules in place, the thirty-five criteria
+  and the checklists as the text somebody pastes out of a spreadsheet, because
+  a form of seventy three-field rows is one nobody finishes.
 
 ### 5. Mobile
 
