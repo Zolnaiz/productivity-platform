@@ -217,7 +217,7 @@ const DailyGoalsPage: React.FC = () => {
       )}
 
       {!loading && goals.length > 0 && (
-        <Card title="Progress snapshot">
+        <Card title={t('goals.progressSnapshot')}>
           <div className="flex flex-col gap-3 text-sm text-gray-600 dark:text-gray-400 sm:flex-row sm:items-center sm:justify-between">
             <span>
               Нийт {goals.length} зорилгоос {stats.completedAll} нь биелсэн байна.

@@ -32,8 +32,17 @@ const zone = (redTags: FiveSRedTag[], over: Partial<FiveSZone> = {}): FiveSZone 
   }) as FiveSZone;
 
 /** Far enough out that the hold has not run down during the test. */
-const future = () => new Date(Date.now() + 20 * 86400000).toISOString().slice(0, 10);
-const past = () => new Date(Date.now() - 5 * 86400000).toISOString().slice(0, 10);
+// Days counted on the local calendar, as the holding area counts them. Using
+// UTC here made the "5 days" test read 6 between midnight and 08:00 in
+// Ulaanbaatar, when the UTC date is still yesterday's.
+const localDayOffset = (days: number) => {
+  const moment = new Date();
+  moment.setDate(moment.getDate() + days);
+  const two = (value: number) => String(value).padStart(2, '0');
+  return `${moment.getFullYear()}-${two(moment.getMonth() + 1)}-${two(moment.getDate())}`;
+};
+const future = () => localDayOffset(20);
+const past = () => localDayOffset(-5);
 
 const held = (over: Partial<FiveSRedTag> = {}) =>
   tag({ status: 'review', heldAt: '2026-08-01', holdUntil: future(), ...over });

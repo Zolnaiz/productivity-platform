@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface LoadingProps {
   size?: 'sm' | 'md' | 'lg';
@@ -11,6 +12,7 @@ const Loading: React.FC<LoadingProps> = ({
   fullscreen = false,
   text,
 }) => {
+  const { t } = useTranslation();
   // Tailwind ships no border-3; it would silently fall back to a hairline ring.
   const sizeClasses = {
     sm: 'h-6 w-6 border-2',
@@ -26,7 +28,7 @@ const Loading: React.FC<LoadingProps> = ({
       {text ? (
         <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">{text}</p>
       ) : (
-        <span className="sr-only">Loading</span>
+        <span className="sr-only">{t('common.loading')}</span>
       )}
     </div>
   );

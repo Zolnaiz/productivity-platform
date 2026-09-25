@@ -63,8 +63,8 @@ describe('Header search role visibility', () => {
 
     await userEvent.type(screen.getByRole('searchbox'), 'Admin');
 
-    await waitFor(() => expect(screen.getByText('No matching result')).toBeTruthy());
-    expect(screen.queryByText('Workspace control center')).toBeNull();
+    await waitFor(() => expect(screen.getByText('Nothing matches that.')).toBeTruthy());
+    expect(screen.queryByText('Workspace control centre')).toBeNull();
   });
 
   it('exposes admin pages in search for admin users', async () => {
@@ -76,6 +76,22 @@ describe('Header search role visibility', () => {
 
     await userEvent.type(screen.getByRole('searchbox'), 'Admin');
 
-    await waitFor(() => expect(screen.getByText('Workspace control center')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Workspace control centre')).toBeTruthy());
+  });
+});
+
+describe('Header search in Mongolian', () => {
+  it('finds a page by its Mongolian name', async () => {
+    // The page list was English, so searching in the interface's own
+    // language found nothing at all.
+    const { default: i18n } = await import('../../i18n');
+    await i18n.changeLanguage('mn');
+    authState.user = { name: 'Employee User', roles: ['employee'] };
+    renderHeader();
+
+    await userEvent.type(screen.getByRole('searchbox'), 'Хагас жил');
+
+    await waitFor(() => expect(screen.getByText('Хагас жил, жилийн тайлан')).toBeTruthy());
+    await i18n.changeLanguage('en');
   });
 });

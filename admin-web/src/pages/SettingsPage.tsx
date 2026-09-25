@@ -50,7 +50,7 @@ const SettingsPage: React.FC = () => {
       </div>
 
       {loading || !settings ? (
-        <Card loading title="Loading workspace settings">
+        <Card loading title={t('common.loading')}>
           <div />
         </Card>
       ) : (

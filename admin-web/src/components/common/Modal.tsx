@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ const Modal: React.FC<ModalProps> = ({
   showCloseButton = true,
   footer,
 }) => {
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const titleId = useId();
 
@@ -125,7 +127,7 @@ const Modal: React.FC<ModalProps> = ({
               {showCloseButton && (
                 <button
                   type="button"
-                  aria-label="Close dialog"
+                  aria-label={t('common.closeDialog')}
                   onClick={onClose}
                   className="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
                 >

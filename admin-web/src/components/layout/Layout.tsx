@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 
 const Layout: React.FC = () => {
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -31,7 +33,7 @@ const Layout: React.FC = () => {
                 className="ml-1 flex h-10 w-10 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
                 onClick={() => setSidebarOpen(false)}
               >
-                <span className="sr-only">Close sidebar</span>
+                <span className="sr-only">{t('common.closeMenu')}</span>
                 <svg
                   className="h-6 w-6 text-white"
                   fill="none"

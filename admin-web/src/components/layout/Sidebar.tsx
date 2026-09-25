@@ -341,12 +341,18 @@ const Sidebar: React.FC = () => {
       {!collapsed && (
         <div className="border-t border-gray-800 p-4">
           <div className="flex items-center space-x-3">
+            {/* Who is signed in. It said "Admin, Workspace owner" to everybody,
+                which on a shared shift computer is the one thing it must not get wrong. */}
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500">
-              <span className="text-sm font-bold">A</span>
+              <span className="text-sm font-bold">{(user?.name || user?.email || '?').charAt(0).toUpperCase()}</span>
             </div>
-            <div>
-              <p className="text-sm font-medium">Admin</p>
-              <p className="text-xs text-gray-400">Workspace owner</p>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium" data-testid="sidebar-user">
+                {user?.name || user?.email}
+              </p>
+              {user?.roles?.[0] && (
+                <p className="text-xs text-gray-400">{t(`users.roles.${user.roles[0]}`)}</p>
+              )}
             </div>
           </div>
         </div>

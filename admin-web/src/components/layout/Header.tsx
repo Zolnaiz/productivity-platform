@@ -25,27 +25,38 @@ interface SearchItem {
 const adminRoles = ['admin', 'super_admin'];
 const ownerRoles = ['super_admin'];
 
-const pageItems: SearchItem[] = [
-  { id: 'page-dashboard', title: 'Dashboard', subtitle: 'Operations overview', path: '/dashboard', type: 'Page' },
-  { id: 'page-projects', title: 'Projects', subtitle: 'Project progress and status', path: '/projects', type: 'Page' },
-  { id: 'page-tasks', title: 'Tasks', subtitle: 'Task and Kanban workflow', path: '/tasks', type: 'Page' },
-  { id: 'page-calendar', title: 'Calendar', subtitle: 'Deadlines and audit schedule', path: '/calendar', type: 'Page' },
-  { id: 'page-work-logs', title: 'Work Logs', subtitle: 'Daily employee work logs', path: '/work-logs', type: 'Page' },
-  { id: 'page-fives', title: '5S / Audits', subtitle: 'Industry inspection templates', path: '/fives', type: 'Page' },
-  { id: 'page-questionnaires', title: 'Questionnaires', subtitle: 'Assessment template builder', path: '/questionnaires', type: 'Page' },
-  { id: 'page-responses', title: 'Responses', subtitle: 'Assessment response review', path: '/responses', type: 'Page' },
-  { id: 'page-reports', title: 'Reports', subtitle: 'Monthly productivity report', path: '/reports', type: 'Page' },
-  { id: 'page-analytics', title: 'Analytics', subtitle: 'Productivity and department analytics', path: '/analytics', type: 'Page' },
-  { id: 'page-expenses', title: 'Expenses', subtitle: 'Project expenses and approvals', path: '/expenses', type: 'Page' },
-  { id: 'page-users', title: 'Users', subtitle: 'Team members and roles', path: '/users', type: 'Page', roles: adminRoles },
-  { id: 'page-departments', title: 'Departments', subtitle: 'Team structure', path: '/departments', type: 'Page', roles: adminRoles },
-  { id: 'page-admin', title: 'Admin', subtitle: 'Workspace control center', path: '/admin', type: 'Page', roles: adminRoles },
-  { id: 'page-organizations', title: 'Organizations', subtitle: 'Workspace profile', path: '/organizations', type: 'Page', roles: adminRoles },
-  { id: 'page-settings', title: 'Settings', subtitle: 'Workspace automation rules', path: '/settings', type: 'Page', roles: adminRoles },
-  { id: 'page-audit', title: 'Audit Log', subtitle: 'Owner activity and security events', path: '/audit', type: 'Page', roles: ownerRoles },
-  { id: 'page-profile', title: 'Profile', subtitle: 'Employee monthly summary', path: '/profile', type: 'Page' },
-  { id: 'page-goals', title: 'Goals', subtitle: 'Daily productivity goals', path: '/goals', type: 'Page' },
-  { id: 'page-notes', title: 'Notes', subtitle: 'Personal and project notes', path: '/notes', type: 'Page' },
+/**
+ * The pages search can take somebody to.
+ *
+ * Worded from the same keys as the navigation, and described by each page's
+ * own subtitle, so searching in Mongolian finds Mongolian page names. It was
+ * a list of English titles, so "тайлан" found nothing, and it did not know
+ * about pages added since it was written.
+ */
+const pageEntries: Array<{ key: string; subtitleKey?: string; path: string; roles?: string[] }> = [
+  { key: 'dashboard', subtitleKey: 'dashboard.subtitle', path: '/dashboard' },
+  { key: 'progressBoard', subtitleKey: 'progressBoard.subtitle', path: '/progress' },
+  { key: 'monthPlan', subtitleKey: 'monthPlan.subtitle', path: '/plan' },
+  { key: 'projects', subtitleKey: 'projects.subtitle', path: '/projects' },
+  { key: 'tasks', subtitleKey: 'tasks.subtitle', path: '/tasks' },
+  { key: 'calendar', subtitleKey: 'calendar.subtitle', path: '/calendar' },
+  { key: 'workLogs', subtitleKey: 'workLogs.subtitle', path: '/work-logs' },
+  { key: 'fiveS', subtitleKey: 'fiveS.subtitle', path: '/fives' },
+  { key: 'responses', path: '/responses' },
+  { key: 'reports', subtitleKey: 'monthlyReport.subtitle', path: '/reports' },
+  { key: 'periodReports', subtitleKey: 'periodReport.subtitle', path: '/reports/period' },
+  { key: 'analytics', subtitleKey: 'analytics.subtitle', path: '/analytics' },
+  { key: 'expenses', subtitleKey: 'expenses.subtitle', path: '/expenses' },
+  { key: 'notifications', subtitleKey: 'notifications.subtitle', path: '/notifications' },
+  { key: 'users', subtitleKey: 'users.subtitle', path: '/users', roles: adminRoles },
+  { key: 'departments', subtitleKey: 'departments.subtitle', path: '/departments', roles: adminRoles },
+  { key: 'adminHome', subtitleKey: 'search.adminSubtitle', path: '/admin', roles: adminRoles },
+  { key: 'organizations', subtitleKey: 'organizations.subtitle', path: '/organizations', roles: adminRoles },
+  { key: 'settings', subtitleKey: 'settings.subtitle', path: '/settings', roles: adminRoles },
+  { key: 'auditLog', subtitleKey: 'auditLog.subtitle', path: '/audit', roles: ownerRoles },
+  { key: 'profile', subtitleKey: 'profile.subtitle', path: '/profile' },
+  { key: 'goals', subtitleKey: 'goals.subtitle', path: '/goals' },
+  { key: 'notes', subtitleKey: 'notes.subtitle', path: '/notes' },
 ];
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
@@ -53,9 +64,19 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const userRoles = useMemo(() => user?.roles || [], [user?.roles]);
-  const visiblePageItems = useMemo(
-    () => pageItems.filter((item) => !item.roles?.length || item.roles.some((role) => userRoles.includes(role as any))),
-    [userRoles],
+  const visiblePageItems = useMemo<SearchItem[]>(
+    () =>
+      pageEntries
+        .filter((item) => !item.roles?.length || item.roles.some((role) => userRoles.includes(role as any)))
+        .map((item) => ({
+          id: `page-${item.key}`,
+          title: t(`nav.${item.key}`),
+          subtitle: item.subtitleKey ? t(item.subtitleKey, { defaultValue: '' }) : '',
+          path: item.path,
+          type: t('search.typePage'),
+          roles: item.roles,
+        })),
+    [t, userRoles],
   );
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
@@ -95,35 +116,35 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           title: project.name,
           subtitle: `${project.status} - ${project.progress}% complete`,
           path: '/projects',
-          type: 'Project',
+          type: t('search.typeProject'),
         })),
         ...tasks.map((task) => ({
           id: `task-${task.id}`,
           title: task.title,
           subtitle: `${task.status} - ${task.priority}`,
           path: '/tasks',
-          type: 'Task',
+          type: t('search.typeTask'),
         })),
         ...auditTemplates.map((template) => ({
           id: `audit-template-${template.id}`,
           title: template.title,
           subtitle: `${template.industry || 'General'} - ${template.category.replace('_', ' ')}`,
           path: '/fives',
-          type: 'Audit Template',
+          type: t('search.typeAuditTemplate'),
         })),
         ...responses.map((response) => ({
           id: `response-${response.id}`,
           title: response.respondent,
           subtitle: `${response.department} - ${response.score}% - ${response.status}`,
           path: '/responses',
-          type: 'Response',
+          type: t('search.typeResponse'),
         })),
         ...expenses.map((expense) => ({
           id: `expense-${expense.id}`,
           title: expense.title,
           subtitle: `${expense.category} - ${expense.status}`,
           path: '/expenses',
-          type: 'Expense',
+          type: t('search.typeExpense'),
         })),
       ]);
     };
@@ -162,7 +183,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
       <div className="flex min-w-0 flex-1 items-center gap-4">
         <button
           type="button"
-          aria-label="Open navigation menu"
+          aria-label={t('search.openMenu')}
           className="rounded-lg p-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 lg:hidden"
           onClick={onMenuClick}
         >
@@ -210,7 +231,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                   </button>
                 ))
               ) : (
-                <div className="px-4 py-3 text-sm text-gray-500">No matching result</div>
+                <div className="px-4 py-3 text-sm text-gray-500">{t('search.noResults')}</div>
               )}
             </div>
           )}

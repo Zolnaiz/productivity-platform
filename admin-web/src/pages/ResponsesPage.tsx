@@ -316,8 +316,8 @@ const ResponsesPage: React.FC = () => {
                         }))
                       }
                     >
-                      <option value="no">No</option>
-                      <option value="yes">Yes</option>
+                      <option value="no">{t("common.no")}</option>
+                      <option value="yes">{t("common.yes")}</option>
                     </Select>
                   )}
                   {question.type === "text" && (

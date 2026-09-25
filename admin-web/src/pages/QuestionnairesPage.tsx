@@ -333,9 +333,9 @@ const QuestionnairesPage: React.FC = () => {
                   }))
                 }
               >
-                <option value="inspection">Inspection</option>
-                <option value="quality">Quality</option>
-                <option value="safety">Safety</option>
+                <option value="inspection">{t("assessments.inspection")}</option>
+                <option value="quality">{t("assessments.quality")}</option>
+                <option value="safety">{t("assessments.safety")}</option>
                 <option value="feedback">{t("assessments.feedback")}</option>
                 <option value="survey">{t("assessments.survey")}</option>
               </Select>
