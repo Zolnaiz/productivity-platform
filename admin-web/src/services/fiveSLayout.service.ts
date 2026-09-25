@@ -1,7 +1,10 @@
-import { FiveSLayoutPlan, FiveSZone, FloorPlanObject, FloorPlanObjectType } from '../types/fiveS.types';
-import { get, getStoredAccessToken, isDemoMode, patch, shouldUseDemoFallback } from './api';
+import { FiveSLayoutPlan, FiveSRedTag, FiveSZone, FloorPlanObject, FloorPlanObjectType } from '../types/fiveS.types';
+import { withSyncedRedTags } from '../components/fives/floorPlanRules';
+import { pruneOpenings } from '../components/fives/floorPlanOpenings';
+import { del, get, getStoredAccessToken, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
+import { readDemoPlans, replaceDemoPlan, writeDemoPlans } from './demoPlanStore';
+import { FiveSLayoutVersion } from '../types/fiveS.types';
 
-const storageKey = 'productivity-demo-5s-layout';
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
 
 const now = () => new Date().toISOString();
@@ -18,6 +21,9 @@ const defaultZones: FiveSZone[] = [
     height: 132,
     ownerId: 'u1',
     ownerName: 'Demo Owner',
+    // The area answers to a department as well as to a person: the name on
+    // a zone is who to ask today, the department is what outlives them.
+    departmentId: 'd1',
     contents: 'Visitor desk, waiting chairs, incoming document tray',
     standard: 'Front desk clear, visitor chairs aligned, documents sorted before 17:00.',
     labelText: 'Reception - owner visible at desk',
@@ -40,6 +46,7 @@ const defaultZones: FiveSZone[] = [
     height: 204,
     ownerId: 'u3',
     ownerName: 'Employee User',
+    departmentId: 'd1',
     contents: 'Employee desks, laptops, printers, shared stationery',
     standard: 'Only active work items on desks, cables tied, shared items returned to labeled shelf.',
     labelText: 'Desk standard photo and cable labels required',
@@ -83,6 +90,7 @@ const defaultZones: FiveSZone[] = [
     height: 170,
     ownerId: 'u2',
     ownerName: 'Quality Manager',
+    departmentId: 'd2',
     contents: 'Office supplies, cleaning tools, spare labels, PPE',
     standard: 'Every shelf position labeled, min/max stock marked, red-tag box checked weekly.',
     labelText: 'Shelf labels + red-tag area',
@@ -226,6 +234,7 @@ const defaultPlan: FiveSLayoutPlan = {
   id: 'default-5s-office-plan',
   name: 'Office 5S launch map',
   site: 'Demo Operations Workspace',
+  floor: '1st floor',
   scale: '1 square = 1 meter',
   backgroundImage: '',
   backgroundOpacity: 0.55,
@@ -234,6 +243,80 @@ const defaultPlan: FiveSLayoutPlan = {
   objects: defaultObjects,
   updatedAt: now(),
 };
+
+/**
+ * The demo's second building.
+ *
+ * A plan per floor, a site per building and the switcher between them are
+ * among the most-worked-on parts of this application, and none of it could be
+ * seen in the demo, which held exactly one plan. Somebody evaluating the
+ * product concluded it did one floor of one building.
+ *
+ * Deliberately small: two areas and no furniture. It exists to show that a
+ * second plan is a real thing with its own zones, its own audits and its own
+ * line in the monthly report, not to be a second drawing to admire.
+ */
+const defaultWarehousePlan: FiveSLayoutPlan = {
+  id: 'default-5s-warehouse-plan',
+  name: 'Warehouse 5S map',
+  site: 'Demo Warehouse',
+  floor: 'Ground floor',
+  scale: '1 square = 1 meter',
+  backgroundImage: '',
+  backgroundOpacity: 0.55,
+  showGrid: true,
+  zones: [
+    {
+      id: 'zone-w1',
+      code: 'B01',
+      name: 'Goods in',
+      color: '#f97316',
+      x: 60,
+      y: 60,
+      width: 300,
+      height: 180,
+      ownerId: 'u3',
+      ownerName: 'Employee User',
+      departmentId: 'd1',
+      contents: 'Incoming pallets, hand scanner, wrapping station',
+      standard: 'Pallets squared to the floor marking, aisle kept clear, scanner returned to its dock.',
+      labelText: 'Goods in - pallets on the marked squares',
+      stage: 'set_in_order',
+      auditFrequency: 'weekly',
+      lastAuditScore: 76,
+      lastAuditAt: '2026-06-18',
+      redTagCount: 0,
+      redTags: [],
+      lastCleanedAt: '2026-06-18',
+    },
+    {
+      id: 'zone-w2',
+      code: 'B02',
+      name: 'Racking aisle 1',
+      color: '#0ea5e9',
+      x: 400,
+      y: 60,
+      width: 260,
+      height: 320,
+      ownerId: 'u2',
+      ownerName: 'Quality Manager',
+      departmentId: 'd2',
+      contents: 'Racking bays 1-8, picking trolley',
+      standard: 'Every bay labelled, nothing stored on the floor, trolley parked at the end of the aisle.',
+      labelText: 'Aisle 1 - nothing on the floor',
+      stage: 'sort',
+      auditFrequency: 'monthly',
+      redTagCount: 0,
+      redTags: [],
+      lastCleanedAt: '',
+    },
+  ] as FiveSZone[],
+  objects: [],
+  updatedAt: now(),
+};
+
+/** What a browser with no demo plans is seeded with. */
+const defaultPlans = (): FiveSLayoutPlan[] => [defaultPlan, defaultWarehousePlan];
 
 const unwrap = <T>(response: ApiEnvelope<T>): T => {
   if (response && typeof response === 'object' && 'data' in response) {
@@ -263,16 +346,31 @@ const fallback = async <T>(request: () => Promise<ApiEnvelope<T>>, demoData: T |
   }
 };
 
+/**
+ * What the server is told.
+ *
+ * The wall graph and the scale were missing from this list while the editor
+ * was learning to draw walls, find rooms and measure in metres — so a plan
+ * drawn against a real backend was complete on screen and empty again after a
+ * reload, silently, because the fields were dropped on the way out rather than
+ * refused.
+ */
 const withoutServerFields = (plan: FiveSLayoutPlan) => {
   const payload = {
     name: plan.name,
     site: plan.site,
+    floor: plan.floor ?? '',
     scale: plan.scale,
     backgroundImage: plan.backgroundImage || '',
     backgroundOpacity: plan.backgroundOpacity ?? 0.55,
     showGrid: plan.showGrid ?? true,
     zones: plan.zones,
     objects: plan.objects,
+    corners: plan.corners ?? [],
+    walls: plan.walls ?? [],
+    openings: plan.openings ?? [],
+    roomLabels: plan.roomLabels ?? [],
+    ...(plan.metresPerUnit ? { metresPerUnit: plan.metresPerUnit } : {}),
   };
 
   return payload;
@@ -302,6 +400,8 @@ const normalizePlan = (plan: FiveSLayoutPlan): FiveSLayoutPlan => ({
   backgroundImage: plan.backgroundImage || '',
   backgroundOpacity: plan.backgroundOpacity ?? 0.55,
   showGrid: plan.showGrid ?? true,
+  snapToGrid: plan.snapToGrid ?? true,
+  showDimensions: plan.showDimensions ?? false,
   zones: (plan.zones || []).map((zone) => {
     const redTags = normalizeZoneRedTags(zone);
 
@@ -314,53 +414,67 @@ const normalizePlan = (plan: FiveSLayoutPlan): FiveSLayoutPlan => ({
     };
   }),
   objects: plan.objects || [],
+  corners: plan.corners || [],
+  walls: plan.walls || [],
+  // Openings whose wall has gone are dropped on the way in: a door that
+  // outlives its wall draws nowhere and can never be reached to delete.
+  openings: pruneOpenings(plan.openings || [], plan.walls || []),
+  roomLabels: plan.roomLabels || [],
 });
 
-const withDefaultLayoutWhenEmpty = (plan: FiveSLayoutPlan): FiveSLayoutPlan => {
-  if (plan.zones?.length || plan.objects?.length) {
-    return normalizePlan({
-      ...plan,
-      zones: plan.zones || [],
-      objects: plan.objects || [],
-    });
-  }
-
-  return normalizePlan({
-    ...defaultPlan,
-    id: plan.id,
-    organizationId: plan.organizationId,
-    name: plan.name || defaultPlan.name,
-    site: plan.site || defaultPlan.site,
-    scale: plan.scale || defaultPlan.scale,
-    backgroundImage: plan.backgroundImage || defaultPlan.backgroundImage,
-    backgroundOpacity: plan.backgroundOpacity ?? defaultPlan.backgroundOpacity,
-    showGrid: plan.showGrid ?? defaultPlan.showGrid,
-    createdAt: plan.createdAt,
+/**
+ * An organization's own plan, left empty when it is empty.
+ *
+ * This used to substitute a pre-drawn sample office whenever the plan had no
+ * zones — so somebody signing up for the first time was shown a building that
+ * was not theirs, with areas named Reception and Workstations, and their first
+ * job was working out that none of it was real and deleting it. An empty plan
+ * is not a problem to paper over; it is what a new workspace is, and the
+ * editor now offers a blueprint import, a blank plan or a named template
+ * instead of pretending the question is already answered.
+ *
+ * Demo mode still has its sample plan. That is what demo mode is for, and it
+ * says so on the sign-in screen.
+ */
+const withOwnLayout = (plan: FiveSLayoutPlan): FiveSLayoutPlan =>
+  normalizePlan({
+    ...plan,
+    zones: plan.zones || [],
+    objects: plan.objects || [],
     updatedAt: plan.updatedAt || now(),
   });
-};
 
-const readPlan = () => {
-  const stored = localStorage.getItem(storageKey);
+/** Every plan the demo holds, seeded the first time anybody looks. */
+const readPlans = (): FiveSLayoutPlan[] => {
+  const stored = readDemoPlans<FiveSLayoutPlan & Record<string, unknown>>();
 
-  if (stored) {
-    try {
-      return normalizePlan(JSON.parse(stored) as FiveSLayoutPlan);
-    } catch {
-      localStorage.removeItem(storageKey);
-    }
+  if (stored?.length) {
+    return stored.map(normalizePlan);
   }
 
-  localStorage.setItem(storageKey, JSON.stringify(defaultPlan));
-  return normalizePlan(defaultPlan);
+  return writeDemoPlans(defaultPlans()).map(normalizePlan);
+};
+
+/**
+ * One plan by id, or the first when nothing is asked for.
+ *
+ * A label printed for an area names the plan it is on, so opening it has to
+ * find that plan rather than whichever is stored first — the same rule the
+ * server follows.
+ */
+const readPlan = (id?: string) => {
+  const plans = readPlans();
+
+  return (id && plans.find((plan) => plan.id === id)) || plans[0];
 };
 
 const savePlan = (plan: FiveSLayoutPlan) => {
-  const nextPlan = {
-    ...plan,
-    updatedAt: now(),
-  };
-  localStorage.setItem(storageKey, JSON.stringify(nextPlan));
+  const nextPlan = { ...plan, updatedAt: now() };
+  const plans = readPlans();
+  const known = plans.some((candidate) => candidate.id === nextPlan.id);
+
+  writeDemoPlans(known ? replaceDemoPlan(plans, nextPlan) : [...plans, nextPlan]);
+
   return normalizePlan(nextPlan);
 };
 
@@ -393,27 +507,50 @@ const createZone = (zones: FiveSZone[]): FiveSZone => {
   };
 };
 
-const objectDefaults: Record<FloorPlanObjectType, Omit<FloorPlanObject, 'id' | 'type'>> = {
-  wall: { label: 'Wall', x: 410, y: 254, width: 160, height: 10 },
-  door: { label: 'Door', x: 410, y: 254, width: 74, height: 18 },
-  desk: { label: 'Desk', x: 410, y: 254, width: 86, height: 52 },
-  chair: { label: 'Chair', x: 410, y: 254, width: 34, height: 34 },
-  table: { label: 'Table', x: 410, y: 254, width: 92, height: 70 },
-  shelf: { label: 'Shelf', x: 410, y: 254, width: 132, height: 42 },
-  cabinet: { label: 'Cabinet', x: 410, y: 254, width: 72, height: 58 },
-  printer: { label: 'Printer', x: 410, y: 254, width: 54, height: 44 },
-  equipment: { label: 'Equipment', x: 410, y: 254, width: 58, height: 46 },
-  whiteboard: { label: 'Whiteboard', x: 410, y: 254, width: 120, height: 48 },
-  sofa: { label: 'Sofa', x: 410, y: 254, width: 110, height: 48 },
-  plant: { label: 'Plant', x: 410, y: 254, width: 38, height: 46 },
-  waste_bin: { label: 'Waste bin', x: 410, y: 254, width: 34, height: 42 },
-  sink: { label: 'Sink', x: 410, y: 254, width: 58, height: 42 },
+const objectLabels: Record<FloorPlanObjectType, string> = {
+  wall: 'Wall',
+  door: 'Door',
+  desk: 'Desk',
+  chair: 'Chair',
+  table: 'Meeting table',
+  shelf: 'Shelf',
+  cabinet: 'Cabinet',
+  pallet: 'Pallet',
+  racking: 'Racking bay',
+  workbench: 'Workbench',
+  printer: 'Printer',
+  equipment: 'Equipment',
+  whiteboard: 'Whiteboard',
+  sofa: 'Sofa',
+  plant: 'Plant',
+  waste_bin: 'Waste bin',
+  sink: 'Sink',
 };
 
-const createObject = (type: FloorPlanObjectType): FloorPlanObject => ({
-  ...objectDefaults[type],
+/** What a legacy type with no real size falls back to. */
+const LEGACY_SIZE = { width: 120, height: 40 };
+
+/**
+ * A new object, at the size the caller says it is.
+ *
+ * The size used to live here, in canvas pixels: a desk was 86 by 52 because
+ * that looked about right. Nothing could be checked against anything — not
+ * whether four of them fit along a wall, not whether a pallet truck could get
+ * between two benches. The catalogue now holds real dimensions in metres and
+ * the editor converts them through the plan's own scale, which is the only
+ * place that knows what the scale is.
+ */
+const createObject = (
+  type: FloorPlanObjectType,
+  placement?: { x: number; y: number; width: number; height: number },
+): FloorPlanObject => ({
   id: `${type}-${Date.now()}`,
   type,
+  label: objectLabels[type] ?? type,
+  x: placement?.x ?? 410,
+  y: placement?.y ?? 254,
+  width: placement?.width ?? LEGACY_SIZE.width,
+  height: placement?.height ?? LEGACY_SIZE.height,
 });
 
 const zoneLabelHeaders = [
@@ -435,6 +572,9 @@ const escapeCsvCell = (value: string | number | undefined) => `"${String(value ?
 
 const buildZoneLabelRows = (plan: FiveSLayoutPlan) =>
   plan.zones.map((zone) => ({
+    // The id travels with the row so a printed label can carry a code that
+    // opens this zone and not another one with the same letter on it.
+    id: zone.id,
     code: zone.code,
     zone: zone.name,
     owner: zone.ownerName || 'Unassigned',
@@ -475,18 +615,165 @@ const buildZoneLabelsCsv = (plan: FiveSLayoutPlan) => {
 };
 
 export const fiveSLayoutService = {
-  getPlan: () =>
-    fallback<FiveSLayoutPlan>(
-      async () => withDefaultLayoutWhenEmpty(await get<FiveSLayoutPlan>('/five-s-layout')),
-      readPlan,
+  /**
+   * Every plan the organization has â€” one per floor of one per building.
+   *
+   * Demo mode has the one it keeps in the browser: a demo with two floors
+   * would be inventing a building nobody has.
+   */
+  getPlans: () =>
+    fallback<FiveSLayoutPlan[]>(
+      async () => (await get<FiveSLayoutPlan[]>('/five-s-layouts')).map(withOwnLayout),
+      readPlans,
     ),
+
+  createPlan: (plan: { name: string; site: string; floor?: string }) =>
+    fallback<FiveSLayoutPlan>(
+      async () => withOwnLayout(await post<FiveSLayoutPlan>('/five-s-layouts', plan)),
+      () => {
+        // A real second plan rather than a pretend one: the demo holds a list,
+        // so a floor somebody adds here is a floor they can then draw on.
+        const added = normalizePlan({
+          ...defaultPlan,
+          id: `demo-plan-${Date.now()}`,
+          name: plan.name,
+          site: plan.site,
+          floor: plan.floor ?? '',
+          zones: [],
+          objects: [],
+          updatedAt: now(),
+        });
+
+        writeDemoPlans([...readPlans(), added]);
+
+        return added;
+      },
+    ),
+
+  deletePlan: (id: string) =>
+    fallback<{ id: string; deleted: boolean }>(
+      () => del<{ id: string; deleted: boolean }>(`/five-s-layouts/${id}`),
+      () => {
+        const plans = readPlans();
+
+        // Never the last one: an organization with no plan has nowhere to put
+        // an area, and the editor would have nothing to open.
+        if (plans.length <= 1 || !plans.some((plan) => plan.id === id)) {
+          return { id, deleted: false };
+        }
+
+        writeDemoPlans(plans.filter((plan) => plan.id !== id));
+
+        return { id, deleted: true };
+      },
+    ),
+
+  /**
+   * Raises a red tag on one zone, from wherever somebody is standing.
+   *
+   * Its own route rather than a plan save: whoever finds the clutter may say
+   * so without being able to redraw the building, and the server decides the
+   * id, the status and the date.
+   */
+  addRedTag: (planId: string, zoneId: string, tag: { title: string; disposition?: string }) =>
+    fallback<FiveSRedTag>(
+      () => post<FiveSRedTag>(`/five-s-layouts/${planId}/zones/${zoneId}/red-tags`, tag),
+      () => {
+        const plan = readPlan(planId);
+        const raised: FiveSRedTag = {
+          id: `redtag-${Date.now()}`,
+          title: tag.title.trim(),
+          disposition: tag.disposition?.trim() ?? '',
+          status: 'open',
+          createdAt: now(),
+        };
+
+        savePlan({
+          ...plan,
+          zones: plan.zones.map((zone) =>
+            zone.id === zoneId
+              ? { ...zone, ...withSyncedRedTags([...(zone.redTags ?? []), raised]) }
+              : zone,
+          ),
+        });
+
+        return raised;
+      },
+    ),
+
+  /**
+   * Records that an area was cleaned, today.
+   *
+   * The date comes back from the server rather than being decided here: a
+   * browser's clock is whatever the machine says it is, and this date is what
+   * the audit schedule and the monthly report read.
+   */
+  markCleaned: (planId: string, zoneId: string) =>
+    fallback<{ zoneId: string; lastCleanedAt: string }>(
+      () =>
+        post<{ zoneId: string; lastCleanedAt: string }>(
+          `/five-s-layouts/${planId}/zones/${zoneId}/cleaned`,
+          {},
+        ),
+      () => {
+        const plan = readPlan(planId);
+        const lastCleanedAt = now().slice(0, 10);
+
+        savePlan({
+          ...plan,
+          zones: plan.zones.map((zone) => (zone.id === zoneId ? { ...zone, lastCleanedAt } : zone)),
+        });
+
+        return { zoneId, lastCleanedAt };
+      },
+    ),
+
+  /**
+   * The days this plan was snapshotted, newest first.
+   *
+   * Demo mode has none: the snapshots are the server's, and inventing a
+   * history for a workspace that has none would be a picture of a feature
+   * rather than the feature.
+   */
+  getPlanVersions: (planId: string) =>
+    fallback<FiveSLayoutVersion[]>(
+      () => get<FiveSLayoutVersion[]>(`/five-s-layouts/${planId}/versions`),
+      () => [],
+    ),
+
+  keepPlanVersion: (planId: string, label?: string) =>
+    fallback<FiveSLayoutVersion | null>(
+      () => post<FiveSLayoutVersion | null>(`/five-s-layouts/${planId}/versions`, { label }),
+      () => null,
+    ),
+
+  restorePlanVersion: (planId: string, versionId: string) =>
+    fallback<FiveSLayoutPlan>(
+      async () =>
+        withOwnLayout(
+          await post<FiveSLayoutPlan>(`/five-s-layouts/${planId}/versions/${versionId}/restore`, {}),
+        ),
+      () => readPlan(planId),
+    ).then(normalizePlan),
+
+  getPlan: (id?: string) =>
+    fallback<FiveSLayoutPlan>(
+      async () => withOwnLayout(await get<FiveSLayoutPlan>(id ? `/five-s-layout?id=${id}` : '/five-s-layout')),
+      () => readPlan(id),
+    ),
+
   savePlan: (plan: FiveSLayoutPlan) =>
     fallback<FiveSLayoutPlan>(
-      async () => patch<FiveSLayoutPlan>('/five-s-layout', withoutServerFields(plan)),
+      async () =>
+        // By id when the plan has one, so a building with several floors saves
+        // the floor being edited rather than whichever comes back first.
+        plan.id && !plan.id.startsWith('default-')
+          ? patch<FiveSLayoutPlan>(`/five-s-layouts/${plan.id}`, withoutServerFields(plan))
+          : patch<FiveSLayoutPlan>('/five-s-layout', withoutServerFields(plan)),
       () => savePlan(plan),
     ).then(normalizePlan),
   resetPlan: async () => {
-    localStorage.setItem(storageKey, JSON.stringify({ ...defaultPlan, updatedAt: now() }));
+    writeDemoPlans(defaultPlans().map((plan) => ({ ...plan, updatedAt: now() })));
     const plan = readPlan();
 
     if (!hasRealAccessToken()) {

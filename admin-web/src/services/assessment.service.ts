@@ -1,5 +1,5 @@
 import { AssessmentResponse, AssessmentTemplate } from '../types/assessment.types';
-import { get, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
+import { get, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
 
 type AssessmentKey = 'templates' | 'responses';
 
@@ -115,7 +115,7 @@ export const assessmentService = {
 
     const item: AssessmentTemplate = {
       ...data,
-      id: `local-template-${Date.now()}`,
+      id: localId('local-template'),
       createdAt: new Date().toISOString().slice(0, 10),
     };
     write('templates', [item, ...read<AssessmentTemplate>('templates')]);
@@ -142,7 +142,7 @@ export const assessmentService = {
       return post<AssessmentResponse>('/assessment-responses', data);
     }
 
-    const item: AssessmentResponse = { ...data, id: `local-response-${Date.now()}` };
+    const item: AssessmentResponse = { ...data, id: localId('local-response') };
     write('responses', [item, ...read<AssessmentResponse>('responses')]);
     return Promise.resolve(item);
   },

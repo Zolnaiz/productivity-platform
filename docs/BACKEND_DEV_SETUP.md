@@ -22,6 +22,39 @@ npm run db:down
 
 If Docker Desktop is not running, `npm run db:up` will fail with a Docker daemon connection error.
 
+## Native PostgreSQL on Windows
+
+Docker needs hardware virtualisation, which some machines have disabled in
+firmware and which is not always possible to turn on. A native install works
+just as well for development and needs none of it.
+
+1. Install PostgreSQL from https://www.postgresql.org/download/windows/ —
+   port `5432`, and choose a password for the `postgres` superuser. Stack
+   Builder at the end is optional; nothing here needs it.
+2. Copy `backend/.env.example` to `backend/.env` and set `DB_PASSWORD` to that
+   password. `.env` is gitignored, so it stays off the repository.
+3. Create the database, then migrate and seed:
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\createdb.exe" -U postgres questionnaire_db
+cd backend
+npm run migration:run
+npm run seed
+```
+
+4. Start the API and run the smoke against it:
+
+```powershell
+npm run build
+npm run start:prod
+# in another terminal
+npm run smoke:api
+```
+
+`npm run migration:check` needs none of this — it runs PostgreSQL in process
+and is part of `verify.ps1`. The install is for the runtime smoke, which also
+exercises connection handling, pooling and the seed.
+
 ## Environment
 
 Copy `backend/.env.example` to `backend/.env` and adjust as needed.

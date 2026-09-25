@@ -1,20 +1,38 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import Input from '../components/common/Input';
+import Select from '../components/common/Select';
+import { changeLanguage } from '../i18n';
 import { adminService } from '../services/admin.service';
 import { WorkspaceSettings } from '../types/admin.types';
 
 const SettingsPage: React.FC = () => {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<WorkspaceSettings | null>(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    adminService.getWorkspaceSettings().then(setSettings).finally(() => setLoading(false));
+    adminService
+      .getWorkspaceSettings()
+      .then((workspaceSettings) => {
+        setSettings(workspaceSettings);
+        // A browser that has never chosen a language still follows the
+        // workspace's own setting.
+        void changeLanguage(workspaceSettings.language);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const updateField = <T extends keyof WorkspaceSettings>(field: T, value: WorkspaceSettings[T]) => {
     setSettings((current) => (current ? { ...current, [field]: value } : current));
     setSaved(false);
+
+    // Apply the language immediately: the control claimed to change the
+    // language long before anything was actually translated.
+    if (field === 'language') void changeLanguage(String(value));
   };
 
   const saveSettings = async () => {
@@ -27,10 +45,8 @@ const SettingsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Settings</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Report automation, notification rules, and workspace preferences.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('settings.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('settings.subtitle')}</p>
       </div>
 
       {loading || !settings ? (
@@ -39,71 +55,52 @@ const SettingsPage: React.FC = () => {
         </Card>
       ) : (
         <>
-      <Card title="Workspace preferences">
+      <Card title={t('settings.workspacePreferences')}>
         <div className="grid gap-4 md:grid-cols-3">
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Timezone</span>
-            <select
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-              value={settings.timezone}
-              onChange={(event) => updateField('timezone', event.target.value)}
-            >
-              <option value="Asia/Ulaanbaatar">Asia/Ulaanbaatar</option>
-              <option value="UTC">UTC</option>
-              <option value="Asia/Tokyo">Asia/Tokyo</option>
-            </select>
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Language</span>
-            <select
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-              value={settings.language}
-              onChange={(event) => updateField('language', event.target.value)}
-            >
-              <option value="mn-MN">Mongolian</option>
-              <option value="en-US">English</option>
-            </select>
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Month close day</span>
-            <input
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-              max={31}
-              min={1}
-              type="number"
-              value={settings.monthCloseDay}
-              onChange={(event) => updateField('monthCloseDay', Number(event.target.value))}
-            />
-          </label>
+          <Select
+            label={t('settings.timezone')}
+            value={settings.timezone}
+            onChange={(event) => updateField('timezone', event.target.value)}
+          >
+            <option value="Asia/Ulaanbaatar">Asia/Ulaanbaatar</option>
+            <option value="UTC">UTC</option>
+            <option value="Asia/Tokyo">Asia/Tokyo</option>
+          </Select>
+          <Select
+            label={t('settings.language')}
+            value={settings.language}
+            onChange={(event) => updateField('language', event.target.value)}
+          >
+            {/* Each language names itself, so it is readable whichever is active. */}
+            <option value="mn-MN">Монгол</option>
+            <option value="en-US">English</option>
+          </Select>
+          <Input
+            label={t('settings.monthCloseDay')}
+            max={31}
+            min={1}
+            type="number"
+            value={settings.monthCloseDay}
+            onChange={(event) => updateField('monthCloseDay', Number(event.target.value))}
+          />
+        </div>
+
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Button onClick={saveSettings} type="button">
+            {t('settings.saveSettings')}
+          </Button>
+          {saved && <span className="text-sm text-green-600">{t('settings.saved')}</span>}
         </div>
       </Card>
 
-      <Card title="Automation rules">
-        <div className="space-y-4">
-          {[
-            ['autoMonthlyReport', 'Automatically prepare monthly employee and project reports'],
-            ['notifyOverdueTasks', 'Notify managers about overdue tasks'],
-            ['notifyLowAuditScore', 'Notify quality team when audit score is below 85%'],
-            ['requireWorkLogApproval', 'Require manager approval for employee work logs'],
-          ].map(([key, label]) => (
-            <label key={key} className="flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</span>
-              <input
-                checked={Boolean(settings[key as keyof WorkspaceSettings])}
-                className="h-5 w-5"
-                type="checkbox"
-                onChange={(event) => updateField(key as keyof WorkspaceSettings, event.target.checked as never)}
-              />
-            </label>
-          ))}
-        </div>
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" onClick={saveSettings} type="button">
-            Save settings
-          </button>
-          {saved && <span className="text-sm text-green-600">Saved</span>}
-        </div>
-      </Card>
+      {/*
+        Four switches stood here — automatic monthly reports, notify on overdue
+        tasks, notify on a low audit score, require approval for work logs —
+        and nothing read any of them. A switch labelled "notify managers" that
+        notifies nobody misleads the person setting the system up, and storing
+        it in a database would only have made it more convincing. They come
+        back when notifications do; the roadmap carries them.
+      */}
         </>
       )}
     </div>

@@ -1,3 +1,38 @@
+/**
+ * The organization, as the API returns it.
+ *
+ * `industry`, `timezone`, `language` and `monthCloseDay` live inside the
+ * record's `settings` object rather than as columns, because they are the
+ * organization's own preferences rather than part of its identity.
+ */
+export interface Organization {
+  id: string;
+  name: string;
+  description?: string;
+  logoUrl?: string;
+  website?: string;
+  contactEmail?: string;
+  phone?: string;
+  address?: string;
+  settings?: OrganizationSettings;
+}
+
+export interface OrganizationSettings {
+  industry?: string;
+  timezone?: string;
+  language?: string;
+  /** The day of the month the books close on. */
+  monthCloseDay?: number;
+}
+
+/**
+ * What the workspace screen edits.
+ *
+ * `employeeCount` is not stored — it is counted from the members the users
+ * API returns, so it cannot disagree with who is actually in the workspace.
+ * There was also a `plan` field with no column behind it and nothing reading
+ * it; a billing tier the tenant could type into itself is not a billing tier.
+ */
 export interface WorkspaceProfile {
   id: string;
   name: string;
@@ -6,25 +41,55 @@ export interface WorkspaceProfile {
   contactEmail: string;
   contactPhone: string;
   employeeCount: number;
-  plan: 'demo' | 'starter' | 'growth' | 'enterprise';
 }
 
 export interface WorkspaceSettings {
   timezone: string;
   language: string;
   monthCloseDay: number;
-  autoMonthlyReport: boolean;
-  notifyOverdueTasks: boolean;
-  notifyLowAuditScore: boolean;
-  requireWorkLogApproval: boolean;
 }
 
+/**
+ * One entry in the trail, as the server writes it.
+ *
+ * Every field is filled from the request the server observed, so `actor` is
+ * who the token said they were rather than a name a client supplied. `route`
+ * is the precise path; `module` is the coarse grouping the screen filters by.
+ */
 export interface AuditLogEntry {
   id: string;
-  actor: string;
-  action: string;
+  actorId?: string;
+  actorName?: string;
+  actorRole?: string;
   module: string;
-  details: string;
+  action: string;
+  targetId?: string;
+  method: string;
+  route: string;
+  statusCode: number;
   severity: 'info' | 'warning' | 'critical';
+  /**
+   * What the request asked to change: the fields, and the values with secrets
+   * redacted and anything too large described rather than copied.
+   *
+   * Absent on an entry with no body — a delete, a named action — and on every
+   * entry written before the trail recorded this.
+   */
+  changes?: {
+    fields: string[];
+    values: Record<string, unknown>;
+    more?: number;
+  } | null;
+  /**
+   * What those fields held before the change, summarised the same way.
+   *
+   * Absent when nothing could say: a creation has no before, and neither has
+   * an entry written before the trail recorded this.
+   */
+  before?: {
+    fields: string[];
+    values: Record<string, unknown>;
+    more?: number;
+  } | null;
   createdAt: string;
 }

@@ -36,11 +36,17 @@ vi.mock('../../services/finance.service', () => ({
   },
 }));
 
+// The header now carries the theme and language switches, so it needs the
+// theme context the way the application gives it.
+import { ThemeProvider } from '../../contexts/ThemeContext';
+
 const renderHeader = () =>
   render(
-    <MemoryRouter>
-      <Header onMenuClick={vi.fn()} />
-    </MemoryRouter>,
+    <ThemeProvider>
+      <MemoryRouter>
+        <Header onMenuClick={vi.fn()} />
+      </MemoryRouter>
+    </ThemeProvider>,
   );
 
 describe('Header search role visibility', () => {

@@ -43,6 +43,22 @@ export const normalizeTokenResponse = (response: any) => {
   };
 };
 
+/**
+ * A unique id for a record created in the demo workspace.
+ *
+ * `Date.now()` alone is not unique: creating several records in one pass — the
+ * "Red-tag tasks" button raises one per open tag — produced colliding ids, so
+ * updating one record silently updated every other created in the same
+ * millisecond.
+ */
+export const localId = (prefix = 'local') => {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return `${prefix}-${globalThis.crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 export const createRequestId = () => {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
     return globalThis.crypto.randomUUID();
@@ -75,6 +91,17 @@ api.interceptors.request.use(
   }
 );
 
+/**
+ * Endpoints where a 401 is the answer, not an expired session.
+ *
+ * Signing in with the wrong password returns 401. Retrying it with a refreshed
+ * token is meaningless — there is no session yet — and the redirect that
+ * follows reloads the page, discarding the very message that explains what
+ * went wrong. So these paths report their 401 to the caller untouched.
+ */
+const isAuthChallengeUrl = (url?: string) =>
+  Boolean(url && /\/auth\/(login|register|refresh|forgot-password|reset-password)$/.test(url));
+
 // Response интерсептор
 api.interceptors.response.use(
   (response) => response,
@@ -83,7 +110,7 @@ api.interceptors.response.use(
 
     // Token хүчингүй болвол шинээр авах
     if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isDemoMode()) {
+      if (isDemoMode() || isAuthChallengeUrl(originalRequest?.url)) {
         return Promise.reject(error);
       }
 

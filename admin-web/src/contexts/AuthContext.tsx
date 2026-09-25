@@ -3,6 +3,9 @@ import { User, LoginCredentials } from '../types/user.types';
 import { authService } from '../services/auth.service';
 import { clearStoredAuth, isDemoEnabled } from '../services/api';
 import { useNotification } from './NotificationContext';
+import { useTranslation } from 'react-i18next';
+import { apiErrorMessage } from '../i18n/apiError';
+import { peopleService } from '../services/people.service';
 
 interface AuthContextType {
   user: User | null;
@@ -14,10 +17,38 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
+  /** Whether the permission list has been fetched at all. */
+  knowsPermissions: boolean;
   hasRole: (role: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/**
+ * What the server says this person may do.
+ *
+ * The client used to decide with its own role lists, and they had drifted from
+ * the server's table in both directions: an `admin` could open the workspace
+ * settings and then be refused the save, while an `organization_admin` was
+ * locked out of an audit log the server would have served them. The table in
+ * `backend/src/shared/roles.ts` is the authority, and this is how the client
+ * asks it.
+ *
+ * A failure here returns an empty list rather than throwing. The route guard
+ * treats that as "unknown" and falls back to the role check, because this
+ * guard exists to avoid offering somebody a page they cannot use — the server
+ * is what actually refuses them.
+ */
+const fetchPermissions = async (): Promise<string[]> => {
+  try {
+    const { permissions } = await peopleService.getOwnPermissions();
+    return permissions;
+  } catch {
+    return [];
+  }
+};
+
+
 
 const readStoredUser = (): User | null => {
   const savedUser = localStorage.getItem('user');
@@ -44,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { addNotification } = useNotification();
+  const { t } = useTranslation();
 
   // Анхны ачаалал - хадгалсан өгөгдлийг шалгах
   useEffect(() => {
@@ -72,8 +104,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Token баталгаажуулах
           try {
             const userData = await authService.getMe();
-            setUser(userData);
-            localStorage.setItem('user', JSON.stringify(userData));
+            const withPermissions = { ...userData, permissions: await fetchPermissions() };
+            setUser(withPermissions);
+            localStorage.setItem('user', JSON.stringify(withPermissions));
           } catch (error) {
             console.warn('Token validation failed:', error);
             // Token хүчингүй болвол цэвэрлэх
@@ -99,47 +132,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authService.login(credentials);
       
       setToken(response.token);
-      setUser(response.user);
-      
       localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+
+      // After the token is stored, so the request for it is authenticated.
+      const signedIn = { ...response.user, permissions: await fetchPermissions() };
+      setUser(signedIn);
+      localStorage.setItem('user', JSON.stringify(signedIn));
       if (response.refreshToken) {
         localStorage.setItem('refreshToken', response.refreshToken);
       }
       
       addNotification({
         type: 'success',
-        title: 'Амжилттай нэвтэрлээ',
-        message: `Тавтай морил, ${response.user.name}!`,
+        title: t('auth.signedIn'),
+        message: t('auth.welcomeBack', { name: response.user.name }),
       });
     } catch (error: any) {
       addNotification({
         type: 'error',
-        title: 'Нэвтрэх алдаа',
-        message: error.response?.data?.message || 'Нэвтрэх нэр эсвэл нууц үг буруу байна',
+        title: t('auth.signInError'),
+        message: apiErrorMessage(error, t),
       });
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [addNotification]);
+  }, [addNotification, t]);
 
   const loginDemo = useCallback(() => {
     if (!isDemoEnabled()) {
       addNotification({
         type: 'error',
-        title: 'Demo disabled',
-        message: 'Demo workspace is disabled for this build.',
+        title: t('auth.demoDisabled'),
+        message: t('auth.demoDisabledMessage'),
       });
       return;
     }
 
     const demoUser: User = {
-      id: 'demo-owner',
+      // The same id the member list gives this person. They were different
+      // strings for the same human being, so everything the demo user did was
+      // recorded against somebody who was not in the staff list — and the
+      // monthly report, which groups by person, showed it as a stranger's
+      // month beside four people who had apparently done nothing.
+      id: 'u1',
       email: 'owner@example.com',
       name: 'Demo Owner',
       roles: ['admin'],
-      permissions: [],
+      permissions: ['*'],
       organization: {
         id: 'demo-org',
         name: 'Demo Organization',
@@ -167,10 +207,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     addNotification({
       type: 'success',
-      title: 'Demo mode',
-      message: 'Demo workspace нээгдлээ.',
+      title: t('auth.demoWorkspace'),
+      message: t('auth.demoWorkspaceMessage'),
     });
-  }, [addNotification]);
+  }, [addNotification, t]);
 
   // Гарах функц
   const logout = useCallback(async () => {
@@ -185,11 +225,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       addNotification({
         type: 'info',
-        title: 'Гарлаа',
-        message: 'Амжилттай гарлаа',
+        title: t('auth.signedOut'),
+        message: t('auth.signedOutMessage'),
       });
     }
-  }, [addNotification]);
+  }, [addNotification, t]);
 
   // Хэрэглэгчийн мэдээлэл шинэчлэх
   const refreshUser = useCallback(async () => {
@@ -204,10 +244,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Эрх шалгах
-  const hasPermission = useCallback((permission: string): boolean => {
-    if (!user || !user.permissions) return false;
-    return user.permissions.some((userPermission) => userPermission === permission);
-  }, [user]);
+  const hasPermission = useCallback(
+    (permission: string): boolean => {
+      // `*` is demo mode, where nothing is hidden.
+      if (!user?.permissions?.length) return false;
+      return user.permissions.includes('*') || user.permissions.includes(permission);
+    },
+    [user],
+  );
+
+  /** False while the list has not been fetched, so a guard can tell the two apart. */
+  const knowsPermissions = Boolean(user?.permissions?.length);
 
   // Үүрэг шалгах
   const hasRole = useCallback((role: string): boolean => {
@@ -225,6 +272,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     refreshUser,
     hasPermission,
+    knowsPermissions,
     hasRole,
   };
 

@@ -4,16 +4,15 @@ import { OrganizationsController } from './organizations.controller';
 import { OrganizationsService } from './organizations.service';
 import { Organization } from './entities/organization.entity';
 import { DatabaseModule } from '../shared/database/database.module';
-import { UsersModule } from '../users/users.module';
+import { PermissionsGuard } from '../shared/guards/permissions.guard';
 
 @Module({
   imports: [
     DatabaseModule,
     TypeOrmModule.forFeature([Organization]),
-    UsersModule,
   ],
   controllers: [OrganizationsController],
-  providers: [OrganizationsService],
+  providers: [OrganizationsService, PermissionsGuard],
   exports: [OrganizationsService],
 })
 export class OrganizationsModule {}

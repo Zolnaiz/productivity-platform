@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { raisedTitle } from '../components/common/raisedText';
 import Card from '../components/common/Card';
+import Button from '../components/common/Button';
 import { actionService } from '../services/action.service';
+import { Notification, notificationService } from '../services/notification.service';
 import { ActionItem } from '../types/action.types';
 
 const typeStyles: Record<ActionItem['type'], string> = {
@@ -20,11 +24,39 @@ const priorityStyles: Record<ActionItem['priority'], string> = {
 };
 
 const NotificationsPage: React.FC = () => {
+  const { t } = useTranslation();
   const [items, setItems] = useState<ActionItem[]>([]);
+  /**
+   * What has been delivered, as opposed to what the browser works out.
+   *
+   * The two lists below answer different questions. These are things somebody
+   * was told — work raised for them, by the scheduler or by a colleague — and
+   * they stay until they are read. The action centre under them is a view of
+   * everything outstanding, which nobody sent and nobody can clear.
+   */
+  const [delivered, setDelivered] = useState<Notification[]>([]);
 
   useEffect(() => {
     actionService.getActionItems().then(setItems);
+    notificationService.list().then(setDelivered).catch(() => setDelivered([]));
   }, []);
+
+  const unread = delivered.filter((item) => !item.readAt);
+
+  const markRead = async (id: string) => {
+    setDelivered((current) =>
+      current.map((item) => (item.id === id ? { ...item, readAt: new Date().toISOString() } : item)),
+    );
+
+    await notificationService.markRead(id).catch(() => undefined);
+  };
+
+  const markAllRead = async () => {
+    const stamp = new Date().toISOString();
+    setDelivered((current) => current.map((item) => ({ ...item, readAt: item.readAt ?? stamp })));
+
+    await notificationService.markAllRead().catch(() => undefined);
+  };
 
   const grouped = useMemo(
     () => ({
@@ -40,7 +72,7 @@ const NotificationsPage: React.FC = () => {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs ${typeStyles[item.type]}`}>
-              {item.title}
+              {raisedTitle(item, t)}
             </span>
             <span className={`text-xs font-semibold uppercase ${priorityStyles[item.priority]}`}>
               {item.priority}
@@ -50,7 +82,7 @@ const NotificationsPage: React.FC = () => {
           <div className="mt-1 text-sm text-gray-500">{item.meta}</div>
         </div>
         <Link className="text-sm font-medium text-blue-600 hover:text-blue-500" to={item.path}>
-          Open
+          {t('notifications.open')}
         </Link>
       </div>
     </div>
@@ -59,29 +91,90 @@ const NotificationsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Notifications</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Action queue from tasks, project progress, audits, assessment responses, and expense approvals.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('notifications.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('notifications.subtitle')}</p>
       </div>
+
+      {/*
+        Delivered first, because it is the part addressed to this person. The
+        action centre below is a view of everything outstanding; this is what
+        somebody was actually told.
+      */}
+      <Card
+        title={t('notifications.inbox')}
+        subtitle={t('notifications.inboxSubtitle')}
+        actions={
+          unread.length ? (
+            <Button variant="outline" size="sm" type="button" onClick={markAllRead}>
+              {t('notifications.markAllRead', { count: unread.length })}
+            </Button>
+          ) : undefined
+        }
+      >
+        <div className="space-y-2">
+          {delivered.map((item) => (
+            <div
+              key={item.id}
+              className={`flex items-start justify-between gap-4 rounded-lg border p-3 ${
+                item.readAt
+                  ? 'border-gray-200 dark:border-gray-700'
+                  : 'border-blue-200 bg-blue-50/40 dark:border-blue-900 dark:bg-blue-950/20'
+              }`}
+            >
+              <div>
+                <div className="flex items-center gap-2">
+                  {!item.readAt && <span className="h-2 w-2 rounded-full bg-blue-600" aria-hidden="true" />}
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {raisedTitle(item, t)}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {item.body || t(`notifications.kind.${item.kind}`)}
+                </div>
+              </div>
+              <div className="flex flex-none items-center gap-3">
+                {!item.readAt && (
+                  <button
+                    type="button"
+                    className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    onClick={() => markRead(item.id)}
+                  >
+                    {t('notifications.markRead')}
+                  </button>
+                )}
+                <Link
+                  className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                  to={item.link}
+                  onClick={() => (item.readAt ? undefined : markRead(item.id))}
+                >
+                  {t('notifications.open')}
+                </Link>
+              </div>
+            </div>
+          ))}
+          {!delivered.length && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('notifications.inboxEmpty')}</p>
+          )}
+        </div>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <div className="text-sm text-gray-500">Total actions</div>
+          <div className="text-sm text-gray-500">{t('notifications.totalActions')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{items.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">High priority</div>
+          <div className="text-sm text-gray-500">{t('notifications.highPriority')}</div>
           <div className="mt-2 text-3xl font-semibold text-red-600">{grouped.urgent.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Quality actions</div>
+          <div className="text-sm text-gray-500">{t('notifications.qualityActions')}</div>
           <div className="mt-2 text-3xl font-semibold text-purple-600">
             {items.filter((item) => item.type === 'audit' || item.type === 'assessment').length}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Approvals</div>
+          <div className="text-sm text-gray-500">{t('notifications.approvals')}</div>
           <div className="mt-2 text-3xl font-semibold text-green-600">
             {items.filter((item) => item.type === 'expense').length}
           </div>
@@ -91,13 +184,13 @@ const NotificationsPage: React.FC = () => {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title={`Needs attention (${grouped.urgent.length})`}>
           <div className="space-y-3">
-            {grouped.urgent.length ? grouped.urgent.map(renderItem) : <p className="text-sm text-gray-500">No urgent items.</p>}
+            {grouped.urgent.length ? grouped.urgent.map(renderItem) : <p className="text-sm text-gray-500">{t('notifications.noUrgentItems')}</p>}
           </div>
         </Card>
 
         <Card title={`Work queue (${grouped.work.length})`}>
           <div className="space-y-3">
-            {grouped.work.length ? grouped.work.map(renderItem) : <p className="text-sm text-gray-500">No open work items.</p>}
+            {grouped.work.length ? grouped.work.map(renderItem) : <p className="text-sm text-gray-500">{t('notifications.noOpenItems')}</p>}
           </div>
         </Card>
       </div>

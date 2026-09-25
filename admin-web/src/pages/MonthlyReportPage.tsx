@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import Input from '../components/common/Input';
 import { operationsService } from '../services/operations.service';
+import { peopleService } from '../services/people.service';
+import { fiveSLayoutService } from '../services/fiveSLayout.service';
+import { summariseDepartments } from '../components/reports/monthlyDepartments';
+import { summariseSites } from '../components/reports/monthlySites';
 import { OperationsMonthlyReport } from '../types/operations.types';
+import { Department, TeamUser, memberName } from '../types/people.types';
+import { FiveSLayoutPlan } from '../types/fiveS.types';
 
 const formatMnt = (value: number) =>
   new Intl.NumberFormat('mn-MN', {
@@ -13,8 +22,26 @@ const formatMnt = (value: number) =>
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
 const MonthlyReportPage: React.FC = () => {
+  const { t } = useTranslation();
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
   const [report, setReport] = useState<OperationsMonthlyReport | null>(null);
+  /**
+   * The people the report is about.
+   *
+   * Fetched separately because the report knows ids and this knows names, and
+   * because somebody with nothing recorded is worth a line of their own —
+   * which can only be written by a page that knows who was there.
+   */
+  const [members, setMembers] = useState<TeamUser[]>([]);
+  /**
+   * What the per-department rows are built from.
+   *
+   * Loaded here rather than asked of the server because the two halves of a
+   * department — its people and its areas — already arrive from two places,
+   * and adding them up is a rule rather than a query.
+   */
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [plans, setPlans] = useState<FiveSLayoutPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +56,7 @@ const MonthlyReportPage: React.FC = () => {
         const reportData = await operationsService.getMonthlyReport(selectedMonth);
         if (active) setReport(reportData);
       } catch {
-        if (active) setError('Сарын тайлангийн өгөгдөл ачаалж чадсангүй.');
+        if (active) setError(t('monthlyReport.loadFailed'));
       } finally {
         if (active) setLoading(false);
       }
@@ -42,6 +69,37 @@ const MonthlyReportPage: React.FC = () => {
     };
   }, [selectedMonth]);
 
+  /*
+    Names are loaded on their own, and their failure is not the report's.
+    Loading both together meant a hiccup fetching the staff list blanked the
+    whole month; the ids are in the report either way, and a row with an id on
+    it still says what somebody did.
+  */
+  useEffect(() => {
+    let active = true;
+
+    Promise.resolve()
+      .then(() => peopleService.getMembers())
+      .then((memberData) => {
+        if (active) setMembers(memberData ?? []);
+      })
+      .catch(() => undefined);
+
+    // Same rule as the names: the department rollup is worth having when it
+    // can be built, and its absence must not blank the month.
+    Promise.all([peopleService.getDepartments(), fiveSLayoutService.getPlans()])
+      .then(([departmentData, planData]) => {
+        if (!active) return;
+        setDepartments(departmentData ?? []);
+        setPlans(planData ?? []);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const improvementActions = report
     ? report.assessmentResponses.filter((response) => response.score < 85).length
     : 0;
@@ -49,15 +107,107 @@ const MonthlyReportPage: React.FC = () => {
   const dailyGoals = report?.dailyGoals ?? [];
   const completedDailyGoals = dailyGoals.filter((goal) => goal.completed);
 
-  const executiveSummary = report
+  // One source for both the on-screen summary and the copyable text, so the
+  // two can never drift apart.
+  const summaryLines = report
     ? [
-        `Monthly productivity report (${report.period}): ${report.totals.projects} projects, ${report.totals.tasks} tasks, ${report.kpis.completionRate}% task completion.`,
-        `Daily goals: ${report.totals.completedDailyGoals}/${report.totals.dailyGoals} completed (${report.kpis.dailyGoalCompletionRate}%).`,
-        `Tracked work: ${report.totals.totalHours} hours and ${report.totals.workLogs} work logs.`,
-        `Quality and compliance: ${report.totals.auditRuns} audit runs; ${report.totals.assessmentResponses} assessment responses with ${report.kpis.averageAssessmentScore}% average score.`,
-        `Finance: ${formatMnt(report.totals.approvedExpenseTotal)} approved expenses and ${formatMnt(report.totals.pendingExpenseTotal)} waiting approval.`,
-        `Management attention: ${improvementActions} improvement actions need follow-up.`,
-      ].join('\n')
+        {
+          label: t('monthlyReport.labels.delivery'),
+          text: t('monthlyReport.lines.delivery', {
+            period: report.period,
+            projects: report.totals.projects,
+            tasks: report.totals.tasks,
+            completion: report.kpis.completionRate,
+          }),
+        },
+        {
+          label: t('monthlyReport.labels.dailyGoals'),
+          text: t('monthlyReport.lines.dailyGoals', {
+            completed: report.totals.completedDailyGoals,
+            total: report.totals.dailyGoals,
+            rate: report.kpis.dailyGoalCompletionRate,
+          }),
+        },
+        {
+          label: t('monthlyReport.labels.trackedWork'),
+          text: t('monthlyReport.lines.trackedWork', {
+            hours: report.totals.totalHours,
+            logs: report.totals.workLogs,
+          }),
+        },
+        {
+          label: t('monthlyReport.labels.quality'),
+          text: t('monthlyReport.lines.quality', {
+            audits: report.totals.auditRuns,
+            responses: report.totals.assessmentResponses,
+            score: report.kpis.averageAssessmentScore,
+          }),
+        },
+        {
+          label: t('monthlyReport.labels.finance'),
+          text: t('monthlyReport.lines.finance', {
+            approved: formatMnt(report.totals.approvedExpenseTotal),
+            pending: formatMnt(report.totals.pendingExpenseTotal),
+          }),
+        },
+        {
+          label: t('monthlyReport.labels.needsAttention'),
+          text: t('monthlyReport.lines.needsAttention', { count: improvementActions }),
+        },
+      ]
+    : [];
+
+  /**
+   * One row per person: what they did, and a name to put on it.
+   *
+   * People with nothing recorded appear at the bottom with zeros rather than
+   * being left out. A month in which somebody logged nothing is a fact about
+   * the month — sometimes it means they were on leave, sometimes it means the
+   * recording is not happening — and dropping them hides both.
+   */
+  const peopleRows = (() => {
+    const recorded = report?.people ?? [];
+    const byId = new Map(recorded.map((person) => [person.userId, person]));
+    const named = members.map((member) => ({
+      userId: member.id,
+      name: memberName(member),
+      month: byId.get(member.id),
+    }));
+    // Somebody in the records who is no longer on the list still worked.
+    const departed = recorded
+      .filter((person) => !members.some((member) => member.id === person.userId))
+      .map((person) => ({ userId: person.userId, name: person.userId, month: person }));
+
+    return [...named, ...departed].sort((a, b) => {
+      const weight = (row: (typeof named)[number]) =>
+        (row.month?.completedTasks ?? 0) + (row.month?.hours ?? 0);
+
+      return weight(b) - weight(a);
+    });
+  })();
+
+  /*
+    The month by department. The table above answers "how is Sara doing" and
+    the room register answers "how is room 2 doing"; this is the question a
+    plant manager actually asks, and nothing could answer it.
+  */
+  const departmentRows = summariseDepartments({
+    departments,
+    members,
+    people: report?.people ?? [],
+    plans,
+  });
+
+  /*
+    And by building. A department crosses buildings; a building does not move,
+    and everything above the plans was a flat list — so a plant with two of
+    them read as one, and a site whose programme had quietly stopped was
+    averaged away by a site where it had not.
+  */
+  const siteRows = summariseSites(plans);
+
+  const executiveSummary = report
+    ? summaryLines.map((line) => `${line.label}: ${line.text}`).join('\n')
     : 'Monthly productivity report is loading.';
 
   const exportCsv = () => {
@@ -82,6 +232,57 @@ const MonthlyReportPage: React.FC = () => {
       ['Pending expenses', report.totals.pendingExpenseTotal],
       ['Improvement actions needed', improvementActions],
       ['Average project progress', `${report.kpis.averageProjectProgress}%`],
+      [],
+      // The per-person rows go in the same file: a monthly report that has to
+      // be read on screen and re-typed to be shared is not a report.
+      ['Person', 'Tasks done', 'Tasks assigned', 'Hours', 'Work logs', 'Audits', 'Assessments'],
+      ...peopleRows.map((row) => [
+        row.name,
+        row.month?.completedTasks ?? 0,
+        row.month?.assignedTasks ?? 0,
+        (row.month?.hours ?? 0).toFixed(1),
+        row.month?.workLogs ?? 0,
+        row.month?.auditRuns ?? 0,
+        row.month?.assessments ?? 0,
+      ]),
+      [],
+      // And the same month along the other axis. A department outlasts the
+      // people in it, so this is the half of the report that can be compared
+      // with last year's.
+      [
+        'Department',
+        'People',
+        'Tasks done',
+        'Hours',
+        'Audits',
+        '5S areas',
+        'Average 5S score',
+        'Open red tags',
+        'Audits due',
+      ],
+      ...departmentRows.map((row) => [
+        row.departmentId ? row.name : 'Unassigned',
+        row.people,
+        row.completedTasks,
+        row.hours.toFixed(1),
+        row.auditRuns,
+        row.zones,
+        row.averageAuditScore === undefined ? '' : `${row.averageAuditScore}%`,
+        row.openRedTags,
+        row.auditsDue,
+      ]),
+      [],
+      // And by building, which is the axis a plant with more than one of them
+      // is actually run along.
+      ['Site', 'Floors', '5S areas', 'Average 5S score', 'Open red tags', 'Audits due'],
+      ...siteRows.map((row) => [
+        row.site || 'No site named',
+        row.floors,
+        row.zones,
+        row.averageAuditScore === undefined ? '' : `${row.averageAuditScore}%`,
+        row.openRedTags,
+        row.auditsDue,
+      ]),
     ];
     const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -101,43 +302,25 @@ const MonthlyReportPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Monthly Report</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Төсөл, task, work log, time entry, audit, assessment, expense өгөгдлөөс сарын нэгдсэн тайлан гаргана.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('monthlyReport.title')}</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('monthlyReport.subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <input
+          <Input
             type="month"
             value={selectedMonth}
             onChange={(event) => setSelectedMonth(event.target.value || currentMonth())}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-            aria-label="Report month"
+            aria-label={t('monthlyReport.reportMonth')}
           />
-          <button
-            type="button"
-            onClick={exportCsv}
-            disabled={loading || !report}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-          >
-            Export CSV
-          </button>
-          <button
-            type="button"
-            onClick={copySummary}
-            disabled={loading || !report}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            Copy summary
-          </button>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            disabled={loading || !report}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            Print
-          </button>
+          <Button type="button" onClick={exportCsv} disabled={loading || !report}>
+            {t('monthlyReport.exportCsv')}
+          </Button>
+          <Button variant="outline" type="button" onClick={copySummary} disabled={loading || !report}>
+            {t('monthlyReport.copySummary')}
+          </Button>
+          <Button variant="outline" type="button" onClick={() => window.print()} disabled={loading || !report}>
+            {t('monthlyReport.print')}
+          </Button>
         </div>
       </div>
 
@@ -147,57 +330,223 @@ const MonthlyReportPage: React.FC = () => {
         </div>
       )}
 
-      {loading && <Card>Сарын тайлангийн өгөгдөл ачаалж байна...</Card>}
+      {loading && (
+        <Card loading>
+          <div />
+        </Card>
+      )}
 
-      {!loading && !report && !error && <Card>Энэ сард тайлангийн өгөгдөл олдсонгүй.</Card>}
+      {!loading && !report && !error && <Card>{t('monthlyReport.noData')}</Card>}
 
       {report && (
         <>
-          <Card title="Executive summary">
-            <pre className="whitespace-pre-wrap text-sm leading-6 text-gray-700 dark:text-gray-300">
-              {executiveSummary}
-            </pre>
+          <Card title={t('monthlyReport.executiveSummary')} subtitle={t('monthlyReport.reportingPeriod', { period: report.period })}>
+            <dl className="divide-y divide-gray-200 dark:divide-gray-700">
+              {summaryLines.map((line) => (
+                <div key={line.label} className="grid gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[160px_1fr] sm:gap-4">
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{line.label}</dt>
+                  <dd className="text-sm leading-6 text-gray-800 dark:text-gray-200">{line.text}</dd>
+                </div>
+              ))}
+            </dl>
           </Card>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-8">
             <Card>
-              <div className="text-sm text-gray-500">Projects</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardProjects')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.totals.projects}</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Completion</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardCompletion')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.kpis.completionRate}%</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Tracked hours</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardHours')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.totals.totalHours}</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Work logs</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardWorkLogs')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.totals.workLogs}</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Daily goals</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardGoals')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.kpis.dailyGoalCompletionRate}%</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Audit runs</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardAudits')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.totals.auditRuns}</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Assessment</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardAssessment')}</div>
               <div className="mt-2 text-3xl font-semibold">{report.kpis.averageAssessmentScore}%</div>
             </Card>
             <Card>
-              <div className="text-sm text-gray-500">Approved cost</div>
+              <div className="text-sm text-gray-500">{t('monthlyReport.cardApprovedCost')}</div>
               <div className="mt-2 text-xl font-semibold">{formatMnt(report.totals.approvedExpenseTotal)}</div>
             </Card>
           </div>
 
+          {/*
+            The month, person by person. The totals above are for a board
+            paper; this is the conversation a manager actually has.
+          */}
+          <Card title={t('monthlyReport.peopleTitle')} subtitle={t('monthlyReport.peopleSubtitle')}>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                <thead className="text-left text-xs font-medium uppercase text-gray-500">
+                  <tr>
+                    <th className="py-2 pr-4">{t('monthlyReport.person')}</th>
+                    <th className="py-2 pr-4">{t('monthlyReport.personTasks')}</th>
+                    <th className="py-2 pr-4">{t('monthlyReport.personHours')}</th>
+                    <th className="py-2 pr-4">{t('monthlyReport.personLogs')}</th>
+                    <th className="py-2 pr-4">{t('monthlyReport.personAudits')}</th>
+                    <th className="py-2">{t('monthlyReport.personAssessments')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {peopleRows.map((row) => (
+                    <tr key={row.userId} className={row.month ? '' : 'text-gray-400 dark:text-gray-500'}>
+                      <td className="py-2 pr-4">{row.name}</td>
+                      <td className="py-2 pr-4 tabular-nums">
+                        {row.month
+                          ? t('monthlyReport.personTasksValue', {
+                              done: row.month.completedTasks,
+                              total: row.month.assignedTasks,
+                            })
+                          : t('monthlyReport.personNothing')}
+                      </td>
+                      <td className="py-2 pr-4 tabular-nums">{(row.month?.hours ?? 0).toFixed(1)}</td>
+                      <td className="py-2 pr-4 tabular-nums">{row.month?.workLogs ?? 0}</td>
+                      <td className="py-2 pr-4 tabular-nums">{row.month?.auditRuns ?? 0}</td>
+                      <td className="py-2 tabular-nums">{row.month?.assessments ?? 0}</td>
+                    </tr>
+                  ))}
+                  {!peopleRows.length && (
+                    <tr>
+                      <td className="py-3 text-gray-500" colSpan={6}>
+                        {t('monthlyReport.peopleEmpty')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {Boolean(departmentRows.length) && (
+            <Card
+              title={t('monthlyReport.departmentsTitle')}
+              subtitle={t('monthlyReport.departmentsSubtitle')}
+            >
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                  <thead className="text-left text-xs font-medium uppercase text-gray-500">
+                    <tr>
+                      <th className="py-2 pr-4">{t('monthlyReport.department')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentPeople')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.personTasks')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.personHours')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentZones')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentScore')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentRedTags')}</th>
+                      <th className="py-2">{t('monthlyReport.departmentAuditsDue')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {departmentRows.map((row) => (
+                      <tr
+                        key={row.departmentId || 'unassigned'}
+                        className={row.departmentId ? '' : 'text-gray-400 dark:text-gray-500'}
+                      >
+                        <td className="py-2 pr-4">
+                          {row.departmentId ? row.name : t('monthlyReport.departmentUnassigned')}
+                        </td>
+                        <td className="py-2 pr-4 tabular-nums">{row.people}</td>
+                        <td className="py-2 pr-4 tabular-nums">
+                          {t('monthlyReport.personTasksValue', {
+                            done: row.completedTasks,
+                            total: row.assignedTasks,
+                          })}
+                        </td>
+                        <td className="py-2 pr-4 tabular-nums">{row.hours.toFixed(1)}</td>
+                        <td className="py-2 pr-4 tabular-nums">{row.zones}</td>
+                        {/*
+                          Never audited reads as never, not as nought: a
+                          department of unaudited areas is not the worst one.
+                        */}
+                        <td className="py-2 pr-4 tabular-nums">
+                          {row.averageAuditScore === undefined
+                            ? t('monthlyReport.departmentNoScore')
+                            : `${row.averageAuditScore}%`}
+                        </td>
+                        <td
+                          className={`py-2 pr-4 tabular-nums ${row.openRedTags ? 'text-amber-600 dark:text-amber-400' : ''}`}
+                        >
+                          {row.openRedTags}
+                        </td>
+                        <td
+                          className={`py-2 tabular-nums ${row.auditsDue ? 'font-medium text-red-600 dark:text-red-400' : ''}`}
+                        >
+                          {row.auditsDue}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {siteRows.length > 1 && (
+            <Card title={t('monthlyReport.sitesTitle')} subtitle={t('monthlyReport.sitesSubtitle')}>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                  <thead className="text-left text-xs font-medium uppercase text-gray-500">
+                    <tr>
+                      <th className="py-2 pr-4">{t('monthlyReport.site')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.siteFloors')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentZones')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentScore')}</th>
+                      <th className="py-2 pr-4">{t('monthlyReport.departmentRedTags')}</th>
+                      <th className="py-2">{t('monthlyReport.departmentAuditsDue')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {siteRows.map((row) => (
+                      <tr
+                        key={row.site || 'unnamed'}
+                        className={row.site ? '' : 'text-gray-400 dark:text-gray-500'}
+                      >
+                        <td className="py-2 pr-4">{row.site || t('monthlyReport.siteUnnamed')}</td>
+                        <td className="py-2 pr-4 tabular-nums">{row.floors}</td>
+                        <td className="py-2 pr-4 tabular-nums">{row.zones}</td>
+                        <td className="py-2 pr-4 tabular-nums">
+                          {row.averageAuditScore === undefined
+                            ? t('monthlyReport.departmentNoScore')
+                            : `${row.averageAuditScore}%`}
+                        </td>
+                        <td
+                          className={`py-2 pr-4 tabular-nums ${row.openRedTags ? 'text-amber-600 dark:text-amber-400' : ''}`}
+                        >
+                          {row.openRedTags}
+                        </td>
+                        <td
+                          className={`py-2 tabular-nums ${row.auditsDue ? 'font-medium text-red-600 dark:text-red-400' : ''}`}
+                        >
+                          {row.auditsDue}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card title="Completed tasks">
+            <Card title={t('monthlyReport.completedTasks')}>
               <div className="space-y-3">
-                {report.completedTasks.length === 0 && <p className="text-sm text-gray-500">Completed task алга.</p>}
+                {report.completedTasks.length === 0 && <p className="text-sm text-gray-500">{t('monthlyReport.emptyCompletedTasks')}</p>}
                 {report.completedTasks.map((task) => (
                   <div key={task.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                     <div className="font-medium text-gray-900 dark:text-white">{task.title}</div>
@@ -207,9 +556,9 @@ const MonthlyReportPage: React.FC = () => {
               </div>
             </Card>
 
-            <Card title="Work log highlights">
+            <Card title={t('monthlyReport.workLogHighlights')}>
               <div className="space-y-3">
-                {report.workLogs.length === 0 && <p className="text-sm text-gray-500">Work log алга.</p>}
+                {report.workLogs.length === 0 && <p className="text-sm text-gray-500">{t('monthlyReport.emptyWorkLogs')}</p>}
                 {report.workLogs.map((log) => (
                   <div key={log.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                     <div className="flex items-center justify-between text-sm">
@@ -222,9 +571,9 @@ const MonthlyReportPage: React.FC = () => {
               </div>
             </Card>
 
-            <Card title="Time entries">
+            <Card title={t('monthlyReport.timeEntries')}>
               <div className="space-y-3">
-                {report.timeEntries.length === 0 && <p className="text-sm text-gray-500">Time entry алга.</p>}
+                {report.timeEntries.length === 0 && <p className="text-sm text-gray-500">{t('monthlyReport.emptyTimeEntries')}</p>}
                 {report.timeEntries.map((entry) => (
                   <div key={entry.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                     <div className="flex items-center justify-between text-sm">
@@ -238,9 +587,9 @@ const MonthlyReportPage: React.FC = () => {
             </Card>
           </div>
 
-          <Card title="Daily goals">
+          <Card title={t('monthlyReport.cardGoals')}>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {dailyGoals.length === 0 && <p className="text-sm text-gray-500">Daily goal алга.</p>}
+              {dailyGoals.length === 0 && <p className="text-sm text-gray-500">{t('monthlyReport.emptyGoals')}</p>}
               {dailyGoals.map((goal) => (
                 <div key={goal.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                   <div className="flex items-start justify-between gap-3">
@@ -269,10 +618,10 @@ const MonthlyReportPage: React.FC = () => {
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card title="Assessment responses">
+            <Card title={t('monthlyReport.assessmentResponses')}>
               <div className="space-y-3">
                 {report.assessmentResponses.length === 0 && (
-                  <p className="text-sm text-gray-500">Assessment response алга.</p>
+                  <p className="text-sm text-gray-500">{t('monthlyReport.emptyAssessments')}</p>
                 )}
                 {report.assessmentResponses.map((response) => (
                   <div key={response.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
@@ -290,16 +639,16 @@ const MonthlyReportPage: React.FC = () => {
               </div>
             </Card>
 
-            <Card title="Expense summary">
+            <Card title={t('monthlyReport.expenseSummary')}>
               <div className="space-y-3">
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div className="text-sm text-gray-500">Approved</div>
+                  <div className="text-sm text-gray-500">{t('monthlyReport.approved')}</div>
                   <div className="mt-1 text-xl font-semibold text-green-600">
                     {formatMnt(report.totals.approvedExpenseTotal)}
                   </div>
                 </div>
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div className="text-sm text-gray-500">Pending approval</div>
+                  <div className="text-sm text-gray-500">{t('monthlyReport.pendingApproval')}</div>
                   <div className="mt-1 text-xl font-semibold text-yellow-600">
                     {formatMnt(report.totals.pendingExpenseTotal)}
                   </div>
@@ -316,15 +665,15 @@ const MonthlyReportPage: React.FC = () => {
               </div>
             </Card>
 
-            <Card title="Management actions">
+            <Card title={t('monthlyReport.managementActions')}>
               <div className="space-y-3 text-sm">
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div className="font-medium text-gray-900 dark:text-white">Improvement actions</div>
+                  <div className="font-medium text-gray-900 dark:text-white">{t('monthlyReport.improvementActions')}</div>
                   <div className="mt-1 text-2xl font-semibold text-blue-600">{improvementActions}</div>
-                  <p className="mt-1 text-gray-500">Assessment score 85%-аас доош байгаа зүйлс.</p>
+                  <p className="mt-1 text-gray-500">{t('monthlyReport.improvementHint')}</p>
                 </div>
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div className="font-medium text-gray-900 dark:text-white">Pending approvals</div>
+                  <div className="font-medium text-gray-900 dark:text-white">{t('monthlyReport.pendingApprovals')}</div>
                   <div className="mt-1 text-2xl font-semibold text-yellow-600">{pendingExpenses.length}</div>
                   <p className="mt-1 text-gray-500">Submitted expenses waiting for owner/admin decision.</p>
                 </div>

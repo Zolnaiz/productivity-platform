@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FileCheck2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import Button from "../components/common/Button";
 import Card from "../components/common/Card";
 import EmptyState from "../components/common/EmptyState";
+import Input from "../components/common/Input";
+import Select from "../components/common/Select";
+import Table from "../components/common/Table";
+import Textarea from "../components/common/Textarea";
 import { assessmentService } from "../services/assessment.service";
 import { operationsService } from "../services/operations.service";
 import {
@@ -21,6 +27,7 @@ const statusClasses = {
 };
 
 const ResponsesPage: React.FC = () => {
+  const { t } = useTranslation();
   const [responses, setResponses] = useState<AssessmentResponse[]>([]);
   const [templates, setTemplates] = useState<AssessmentTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -159,39 +166,39 @@ const ResponsesPage: React.FC = () => {
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Assessment Responses
+            {t("responses.title")}
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Submit checklist responses, review scores, and turn weak results
-            into improvement tasks.
+            {t("responses.subtitle")}
           </p>
         </div>
-        <select
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+        <Select
+          className="sm:w-56"
+          aria-label={t("responses.filterResponses")}
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
         >
-          <option value="all">All responses</option>
-          <option value="submitted">Submitted</option>
-          <option value="reviewed">Reviewed</option>
-          <option value="rejected">Rejected</option>
+          <option value="all">{t("responses.allResponses")}</option>
+          <option value="submitted">{t("responses.submitted")}</option>
+          <option value="reviewed">{t("responses.reviewed")}</option>
+          <option value="rejected">{t("responses.rejected")}</option>
           {departments.map((departmentName) => (
             <option key={departmentName} value={departmentName}>
               {departmentName}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <div className="text-sm text-gray-500">Responses</div>
+          <div className="text-sm text-gray-500">{t("responses.responses")}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
             {responses.length}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Submitted</div>
+          <div className="text-sm text-gray-500">{t("responses.submitted")}</div>
           <div className="mt-2 text-2xl font-semibold text-green-600">
             {
               responses.filter((response) => response.status === "submitted")
@@ -200,7 +207,7 @@ const ResponsesPage: React.FC = () => {
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Reviewed</div>
+          <div className="text-sm text-gray-500">{t("responses.reviewed")}</div>
           <div className="mt-2 text-2xl font-semibold text-blue-600">
             {
               responses.filter((response) => response.status === "reviewed")
@@ -209,7 +216,7 @@ const ResponsesPage: React.FC = () => {
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Average score</div>
+          <div className="text-sm text-gray-500">{t("responses.averageScore")}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
             {averageScore}%
           </div>
@@ -224,41 +231,35 @@ const ResponsesPage: React.FC = () => {
 
       <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
         <Card
-          title="Submit response"
-          subtitle={
-            selectedTemplate?.description ||
-            "Choose a published template and fill the checklist."
-          }
+          title={t("responses.submitResponse")}
+          subtitle={selectedTemplate?.description || t("responses.chooseTemplate")}
         >
           <form onSubmit={submitResponse} className="space-y-4">
-            <label className="block text-sm text-gray-600 dark:text-gray-400">
-              Template
-              <select
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                value={selectedTemplateId}
-                onChange={(event) => {
-                  setSelectedTemplateId(event.target.value);
-                  setAnswers({});
-                }}
-              >
-                {templates.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Select
+              label={t("responses.template")}
+              value={selectedTemplateId}
+              onChange={(event) => {
+                setSelectedTemplateId(event.target.value);
+                setAnswers({});
+              }}
+            >
+              {templates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.title}
+                </option>
+              ))}
+            </Select>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <input
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                placeholder="Respondent"
+              <Input
+                label={t("responses.respondent")}
+                placeholder={t("responses.respondent")}
                 value={respondent}
                 onChange={(event) => setRespondent(event.target.value)}
               />
-              <input
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                placeholder="Department"
+              <Input
+                label={t("responses.department")}
+                placeholder={t("responses.department")}
                 value={department}
                 onChange={(event) => setDepartment(event.target.value)}
               />
@@ -304,8 +305,9 @@ const ResponsesPage: React.FC = () => {
                     </div>
                   )}
                   {question.type === "yes_no" && (
-                    <select
-                      className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                    <Select
+                      className="mt-3"
+                      aria-label={question.text}
                       value={answers[question.id] || "no"}
                       onChange={(event) =>
                         setAnswers((current) => ({
@@ -316,11 +318,12 @@ const ResponsesPage: React.FC = () => {
                     >
                       <option value="no">No</option>
                       <option value="yes">Yes</option>
-                    </select>
+                    </Select>
                   )}
                   {question.type === "text" && (
-                    <textarea
-                      className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                    <Textarea
+                      className="mt-3"
+                      aria-label={question.text}
                       rows={2}
                       value={answers[question.id] || ""}
                       onChange={(event) =>
@@ -335,125 +338,106 @@ const ResponsesPage: React.FC = () => {
               ))}
             </div>
 
-            <button
-              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              disabled={!selectedTemplate || loading}
-              type="submit"
-            >
+            <Button fullWidth disabled={!selectedTemplate || loading} type="submit">
               Submit response
-            </button>
+            </Button>
           </form>
         </Card>
 
         <Card
-          title={`Response queue (${filteredResponses.length})`}
+          title={`${t("responses.queue")} (${filteredResponses.length})`}
           loading={loading}
         >
-          {filteredResponses.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b text-gray-500 dark:border-gray-700">
-                  <tr>
-                    <th className="py-3">Respondent</th>
-                    <th className="py-3">Template</th>
-                    <th className="py-3">Department</th>
-                    <th className="py-3">Score</th>
-                    <th className="py-3">Status</th>
-                    <th className="py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredResponses.map((response) => (
-                    <tr
-                      key={response.id}
-                      className="border-b dark:border-gray-700"
-                    >
-                      <td className="py-3">
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {response.respondent}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {response.submittedAt}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        {templateById[response.templateId]?.title ||
-                          "Unknown template"}
-                      </td>
-                      <td className="py-3">{response.department}</td>
-                      <td className="py-3">
-                        <span
-                          className={
-                            response.score < 80
-                              ? "font-semibold text-yellow-600"
-                              : "font-semibold text-green-600"
-                          }
-                        >
-                          {response.score}%
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs font-medium ${statusClasses[response.status]}`}
-                        >
-                          {response.status}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex flex-wrap gap-2">
-                          {response.status !== "reviewed" && (
-                            <button
-                              className="text-xs font-medium text-blue-600"
-                              onClick={() =>
-                                reviewResponse(response, "reviewed")
-                              }
-                              type="button"
-                            >
-                              Mark reviewed
-                            </button>
-                          )}
-                          {response.score < 85 && (
-                            <button
-                              className="text-xs font-medium text-green-600"
-                              onClick={() => createActionTask(response)}
-                              type="button"
-                            >
-                              Create task
-                            </button>
-                          )}
-                          {response.status !== "rejected" && (
-                            <button
-                              className="text-xs font-medium text-red-600"
-                              onClick={() =>
-                                reviewResponse(response, "rejected")
-                              }
-                              type="button"
-                            >
-                              Reject
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <EmptyState
-              icon={FileCheck2}
-              title={
-                responses.length
-                  ? "No responses match this filter"
-                  : "No responses submitted yet"
-              }
-              description={
-                responses.length
-                  ? "Change the filter to review other submissions."
-                  : "Submitted checklist and questionnaire responses will appear here for review and action creation."
-              }
-            />
-          )}
+          <Table
+            rows={filteredResponses}
+            rowKey={(response) => response.id}
+            columns={[
+              {
+                key: "respondent",
+                header: t("responses.respondent"),
+                render: (response) => (
+                  <>
+                    <div className="font-medium text-gray-900 dark:text-white">{response.respondent}</div>
+                    <div className="text-xs text-gray-500">{response.submittedAt}</div>
+                  </>
+                ),
+              },
+              {
+                key: "template",
+                header: t("responses.template"),
+                render: (response) => templateById[response.templateId]?.title || "Unknown template",
+              },
+              { key: "department", header: t("responses.department") },
+              {
+                key: "score",
+                header: t("responses.score"),
+                render: (response) => (
+                  <span
+                    className={
+                      response.score < 80 ? "font-semibold text-yellow-600" : "font-semibold text-green-600"
+                    }
+                  >
+                    {response.score}%
+                  </span>
+                ),
+              },
+              {
+                key: "status",
+                header: t("responses.status"),
+                render: (response) => (
+                  <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClasses[response.status]}`}>
+                    {response.status}
+                  </span>
+                ),
+              },
+              {
+                key: "actions",
+                header: t("responses.actions"),
+                render: (response) => (
+                  <div className="flex flex-wrap gap-2">
+                    {response.status !== "reviewed" && (
+                      <button
+                        className="text-xs font-medium text-blue-600"
+                        onClick={() => reviewResponse(response, "reviewed")}
+                        type="button"
+                      >
+                        {t("responses.markReviewed")}
+                      </button>
+                    )}
+                    {response.score < 85 && (
+                      <button
+                        className="text-xs font-medium text-green-600"
+                        onClick={() => createActionTask(response)}
+                        type="button"
+                      >
+                        {t("responses.createTask")}
+                      </button>
+                    )}
+                    {response.status !== "rejected" && (
+                      <button
+                        className="text-xs font-medium text-red-600"
+                        onClick={() => reviewResponse(response, "rejected")}
+                        type="button"
+                      >
+                        {t("responses.reject")}
+                      </button>
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+            empty={
+              <EmptyState
+                icon={FileCheck2}
+                title={responses.length ? t("responses.noMatchTitle") : t("responses.emptyTitle")}
+                description={
+                  responses.length
+                    ? t("responses.noMatchDescription")
+                    : t("responses.emptyDescription")
+                }
+              />
+            }
+          />
         </Card>
       </div>
     </div>

@@ -34,6 +34,7 @@ $backend = Join-Path $root "backend"
 $adminWeb = Join-Path $root "admin-web"
 
 Invoke-Step "Backend tests" $backend "npm test -- --runInBand"
+Invoke-Step "Backend migrations" $backend "npm run migration:check"
 Invoke-Step "Backend lint" $backend "npm run lint:check"
 Invoke-Step "Backend build" $backend "npm run build"
 

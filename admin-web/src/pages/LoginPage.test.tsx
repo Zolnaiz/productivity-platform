@@ -41,10 +41,15 @@ describe('LoginPage', () => {
   it('opens the demo workspace when demo mode is enabled', async () => {
     renderLogin();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Demo workspace нээх' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Open demo workspace' }));
 
     expect(authMocks.loginDemo).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('Dashboard page')).toBeTruthy();
+    // Waited for rather than read straight after the click: the navigation
+    // happens once the sign-in promise resolves, so reading synchronously
+    // passes or fails depending on how busy the machine is. It failed on a
+    // loaded run of the whole suite, which is the only way anybody would have
+    // found out.
+    expect(await screen.findByText('Dashboard page')).toBeTruthy();
   });
 
   it('hides the demo workspace action when demo mode is disabled', () => {
@@ -52,6 +57,6 @@ describe('LoginPage', () => {
 
     renderLogin();
 
-    expect(screen.queryByRole('button', { name: 'Demo workspace нээх' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open demo workspace' })).toBeNull();
   });
 });

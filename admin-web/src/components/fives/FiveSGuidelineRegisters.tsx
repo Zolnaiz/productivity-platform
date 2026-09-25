@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
   CalendarDays,
@@ -9,11 +9,16 @@ import {
   Tag,
   Trash2,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../common/Button';
 import Card from '../common/Card';
+import ConfirmDialog from '../common/ConfirmDialog';
 import { fiveSGuidelineService } from '../../services/fiveSGuideline.service';
+import { useAuth } from '../../contexts/AuthContext';
+import FiveSStandardEditor from './FiveSStandardEditor';
 import {
   FiveSAssessmentScore,
+  FiveSGuidelineContent,
   FiveSChecklistProgress,
   FiveSGuidelineState,
   FiveSImplementationCard,
@@ -50,147 +55,14 @@ const implementationStatusOptions: Array<{ value: FiveSImplementationStatus; lab
   { value: 'returned', label: 'Returned' },
 ];
 
-const operatingCadence = [
-  {
-    title: 'Daily 5S',
-    timing: 'Өдөр бүр 10-15 минут',
-    detail: 'Ажилтан бүр өөрийн хариуцсан ажлын байр, нийтийн талбайг цэвэрлэж хэвшүүлнэ.',
-  },
-  {
-    title: 'Monthly sort',
-    timing: 'Сар бүрийн эхний долоо хоног',
-    detail: 'Хэрэгцээтэй болон хэрэгцээгүй зүйлсийг ангилан ялгаж, шилжүүлэх эсвэл устгах шийдвэр гаргана.',
-  },
-  {
-    title: 'Shared tools',
-    timing: 'Байнгын стандарт',
-    detail: 'Цэвэрлэгээний материал, багаж хэрэгслийг тогтсон байршилд хадгалж, эзэнтэй болгоно.',
-  },
-  {
-    title: 'Audit handoff',
-    timing: 'Сар бүрийн сүүлийн долоо хоног',
-    detail: 'Setup дээр бүрдсэн талбай, хаяг, эзэн, стандартуудыг audit process руу шалгуулахаар шилжүүлнэ.',
-  },
-  {
-    title: 'Recognition',
-    timing: 'Жил бүрийн сүүлийн 10 ажлын өдөр',
-    detail: 'Сарын үр дүнд үндэслэн шилдэг 5S хэрэгжүүлэгчийг тодруулна.',
-  },
-];
-
-const labelStandards = [
-  'Ажилтан бүр өөрийн хариуцсан ажлын байр, нийтийн эзэмшлийн талбайтай байна.',
-  'Эд зүйлсийн нэршлийг тогтоож, байрлал бүрийг хаягжуулна.',
-  'Баримт бичгийн хавтаснууд гүн ногоон, шар, цагаан өнгийн стандарттай байна.',
-  'МБТ хавтас: кирилл үсгээр "МБТ-(хавтасны нэр)" гэж бичнэ.',
-  'APO хавтас: латин үсгээр "APO-(folder name)" гэж бичнэ.',
-  'Компьютерийн файл: латин үсгээр англи нэр + огноо гэсэн дарааллаар хадгална.',
-  'Нийтийн шүүгээ, тавиур: саарал дэвсгэр, хар хүрээ, зүүн талд лого, баруун талд эд зүйлсийн нэршилтэй байна.',
-];
-
-const assessmentCriteria = [
-  ['policy-1', '5С-ийн бодлого', '5С-ийн бодлого сайн боловсруулагдсан.'],
-  ['policy-2', '5С-ийн бодлого', 'Бүх шатны ажилтнуудад ойлгомжтой.'],
-  ['policy-3', '5С-ийн бодлого', 'Гүйцэтгэх захирлаар батлуулсан.'],
-  ['policy-4', '5С-ийн бодлого', 'Цэвэр цэмцгэр, хэрэгцээтэй газруудад байрлуулсан.'],
-  ['policy-5', '5С-ийн бодлого', '5С-ийн хэрэгжүүлэлтэд шаардлагатай мэдээллүүд багтсан.'],
-  ['structure-6', '5С-ийн бүтцийн схем', 'Байгууллагын 5С-ийн булангаас харахад хялбар.'],
-  ['structure-7', '5С-ийн бүтцийн схем', '5С-ийг үр дүнтэй хэрэгжүүлэхэд хялбар сайн бэлтгэсэн.'],
-  ['corner-8', '5С-ийн булан', 'Стратегийн ач холбогдол бүхий газар байрлуулсан, байнга хэрэглэгддэг.'],
-  ['corner-9', '5С-ийн булан', '5С-ийн булан дахь мэдээлэл шинэ, байнга сайжруулагддаг, сонирхол татам.'],
-  ['team-10', '5С-ийн багуудын нэр, булан', '5С-ийн багууд нэртэй, фото зургууд нь 5С-ийн буланд тавигдсан.'],
-  ['team-11', '5С-ийн багуудын нэр, булан', 'Багийн гишүүд өөр өөрийн үүрэг оролцоотой.'],
-  ['team-12', '5С-ийн багуудын нэр, булан', 'Багууд 5С-ийн булангаа сайн ашигладаг.'],
-  ['plan-13', '5С хэрэгжүүлэлтийн төлөвлөлт', 'Гантын хүснэгтийг удирдах зөвлөлөөс гаргаж 5С-ийн буланд байрлуулсан.'],
-  ['plan-14', '5С хэрэгжүүлэлтийн төлөвлөлт', 'Гантын хүснэгтэд 5С-ыг хэрэгжүүлэх үйл ажиллагааг нарийвчлан тусгасан.'],
-  ['plan-15', '5С хэрэгжүүлэлтийн төлөвлөлт', 'Удирдлага болон баг хуваарийн дагуу үйл ажиллагааг явуулдаг.'],
-  ['plan-16', '5С хэрэгжүүлэлтийн төлөвлөлт', 'Уулзалт ярилцлагын хугацааг удирдах зөвлөлөөс тогтоосон.'],
-  ['notes-17', '5С-ийн багийн ажлын тэмдэглэл', 'Багийн уулзалтын хугацааг тэмдэглэсэн.'],
-  ['notes-18', '5С-ийн багийн ажлын тэмдэглэл', 'Багийн уулзалт, ярилцлагын хуваарийг 5С-ийн буланд байрлуулсан.'],
-  ['notes-19', '5С-ийн багийн ажлын тэмдэглэл', 'Сайжруулалтын үр дүнг зураг, схем, баримтаар харуулж хуваалцдаг.'],
-  ['discipline-20', 'Сахилга бат, ажилчдын хандлага', 'Ажилчид сайн сахилга баттай, зөв хандлагатай болсон илрэл байгаа.'],
-  ['discipline-21', 'Сахилга бат, ажилчдын хандлага', 'Аюулгүй ажиллагааны мэдлэг, хамгаалах хувцас, багаж тоног төхөөрөмжийн хэрэглээ тогтсон.'],
-  ['training-22', 'Ажилчдын сургалт, хөгжил', '5С-ийн сургалт, менежерийн сургалт, арга зүйн сургалт давтамжтай хийгддэг.'],
-  ['activation-23', 'Идэвхжүүлэлт', 'Ярилцлага, оюуны довтолгоо, зурагт хуудас, их цэвэрлэгээ, 7 хоног/сарын цуглаан ашигладаг.'],
-  ['reward-24', 'Шагнал урамшуулал', 'Захидал, хөнгөлөлтийн карт, урамшуулал, бонус эсвэл бусад хэлбэртэй.'],
-  ['evaluation-25', 'Үр дүнтэй үнэлгээ', '5С-ийн дотоод аудитын давтамж тодорхой.'],
-  ['evaluation-26', 'Үр дүнтэй үнэлгээ', 'Аудитын шалгуур хэрэглэхэд хялбар, бүрэн боловсруулсан.'],
-  ['evaluation-27', 'Үр дүнтэй үнэлгээ', 'Аудитын үнэлгээг ажилтнуудын мэдлэг нэмэгдүүлэхээр дэлгэж харуулдаг.'],
-  ['management-28', 'Удирдлагын хяналт', 'Удирдлагын хяналтын давтамж тодорхой.'],
-  ['management-29', 'Удирдлагын хяналт', 'Сайжруулалтын төсөв төлөвлөгдсөн.'],
-  ['customer-30', 'Хэрэглэгчийн үйлчилгээ', 'Хэрэглэгчид чиглэсэн үнэ цэнэ, бодлого, хөтөлбөрүүд байдаг.'],
-  ['customer-31', 'Хэрэглэгчийн үйлчилгээ', 'Хэрэглэгчийн одоогийн болон ирээдүйн хүлээлтийг тодорхойлдог.'],
-  ['customer-32', 'Хэрэглэгчийн үйлчилгээ', 'Хэрэглэгчийн процессыг тодорхойлсон.'],
-  ['customer-33', 'Хэрэглэгчийн үйлчилгээ', 'Хэрэглэгчийн сэтгэл ханамжийг дээшлүүлэхэд ажилчид оролцдог.'],
-  ['customer-34', 'Хэрэглэгчийн үйлчилгээ', 'Хэрэглэгчийн мэдээлэл цуглуулж, сэтгэл ханамжийн судалгаа авдаг.'],
-  ['model-35', 'Шилдэг загвар', 'Шилдэг загварын тоо, жишээ бүртгэгдсэн.'],
-].map(([id, category, criterion]) => ({ id, category, criterion }));
-
-const publicChecklistGroups = [
-  {
-    code: 'seiri',
-    title: '1. SEIRI / Ангилан ялгах',
-    items: [
-      'Ажлын байр хог хаягдал, бохир, хэрэгцээгүй зүйлгүй.',
-      'Ажлын байр, тоног төхөөрөмж цэвэр.',
-      'Машин механизм, тоног төхөөрөмж, багаж хэрэгсэл ашиглалттай, гэмтэлгүй.',
-      'Цонх, хана, хаалга, шал, дээвэр эвдрэл гэмтэлгүй.',
-      'Цэвэрлэгээний нарийвчилсан журам, график, 5С-ийн стандарт бий.',
-    ],
-  },
-  {
-    code: 'seiton',
-    title: '2. SEITON / Зөв байрлуулах',
-    items: [
-      'Багаж хэрэгсэл, тоног төхөөрөмжүүд зөв байрлуулсан.',
-      'Багаж хэрэгсэл, бараа материалыг тогтсон байртай, зөв хадгалдаг.',
-      'Багаж хэрэгсэл, сэлбэг, тоног төхөөрөмж хариуцсан эзэнтэй.',
-      'Хаягжилт, аюулгүй ажиллагааны плакат, санамж, таних тэмдэг ашиглагддаг.',
-      'Ажлын талбайн хуваарь, аюулгүйн гарц, шат тавцангийн зураг зөв гарсан.',
-      'Цэвэрлэгээний материал, багаж хэрэгсэл бэлэн.',
-      'Тоног төхөөрөмжийн ашиглалт, эвдрэл саатлын зааварчилгаа байгаа.',
-    ],
-  },
-  {
-    code: 'seiso',
-    title: '3. SEISO / Цэвэрлэх',
-    items: [
-      'Ажлын байрны өнцөг булан, шал цэвэрхэн.',
-      'Тоног төхөөрөмж ан цав зэрэг аюултай гэмтэлгүй.',
-      'Түүхий эд эсвэл хэрэглэгдэхгүй зүйл зориулалтын хайрцагт тэмдэглэгээтэй.',
-      'Машин тоног төхөөрөмж, багаж хэрэгсэл цэвэр, аюулгүй.',
-      'Цэвэрлэгээний хуваарь, журмын дагуу хяналт шалгалт хийдэг.',
-      'Өдөр тутмын болон их цэвэрлэгээний журам хэвшсэн.',
-    ],
-  },
-  {
-    code: 'seiketsu',
-    title: '4. SEIKETSU / Хэвшүүлэх',
-    items: [
-      'Стандарт мөрдөж хаягжуулдаг.',
-      'Ажилтнууд 5С-ийн үүргээ сайн мэддэг.',
-      '5С-ийн журам ил тод, ажилтнууд ойлголттой.',
-      '5С сайжруулалтын баримтжуулалт хийгддэг.',
-      'Эрүүл ахуй, аюулгүй байдал, ажлын байрны стандартын мэдээлэл сурталчилгаа хийгддэг.',
-      'Нөөцийг байршуулах стандарт мөрддөг.',
-    ],
-  },
-  {
-    code: 'shitsuke',
-    title: '5. SHITSUKE / Сахилга бат',
-    items: [
-      'Шаардлагатай мэдээллийг гаргах самбар байгаа, ашиглагддаг.',
-      '5С-ийн мэдээлэл ажилтнуудад хийгддэг.',
-      '5С-ийн талаар нэгжийн хурлаар тогтмол хэлэлцдэг.',
-      'Бүх ажилчид цэвэрлэгээний журам, стандартыг мэдэж мөрддөг.',
-      '5С-ийн үйл ажиллагааг сайн баримтжуулж хэвшсэн.',
-      '5С сайжруулалтын ажилд үнэлэлт дүгнэлт хийдэг.',
-    ],
-  },
-];
-
-const guidelineMaxScore = 170;
-
+/*
+  The standard this page is read against — the cadence, the labelling rules,
+  the assessment criteria, the checklists — used to be a hundred Mongolian
+  strings here. They are one organization's 5S standard rather than the
+  product's copy, so they now come from that organization's own register. See
+  `backend/src/operations/five-s-guideline-content.ts` for what a new one is
+  created with.
+*/
 const escapeCsvCell = (value: string | number | undefined) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
 const downloadCsv = (filename: string, headers: string[], rows: Array<Array<string | number | undefined>>) => {
@@ -204,9 +76,56 @@ const downloadCsv = (filename: string, headers: string[], rows: Array<Array<stri
   URL.revokeObjectURL(url);
 };
 
+/** Which row the trash icon was clicked on, and which register it belongs to. */
+type PendingRemoval = { kind: 'improvement' | 'implementationCard'; id: string };
+
+const emptyContent: FiveSGuidelineContent = {
+  operatingCadence: [],
+  labelStandards: [],
+  assessmentCriteria: [],
+  publicChecklistGroups: [],
+  maxScore: 0,
+};
+
+const emptyState: FiveSGuidelineState = {
+  improvements: [],
+  implementationCards: [],
+  assessmentScores: [],
+  checklistProgress: [],
+  updatedAt: '',
+};
+
 const FiveSGuidelineRegisters: React.FC = () => {
-  const [state, setState] = useState<FiveSGuidelineState>(() => fiveSGuidelineService.getState());
+  const { t } = useTranslation();
+  /*
+    Rewriting what everybody is judged against is an administrator's act, and
+    the page asks the server's own table rather than guessing from a role.
+  */
+  const { hasPermission } = useAuth();
+  /*
+    The registers are the organization's now rather than this browser's, so
+    they are fetched rather than read out of storage. Empty until they arrive:
+    showing the demo's sample rows for a moment would put somebody else's
+    finding in front of a reader as though it were theirs.
+  */
+  const [state, setState] = useState<FiveSGuidelineState>(emptyState);
+  const [content, setContent] = useState<FiveSGuidelineContent>(emptyContent);
   const [actionMessage, setActionMessage] = useState('');
+  const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    void fiveSGuidelineService.getRegister().then((register) => {
+      if (!active) return;
+      setContent(register.content);
+      setState(register.records);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const scoreById = useMemo(
     () => new Map(state.assessmentScores.map((score) => [score.id, score])),
@@ -223,17 +142,31 @@ const FiveSGuidelineRegisters: React.FC = () => {
     [state.assessmentScores],
   );
 
-  const assessmentPercent = Math.min(100, Math.round((assessmentTotal / guidelineMaxScore) * 100));
+  const assessmentPercent = Math.min(100, Math.round((assessmentTotal / (content.maxScore || 1)) * 100));
 
-  const checklistItems = publicChecklistGroups.flatMap((group) =>
+  const checklistItems = content.publicChecklistGroups.flatMap((group) =>
     group.items.map((item, index) => ({ id: `${group.code}-${index + 1}`, group: group.title, item })),
   );
 
   const checklistDone = checklistItems.filter((item) => checklistById.get(item.id)?.done).length;
   const checklistPercent = checklistItems.length ? Math.round((checklistDone / checklistItems.length) * 100) : 0;
 
+  /**
+   * Shows the change at once and sends it afterwards.
+   *
+   * Typing into a register that waits for a round trip before showing the
+   * character is a register nobody types into. The save is what makes it the
+   * organization's; the screen is not made to wait for it, and the service
+   * keeps a local copy if it fails.
+   */
   const updateState = (build: (current: FiveSGuidelineState) => FiveSGuidelineState) => {
-    setState((current) => fiveSGuidelineService.saveState(build(current)));
+    setState((current) => {
+      const next = build(current);
+
+      void fiveSGuidelineService.saveState(next);
+
+      return next;
+    });
   };
 
   const addImprovement = () => {
@@ -256,6 +189,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
       ...current,
       improvements: current.improvements.filter((item) => item.id !== id),
     }));
+    setActionMessage('5S improvement row removed.');
   };
 
   const addImplementationCard = () => {
@@ -278,6 +212,21 @@ const FiveSGuidelineRegisters: React.FC = () => {
       ...current,
       implementationCards: current.implementationCards.filter((item) => item.id !== id),
     }));
+    setActionMessage('1C/2C/3C implementation card removed.');
+  };
+
+  // A row is written to storage the moment it changes and there is no undo
+  // here, unlike the canvas — so a typed-in record is confirmed before it goes.
+  const confirmRemoval = () => {
+    if (!pendingRemoval) return;
+
+    if (pendingRemoval.kind === 'improvement') {
+      removeImprovement(pendingRemoval.id);
+    } else {
+      removeImplementationCard(pendingRemoval.id);
+    }
+
+    setPendingRemoval(null);
   };
 
   const updateAssessmentScore = (id: string, patch: Partial<FiveSAssessmentScore>) => {
@@ -375,7 +324,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
     downloadCsv(
       '5s-organization-baseline-assessment.csv',
       ['Category', 'Criterion', 'Score', 'Note'],
-      assessmentCriteria.map((criterion) => {
+      content.assessmentCriteria.map((criterion) => {
         const score = scoreById.get(criterion.id);
         return [criterion.category, criterion.criterion, score?.score ?? 0, score?.note ?? ''];
       }),
@@ -406,7 +355,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Card title="Guideline operating cadence" subtitle="Word зааварт туссан өдөр тутам, 7 хоног, сар, жилийн хөтлөлт.">
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {operatingCadence.map((item) => (
+            {content.operatingCadence.map((item) => (
               <div key={item.title} className="grid gap-3 py-3 md:grid-cols-[180px_160px_1fr]">
                 <div className="flex items-center gap-2 font-medium text-gray-900 dark:text-white">
                   <CalendarDays className="h-4 w-4 text-blue-500" />
@@ -421,7 +370,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
 
         <Card title="Labeling standards" subtitle="Хавтас, файл, шүүгээ, тавиурын хаягжуулалтын шаардлага.">
           <div className="space-y-3">
-            {labelStandards.map((item, index) => (
+            {content.labelStandards.map((item, index) => (
               <div key={item} className="flex gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">
                 <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700 dark:bg-blue-950/30 dark:text-blue-300">
                   {index + 1}
@@ -507,7 +456,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
                     </select>
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <Button variant="ghost" size="sm" icon={Trash2} onClick={() => removeImprovement(item.id)} aria-label="Delete improvement row" type="button" />
+                    <Button variant="ghost" size="sm" icon={Trash2} onClick={() => setPendingRemoval({ kind: 'improvement', id: item.id })} aria-label={t('fiveS.deleteImprovement')} type="button" />
                   </td>
                 </tr>
               ))}
@@ -596,7 +545,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
                     </select>
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <Button variant="ghost" size="sm" icon={Trash2} onClick={() => removeImplementationCard(item.id)} aria-label="Delete implementation card" type="button" />
+                    <Button variant="ghost" size="sm" icon={Trash2} onClick={() => setPendingRemoval({ kind: 'implementationCard', id: item.id })} aria-label={t('fiveS.deleteImplementationCard')} type="button" />
                   </td>
                 </tr>
               ))}
@@ -617,7 +566,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
         <div className="mb-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
             <div className="text-xs text-gray-500">Current score</div>
-            <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{assessmentTotal}/{guidelineMaxScore}</div>
+            <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{assessmentTotal}/{content.maxScore}</div>
           </div>
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
             <div className="text-xs text-gray-500">Readiness</div>
@@ -625,7 +574,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
           </div>
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
             <div className="text-xs text-gray-500">Criteria</div>
-            <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{assessmentCriteria.length}</div>
+            <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{content.assessmentCriteria.length}</div>
           </div>
         </div>
         <div className="max-h-[520px] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700">
@@ -639,7 +588,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {assessmentCriteria.map((criterion) => {
+              {content.assessmentCriteria.map((criterion) => {
                 const score = scoreById.get(criterion.id);
                 return (
                   <tr key={criterion.id}>
@@ -686,7 +635,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
           </div>
         </div>
         <div className="grid gap-4 xl:grid-cols-2">
-          {publicChecklistGroups.map((group) => (
+          {content.publicChecklistGroups.map((group) => (
             <section key={group.code} className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
               <div className="mb-3 flex items-center gap-2 font-medium text-gray-900 dark:text-white">
                 <BookOpen className="h-4 w-4 text-blue-500" />
@@ -740,6 +689,35 @@ const FiveSGuidelineRegisters: React.FC = () => {
           ))}
         </div>
       </Card>
+
+      {hasPermission('guidelines:manage') && (
+        <FiveSStandardEditor
+          content={content}
+          onSave={async (next) => {
+            const saved = await fiveSGuidelineService.saveContent(next);
+            setContent(saved);
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingRemoval)}
+        title={
+          pendingRemoval?.kind === 'implementationCard'
+            ? t('fiveS.deleteImplementationCard')
+            : t('fiveS.deleteImprovement')
+        }
+        message={
+          pendingRemoval?.kind === 'implementationCard'
+            ? t('fiveS.deleteImplementationCardMessage')
+            : t('fiveS.deleteImprovementMessage')
+        }
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        onConfirm={confirmRemoval}
+        onCancel={() => setPendingRemoval(null)}
+      />
     </div>
   );
 };

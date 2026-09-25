@@ -1,5 +1,5 @@
 import { Badge, DailyGoal, FocusSession, Note } from '../types/productivity.types';
-import { get, getStoredAccessToken, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
+import { get, getStoredAccessToken, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
 
 type ProductivityKey = 'notes' | 'goals' | 'focusSessions' | 'badges';
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
@@ -69,7 +69,7 @@ const write = <T>(key: ProductivityKey, items: T[]) => {
 };
 
 const create = <T extends { id: string }>(key: ProductivityKey, data: Omit<T, 'id'>) => {
-  const item = { ...data, id: `local-${Date.now()}` } as T;
+  const item = { ...data, id: localId() } as T;
   write(key, [item, ...read<T>(key)]);
   return item;
 };

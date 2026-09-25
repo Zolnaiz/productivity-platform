@@ -195,3 +195,210 @@ describe('operationsService fallback behavior', () => {
     expect(report.totals.totalHours).toBe(10.5);
   });
 });
+
+describe('tasks raised from a finding, in demo mode', () => {
+  const load = async () => (await import('./operations.service')).operationsService;
+
+  // The demo store seeds sample tasks, so assert on what these tests created.
+  const storedWithSource = (sourceId: string) =>
+    JSON.parse(localStorage.getItem('productivity-demo-tasks') || '[]').filter(
+      (task: { sourceId?: string }) => task.sourceId === sourceId,
+    );
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem('token', 'demo-token');
+  });
+
+  const redTag = {
+    title: '5S red tag: A01 - Broken pallet',
+    sourceType: 'five_s_red_tag' as const,
+    sourceId: 'red-tag-9',
+    status: 'todo' as const,
+  };
+
+  it('raises one task per finding, however often the button is pressed', async () => {
+    // The server refuses a duplicate, so the demo workspace has to as well —
+    // otherwise the demo shows behaviour the product does not have.
+    const service = await load();
+    const first = await service.createTask(redTag);
+    const second = await service.createTask(redTag);
+
+    expect(second.id).toBe(first.id);
+    expect(storedWithSource('red-tag-9')).toHaveLength(1);
+  });
+
+  it('raises new work when the finding recurs after its task was finished', async () => {
+    await (await load()).createTask(redTag);
+    const stored = JSON.parse(localStorage.getItem('productivity-demo-tasks') || '[]');
+    localStorage.setItem(
+      'productivity-demo-tasks',
+      JSON.stringify(stored.map((task: { sourceId?: string }) =>
+        task.sourceId === 'red-tag-9' ? { ...task, status: 'done' } : task,
+      )),
+    );
+
+    await (await load()).createTask(redTag);
+
+    expect(storedWithSource('red-tag-9')).toHaveLength(2);
+  });
+
+  it('does not merge tasks that were typed by hand', async () => {
+    const service = await load();
+    // Reading first lets the demo store seed its samples, so the count below
+    // measures only what this test adds.
+    await service.getTasks();
+    const before = JSON.parse(localStorage.getItem('productivity-demo-tasks') || '[]').length;
+
+    await service.createTask({ title: 'Fix the printer', status: 'todo' });
+    await service.createTask({ title: 'Fix the printer', status: 'todo' });
+
+    const after = JSON.parse(localStorage.getItem('productivity-demo-tasks') || '[]').length;
+    expect(after - before).toBe(2);
+  });
+});
+
+describe('finishing a task closes its red tag, in demo mode', () => {
+  const load = async () => (await import('./operations.service')).operationsService;
+  const layoutKey = 'productivity-demo-5s-layouts';
+
+  /*
+    Two plans, and the tag on the second one. The demo holds a building per
+    plan now, and finding a red tag by id means looking across all of them
+    rather than in whichever is stored first.
+  */
+  const plansWith = (status: string) => [
+    { id: 'plan-ground', zones: [{ id: 'zone-0', redTags: [] }] },
+    {
+      id: 'plan-first',
+      zones: [
+        { id: 'zone-1', redTags: [] },
+        { id: 'zone-2', redTags: [{ id: 'red-tag-9', title: 'Broken pallet', status }] },
+      ],
+    },
+  ];
+
+  const tagStatus = () =>
+    JSON.parse(localStorage.getItem(layoutKey) || '[]')[1]?.zones?.[1]?.redTags?.[0];
+
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem(layoutKey, JSON.stringify(plansWith('open')));
+  });
+
+  const raiseTask = async () =>
+    (await load()).createTask({
+      title: '5S red tag: Broken pallet',
+      sourceType: 'five_s_red_tag',
+      sourceId: 'red-tag-9',
+      status: 'todo',
+    });
+
+  it('closes the tag on the map when the work is finished', async () => {
+    const task = await raiseTask();
+
+    await (await load()).updateTask(task.id, { status: 'done' });
+
+    expect(tagStatus().closedAt).toEqual(expect.any(String));
+    // The disposition is a decision somebody makes in the holding-area review,
+    // so finishing the task must not guess at it.
+    expect(tagStatus().status).toBe('open');
+  });
+
+  it('leaves the tag open while the work is still in progress', async () => {
+    const task = await raiseTask();
+
+    await (await load()).updateTask(task.id, { status: 'in_progress' });
+
+    expect(tagStatus().closedAt).toBeUndefined();
+  });
+
+  it('does not touch the map for a task nobody raised from a finding', async () => {
+    const service = await load();
+    const task = await service.createTask({ title: 'Fix the printer', status: 'todo' });
+
+    await service.updateTask(task.id, { status: 'done' });
+
+    expect(tagStatus().closedAt).toBeUndefined();
+  });
+
+  it('survives a corrupted plan rather than failing the task', async () => {
+    localStorage.setItem(layoutKey, 'not json');
+    const task = await raiseTask();
+
+    await expect((await load()).updateTask(task.id, { status: 'done' })).resolves.toBeTruthy();
+  });
+});
+
+describe('submitting an audit updates the zone, in demo mode', () => {
+  const load = async () => (await import('./operations.service')).operationsService;
+  const layoutKey = 'productivity-demo-5s-layouts';
+
+  // The audited zone is on the second plan, so a score written onto the first
+  // one — the fault the server had when a building got a second floor — fails
+  // here rather than passing quietly.
+  const zone = () => JSON.parse(localStorage.getItem(layoutKey) || '[]')[1]?.zones?.[0];
+  const groundFloorZone = () => JSON.parse(localStorage.getItem(layoutKey) || '[]')[0]?.zones?.[0];
+
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem(
+      layoutKey,
+      JSON.stringify([
+        { id: 'plan-ground', zones: [{ id: 'zone-0', code: 'G01' }] },
+        { id: 'plan-first', zones: [{ id: 'zone-1', code: 'A01' }] },
+      ]),
+    );
+  });
+
+  const submit = async (score: number, over: Record<string, unknown> = {}) =>
+    (await load()).createAuditRun({
+      templateId: 't-1',
+      zoneId: 'zone-1',
+      score,
+      status: 'submitted',
+      answers: [],
+      ...over,
+    });
+
+  it('writes the score onto the zone the audit named', async () => {
+    await submit(82);
+
+    expect(zone().lastAuditScore).toBe(82);
+    expect(zone().lastAuditAt).toEqual(expect.any(String));
+  });
+
+  it('repaints the floor the zone is actually on', async () => {
+    await submit(82);
+
+    expect(groundFloorZone().lastAuditScore).toBeUndefined();
+  });
+
+  it('keeps the first score as the baseline', async () => {
+    await submit(55);
+    await submit(88);
+
+    expect(zone().baselineScore).toBe(55);
+    expect(zone().lastAuditScore).toBe(88);
+  });
+
+  it('ignores a draft, so a half-finished checklist does not repaint the map', async () => {
+    await submit(20, { status: 'draft' });
+
+    expect(zone().lastAuditScore).toBeUndefined();
+  });
+
+  it('ignores an audit that names no zone', async () => {
+    await submit(70, { zoneId: undefined, location: 'Warehouse' });
+
+    expect(zone().lastAuditScore).toBeUndefined();
+  });
+
+  it('still records the audit when its zone has gone from the plan', async () => {
+    const run = await submit(70, { zoneId: 'deleted-zone' });
+
+    expect(run).toBeTruthy();
+    expect(zone().lastAuditScore).toBeUndefined();
+  });
+});

@@ -74,52 +74,6 @@ export const USER_ROLES = {
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
-// User permissions
-export const USER_PERMISSIONS = {
-  // User management
-  CREATE_USER: 'create_user',
-  VIEW_USERS: 'view_users',
-  EDIT_USER: 'edit_user',
-  DELETE_USER: 'delete_user',
-  
-  // Organization management
-  CREATE_ORGANIZATION: 'create_organization',
-  VIEW_ORGANIZATIONS: 'view_organizations',
-  EDIT_ORGANIZATION: 'edit_organization',
-  DELETE_ORGANIZATION: 'delete_organization',
-  
-  // Questionnaire management
-  CREATE_QUESTIONNAIRE: 'create_questionnaire',
-  VIEW_QUESTIONNAIRES: 'view_questionnaires',
-  EDIT_QUESTIONNAIRE: 'edit_questionnaire',
-  DELETE_QUESTIONNAIRE: 'delete_questionnaire',
-  
-  // Response management
-  VIEW_RESPONSES: 'view_responses',
-  EDIT_RESPONSE: 'edit_response',
-  DELETE_RESPONSE: 'delete_response',
-  
-  // Expense management
-  CREATE_EXPENSE: 'create_expense',
-  VIEW_EXPENSES: 'view_expenses',
-  EDIT_EXPENSE: 'edit_expense',
-  DELETE_EXPENSE: 'delete_expense',
-  APPROVE_EXPENSE: 'approve_expense',
-  
-  // Report management
-  CREATE_REPORT: 'create_report',
-  VIEW_REPORTS: 'view_reports',
-  EDIT_REPORT: 'edit_report',
-  DELETE_REPORT: 'delete_report',
-  GENERATE_REPORT: 'generate_report',
-  
-  // System
-  MANAGE_SETTINGS: 'manage_settings',
-  VIEW_AUDIT_LOGS: 'view_audit_logs',
-} as const;
-
-export type UserPermission = typeof USER_PERMISSIONS[keyof typeof USER_PERMISSIONS];
-
 // Questionnaire statuses
 export const QUESTIONNAIRE_STATUS = {
   DRAFT: 'draft',

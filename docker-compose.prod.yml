@@ -8,7 +8,16 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.production}
       POSTGRES_DB: ${DB_DATABASE:?Set DB_DATABASE in .env.production}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      # Loopback only. The backend reaches PostgreSQL over the compose network
+      # and never needs this; it is published so that the seed, the backup and
+      # psql can be run from the host. Published on 0.0.0.0 it put the
+      # production database on every interface the server has.
+      #
+      # DB_PORT is also a collision: a host that already runs PostgreSQL owns
+      # 5432, Docker Desktop does not refuse the binding, and everything run
+      # from the host then silently talks to the wrong server. Pick a free port
+      # if 5432 is taken.
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
     networks:
@@ -53,6 +62,29 @@ services:
       ALLOW_PUBLIC_OPERATIONS: "false"
       RATE_LIMIT_TTL_MS: ${RATE_LIMIT_TTL_MS:-60000}
       RATE_LIMIT_LIMIT: ${RATE_LIMIT_LIMIT:-120}
+      # Photographs are the evidence a 5S programme runs on. `local` keeps
+      # them on the volume below, which survives this container being
+      # replaced; `s3` keeps them in an object store, which survives the host.
+      ATTACHMENT_STORE: ${ATTACHMENT_STORE:-local}
+      UPLOAD_DIR: /app/uploads
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      # Mail. `log` sends nothing, which is the default a plant with no relay
+      # runs; the inbox inside the product still works either way.
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-log}
+      APP_BASE_URL: ${APP_BASE_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    volumes:
+      # Without this the attachments lived inside the container: every row
+      # survived a redeploy and every photograph it pointed at did not.
+      - attachments_prod:/app/uploads
     networks:
       - productivity-network-prod
     healthcheck:
@@ -79,7 +111,11 @@ services:
     networks:
       - productivity-network-prod
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/ >/dev/null || exit 1"]
+      # 127.0.0.1, not localhost. nginx.conf says `listen 3001`, which binds
+      # IPv4 only; `localhost` in this image resolves to ::1 first, so the
+      # check was refused every time and the container sat permanently
+      # unhealthy while serving the application perfectly well.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/ >/dev/null || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -151,6 +187,7 @@ services:
 
 volumes:
   postgres_data_prod:
+  attachments_prod:
   redis_data_prod:
   prometheus_data:
   grafana_data:

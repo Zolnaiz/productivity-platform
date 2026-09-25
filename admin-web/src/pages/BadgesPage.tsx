@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Trophy } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
 import { productivityService } from '../services/productivity.service';
 import { Badge } from '../types/productivity.types';
 
 const BadgesPage: React.FC = () => {
+  const { t } = useTranslation();
   const [badges, setBadges] = useState<Badge[]>([]);
 
   useEffect(() => {
@@ -15,10 +17,8 @@ const BadgesPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Badges</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Ажил, audit, focus, consistency дээр суурилсан recognition.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('badges.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('badges.subtitle')}</p>
       </div>
 
       {badges.length ? (
@@ -44,8 +44,8 @@ const BadgesPage: React.FC = () => {
       ) : (
         <EmptyState
           icon={Trophy}
-          title="No badges configured"
-          description="Recognition badges for consistency, quality, audit completion, and focus streaks will appear here."
+          title={t('badges.emptyTitle')}
+          description={t('badges.emptyDescription')}
         />
       )}
     </div>

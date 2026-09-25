@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
 import { operationsService } from '../services/operations.service';
@@ -15,6 +16,7 @@ interface CalendarEvent {
 }
 
 const CalendarPage: React.FC = () => {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,13 +37,11 @@ const CalendarPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Calendar</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Project deadline, task due date, audit activity-г нэг timeline дээр харуулна.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('calendar.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('calendar.subtitle')}</p>
       </div>
 
-      <Card title="Upcoming timeline" loading={loading}>
+      <Card title={t('calendar.upcomingTimeline')} loading={loading}>
         <div className="space-y-5">
           {Object.keys(grouped).length ? (
             Object.entries(grouped).map(([date, items]) => (
@@ -70,8 +70,8 @@ const CalendarPage: React.FC = () => {
           ) : (
             <EmptyState
               icon={CalendarDays}
-              title="No scheduled work yet"
-              description="Project deadlines, task due dates, and audit events will appear here once they are created."
+              title={t('calendar.emptyTitle')}
+              description={t('calendar.emptyDescription')}
             />
           )}
         </div>

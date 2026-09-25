@@ -1,23 +1,366 @@
 # Roadmap
 
+## What comes next, in order
+
+Written 2026-09-18, after the floor plan became a floor-plan tool and the
+projects and monthly report stopped reporting numbers nobody measured. The
+order is by what blocks the next thing, not by what is most interesting.
+
+### 1. Ship what is built
+
+Nothing below matters if it only exists on a branch and on one laptop.
+
+- **Merge `feat/design-system-adoption` into `main`.** It is 70 commits ahead.
+  CI runs on pull requests and on `main`, so every one of those commits has
+  been verified locally and by nothing else. This is one pull request and it
+  should happen before the branch grows again.
+- **The production image cannot check its own attachments.**
+  `npm run attachments:check` needs `scripts/` and `src/`, which the
+  production image does not ship, so the check can only be run from the host —
+  where, with the default local store, the bytes are on a Docker volume the
+  host cannot see and every row reports as missing. Somebody verifying a
+  restore under pressure would conclude they had lost every photograph the
+  programme has. The runbook now says how to ask the question properly; the
+  real fix is shipping the check in the image, or making it a route the
+  running API answers.
+
+- **Deploy to MPC for real.** Postgres, the migrations, the environment, and a
+  first organization. The pieces exist — Dockerfiles, compose files, a backup
+  and restore runbook — and have never been run end to end by anyone but the
+  author.
+- **Attachments have a real file store, and production has to choose one.**
+  `ATTACHMENT_STORE=s3` keeps the bytes in an object store — MinIO or Ceph on
+  the customer's own hardware via `S3_ENDPOINT` — and the default local store
+  now writes to a named volume rather than into the container. What is left is
+  the deployment decision itself: MPC has no object store yet, so until one
+  exists the evidence depends on that volume being backed up alongside the
+  database. The runbook now covers both, and `npm run attachments:check`
+  reports any row whose photograph is not in the store — the one failure a
+  restore otherwise hides, because the database comes back complete.
+
+### 2. Make it trustworthy in daily use
+
+Each of these is something the product currently does half of, in a way a
+person notices within a week of real use.
+
+- **Departments are real, and own two things.** A table, a manager who exists,
+  `department_id` on a person and `departmentId` on a zone — so an area's
+  responsibility outlives the person whose name is on it. The page counts its
+  people from the staff list and its areas from every floor, rather than from
+  numbers somebody typed, and the monthly report carries a row per department:
+  its people's work, the average score of the areas it answers for, its open
+  red tags and its overdue audits, with a row for everything belonging to no
+  department so the columns still add up. What a department still cannot do is
+  own a project or a cost — the expense and project pages know nothing about
+  them.
+- **Mail has a transport, and MPC has to choose one.** Notifications and
+  invitations both go out through it; `MAIL_TRANSPORT=log` is the default and
+  sends nothing, so nothing about a deployment without a mail server changed.
+  What is left is the deployment decision — a relay inside the plant or a
+  provider — and the fact that no live SMTP send has been exercised: the tests
+  cover the wiring, the wording and the failures, against a transport that
+  records rather than sends.
+- **The audit trail says what a value was before.** The services that make a
+  change already load the record, so they hand over the fields they are about
+  to overwrite through an async-local context and the interceptor records
+  both halves. What is still one-sided is a delete — the row is gone and the
+  entry says only that it went — and any route whose service does not load
+  the record first.
+
+### 3. 5S where the building is real
+
+The floor plan can now carry these; before the walls existed, none of them
+could be built honestly.
+
+- **Multi-site reads as multi-site.** The monthly report carries a row per
+  building — floors, areas, average score, open red tags, overdue audits —
+  shown only once an organization has more than one, because a single-site
+  plant does not need a table telling it so. The demo workspace holds two buildings, so the
+  switcher, the per-building rollup and an audit that repaints the right floor
+  are all visible without a backend.
+- **A QR code per zone is in**, and the page it opens is now where the work
+  happens: raise a red tag, record that the area was cleaned, or walk the 5S
+  checklist itself, question by question, with the score shown before it is
+  recorded. A failing score raises its corrective task on the server, so the
+  same walk leads to the same work whether it was recorded on a phone in the
+  area or typed up afterwards at a desk — and an operator, who cannot create
+  tasks at all, still causes one.
+  A walk can also carry a photograph, taken on the phone that is already in
+  the area, and it is shown again in the zone's history where a manager reads
+  the scores — a picture with nowhere to be looked at is a picture not worth
+  taking. What a walk still cannot carry is a photograph per answer: the
+  attachment belongs to the run, so one picture stands for the whole check.
+- **Spaghetti diagrams are in.** Draw the path somebody walks and the plan
+  answers in metres: the total for the review, the longest leg for the fix. A
+  route is stored on the plan in canvas units, so one drawn before a
+  recalibration is worth the new number afterwards. What it cannot yet do is
+  compare two of them — a before and after of the same job, which is the
+  drawing that gets a layout changed.
+- **Floor plan versions are kept**: one snapshot a day, taken before the first
+  change of the day, listed by date and restorable — and restoring keeps what
+  was there first, so putting the plan back is itself undoable. An audit records the
+  drawing it was walked against and the zone's history shows that date beside
+  each score, so a March result is read against March. What is still
+  missing is looking at the old drawing itself: the snapshot is stored and
+  restorable, and there is no way to view one without restoring it.
+- **Layered audits are the organization's own.** Their names, rhythms and the
+  role each expects are editable and stored — the field existed in the
+  browser's types and had no column, so every plant ran on the built-in
+  defaults whatever its practice was. The daily check stays with the area's
+  owner, and a layer the owner is not senior enough for goes to the
+  department's manager. A layer can also name its own checklist, and the phone
+  opens it: a manager's monthly review asks different questions from the
+  operator's daily walk. What is left is the desk: the audit page still picks
+  a template by hand rather than from the layer being recorded.
+- **What the server raises now reads in the reader's language.** A task and a
+  notification carry the key and its parts beside the assembled sentence, and
+  a screen words the key. The sentence stays because a CSV export and an email
+  have no reader to ask — which is the piece still outstanding: an email goes
+  out in English, because nothing records what language a person reads in.
+
+- **The translation is finished for the pages people use daily.** What is left
+  is the pages nobody has needed in Mongolian yet — the platform placeholders
+  and a few admin screens — and the strings the server builds, which is the
+  task-title item above.
+- **The 5S registers belong to the organization now.** The improvement record,
+  the red-tag cards, the assessment scores and the checklist progress are
+  stored and shared rather than kept in the browser that typed them. The standard they are
+  kept against moved with them: the cadence, the labelling rules, the
+  thirty-five assessment criteria and the checklists are seeded into the
+  organization's own row rather than living in a React component, and the demo
+  carries a deliberately smaller sample. An administrator can now edit them on the
+  page: the cadence and the labelling rules in place, the thirty-five criteria
+  and the checklists as the text somebody pastes out of a spreadsheet, because
+  a form of seventy three-field rows is one nobody finishes.
+
+### 5. Mobile
+
+- Build the Phase 1 screens against the real API: login, my tasks, calendar,
+  work log, clock in and out. The Flutter app compiles and its logic is tested;
+  its screens have never spoken to the server.
+- Cover `auth_provider` first, since login is the path every user takes.
+
+### 6. Dependencies
+
+- **NestJS 11 to 12, which is three changes wearing one name.** The seven
+  `multer` advisories that made the backend's `npm audit` red are already
+  fixed by forcing a patched multer through an override — the code that runs
+  is the patched one — so this is about currency rather than security.
+
+  The upgrade itself is not mechanical here, and the reasons are worth writing
+  down rather than rediscovering:
+
+  - The v12 packages are ESM-only. A CommonJS application can still consume
+    them through `require(esm)`, but Jest can only load them on Node 24.9 or
+    later; below that it fails with `ERR_REQUIRE_ASYNC_MODULE`. CI runs Node
+    20, so the upgrade means either raising CI's Node or moving 677 backend
+    tests from Jest to Vitest.
+  - `nest upgrade` also moves TypeScript to 6, which is its own migration
+    across a codebase this size.
+  - The CLI's own generators need Node 22.22+, which is a second version floor
+    for anybody scaffolding.
+
+  So it is a deliberate piece of work for its own branch, after this one
+  merges, and it starts with the Node and test-runner decision rather than
+  with `npm install`.
+
+### 7. Keep it honest as it grows
+
+- **The browser smoke run is in CI** — sign in, open the plan, draw a wall,
+  switch the theme, open a zone the way its label does. What it does not yet
+  cover is anything that needs the server: signing in for real, saving a plan
+  and reading it back, raising a task and seeing the notification. That needs
+  a Postgres service in the job and a seeded organization.
+- **Visual regression screenshots** for the pages that are now designed rather
+  than assembled.
+
 ## Next Backend Work
 
+- Decide what a department owns before giving it a table. The Users screen is
+  on the real API now; Departments is still browser-local and says so on the
+  page. The question is not how to store a name and a manager — it is whether
+  a department owns zones, projects, or the people assigned to them.
+- Give the audit trail a retention policy. Every accepted change writes a row
+  and nothing removes one, which is correct for evidence and unbounded for a
+  database. Decide how long entries are kept, and whether they are archived
+  rather than deleted.
+- Record what changed, not only that something did. An entry names the actor,
+  the route and the record; it does not carry a before and after. That is a
+  deliberate first step — a diff has to be taken without putting a password or
+  a token into a table people read — but it is the next thing a reader wants.
+- Bring back the automation settings when there is automation behind them:
+  monthly report preparation, notifying a manager about an overdue task,
+  notifying the quality team below 85%, and work-log approval. All four were
+  switches that were read by nothing, so they were removed rather than left
+  looking functional.
+- Deliver invitations. The API issues the token and the inviter shares it by
+  hand; there is no email transport.
 - Add browser-driven API smoke automation for login, dashboard load, and core module navigation.
 - Decide whether runtime auth tables should remain as dedicated operations-platform migrations or be merged into the legacy initial migration set before first production deployment.
+- Seeded demo content is still written in one language in the source. Unlike
+  error messages, this is organization data rather than UI copy, so it belongs
+  in the seed per organization rather than in the locale files.
+
+## Next 5S Work
+
+- Let an organization edit its audit layers. The tiers are read from the layout
+  and default sensibly, but nothing in the interface changes them yet.
+- Assign a layered audit by role rather than to the zone owner. Needs the users
+  API.
+- A printable QR code per zone, so scanning the zone label on a phone opens
+  that zone's checklist. This is what turns the mobile app into a tool.
+- Multi-floor and multi-site. `site` is a single string; real organizations
+  have buildings and floors.
+- Scale calibration for an imported blueprint, so drawn zones carry real
+  dimensions.
+- Floor plan versions, so an old audit still makes sense against the map of its
+  time.
+- Raise tasks from the improvement register too. Red tags and audits are linked
+  now; an improvement record's action plan is still free text.
+- Record the disposition when a tag is closed. `closedAt` is set automatically;
+  whether the item was disposed of or returned still has to be filed by hand,
+  and nothing prompts for it.
+- Attach photographs to a single audit answer. A walk can carry a picture now,
+  but it belongs to the whole run: a checklist of twelve questions with one
+  failing item cannot say which one the photograph is of. The attachment's
+  owner is the run, so this needs a second identifier on the row.
 
 ## Next Frontend Work
 
+- The floor plan is now a 2D floor-plan tool: walls that close into rooms with
+  real areas, doors and windows cut into those walls, an object catalogue at
+  real dimensions, draggable corners, named rooms, and grid/snap/dimensions
+  switches. What is left is putting 5S on top of it — zones that sit inside a
+  real room rather than floating in an abstract canvas, and scoring and red
+  tags read per square metre of the room they are in. Doors and windows are in: an opening belongs to a wall and
+  is measured along it, the wall renders as the pieces left standing, and a
+  door carries the quarter circle its leaf sweeps. So is the object catalogue:
+  real dimensions in metres, shown on the palette, with wall snapping for the
+  things that stand against walls. So is dragging a corner, including dropping
+  one corner on another to join them.
+
+- Finish the floor-plan editor. Zoom, pan, grid snap, corner resize,
+  undo/redo, keyboard editing, multi-select, align/distribute and
+  copy/paste/duplicate, z-order and a right-click menu are in. Still missing,
+  in the order they are missed: an explicit tool palette, rulers
+  with real-world scale calibration, and lock/hide per item. Multi-select
+  covers zones only — objects are still one at a time.
+
 - Add visual regression screenshots for the polished module pages.
-- Add mobile viewport visual QA for dashboard, sidebar, kanban, reports, and audit templates.
+- Move the 5S guideline register content out of `FiveSGuidelineRegisters.tsx`.
+  Roughly a hundred Mongolian strings are hardcoded there. They are not UI copy
+  — they are one organization's 5S standard — so they belong in seeded
+  organization data, which also lets a second organization have its own.
 
 ## Next Mobile Work
 
-- Finish Flutter SDK installation and add `flutter\bin` to PATH.
-- Run `powershell -ExecutionPolicy Bypass -File .\scripts\mobile-verify.ps1`.
-- Fix any Flutter analyze/test findings after the CLI is available.
+- Run `powershell -ExecutionPolicy Bypass -File .\scripts\mobile-verify.ps1`
+  after each change; it runs analyze and the tests, and both are clean as of
+  2026-09-02.
+- Extend the mobile tests past the pure logic. Providers, the API service and
+  the screens have no coverage; `auth_provider` is the next one worth having,
+  since login is the path every user takes.
+- Build Phase 1 screens against the real API: login, my tasks, calendar, work
+  log, clock in/out.
 
 ## Recently Completed Hardening
 
+- Deleted the scaffolding: four backend modules outside the application graph,
+  five frontend services with no importers, the legacy shared entities and the
+  unused seed module — 8,163 lines that compiled, linted and were reached by
+  nothing. The backend package is no longer called `questionnaire-backend`.
+- Added layered process audits: each layer runs on its own clock, the zone panel
+  reports every layer separately, and the daily job raises one task per layer
+  that is due. See [DECISIONS.md](DECISIONS.md).
+- Built the red-tag holding area: tagged items wait 30 days with a clock, a
+  panel lists what is waiting most-urgent-first, and the daily job chases a
+  decision once a hold runs out. The wait is what makes red-tagging evidence
+  rather than opinion. See [DECISIONS.md](DECISIONS.md).
+- Gave red tags a position on the floor plan. A tag is now a numbered pin
+  inside its zone, draggable but clamped to that zone — "the pallet by the north
+  door" is a different finding from "the pallet by the bench".
+- Stopped an edit to a red tag wiping the `closedAt` set when its cleanup task
+  was finished. `closedAt` now changes only when the status itself does.
+- Made it possible to form a team: invitations by email and role, accepted into
+  the inviting organization. Every registration used to create a brand-new
+  organization with no way to add a second person. See [DECISIONS.md](DECISIONS.md).
+- Made the audit cycle run itself. A daily job raises the audits each zone's
+  declared frequency calls for, deduping against the manual button. `auditFrequency`
+  was declared on every zone and read by nothing. See [DECISIONS.md](DECISIONS.md).
+- Added a module-graph test. No backend spec had ever exercised dependency
+  injection, so a misregistered provider would only have failed at startup.
+- Gave every zone an audit history: latest score against a frozen baseline, the
+  change between them, open red tags, and the dated scores behind it. Deliberately
+  not a chart — a trend line through three audits claims a precision the data
+  does not have.
+- Mirrored the audit-score rule in the demo workspace, and grouped the demo
+  mirrors so the next server rule is not forgotten. See [DECISIONS.md](DECISIONS.md).
+- Fixed a crash that took down the whole floor plan the first time a real audit
+  scored a zone: audit-cycle date arithmetic could not read the timestamp the
+  server writes. It now lives in a tested module.
+- Closed the last joint of the 5S loop: finishing a task raised from a red tag
+  marks the tag finished, so the map stops reporting a problem somebody already
+  fixed. See [DECISIONS.md](DECISIONS.md).
+- Gave demo records collision-free ids. Eight services generated ids from
+  `Date.now()`, so records created in one pass shared an id and updating one
+  rewrote the others.
+- Added photo evidence: a before/after pair on every red tag and a standard
+  photograph on every zone, with the file's real type read from its bytes and
+  every read scoped to one organization. See [DECISIONS.md](DECISIONS.md).
+- Linked work back to the finding that caused it. Tasks raised from a red tag or
+  an audit carry their source, show it on the kanban card, and the server raises
+  at most one open task per finding — the "Red-tag tasks" button used to double
+  the work every time it was pressed. See [DECISIONS.md](DECISIONS.md).
+- Closed the first joint of the 5S loop: an audit run now references the zone
+  it audited, and submitting one writes the score, date and a frozen baseline
+  onto that zone server-side. The floor plan can colour zones by audit
+  condition, so the map shows measured state rather than chosen colours. See
+  [DECISIONS.md](DECISIONS.md).
+- Fixed the migration glob, which silently skipped both 5S layout migrations —
+  `five_s_layouts` was never created in any real database.
+- Gave `mobile-flutter` its first tests (40), covering the validators the login,
+  register and profile screens call, the user model's API parsing, and the date
+  formatting the profile screen uses. They found two defects, both fixed:
+  `validateName` rejected every Cyrillic name, so no Mongolian user could
+  complete registration or edit their profile; and `initials` threw a
+  `RangeError` on a name with a double or trailing space, or on the empty user
+  an empty API response produces, crashing the profile avatar.
+- Deleted `mobile-flutter/lib/utils/formatters.dart`. Nothing imported it, and
+  it carried credit-card and SSN masking helpers for a product that handles
+  neither.
+- Gave the charts a table view. The figures are always in the accessibility
+  tree, the chart itself is hidden from it, and a toggle switches the visual
+  presentation for anyone who would rather read the numbers.
+- Confirmed the remaining actions that destroy or withdraw saved work: the two
+  5S guideline register tables, and publishing or archiving an assessment
+  template. Template status changes also report failure instead of rejecting
+  silently. The 5S canvas keeps its one-click delete, because it has undo, and
+  removing a question from an unsaved draft stays immediate.
+- Gave the API stable error codes and translated them in the browser, so a
+  failure is reported in the workspace language instead of English prose. Fixed
+  the sign-in path, which reported "check that the backend API is running" for
+  every failure including a wrong password. See [DECISIONS.md](DECISIONS.md).
+- Stopped treating a 401 from `/auth/login` as an expired session. The refresh
+  interceptor redirected to `/login`, reloading the page and discarding the
+  error message before it could be read.
+- Added Mongolian and English translations behind the workspace language
+  setting, which previously announced a change it could not make. Every page
+  reads its copy from the locale files. See
+  [DECISIONS.md](DECISIONS.md).
+- Adopted the shared form, table, dialog and loading components across every
+  page, removing 34 copies of the same field class string; fixed the defects
+  this surfaced in `Input`, `Table` and `Loading`.
+- Replaced the hand-drawn analytics bars with validated charts, and removed
+  three unused chart components that would have shipped an unreadable dark mode.
+- Made the 5S floor plan directly editable — grid snap, resize handles, keyboard
+  nudge, undo/redo — and coalesced its saves, which had been one write per
+  pointer frame.
+- Confirmed project deletion, which previously destroyed a project and its
+  progress on the first click.
+- Removed a 27-entry route table in `App.tsx` whose filter excluded every entry,
+  so it rendered nothing.
+- Cleaned up `flutter analyze` in `mobile-flutter` (159 findings to zero) and
+  stopped tracking Flutter's machine-generated iOS config.
 - Added runtime auth/organization migrations aligned with the current backend entities.
 - Seeded a real demo organization and owner user for PostgreSQL runtime checks.
 - Switched runtime API smoke to log in through `/auth/login` and use the returned JWT for summary and project create/update/delete checks.
@@ -99,6 +442,11 @@
 
 ## Known Constraints
 
-- Docker Desktop/PostgreSQL runtime smoke is now passing locally.
+- Docker cannot start on the development machine: virtualisation is disabled
+  in firmware and enabling it in the ASUS PRIME H310M-F BIOS has not taken.
+  Nothing depends on it any more. `npm run migration:check` applies every
+  migration to PostgreSQL compiled to WebAssembly, in process, and the runtime
+  smoke runs against a native PostgreSQL 18 install — both verified passing on
+  2026-09-16.
 - Root Docker compose and production profile configs have been validated with `docker compose config`, but image build/run still needs Docker daemon.
 - Flutter CLI is not installed on PATH yet, so mobile `flutter analyze` / test checks cannot run until SDK setup finishes.

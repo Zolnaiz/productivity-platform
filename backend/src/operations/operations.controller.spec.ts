@@ -91,7 +91,7 @@ describe('OperationsController payload normalization', () => {
     controller.findFiveSLayout(req);
     controller.updateFiveSLayout(payload, req);
 
-    expect(service.findFiveSLayout).toHaveBeenCalledWith(req.user);
+    expect(service.findFiveSLayout).toHaveBeenCalledWith(req.user, undefined);
     expect(service.upsertFiveSLayout).toHaveBeenCalledWith(payload, req.user);
   });
 

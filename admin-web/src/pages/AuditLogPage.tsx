@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
+import Select from '../components/common/Select';
+import Table from '../components/common/Table';
 import { adminService } from '../services/admin.service';
 import { AuditLogEntry } from '../types/admin.types';
 
@@ -12,6 +15,7 @@ const severityClasses = {
 };
 
 const AuditLogPage: React.FC = () => {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -30,25 +34,23 @@ const AuditLogPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Audit Log</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Owner view for report exports, permission changes, audit submissions, and system activity.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('auditLog.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('auditLog.subtitle')}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <div className="text-sm text-gray-500">Total events</div>
+          <div className="text-sm text-gray-500">{t('auditLog.totalEvents')}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{logs.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Warnings</div>
+          <div className="text-sm text-gray-500">{t('auditLog.warnings')}</div>
           <div className="mt-2 text-2xl font-semibold text-yellow-600">
             {logs.filter((log) => log.severity === 'warning').length}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Critical</div>
+          <div className="text-sm text-gray-500">{t('auditLog.critical')}</div>
           <div className="mt-2 text-2xl font-semibold text-red-600">
             {logs.filter((log) => log.severity === 'critical').length}
           </div>
@@ -56,69 +58,132 @@ const AuditLogPage: React.FC = () => {
       </div>
 
       <Card
-        title="System activity"
+        title={t('auditLog.systemActivity')}
         loading={loading}
         actions={
-          <select
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Select
+            className="w-48"
+            aria-label={t('auditLog.filterEvents')}
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
           >
-            <option value="all">All events</option>
-            <option value="info">Info</option>
-            <option value="warning">Warning</option>
-            <option value="critical">Critical</option>
+            <option value="all">{t('auditLog.allEvents')}</option>
+            <option value="info">{t('auditLog.severityInfo')}</option>
+            <option value="warning">{t('auditLog.severityWarning')}</option>
+            <option value="critical">{t('auditLog.severityCritical')}</option>
             {modules.map((module) => (
               <option key={module} value={module}>
                 {module}
               </option>
             ))}
-          </select>
+          </Select>
         }
       >
-        {filteredLogs.length ? (
-          <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b text-gray-500 dark:border-gray-700">
-              <tr>
-                <th className="py-3">Time</th>
-                <th className="py-3">Actor</th>
-                <th className="py-3">Module</th>
-                <th className="py-3">Action</th>
-                <th className="py-3">Severity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.map((log) => (
-                <tr key={log.id} className="border-b dark:border-gray-700">
-                  <td className="py-3 text-gray-500">{log.createdAt}</td>
-                  <td className="py-3 font-medium text-gray-900 dark:text-white">{log.actor}</td>
-                  <td className="py-3">{log.module}</td>
-                  <td className="py-3">
-                    <div className="font-medium text-gray-800 dark:text-gray-200">{log.action}</div>
-                    <div className="text-xs text-gray-500">{log.details}</div>
-                  </td>
-                  <td className="py-3">
-                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${severityClasses[log.severity]}`}>
-                      {log.severity}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        ) : (
-          <EmptyState
-            icon={ShieldCheck}
-            title={logs.length ? 'No events match this filter' : 'No audit events yet'}
-            description={
-              logs.length
-                ? 'Change the filter to review other system activity.'
-                : 'Security events, report exports, permission changes, and audit submissions will appear here.'
-            }
-          />
-        )}
+        <Table
+          rows={filteredLogs}
+          rowKey={(log) => log.id}
+          columns={[
+            {
+              key: 'createdAt',
+              header: t('auditLog.time'),
+              className: 'py-3 text-gray-500',
+              render: (log) => new Date(log.createdAt).toLocaleString(),
+            },
+            {
+              key: 'actor',
+              header: t('auditLog.actor'),
+              className: 'py-3 font-medium text-gray-900 dark:text-white',
+              render: (log) => (
+                <>
+                  <div>{log.actorName || t('auditLog.unknownActor')}</div>
+                  {log.actorRole && <div className="text-xs text-gray-500">{t(`users.roles.${log.actorRole}`)}</div>}
+                </>
+              ),
+            },
+            { key: 'module', header: t('auditLog.module') },
+            {
+              key: 'action',
+              header: t('auditLog.action'),
+              render: (log) => (
+                <>
+                  <div className="font-medium text-gray-800 dark:text-gray-200">{log.action}</div>
+                  {/*
+                    The exact route, because `module` and `action` are a coarse
+                    grouping and evidence has to be specific about what was
+                    touched.
+                  */}
+                  <div className="text-xs text-gray-500">
+                    {log.method} {log.route}
+                    {log.targetId ? ` · ${log.targetId}` : ''}
+                  </div>
+                </>
+              ),
+            },
+            {
+              key: 'changes',
+              header: t('auditLog.changed'),
+              render: (log) => {
+                if (!log.changes?.fields?.length) {
+                  // Nothing to say rather than an empty cell that reads as a
+                  // change with no detail.
+                  return <span className="text-xs text-gray-400">—</span>;
+                }
+
+                return (
+                  <div className="space-y-0.5">
+                    {log.changes.fields.slice(0, 4).map((field) => {
+                      /*
+                        What it was, when the trail could say. "Set to monthly"
+                        is half an answer; the question a reader is asking is
+                        what it was before they set it.
+                      */
+                      const had = log.before?.fields?.includes(field)
+                        ? String(log.before?.values?.[field] ?? '')
+                        : null;
+
+                      return (
+                        <div key={field} className="text-xs">
+                          <span className="text-gray-500">{field}</span>
+                          {had !== null && (
+                            <span className="ml-1 text-gray-400 line-through">{had}</span>
+                          )}
+                          <span className="ml-1 text-gray-800 dark:text-gray-200">
+                            {String(log.changes?.values?.[field] ?? '')}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    {(log.changes.fields.length > 4 || log.changes.more) && (
+                      <div className="text-xs text-gray-400">
+                        {t('auditLog.moreFields', {
+                          count: log.changes.fields.length - Math.min(log.changes.fields.length, 4) + (log.changes.more ?? 0),
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              },
+            },
+            {
+              key: 'severity',
+              header: t('auditLog.severity'),
+              render: (log) => (
+                <span className={`rounded-full px-2 py-1 text-xs font-medium ${severityClasses[log.severity]}`}>
+                  {log.severity}
+                </span>
+              ),
+            },
+          ]}
+          empty={
+            <EmptyState
+              icon={ShieldCheck}
+              title={logs.length ? t('auditLog.noMatchTitle') : t('auditLog.emptyTitle')}
+              description={
+                logs.length ? t('auditLog.noMatchDescription') : t('auditLog.emptyDescription')
+              }
+            />
+          }
+        />
       </Card>
     </div>
   );

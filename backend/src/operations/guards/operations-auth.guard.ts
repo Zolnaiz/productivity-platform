@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import { apiError, ErrorCode } from '../../shared/errors/api-error';
 
 type JwtPayload = {
   sub?: string;
@@ -14,6 +15,12 @@ type JwtPayload = {
 };
 
 type RequestWithUser = Request & {
+  /**
+   * Set when `ALLOW_PUBLIC_OPERATIONS` let an unauthenticated request through.
+   * `PermissionsGuard` reads it rather than the flag, so the development
+   * switch is interpreted in exactly one place.
+   */
+  anonymousOperations?: boolean;
   user?: {
     id?: string;
     email?: string;
@@ -39,16 +46,17 @@ export class OperationsAuthGuard implements CanActivate {
 
     if (!authHeader) {
       if (allowPublicOperations) {
+        request.anonymousOperations = true;
         return true;
       }
 
-      throw new UnauthorizedException('Bearer token is required');
+      throw apiError(ErrorCode.AuthTokenMissing);
     }
 
     const parts = authHeader.split(' ');
     const [scheme, token] = parts;
     if (parts.length !== 2 || scheme !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Invalid authorization header');
+      throw apiError(ErrorCode.AuthTokenInvalid);
     }
 
     try {
@@ -65,7 +73,7 @@ export class OperationsAuthGuard implements CanActivate {
       };
 
       if (!request.user.organizationId && !allowPublicOperations) {
-        throw new UnauthorizedException('Organization context is required');
+        throw apiError(ErrorCode.AuthOrganizationRequired);
       }
 
       return true;
@@ -74,7 +82,7 @@ export class OperationsAuthGuard implements CanActivate {
         throw error;
       }
 
-      throw new UnauthorizedException('Invalid or expired token');
+      throw apiError(ErrorCode.AuthTokenInvalid);
     }
   }
 }

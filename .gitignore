@@ -17,6 +17,12 @@ out/
 .env.production.local
 .env.*.local
 
+# The file the deployment runbook tells you to create, holding the database
+# password and both JWT secrets. Only `.env.production.local` was ignored, so
+# following the instructions put real production secrets one `git add .` away
+# from being committed.
+.env.production
+
 # Runtime data
 pids
 *.pid
@@ -168,3 +174,8 @@ bin/
 *.sql
 *.sqlite
 !backend/init-db.sql
+
+# Working copies the editor's agents check out. They are copies of this
+# repository, not part of it, and committing one would commit the repository
+# into itself.
+.claude/worktrees/

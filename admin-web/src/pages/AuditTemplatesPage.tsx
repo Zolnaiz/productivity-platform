@@ -1,17 +1,36 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import Input from '../components/common/Input';
+import Select from '../components/common/Select';
 import { fiveSLayoutService } from '../services/fiveSLayout.service';
 import { operationsService } from '../services/operations.service';
 import { AuditRun, AuditTemplate } from '../types/operations.types';
+import { AuditTier, FiveSZone } from '../types/fiveS.types';
+import { readAuditTiers } from '../components/fives/tierRules';
+import { AuditAnswers, answersForRun, scoreAnswers } from '../components/fives/auditAnswers';
 
-type Answers = Record<string, string>;
+/**
+ * The mark an area has to reach. 85 is the common 5S pass mark.
+ *
+ * Only the wording on this screen depends on it now: what a failing score
+ * actually causes — the corrective task, its urgency and its due date — is
+ * decided in `backend/src/operations/operations.service.ts`, so every way of
+ * submitting a run produces the same work.
+ */
+const PASSING_SCORE = 85;
 
 const AuditTemplatesPage: React.FC = () => {
+  const { t } = useTranslation();
   const [templates, setTemplates] = useState<AuditTemplate[]>([]);
   const [runs, setRuns] = useState<AuditRun[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
-  const [location, setLocation] = useState('');
-  const [answers, setAnswers] = useState<Answers>({});
+  const [zoneId, setZoneId] = useState('');
+  const [zones, setZones] = useState<FiveSZone[]>([]);
+  const [tiers, setTiers] = useState<AuditTier[]>([]);
+  const [tier, setTier] = useState('');
+  const [answers, setAnswers] = useState<AuditAnswers>({});
   const [actionMessage, setActionMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,17 +42,20 @@ const AuditTemplatesPage: React.FC = () => {
 
     const loadAudits = async () => {
       try {
-        const [templateItems, runItems] = await Promise.all([
+        const [templateItems, runItems, plan] = await Promise.all([
           operationsService.getAuditTemplates(),
           operationsService.getAuditRuns(),
+          fiveSLayoutService.getPlan(),
         ]);
 
         if (!active) return;
         setTemplates(templateItems);
         setSelectedTemplateId(templateItems[0]?.id || '');
         setRuns(runItems);
+        setZones(plan.zones);
+        setTiers(readAuditTiers(plan.auditTiers));
       } catch {
-        if (active) setError('Audit загварууд ачаалж чадсангүй.');
+        if (active) setError(t('auditTemplates.loadFailed'));
       } finally {
         if (active) setLoading(false);
       }
@@ -45,6 +67,21 @@ const AuditTemplatesPage: React.FC = () => {
       active = false;
     };
   }, []);
+
+  /*
+    A layer can name its own checklist, and choosing the layer opens it — the
+    same rule the phone follows, so a walk recorded at a desk asks the same
+    questions as the one recorded in the area. Only if that checklist still
+    exists: a retired template must not empty the form.
+  */
+  useEffect(() => {
+    const wanted = tiers.find((item) => String(item.tier) === tier)?.templateId;
+
+    if (wanted && templates.some((template) => template.id === wanted)) {
+      setSelectedTemplateId(wanted);
+      setAnswers({});
+    }
+  }, [tier, tiers, templates]);
 
   const selectedTemplate = templates.find((template) => template.id === selectedTemplateId);
   const industries = useMemo(
@@ -66,110 +103,75 @@ const AuditTemplatesPage: React.FC = () => {
     [categoryFilter, industryFilter, templates],
   );
 
-  const score = useMemo(() => {
-    if (!selectedTemplate) return 0;
+  // The same arithmetic the phone uses, so a walk scores the same whether it
+  // was recorded at a desk or standing in the area.
+  const score = useMemo(() => scoreAnswers(selectedTemplate, answers), [answers, selectedTemplate]);
 
-    let earned = 0;
-    let possible = 0;
-
-    selectedTemplate.questions.forEach((question) => {
-      if (question.type === 'score') {
-        possible += question.maxScore || 5;
-        earned += Number(answers[question.id] || 0);
-      }
-
-      if (question.type === 'yes_no') {
-        possible += 1;
-        earned += answers[question.id] === 'yes' ? 1 : 0;
-      }
-    });
-
-    return possible ? Math.round((earned / possible) * 100) : 0;
-  }, [answers, selectedTemplate]);
-
-  const createCorrectiveTask = async (run: AuditRun, templateTitle: string) => {
-    const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    await operationsService.createTask({
-      title: `Corrective action: ${templateTitle} at ${run.location || 'audit location'}`,
-      description: `Audit score was ${run.score}%. Review failed checklist items and record improvement work.`,
-      status: 'todo',
-      priority: run.score < 70 ? 'high' : 'medium',
-      dueDate,
-      estimatedHours: 2,
-      actualHours: 0,
-    });
-    setActionMessage(`Corrective action task created for ${run.location || templateTitle}.`);
-  };
-
-  const updateFloorPlanAuditScore = async (run: AuditRun) => {
-    const zoneCode = run.location?.split('-')[0]?.trim();
-    if (!zoneCode) return false;
-
-    const plan = await fiveSLayoutService.getPlan();
-    let matched = false;
-    const zones = plan.zones.map((zone) => {
-      if (zone.code !== zoneCode) return zone;
-      matched = true;
-      return {
-        ...zone,
-        lastAuditScore: run.score,
-        lastAuditAt: new Date().toISOString().slice(0, 10),
-      };
-    });
-
-    if (!matched) return false;
-
-    await fiveSLayoutService.savePlan({
-      ...plan,
-      zones,
-    });
-    return true;
+  /**
+   * Chases a run whose area has not improved.
+   *
+   * Recording a run already raises its own follow-up, so this is for the runs
+   * that predate that and for an area that keeps failing. The server writes
+   * the task, which is why nothing about its wording is decided here.
+   */
+  const raiseFollowUp = async (run: AuditRun) => {
+    await operationsService.raiseAuditFollowUp(run.id);
+    setActionMessage(
+      t('auditTemplates.correctiveCreated', {
+        place: run.location || t('auditTemplates.noZone'),
+      }),
+    );
   };
 
   const submitAudit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedTemplate) return;
 
+    const zone = zones.find((item) => item.id === zoneId);
+
     const auditRun: AuditRun = {
       id: `local-audit-${Date.now()}`,
       templateId: selectedTemplate.id,
-      location,
+      zoneId: zoneId || undefined,
+      // Which layer this check was. The server resets that layer's clock.
+      tier: tier ? Number(tier) : undefined,
+      // Kept for audits of places that are not on the map, and so a run still
+      // reads sensibly in a list once a zone has been renamed or removed.
+      location: zone ? `${zone.code} - ${zone.name}` : undefined,
       score,
       status: 'submitted',
-      answers: selectedTemplate.questions.map((question) => ({
-        questionId: question.id,
-        value:
-          question.type === 'score'
-            ? Number(answers[question.id] || 0)
-            : question.type === 'yes_no'
-              ? answers[question.id] === 'yes'
-              : answers[question.id] || '',
-      })),
+      answers: answersForRun(selectedTemplate, answers),
     };
 
     setRuns((current) => [auditRun, ...current]);
     setAnswers({});
-    setLocation('');
+    setZoneId('');
+
+    const place = auditRun.location || selectedTemplate.title;
+
+    /*
+      The server writes the score onto the zone and raises the corrective work
+      a failing score calls for. Both used to be done here, which meant they
+      happened only for an audit typed up at this desk: a check walked on a
+      phone repainted nothing and raised nothing, and the person walking it
+      usually cannot create tasks at all.
+    */
     await operationsService.createAuditRun(auditRun);
-    const scoreSynced = await updateFloorPlanAuditScore(auditRun);
-    if (auditRun.score < 85) {
-      await createCorrectiveTask(auditRun, selectedTemplate.title);
-    } else {
-      setActionMessage(
-        scoreSynced
-          ? 'Audit submitted. Zone score updated on the 5S area map.'
-          : 'Audit submitted. No corrective action needed.',
-      );
-    }
+
+    setActionMessage(
+      auditRun.score < PASSING_SCORE
+        ? t('auditTemplates.correctiveCreated', { place })
+        : zone
+          ? t('auditTemplates.zoneScoreUpdated', { place })
+          : t('auditTemplates.submitted'),
+    );
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Audit Templates</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Run inspection checklists, score completed work, and create corrective actions for gaps.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('auditTemplates.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('auditTemplates.subtitle')}</p>
       </div>
 
       {error && (
@@ -178,64 +180,82 @@ const AuditTemplatesPage: React.FC = () => {
         </div>
       )}
 
-      {loading && <Card>Audit загварууд ачаалж байна...</Card>}
+      {loading && (
+        <Card loading>
+          <div />
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <div className="text-sm text-gray-500">Templates</div>
+          <div className="text-sm text-gray-500">{t('auditTemplates.templates')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{templates.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Industries</div>
+          <div className="text-sm text-gray-500">{t('auditTemplates.industries')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{industries.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Categories</div>
+          <div className="text-sm text-gray-500">{t('auditTemplates.categories')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{categories.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Audit runs</div>
+          <div className="text-sm text-gray-500">{t('auditTemplates.auditRuns')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{runs.length}</div>
         </Card>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_440px]">
-        <Card title="Run audit" subtitle={selectedTemplate?.description}>
+        <Card title={t('auditTemplates.runAudit')} subtitle={selectedTemplate?.description}>
           <form onSubmit={submitAudit} className="space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="text-sm text-gray-600 dark:text-gray-400">
-                Template
-                <select
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                  value={selectedTemplateId}
-                  onChange={(event) => {
-                    setSelectedTemplateId(event.target.value);
-                    setAnswers({});
-                  }}
-                >
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-sm text-gray-600 dark:text-gray-400">
-                Location
-                <input
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                  placeholder="Area code, branch, site..."
-                  value={location}
-                  onChange={(event) => setLocation(event.target.value)}
-                />
-              </label>
+              <Select
+                label={t('auditTemplates.template')}
+                value={selectedTemplateId}
+                onChange={(event) => {
+                  setSelectedTemplateId(event.target.value);
+                  setAnswers({});
+                }}
+              >
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.title}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                label={t('auditTemplates.tier')}
+                value={tier}
+                onChange={(event) => setTier(event.target.value)}
+                helperText={t('auditTemplates.tierHint')}
+              >
+                <option value="">{t('auditTemplates.noTier')}</option>
+                {tiers.map((item) => (
+                  <option key={item.tier} value={item.tier}>
+                    {item.name}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                label={t('auditTemplates.zone')}
+                value={zoneId}
+                onChange={(event) => setZoneId(event.target.value)}
+                helperText={t('auditTemplates.zoneHint')}
+              >
+                <option value="">{t('auditTemplates.noZone')}</option>
+                {zones.map((zone) => (
+                  <option key={zone.id} value={zone.id}>
+                    {zone.code} - {zone.name}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
-              <div className="text-sm text-blue-700 dark:text-blue-300">Current audit score</div>
+              <div className="text-sm text-blue-700 dark:text-blue-300">{t('auditTemplates.currentScore')}</div>
               <div className="mt-1 text-3xl font-semibold text-blue-700 dark:text-blue-300">{score}%</div>
               <div className="mt-2 text-xs text-blue-700 dark:text-blue-300">
-                Scores below 85% automatically create a corrective action task.
+                {t('auditTemplates.scoreHint')}
               </div>
             </div>
 
@@ -261,20 +281,22 @@ const AuditTemplatesPage: React.FC = () => {
                     </div>
                   )}
                   {question.type === 'yes_no' && (
-                    <select
-                      className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                    <Select
+                      className="mt-3"
+                      aria-label={question.text}
                       value={answers[question.id] || 'no'}
                       onChange={(event) =>
                         setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
                       }
                     >
-                      <option value="no">No</option>
-                      <option value="yes">Yes</option>
-                    </select>
+                      <option value="no">{t('auditTemplates.answerNo')}</option>
+                      <option value="yes">{t('auditTemplates.answerYes')}</option>
+                    </Select>
                   )}
                   {question.type === 'text' && (
-                    <input
-                      className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                    <Input
+                      className="mt-3"
+                      aria-label={question.text}
                       value={answers[question.id] || ''}
                       onChange={(event) =>
                         setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
@@ -285,50 +307,46 @@ const AuditTemplatesPage: React.FC = () => {
               ))}
             </div>
 
-            <button
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              disabled={!selectedTemplate || loading}
-              type="submit"
-            >
-              Submit audit
-            </button>
+            <Button disabled={!selectedTemplate || loading} type="submit">
+              {t('auditTemplates.submitAudit')}
+            </Button>
             {actionMessage && <div className="text-sm text-green-600">{actionMessage}</div>}
           </form>
         </Card>
 
         <div className="space-y-6">
-          <Card title="Template library">
+          <Card title={t('auditTemplates.templateLibrary')}>
             <div className="mb-4 grid gap-3 md:grid-cols-2">
-              <select
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              <Select
+                label={t('auditTemplates.industry')}
                 value={industryFilter}
                 onChange={(event) => setIndustryFilter(event.target.value)}
               >
-                <option value="all">All industries</option>
+                <option value="all">{t('auditTemplates.allIndustries')}</option>
                 {industries.map((industry) => (
                   <option key={industry} value={industry}>
                     {industry}
                   </option>
                 ))}
-              </select>
-              <select
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              </Select>
+              <Select
+                label={t('auditTemplates.businessNeed')}
                 value={categoryFilter}
                 onChange={(event) => setCategoryFilter(event.target.value)}
               >
-                <option value="all">All needs</option>
+                <option value="all">{t('auditTemplates.allNeeds')}</option>
                 {categories.map((category) => (
                   <option key={category} value={category}>
                     {category.replace('_', ' ')}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div className="space-y-3">
               {!loading && filteredTemplates.length === 0 && (
                 <div className="text-sm text-gray-500">
-                  Сонгосон filter-д тохирох audit template алга.
+                  {t('auditTemplates.noTemplatesMatch')}
                 </div>
               )}
               {filteredTemplates.map((template) => (
@@ -355,7 +373,7 @@ const AuditTemplatesPage: React.FC = () => {
             </div>
           </Card>
 
-          <Card title="Recent audit runs">
+          <Card title={t('auditTemplates.recentRuns')}>
             <div className="space-y-3">
               {!loading && runs.length === 0 && (
                 <div className="text-sm text-gray-500">
@@ -371,18 +389,22 @@ const AuditTemplatesPage: React.FC = () => {
                         <div className="font-medium text-gray-900 dark:text-white">
                           {template?.title || 'Audit run'}
                         </div>
-                        <div className="text-sm text-gray-500">{run.location || 'No location'}</div>
+                        <div className="text-sm text-gray-500">
+                          {run.location || t('auditTemplates.noZone')}
+                        </div>
                       </div>
                       <div className="text-lg font-semibold text-blue-600">{run.score}%</div>
                     </div>
-                    {run.score < 85 && (
-                      <button
-                        className="mt-3 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950/30"
+                    {run.score < PASSING_SCORE && (
+                      <Button
+                        className="mt-3 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950/30"
+                        variant="outline"
+                        size="sm"
                         type="button"
-                        onClick={() => createCorrectiveTask(run, template?.title || 'Audit run')}
+                        onClick={() => void raiseFollowUp(run)}
                       >
-                        Create corrective task
-                      </button>
+                        {t('auditTemplates.createCorrectiveTask')}
+                      </Button>
                     )}
                   </div>
                 );

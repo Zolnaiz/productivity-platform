@@ -1,10 +1,4 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
@@ -13,6 +7,7 @@ import { User } from '../users/entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UserRole } from '../shared/constants';
+import { apiError, ErrorCode } from '../shared/errors/api-error';
 
 const durationToSeconds = (duration: string) => {
   const match = duration.trim().match(/^(\d+)([smhd])?$/);
@@ -48,11 +43,11 @@ export class AuthService {
     const user = await this.usersService.validateUser(email, password);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw apiError(ErrorCode.AuthInvalidCredentials);
     }
 
     if (!user.isActive) {
-      throw new ForbiddenException('User account is inactive');
+      throw apiError(ErrorCode.AuthAccountInactive);
     }
 
     return user;
@@ -70,7 +65,7 @@ export class AuthService {
 
     const existingUser = await this.usersService.findByEmail(registerDto.email);
     if (existingUser) {
-      throw new ConflictException('Email is already registered');
+      throw apiError(ErrorCode.AuthEmailTaken);
     }
 
     const organization = await this.organizationsService.create({
@@ -113,13 +108,13 @@ export class AuthService {
 
       const user = await this.usersService.findById(payload.sub);
       if (!user || !user.isActive) {
-        throw new UnauthorizedException('User not found or inactive');
+        throw apiError(ErrorCode.AuthSessionExpired);
       }
 
       return this.buildAuthResponse(user);
     } catch (error) {
       this.logger.error(`Token refresh failed: ${error.message}`);
-      throw new UnauthorizedException('Refresh token is invalid');
+      throw apiError(ErrorCode.AuthSessionExpired);
     }
   }
 
@@ -148,7 +143,7 @@ export class AuthService {
   async getProfile(userId: string) {
     const user = await this.usersService.findById(userId);
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw apiError(ErrorCode.AuthUserNotFound);
     }
 
     return this.toAuthUser(user);

@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { PermissionsGuard } from '../shared/guards/permissions.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { DatabaseModule } from '../shared/database/database.module';
@@ -12,11 +13,14 @@ import { User } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
 import { Organization } from '../organizations/entities/organization.entity';
 import { OrganizationsService } from '../organizations/organizations.service';
+import { Invitation } from './entities/invitation.entity';
+import { InvitationsController } from './invitations.controller';
+import { InvitationsService } from './invitations.service';
 
 @Module({
   imports: [
     DatabaseModule,
-    TypeOrmModule.forFeature([User, Organization]),
+    TypeOrmModule.forFeature([User, Organization, Invitation]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -29,8 +33,8 @@ import { OrganizationsService } from '../organizations/organizations.service';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, UsersService, OrganizationsService, LocalStrategy, JwtStrategy],
-  exports: [AuthService],
+  controllers: [AuthController, InvitationsController],
+  providers: [PermissionsGuard, AuthService, InvitationsService, UsersService, OrganizationsService, LocalStrategy, JwtStrategy],
+  exports: [AuthService, InvitationsService],
 })
 export class AuthModule {}

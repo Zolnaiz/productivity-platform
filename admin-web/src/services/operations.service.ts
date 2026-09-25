@@ -1,4 +1,5 @@
-import { del, get, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
+import { del, get, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
+import { planHoldingZone, readDemoPlans, replaceDemoPlan, writeDemoPlans } from './demoPlanStore';
 import {
   AuditTemplate,
   AuditRun,
@@ -10,6 +11,7 @@ import {
   WorkTask,
 } from '../types/operations.types';
 import { DailyGoal } from '../types/productivity.types';
+import { summarisePeople } from '../components/reports/monthlyPeople';
 
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
 type DemoKey = 'projects' | 'tasks' | 'workLogs' | 'timeEntries' | 'auditTemplates' | 'auditRuns' | 'goals';
@@ -26,7 +28,7 @@ const demoProjects: Project[] = [
   {
     id: 'p1',
     organizationId: 'demo-org',
-    ownerId: 'demo-owner',
+    ownerId: 'u1',
     name: 'Operations productivity rollout',
     description: 'Task, time, work log, and monthly reporting MVP.',
     status: 'active',
@@ -38,7 +40,7 @@ const demoProjects: Project[] = [
   {
     id: 'p2',
     organizationId: 'demo-org',
-    ownerId: 'demo-owner',
+    ownerId: 'u1',
     name: '5S audit implementation',
     description: 'Manufacturing checklist templates and audit scoring.',
     status: 'planned',
@@ -54,8 +56,8 @@ const demoTasks: WorkTask[] = [
     organizationId: 'demo-org',
     title: 'Build project and task APIs',
     projectId: 'p1',
-    assigneeId: 'demo-owner',
-    reporterId: 'demo-owner',
+    assigneeId: 'u1',
+    reporterId: 'u1',
     status: 'done',
     priority: 'high',
     dueDate: '2026-06-14',
@@ -67,8 +69,8 @@ const demoTasks: WorkTask[] = [
     organizationId: 'demo-org',
     title: 'Connect work log dashboard',
     projectId: 'p1',
-    assigneeId: 'demo-owner',
-    reporterId: 'demo-owner',
+    assigneeId: 'u3',
+    reporterId: 'u1',
     status: 'in_progress',
     priority: 'high',
     dueDate: '2026-06-18',
@@ -80,8 +82,8 @@ const demoTasks: WorkTask[] = [
     organizationId: 'demo-org',
     title: 'Prepare 5S template library',
     projectId: 'p2',
-    assigneeId: 'demo-owner',
-    reporterId: 'demo-owner',
+    assigneeId: 'u2',
+    reporterId: 'u1',
     status: 'todo',
     priority: 'medium',
     dueDate: '2026-06-25',
@@ -94,7 +96,7 @@ const demoWorkLogs: WorkLog[] = [
   {
     id: 'w1',
     organizationId: 'demo-org',
-    userId: 'demo-owner',
+    userId: 'u1',
     logDate: '2026-06-12',
     projectId: 'p1',
     taskId: 't1',
@@ -105,7 +107,7 @@ const demoWorkLogs: WorkLog[] = [
   {
     id: 'w2',
     organizationId: 'demo-org',
-    userId: 'demo-owner',
+    userId: 'u3',
     logDate: '2026-06-11',
     projectId: 'p1',
     summary: 'Product blueprint and route structure were finalized.',
@@ -118,7 +120,7 @@ const demoTimeEntries: TimeEntry[] = [
   {
     id: 'te1',
     organizationId: 'demo-org',
-    userId: 'demo-owner',
+    userId: 'u1',
     workDate: '2026-06-12',
     projectId: 'p1',
     taskId: 't1',
@@ -128,7 +130,7 @@ const demoTimeEntries: TimeEntry[] = [
   {
     id: 'te2',
     organizationId: 'demo-org',
-    userId: 'demo-owner',
+    userId: 'u3',
     workDate: '2026-06-11',
     projectId: 'p1',
     hours: 4,
@@ -137,9 +139,9 @@ const demoTimeEntries: TimeEntry[] = [
 ];
 
 const demoDailyGoals: DailyGoal[] = [
-  { id: 'g1', organizationId: 'demo-org', userId: 'demo-owner', title: 'Finish operations MVP shell', date: '2026-06-23', completed: true },
-  { id: 'g2', organizationId: 'demo-org', userId: 'demo-owner', title: 'Add daily productivity tools', date: '2026-06-23', completed: false },
-  { id: 'g3', organizationId: 'demo-org', userId: 'demo-owner', title: 'Review carry-over work', date: '2026-06-20', completed: false },
+  { id: 'g1', organizationId: 'demo-org', userId: 'u1', title: 'Finish operations MVP shell', date: '2026-06-23', completed: true },
+  { id: 'g2', organizationId: 'demo-org', userId: 'u1', title: 'Add daily productivity tools', date: '2026-06-23', completed: false },
+  { id: 'g3', organizationId: 'demo-org', userId: 'u1', title: 'Review carry-over work', date: '2026-06-20', completed: false },
 ];
 
 const demoAuditTemplates: AuditTemplate[] = [
@@ -295,6 +297,9 @@ const demoAuditRuns: AuditRun[] = [
   {
     id: 'ar1',
     templateId: 'a1',
+    // The quality manager walks the floor; without an auditor the run belongs
+    // to nobody and nobody's month shows the audit they carried out.
+    auditorId: 'u2',
     location: 'Main production floor',
     status: 'submitted',
     score: 82,
@@ -326,20 +331,20 @@ const withDemoScope = <T extends Record<string, any>>(key: DemoKey, item: T): T 
   };
 
   if ((key === 'workLogs' || key === 'timeEntries') && !scoped.userId) {
-    scoped.userId = 'demo-owner';
+    scoped.userId = 'u1';
   }
 
   if (key === 'goals' && !scoped.userId) {
-    scoped.userId = 'demo-owner';
+    scoped.userId = 'u1';
   }
 
   if (key === 'tasks') {
-    if (!scoped.assigneeId) scoped.assigneeId = 'demo-owner';
-    if (!scoped.reporterId) scoped.reporterId = 'demo-owner';
+    if (!scoped.assigneeId) scoped.assigneeId = 'u1';
+    if (!scoped.reporterId) scoped.reporterId = 'u1';
   }
 
   if (key === 'auditRuns' && !scoped.auditorId) {
-    scoped.auditorId = 'demo-owner';
+    scoped.auditorId = 'u1';
   }
 
   return scoped as T;
@@ -380,9 +385,179 @@ const writeDemo = <T>(key: DemoKey, items: T[]) => {
 
 const createDemo = <T extends { id: string }>(key: DemoKey, data: Partial<T>) => {
   const items = readDemo<T>(key);
-  const item = { ...data, id: data.id || `local-${Date.now()}` } as T;
+  // The server stamps createdAt; the demo store has to as well, or anything
+  // that shows when a record was made renders a dash.
+  const item = {
+    createdAt: new Date().toISOString(),
+    ...data,
+    id: data.id || localId(),
+  } as unknown as T;
   writeDemo(key, [item, ...items]);
   return item;
+};
+
+/** Mirrors `OperationsService.findOpenTaskForSource`. */
+const findOpenDemoTaskForSource = (data: Partial<WorkTask>) => {
+  if (!data.sourceType || !data.sourceId) return undefined;
+
+  return readDemo<WorkTask>('tasks').find(
+    (task) =>
+      task.sourceType === data.sourceType && task.sourceId === data.sourceId && task.status !== 'done',
+  );
+};
+
+
+/**
+ * Demo mirrors of rules the server enforces.
+ *
+ * The demo workspace never reaches the API, so any rule a page depends on has
+ * to exist here too. Leaving one out does not fail loudly — the screen simply
+ * does less than the product does, and the demo is what most people see first.
+ *
+ * Each mirror below names the server method it stands in for.
+ */
+/**
+ * The demo plan holding a zone.
+ *
+ * Not the first plan stored: an audit recorded against an area upstairs must
+ * not repaint the ground floor. The server learned that when a building first
+ * got a second plan, and the demo kept the old behaviour because it held only
+ * one — which is no longer true.
+ */
+const readDemoPlan = (zoneId?: string): Record<string, any> | null => {
+  const plans = readDemoPlans<Record<string, any>>() ?? [];
+
+  return (zoneId ? planHoldingZone(plans, zoneId) : plans[0]) ?? null;
+};
+
+const writeDemoPlan = (plan: Record<string, any>) => {
+  const plans = readDemoPlans<Record<string, any>>() ?? [];
+
+  writeDemoPlans(replaceDemoPlan(plans, plan));
+};
+
+/** Mirrors `OperationsService.applyAuditScoreToZone`. */
+/** The same marks the server keeps; see `operations.service.ts` there. */
+const DEMO_PASSING_SCORE = 85;
+const DEMO_URGENT_SCORE = 70;
+
+const applyDemoAuditScoreToZone = (run: Partial<AuditRun> | undefined) => {
+  if (!run?.zoneId || run.status === 'draft') return;
+
+  const plan = readDemoPlan(run.zoneId);
+  if (!plan?.zones) return;
+
+  const auditedAt = new Date().toISOString();
+  let matched = false;
+
+  plan.zones = plan.zones.map((zone: Record<string, any>) => {
+    if (zone.id !== run.zoneId) return zone;
+
+    matched = true;
+    const score = Number(run.score) || 0;
+
+    // A layered audit resets its own layer's clock as well as the zone's
+    // overall condition, because the layers run independently.
+    const tierAudits = run.tier
+      ? { ...(zone.tierAudits ?? {}), [String(run.tier)]: { lastAuditAt: auditedAt, lastAuditScore: score } }
+      : zone.tierAudits;
+
+    return {
+      ...zone,
+      ...(tierAudits ? { tierAudits } : {}),
+      lastAuditScore: score,
+      lastAuditAt: auditedAt,
+      baselineScore: zone.baselineScore ?? score,
+      baselineAt: zone.baselineAt ?? auditedAt,
+    };
+  });
+
+  if (matched) writeDemoPlan(plan);
+};
+
+/**
+ * Mirrors `OperationsService.correctiveWorkFor`.
+ *
+ * The demo workspace has no server, so the half of the 5S loop that lives on
+ * the server has to live here too — otherwise the one place a new customer
+ * looks first is the one place a failing audit leads to nothing.
+ */
+const raiseDemoFollowUp = (run: Partial<AuditRun> | undefined) => {
+  const score = Number(run?.score) || 0;
+
+  if (!run?.id || run.status === 'draft' || score >= DEMO_PASSING_SCORE) {
+    return null;
+  }
+
+  // One task per finding, the same rule the server's dedupe enforces.
+  const existing = readDemo<WorkTask>('tasks').find(
+    (task) => task.sourceType === 'audit_run' && task.sourceId === run.id && task.status !== 'done',
+  );
+
+  if (existing) {
+    return existing;
+  }
+
+  const zone = (readDemoPlan(run.zoneId)?.zones ?? []).find(
+    (item: Record<string, any>) => item.id === run.zoneId,
+  );
+  const place = zone
+    ? [zone.code, zone.name].filter(Boolean).join(' - ')
+    : run.location || 'the audited area';
+
+  return createDemo<WorkTask>('tasks', {
+    title: `5S follow-up: ${place}`,
+    description: `The audit scored ${score}%. The standard for this area is ${DEMO_PASSING_SCORE}%.`,
+    assigneeId: zone?.ownerId,
+    sourceType: 'audit_run',
+    sourceId: run.id,
+    status: 'todo',
+    priority: score < DEMO_URGENT_SCORE ? 'high' : 'medium',
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    estimatedHours: 2,
+    actualHours: 0,
+  } as Partial<WorkTask>);
+};
+
+/** Mirrors `OperationsService.closeFindingForCompletedTask`. */
+const closeDemoFindingForTask = (task: Partial<WorkTask> | undefined) => {
+  if (task?.status !== 'done' || task.sourceType !== 'five_s_red_tag' || !task.sourceId) {
+    return;
+  }
+
+  /*
+    The plan carrying this red tag, across every floor — the tag's id is all
+    the finished task knows, and with more than one plan the first one is
+    simply the wrong place to look.
+  */
+  const plan = (readDemoPlans<Record<string, any>>() ?? []).find((candidate) =>
+    (candidate.zones ?? []).some((zone: Record<string, any>) =>
+      (zone.redTags ?? []).some((redTag: Record<string, any>) => redTag.id === task.sourceId),
+    ),
+  );
+
+  if (!plan?.zones) return;
+
+  const closedAt = new Date().toISOString();
+  let matched = false;
+
+  plan.zones = plan.zones.map((zone: Record<string, any>) => {
+    if (!Array.isArray(zone.redTags)) return zone;
+
+    let changed = false;
+    const redTags = zone.redTags.map((redTag: Record<string, any>) => {
+      if (redTag.id !== task.sourceId || redTag.closedAt) return redTag;
+
+      changed = true;
+      matched = true;
+      // Only `closedAt`. Disposed or returned is a decision somebody makes.
+      return { ...redTag, closedAt };
+    });
+
+    return changed ? { ...zone, redTags } : zone;
+  });
+
+  if (matched) writeDemoPlan(plan);
 };
 
 const updateDemo = <T extends { id: string }>(key: DemoKey, id: string, data: Partial<T>) => {
@@ -435,8 +610,17 @@ const buildSummary = (): OperationsSummary => {
   const auditRuns = readDemo<AuditRun>('auditRuns');
   const completedTasks = tasks.filter((task) => task.status === 'done').length;
   const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
+  // Counted from the tasks, the same rule the projects page and the server
+  // use. `project.progress` is a figure somebody set with a slider.
   const averageProjectProgress = projects.length
-    ? Math.round(projects.reduce((sum, project) => sum + Number(project.progress || 0), 0) / projects.length)
+    ? Math.round(
+        projects.reduce((sum, project) => {
+          const mine = tasks.filter((task) => task.projectId === project.id);
+          if (!mine.length) return sum + Number(project.progress || 0);
+
+          return sum + Math.round((mine.filter((task) => task.status === 'done').length / mine.length) * 100);
+        }, 0) / projects.length,
+      )
     : 0;
 
   const averageAuditScore = auditRuns.length
@@ -483,6 +667,9 @@ const buildMonthlyReport = (month = currentMonth()): OperationsMonthlyReport => 
 
   return {
     period: month,
+    // The demo builds its report in the browser, so it groups the records by
+    // person here rather than being handed the answer by the server.
+    people: summarisePeople({ tasks: monthlyTasks, workLogs, timeEntries, auditRuns }),
     totals: {
       projects: projects.length,
       tasks: monthlyTasks.length,
@@ -534,12 +721,18 @@ export const operationsService = {
   getTasks: () => fallback<WorkTask[]>(() => get('/tasks'), readDemo<WorkTask>('tasks')),
   createTask: (data: Partial<WorkTask>) =>
     isDemoMode()
-      ? Promise.resolve(createDemo<WorkTask>('tasks', data))
+      ? Promise.resolve(findOpenDemoTaskForSource(data) ?? createDemo<WorkTask>('tasks', data))
       : post<WorkTask>('/tasks', withoutClientScopedFields(data)),
-  updateTask: (id: string, data: Partial<WorkTask>) =>
-    isDemoMode()
-      ? Promise.resolve(updateDemo<WorkTask>('tasks', id, data))
-      : patch<WorkTask>(`/tasks/${id}`, withoutClientScopedFields(data)),
+  updateTask: (id: string, data: Partial<WorkTask>) => {
+    if (!isDemoMode()) {
+      return patch<WorkTask>(`/tasks/${id}`, withoutClientScopedFields(data));
+    }
+
+    const updated = updateDemo<WorkTask>('tasks', id, data);
+    closeDemoFindingForTask(updated);
+
+    return Promise.resolve(updated);
+  },
   getWorkLogs: () => fallback<WorkLog[]>(() => get('/work-logs'), readDemo<WorkLog>('workLogs')),
   createWorkLog: (data: Partial<WorkLog>) =>
     isDemoMode()
@@ -556,11 +749,37 @@ export const operationsService = {
     isDemoMode()
       ? Promise.resolve(createDemo<AuditTemplate>('auditTemplates', data))
       : post<AuditTemplate>('/audit-templates', withoutClientScopedFields(data)),
-  getAuditRuns: () => fallback<AuditRun[]>(() => get('/audit-runs'), readDemo<AuditRun>('auditRuns')),
-  createAuditRun: (data: Partial<AuditRun>) =>
-    isDemoMode()
-      ? Promise.resolve(createDemo<AuditRun>('auditRuns', data))
-      : post<AuditRun>('/audit-runs', withoutClientScopedFields(data)),
+  getAuditRuns: (zoneId?: string) =>
+    fallback<AuditRun[]>(
+      () => get('/audit-runs', zoneId ? { zoneId } : undefined),
+      readDemo<AuditRun>('auditRuns').filter((run) => !zoneId || run.zoneId === zoneId),
+    ),
+  createAuditRun: (data: Partial<AuditRun>) => {
+    if (!isDemoMode()) {
+      return post<AuditRun>('/audit-runs', withoutClientScopedFields(data));
+    }
+
+    const run = createDemo<AuditRun>('auditRuns', data);
+    applyDemoAuditScoreToZone(run);
+    raiseDemoFollowUp(run);
+
+    return Promise.resolve(run);
+  },
+  /**
+   * Chases a failing run that raised no work, or raised it long ago.
+   *
+   * The wording of the task is the server's, not this screen's, so work raised
+   * by hand and work raised by recording a run read the same in the list.
+   */
+  raiseAuditFollowUp: (runId: string) => {
+    if (!isDemoMode()) {
+      return post<WorkTask | null>(`/audit-runs/${runId}/follow-up`, {});
+    }
+
+    return Promise.resolve(
+      raiseDemoFollowUp(readDemo<AuditRun>('auditRuns').find((run) => run.id === runId)),
+    );
+  },
   getCalendarEvents: async () => {
     const [projects, tasks, auditRuns] = await Promise.all([
       operationsService.getProjects(),

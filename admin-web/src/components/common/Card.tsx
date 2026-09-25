@@ -1,4 +1,5 @@
 import React from 'react';
+import Loading from './Loading';
 
 interface CardProps {
   title?: string;
@@ -51,7 +52,7 @@ const Card: React.FC<CardProps> = ({
       <div className={`px-6 py-4 ${bodyClassName}`}>
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <Loading />
           </div>
         ) : (
           children

@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import Button from '../components/common/Button';
+import Input from '../components/common/Input';
 import { authService } from '../services/auth.service';
+import { apiErrorMessage } from '../i18n/apiError';
 
 const RegisterPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [organizationName, setOrganizationName] = useState('');
@@ -26,8 +31,8 @@ const RegisterPage: React.FC = () => {
         password,
       });
       navigate('/login', { replace: true });
-    } catch {
-      setError('Бүртгэл үүсгэж чадсангүй. Мэдээллээ шалгаад дахин оролдоно уу.');
+    } catch (submitError) {
+      setError(apiErrorMessage(submitError, t));
     } finally {
       setLoading(false);
     }
@@ -39,77 +44,69 @@ const RegisterPage: React.FC = () => {
         onSubmit={handleSubmit}
         className="w-full max-w-lg rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-800"
       >
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Бүртгүүлэх</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Байгууллагын workspace болон эхний admin хэрэглэгчийг үүсгэнэ.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('auth.registerTitle')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('auth.registerSubtitle')}</p>
 
-        <label className="mt-6 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Таны нэр
-          <input
-            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+        <div className="mt-6 space-y-4">
+          <Input
+            label={t('auth.yourName')}
+            autoComplete="name"
             value={name}
             onChange={(event) => setName(event.target.value)}
             required
           />
-        </label>
 
-        <label className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Байгууллагын нэр
-          <input
-            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label={t('auth.organizationName')}
+            autoComplete="organization"
             value={organizationName}
             onChange={(event) => setOrganizationName(event.target.value)}
             required
           />
-        </label>
 
-        <label className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Email
-          <input
-            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label={t('auth.email')}
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
           />
-        </label>
 
-        <label className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Утас
-          <input
-            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label={t('auth.phone')}
+            type="tel"
+            autoComplete="tel"
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
           />
-        </label>
 
-        <label className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Password
-          <input
-            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label={t('auth.password')}
             type="password"
+            autoComplete="new-password"
+            helperText={t('auth.passwordHint')}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             minLength={6}
             required
           />
-        </label>
+        </div>
 
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="mt-4 text-sm text-red-600 dark:text-red-400" role="alert">
+            {error}
+          </p>
+        )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-500 disabled:opacity-60"
-        >
-          {loading ? 'Бүртгэж байна...' : 'Workspace үүсгэх'}
-        </button>
+        <Button className="mt-6" fullWidth type="submit" loading={loading} disabled={loading}>
+          {loading ? t('auth.creating') : t('auth.createWorkspace')}
+        </Button>
 
         <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-          Бүртгэлтэй юу?{' '}
+          {t('auth.alreadyRegistered')}{' '}
           <Link className="text-blue-600 hover:text-blue-500" to="/login">
-            Нэвтрэх
+            {t('auth.signIn')}
           </Link>
         </p>
       </form>

@@ -39,7 +39,9 @@ describe('OperationsDashboardPage', () => {
 
     renderDashboard();
 
-    expect(screen.getByText('Dashboard мэдээлэл ачаалж байна...')).toBeTruthy();
+    // Asserted through the status role rather than the spinner's copy, so the
+    // contract is "the page announces it is loading", not one specific string.
+    expect(screen.getByRole('status')).toBeTruthy();
   });
 
   it('shows an error state when dashboard data cannot be loaded', async () => {
@@ -48,6 +50,6 @@ describe('OperationsDashboardPage', () => {
 
     renderDashboard();
 
-    expect(await screen.findByText('Dashboard мэдээлэл ачаалж чадсангүй.')).toBeTruthy();
+    expect(await screen.findByText('Could not load dashboard data.')).toBeTruthy();
   });
 });

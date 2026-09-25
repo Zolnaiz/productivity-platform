@@ -13,9 +13,22 @@ import { AssessmentResponse } from './entities/assessment-response.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { FiveSLayout } from './entities/five-s-layout.entity';
+import { Department } from './entities/department.entity';
+import { FiveSGuideline } from './entities/five-s-guideline.entity';
+import { FiveSLayoutVersion } from './entities/five-s-layout-version.entity';
+import { User } from '../users/entities/user.entity';
+import { Attachment } from './entities/attachment.entity';
 import { OperationsController } from './operations.controller';
 import { OperationsService } from './operations.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
+import { AttachmentsController } from './attachments.controller';
+import { AttachmentsService } from './attachments.service';
+import { ATTACHMENT_STORE, createAttachmentStore } from './attachment-store';
+import { AuditSchedulerService } from './audit-scheduler.service';
+import { PermissionsGuard } from '../shared/guards/permissions.guard';
+import { Notification } from './entities/notification.entity';
+import { NotificationsController } from './notifications.controller';
+import { NotificationsService } from './notifications.service';
 
 @Module({
   imports: [
@@ -38,10 +51,35 @@ import { OperationsAuthGuard } from './guards/operations-auth.guard';
       ExpenseItem,
       DailyGoal,
       FiveSLayout,
+      Department,
+      FiveSGuideline,
+      FiveSLayoutVersion,
+      // Read-only here, for the address a notification is emailed to.
+      User,
+      Attachment,
+      Notification,
     ]),
   ],
-  controllers: [OperationsController],
-  providers: [OperationsService, OperationsAuthGuard],
-  exports: [OperationsService],
+  controllers: [OperationsController, AttachmentsController, NotificationsController],
+  providers: [
+    OperationsService,
+    AttachmentsService,
+    /*
+      Where attachment bytes live, decided once at startup from the
+      environment. A misconfigured object store fails here, where somebody is
+      watching the service come up, rather than at the first upload from a
+      phone in the middle of an audit.
+    */
+    {
+      provide: ATTACHMENT_STORE,
+      useFactory: createAttachmentStore,
+      inject: [ConfigService],
+    },
+    AuditSchedulerService,
+    NotificationsService,
+    OperationsAuthGuard,
+    PermissionsGuard,
+  ],
+  exports: [OperationsService, AttachmentsService, NotificationsService],
 })
 export class OperationsModule {}

@@ -37,13 +37,73 @@ describe('fiveSLayoutService demo storage', () => {
   });
 
   it('recovers the default layout when stored data is invalid JSON', async () => {
-    localStorage.setItem('productivity-demo-5s-layout', '{broken-json');
+    localStorage.setItem('productivity-demo-5s-layouts', '{broken-json');
     const { fiveSLayoutService } = await import('./fiveSLayout.service');
 
     const plan = await fiveSLayoutService.getPlan();
 
     expect(plan.zones.length).toBeGreaterThan(0);
-    expect(localStorage.getItem('productivity-demo-5s-layout')).not.toBe('{broken-json');
+    expect(localStorage.getItem('productivity-demo-5s-layouts')).not.toBe('{broken-json');
+  });
+
+  it('carries forward a plan drawn before the demo held more than one', async () => {
+    // Somebody's demo is their work: seeding fresh fixtures over it would be
+    // the one thing they would notice.
+    localStorage.setItem(
+      'productivity-demo-5s-layout',
+      JSON.stringify({
+        id: 'their-plan',
+        name: 'Their plan',
+        site: 'Theirs',
+        scale: '1 square = 1 meter',
+        zones: [{ id: 'z1', code: 'A01', name: 'Theirs', stage: 'sort', auditFrequency: 'weekly' }],
+        objects: [],
+      }),
+    );
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    const plans = await fiveSLayoutService.getPlans();
+
+    expect(plans).toHaveLength(1);
+    expect(plans[0].id).toBe('their-plan');
+    expect(localStorage.getItem('productivity-demo-5s-layout')).toBeNull();
+  });
+
+  it('seeds a second building, so a plan per floor is visible without a backend', async () => {
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    const plans = await fiveSLayoutService.getPlans();
+
+    expect(plans.length).toBeGreaterThan(1);
+    expect(new Set(plans.map((plan) => plan.site)).size).toBeGreaterThan(1);
+  });
+
+  it('adds a real second plan rather than pretending to', async () => {
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+    const before = (await fiveSLayoutService.getPlans()).length;
+
+    const added = await fiveSLayoutService.createPlan({ name: 'Mezzanine', site: 'Demo Warehouse', floor: 'Mezzanine' });
+    const after = await fiveSLayoutService.getPlans();
+
+    expect(after).toHaveLength(before + 1);
+    expect(after.some((plan) => plan.id === added.id)).toBe(true);
+    // Empty: a floor somebody adds is a floor they then draw on.
+    expect(added.zones).toHaveLength(0);
+  });
+
+  it('will not delete the last plan an organization has', async () => {
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+    const plans = await fiveSLayoutService.getPlans();
+
+    for (const plan of plans.slice(1)) {
+      await fiveSLayoutService.deletePlan(plan.id);
+    }
+
+    await expect(fiveSLayoutService.deletePlan(plans[0].id)).resolves.toEqual({
+      id: plans[0].id,
+      deleted: false,
+    });
+    expect(await fiveSLayoutService.getPlans()).toHaveLength(1);
   });
 
   it('normalizes stored plans that predate red-tag metadata', async () => {
@@ -170,7 +230,12 @@ describe('fiveSLayoutService demo storage', () => {
     expect(plan.zones).toHaveLength(1);
   });
 
-  it('uses the sample office plan when the backend layout is empty', async () => {
+  it('leaves an empty backend layout empty', async () => {
+    // It used to substitute a sample office here, so somebody signing up was
+    // shown a building that was not theirs, with areas named Reception and
+    // Workstations, and their first job was working out none of it was real.
+    // An empty plan is what a new workspace *is*; the editor asks how to
+    // begin rather than pretending the question is answered.
     localStorage.setItem('token', 'real-token');
     apiMocks.get.mockResolvedValueOnce({
       id: 'empty-server-layout',
@@ -187,7 +252,8 @@ describe('fiveSLayoutService demo storage', () => {
     const plan = await fiveSLayoutService.getPlan();
 
     expect(plan.id).toBe('empty-server-layout');
-    expect(plan.zones.length).toBeGreaterThan(0);
+    expect(plan.zones).toEqual([]);
+    expect(plan.objects).toEqual([]);
   });
 
   it('saves real backend 5S layout without client-only fields', async () => {
@@ -221,13 +287,138 @@ describe('fiveSLayoutService demo storage', () => {
       updatedAt: '2026-06-24T00:00:00.000Z',
     });
 
+    // By id: a building with several floors has to save the floor being
+    // edited rather than whichever plan comes back first.
     expect(apiMocks.patch).toHaveBeenCalledWith(
-      '/five-s-layout',
+      '/five-s-layouts/client-layout',
       expect.not.objectContaining({
         id: expect.anything(),
         organizationId: expect.anything(),
         updatedAt: expect.anything(),
       }),
     );
+  });
+
+  it('sends the walls, the openings and the scale', async () => {
+    // These were left out of the payload for as long as walls existed, so a
+    // plan drawn against a real backend was complete on screen and empty again
+    // after a reload — dropped on the way out rather than refused.
+    localStorage.setItem('token', 'real-token');
+    apiMocks.patch.mockResolvedValueOnce({ id: 'server-layout', zones: [], objects: [], updatedAt: '' });
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    await fiveSLayoutService.savePlan({
+      id: 'client-layout',
+      name: 'Drawn map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      metresPerUnit: 1 / 24,
+      corners: [
+        { id: 'c0', x: 0, y: 0 },
+        { id: 'c1', x: 384, y: 0 },
+      ],
+      walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+      openings: [{ id: 'o0', wallId: 'w0', kind: 'door', offset: 120, width: 21.6 }],
+      zones: [],
+      objects: [],
+      updatedAt: '2026-06-24T00:00:00.000Z',
+    });
+
+    expect(apiMocks.patch).toHaveBeenCalledWith(
+      '/five-s-layouts/client-layout',
+      expect.objectContaining({
+        corners: [
+          { id: 'c0', x: 0, y: 0 },
+          { id: 'c1', x: 384, y: 0 },
+        ],
+        walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+        openings: [{ id: 'o0', wallId: 'w0', kind: 'door', offset: 120, width: 21.6 }],
+        metresPerUnit: 1 / 24,
+      }),
+    );
+  });
+
+  it('saves a plan that has no id of its own through the organization route', async () => {
+    // A workspace whose plan was made by the server's default has the id the
+    // browser gave it, and that names nothing the server knows.
+    localStorage.setItem('token', 'real-token');
+    apiMocks.patch.mockResolvedValueOnce({ id: 'server-layout', zones: [], objects: [], updatedAt: '' });
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    await fiveSLayoutService.savePlan({
+      id: 'default-5s-office-plan',
+      name: 'Office 5S launch map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      zones: [],
+      objects: [],
+      updatedAt: '2026-06-24T00:00:00.000Z',
+    });
+
+    expect(apiMocks.patch).toHaveBeenCalledWith('/five-s-layout', expect.anything());
+  });
+
+  it('asks for every plan the organization has', async () => {
+    localStorage.setItem('token', 'real-token');
+    apiMocks.get.mockResolvedValueOnce([
+      { id: 'l1', name: 'Machine shop', site: 'Plant', floor: '1st floor', zones: [], objects: [], updatedAt: '' },
+      { id: 'l2', name: 'Offices', site: 'Plant', floor: '2nd floor', zones: [], objects: [], updatedAt: '' },
+    ]);
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    const plans = await fiveSLayoutService.getPlans();
+
+    expect(apiMocks.get).toHaveBeenCalledWith('/five-s-layouts');
+    expect(plans.map((plan) => plan.floor)).toEqual(['1st floor', '2nd floor']);
+  });
+
+  it('reads the walls back from the server', async () => {
+    localStorage.setItem('token', 'real-token');
+    apiMocks.get.mockResolvedValueOnce({
+      id: 'server-layout',
+      name: 'Server 5S map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      metresPerUnit: 0.05,
+      corners: [{ id: 'c0', x: 0, y: 0 }],
+      walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+      openings: [{ id: 'o0', wallId: 'w0', kind: 'door', offset: 120, width: 21.6 }],
+      zones: [],
+      objects: [],
+      updatedAt: '2026-06-24T00:00:00.000Z',
+    });
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    const plan = await fiveSLayoutService.getPlan();
+
+    expect(plan.walls).toHaveLength(1);
+    expect(plan.openings).toHaveLength(1);
+    expect(plan.metresPerUnit).toBe(0.05);
+  });
+
+  it('drops a door whose wall is gone', async () => {
+    // Otherwise the plan keeps an entrance that draws nowhere and can never be
+    // reached to delete.
+    localStorage.setItem('token', 'real-token');
+    apiMocks.get.mockResolvedValueOnce({
+      id: 'server-layout',
+      name: 'Server 5S map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      corners: [{ id: 'c0', x: 0, y: 0 }],
+      walls: [{ id: 'w0', from: 'c0', to: 'c1', thickness: 12 }],
+      openings: [
+        { id: 'o0', wallId: 'w0', kind: 'door', offset: 120, width: 21.6 },
+        { id: 'o1', wallId: 'deleted', kind: 'window', offset: 40, width: 28.8 },
+      ],
+      zones: [],
+      objects: [],
+      updatedAt: '2026-06-24T00:00:00.000Z',
+    });
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    const plan = await fiveSLayoutService.getPlan();
+
+    expect(plan.openings?.map((opening) => opening.id)).toEqual(['o0']);
   });
 });

@@ -1,8 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ClipboardList, Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import Button from "../components/common/Button";
 import Card from "../components/common/Card";
+import ConfirmDialog from "../components/common/ConfirmDialog";
 import EmptyState from "../components/common/EmptyState";
+import Input from "../components/common/Input";
+import Select from "../components/common/Select";
+import Textarea from "../components/common/Textarea";
 import { assessmentService } from "../services/assessment.service";
+import { apiErrorMessage } from "../i18n/apiError";
 import {
   AssessmentQuestion,
   AssessmentTemplate,
@@ -87,9 +94,16 @@ const emptyQuestion = (): DraftQuestion => ({
 });
 
 const QuestionnairesPage: React.FC = () => {
+  const { t } = useTranslation();
   const [templates, setTemplates] = useState<AssessmentTemplate[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<{
+    template: AssessmentTemplate;
+    status: AssessmentTemplate["status"];
+  } | null>(null);
+  const [savingStatus, setSavingStatus] = useState(false);
   const [draft, setDraft] = useState({
     title: "",
     description: "",
@@ -150,16 +164,30 @@ const QuestionnairesPage: React.FC = () => {
     });
   };
 
+  // Publishing opens a template to everyone; archiving withdraws one people may
+  // be part-way through. Both are reversible, so they confirm without the
+  // destructive styling.
   const updateStatus = async (
     template: AssessmentTemplate,
     status: AssessmentTemplate["status"],
   ) => {
-    const updated = await assessmentService.updateTemplate(template.id, {
-      status,
-    });
-    setTemplates((current) =>
-      current.map((item) => (item.id === template.id ? updated : item)),
-    );
+    setSavingStatus(true);
+    setStatusError(null);
+
+    try {
+      const updated = await assessmentService.updateTemplate(template.id, {
+        status,
+      });
+      setTemplates((current) =>
+        current.map((item) => (item.id === template.id ? updated : item)),
+      );
+      setPendingStatus(null);
+    } catch (error) {
+      setStatusError(apiErrorMessage(error, t));
+      setPendingStatus(null);
+    } finally {
+      setSavingStatus(false);
+    }
   };
 
   const applyPreset = (preset: (typeof templatePresets)[number]) => {
@@ -205,36 +233,42 @@ const QuestionnairesPage: React.FC = () => {
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Assessments & Checklists
+            {t("assessments.title")}
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Create one shared engine for employee assessments, daily checklists,
-            5S, safety, quality, and compliance forms.
+            {t("assessments.subtitle")}
           </p>
         </div>
-        <select
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+        <Select
+          className="sm:w-56"
+          aria-label={t("assessments.filterTemplates")}
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
         >
-          <option value="all">All templates</option>
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
-          <option value="inspection">Inspection</option>
-          <option value="quality">Quality</option>
-          <option value="safety">Safety</option>
-        </select>
+          <option value="all">{t("assessments.allTemplates")}</option>
+          <option value="draft">{t("assessments.draft")}</option>
+          <option value="published">{t("assessments.published")}</option>
+          <option value="inspection">{t("assessments.inspection")}</option>
+          <option value="quality">{t("assessments.quality")}</option>
+          <option value="safety">{t("assessments.safety")}</option>
+        </Select>
       </div>
+
+      {statusError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+          {statusError}
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <div className="text-sm text-gray-500">Templates</div>
+          <div className="text-sm text-gray-500">{t("assessments.templates")}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
             {templates.length}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Published</div>
+          <div className="text-sm text-gray-500">{t("assessments.published")}</div>
           <div className="mt-2 text-2xl font-semibold text-green-600">
             {
               templates.filter((template) => template.status === "published")
@@ -243,13 +277,13 @@ const QuestionnairesPage: React.FC = () => {
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Draft</div>
+          <div className="text-sm text-gray-500">{t("assessments.draft")}</div>
           <div className="mt-2 text-2xl font-semibold text-yellow-600">
             {templates.filter((template) => template.status === "draft").length}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">Questions</div>
+          <div className="text-sm text-gray-500">{t("assessments.questions")}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
             {templates.reduce(
               (sum, template) => sum + template.questions.length,
@@ -261,14 +295,15 @@ const QuestionnairesPage: React.FC = () => {
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <Card
-          title="Assessment builder"
-          subtitle="Build multi-question checklists, audits, surveys, and quality forms."
+          title={t("assessments.builder")}
+          subtitle={t("assessments.builderSubtitle")}
         >
           <form onSubmit={createTemplate} className="space-y-4">
-            <div className="grid gap-3 lg:grid-cols-4">
-              <input
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 lg:col-span-2"
-                placeholder="Template title"
+            <div className="grid items-end gap-3 lg:grid-cols-4">
+              <Input
+                className="lg:col-span-2"
+                label={t("assessments.templateTitle")}
+                placeholder={t("assessments.templateTitle")}
                 value={draft.title}
                 onChange={(event) =>
                   setDraft((current) => ({
@@ -277,9 +312,9 @@ const QuestionnairesPage: React.FC = () => {
                   }))
                 }
               />
-              <input
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                placeholder="Industry"
+              <Input
+                label={t("assessments.industry")}
+                placeholder={t("assessments.industry")}
                 value={draft.industry}
                 onChange={(event) =>
                   setDraft((current) => ({
@@ -288,8 +323,8 @@ const QuestionnairesPage: React.FC = () => {
                   }))
                 }
               />
-              <select
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              <Select
+                label={t("assessments.type")}
                 value={draft.type}
                 onChange={(event) =>
                   setDraft((current) => ({
@@ -301,13 +336,13 @@ const QuestionnairesPage: React.FC = () => {
                 <option value="inspection">Inspection</option>
                 <option value="quality">Quality</option>
                 <option value="safety">Safety</option>
-                <option value="feedback">Feedback</option>
-                <option value="survey">Survey</option>
-              </select>
+                <option value="feedback">{t("assessments.feedback")}</option>
+                <option value="survey">{t("assessments.survey")}</option>
+              </Select>
             </div>
-            <textarea
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-              placeholder="Description"
+            <Textarea
+              label={t("assessments.description")}
+              placeholder={t("assessments.description")}
               rows={2}
               value={draft.description}
               onChange={(event) =>
@@ -324,16 +359,16 @@ const QuestionnairesPage: React.FC = () => {
                   key={question.id}
                   className="grid gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700 lg:grid-cols-[1fr_150px_96px_40px]"
                 >
-                  <input
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-                    placeholder={`Question ${index + 1}`}
+                  <Input
+                    aria-label={t("assessments.question", { index: index + 1 })}
+                    placeholder={t("assessments.question", { index: index + 1 })}
                     value={question.text}
                     onChange={(event) =>
                       updateQuestion(question.id, { text: event.target.value })
                     }
                   />
-                  <select
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                  <Select
+                    aria-label={t("assessments.questionType", { index: index + 1 })}
                     value={question.type}
                     onChange={(event) =>
                       updateQuestion(question.id, {
@@ -341,12 +376,12 @@ const QuestionnairesPage: React.FC = () => {
                       })
                     }
                   >
-                    <option value="score">Score</option>
-                    <option value="yes_no">Yes / No</option>
-                    <option value="text">Text</option>
-                  </select>
-                  <input
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:disabled:bg-gray-800"
+                    <option value="score">{t("assessments.score")}</option>
+                    <option value="yes_no">{t("assessments.yesNo")}</option>
+                    <option value="text">{t("assessments.text")}</option>
+                  </Select>
+                  <Input
+                    aria-label={t("assessments.questionMaxScore", { index: index + 1 })}
                     disabled={question.type !== "score"}
                     min="1"
                     max="10"
@@ -358,21 +393,23 @@ const QuestionnairesPage: React.FC = () => {
                       })
                     }
                   />
-                  <button
-                    aria-label="Remove question"
-                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                  <Button
+                    aria-label={t("assessments.removeQuestion")}
+                    className="h-10 w-10 px-0"
+                    variant="outline"
                     type="button"
                     onClick={() => removeQuestion(question.id)}
                   >
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <button
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+              <Button
+                variant="outline"
+                icon={Plus}
                 type="button"
                 onClick={() =>
                   setDraft((current) => ({
@@ -381,22 +418,16 @@ const QuestionnairesPage: React.FC = () => {
                   }))
                 }
               >
-                <Plus className="h-4 w-4" />
-                Add question
-              </button>
-              <button
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                type="submit"
-              >
-                Create template
-              </button>
+                {t("assessments.addQuestion")}
+              </Button>
+              <Button type="submit">{t("assessments.createTemplate")}</Button>
             </div>
           </form>
         </Card>
 
         <Card
-          title="Quick starts"
-          subtitle="Starter templates for the industries you listed."
+          title={t("assessments.quickStarts")}
+          subtitle={t("assessments.quickStartsSubtitle")}
         >
           <div className="space-y-3">
             {templatePresets.map((preset) => (
@@ -450,26 +481,32 @@ const QuestionnairesPage: React.FC = () => {
                     {template.industry}
                   </span>
                   <span className="rounded-full bg-gray-50 px-2 py-1 text-gray-600 dark:bg-gray-900 dark:text-gray-300">
-                    {template.questions.length} questions
+                    {t("assessments.templateQuestions", {
+                      count: template.questions.length,
+                    })}
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {template.status !== "published" && (
                     <button
                       className="text-sm font-medium text-green-600"
-                      onClick={() => updateStatus(template, "published")}
+                      onClick={() =>
+                        setPendingStatus({ template, status: "published" })
+                      }
                       type="button"
                     >
-                      Publish
+                      {t("assessments.publish")}
                     </button>
                   )}
                   {template.status !== "archived" && (
                     <button
                       className="text-sm font-medium text-gray-600"
-                      onClick={() => updateStatus(template, "archived")}
+                      onClick={() =>
+                        setPendingStatus({ template, status: "archived" })
+                      }
                       type="button"
                     >
-                      Archive
+                      {t("assessments.archive")}
                     </button>
                   )}
                 </div>
@@ -481,17 +518,48 @@ const QuestionnairesPage: React.FC = () => {
             icon={ClipboardList}
             title={
               templates.length
-                ? "No templates match this filter"
-                : "No assessment templates yet"
+                ? t("assessments.noMatchTitle")
+                : t("assessments.emptyTitle")
             }
             description={
               templates.length
-                ? "Change the filter to review other checklist templates."
-                : "Create templates for inspections, quality feedback, safety checks, and operational audits."
+                ? t("assessments.noMatchDescription")
+                : t("assessments.emptyDescription")
             }
           />
         )}
       </Card>
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingStatus)}
+        title={
+          pendingStatus?.status === "archived"
+            ? t("assessments.archiveTitle")
+            : t("assessments.publishTitle")
+        }
+        message={
+          <>
+            <strong className="text-gray-900 dark:text-white">
+              {pendingStatus?.template.title}
+            </strong>{" "}
+            {pendingStatus?.status === "archived"
+              ? t("assessments.archiveMessage")
+              : t("assessments.publishMessage")}
+          </>
+        }
+        confirmLabel={
+          pendingStatus?.status === "archived"
+            ? t("assessments.archive")
+            : t("assessments.publish")
+        }
+        cancelLabel={t("common.cancel")}
+        loading={savingStatus}
+        onConfirm={() =>
+          pendingStatus &&
+          updateStatus(pendingStatus.template, pendingStatus.status)
+        }
+        onCancel={() => setPendingStatus(null)}
+      />
     </div>
   );
 };

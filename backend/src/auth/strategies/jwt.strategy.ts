@@ -1,8 +1,9 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../../users/users.service';
+import { apiError, ErrorCode } from '../../shared/errors/api-error';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -21,11 +22,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const user = await this.usersService.findById(payload.sub);
     
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw apiError(ErrorCode.AuthUserNotFound);
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('User account is inactive');
+      throw apiError(ErrorCode.AuthAccountInactive);
     }
 
     return {

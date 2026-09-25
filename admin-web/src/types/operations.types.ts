@@ -14,7 +14,22 @@ export interface Project {
   budget?: number;
 }
 
-export interface WorkTask {
+/** What produced a task that was not typed by hand. */
+export type TaskSource = 'five_s_red_tag' | 'audit_run' | 'five_s_improvement';
+
+/**
+ * What the server raised, as a key and its parts.
+ *
+ * The assembled sentence stays in `title` for an export or an email, which
+ * have no reader to ask. A screen words the key instead — see
+ * `components/common/raisedText.ts`.
+ */
+export interface RaisedTitle {
+  titleKey?: string;
+  titleParams?: Record<string, string | number>;
+}
+
+export interface WorkTask extends RaisedTitle {
   id: string;
   organizationId?: string;
   title: string;
@@ -22,6 +37,12 @@ export interface WorkTask {
   projectId?: string;
   assigneeId?: string;
   reporterId?: string;
+  /**
+   * Where this task came from. The server raises at most one open task per
+   * source, so sending these makes "create tasks" safe to press twice.
+   */
+  sourceType?: TaskSource;
+  sourceId?: string;
   status: 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
   priority: string;
   dueDate?: string;
@@ -77,6 +98,19 @@ export interface AuditRun {
   templateId: string;
   auditorId?: string;
   projectId?: string;
+  /** The 5S zone audited. The server writes this run's score onto that zone. */
+  zoneId?: string;
+  /** Which layer of a layered audit this was. The server resets that clock. */
+  tier?: number;
+  /**
+   * The floor plan as it stood when this was walked.
+   *
+   * A score is only as readable as the drawing behind it: a March result read
+   * against a June plan cannot say whether an area improved or was redrawn.
+   */
+  layoutVersionId?: string;
+  layoutVersionOn?: string;
+  /** Human-readable place, kept so a run still reads well if the zone is gone. */
   location?: string;
   answers: Array<{
     questionId: string;
@@ -110,8 +144,27 @@ export interface OperationsSummary {
   };
 }
 
+/** What one person did in the month, from everything they left behind. */
+export interface MonthlyPerson {
+  userId: string;
+  completedTasks: number;
+  assignedTasks: number;
+  hours: number;
+  workLogs: number;
+  auditRuns: number;
+  assessments: number;
+}
+
 export interface OperationsMonthlyReport {
   period: string;
+  /**
+   * Everybody who appears in the month's records.
+   *
+   * Built from the records rather than the staff list, so somebody who has
+   * left still has the month they worked; the page adds the people who left
+   * nothing behind, because it knows who was supposed to be there.
+   */
+  people?: MonthlyPerson[];
   totals: {
     projects: number;
     tasks: number;

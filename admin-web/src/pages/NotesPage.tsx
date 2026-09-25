@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { StickyNote } from 'lucide-react';
+import { Plus, StickyNote } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
+import Input from '../components/common/Input';
+import Modal from '../components/common/Modal';
+import Textarea from '../components/common/Textarea';
 import { productivityService } from '../services/productivity.service';
 import { Note } from '../types/productivity.types';
 
 const NotesPage: React.FC = () => {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState({ title: '', content: '', tag: 'work' });
+  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     productivityService.getNotes().then(setNotes);
@@ -22,36 +29,48 @@ const NotesPage: React.FC = () => {
     });
     setNotes((current) => [note, ...current]);
     setDraft({ title: '', content: '', tag: 'work' });
+    setCreateOpen(false);
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Notes</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Ажлын тэмдэглэл, meeting note, report idea, blocker-уудаа хадгална.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('notes.title')}</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            {t('notes.subtitle')}
+          </p>
+        </div>
+        <Button icon={Plus} type="button" onClick={() => setCreateOpen(true)}>
+          {t('notes.newNote')}
+        </Button>
       </div>
 
-      <Card title="New note">
-        <form onSubmit={createNote} className="grid gap-3 lg:grid-cols-5">
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-            placeholder="Title"
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title={t('notes.newNote')}>
+        <form onSubmit={createNote} className="space-y-4">
+          <Input
+            label={t('notes.noteTitle')}
+            placeholder={t('notes.noteTitle')}
             value={draft.title}
             onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+            required
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 lg:col-span-3"
-            placeholder="Note"
+          <Textarea
+            label={t('notes.note')}
+            placeholder={t('notes.note')}
+            rows={4}
             value={draft.content}
             onChange={(event) => setDraft((current) => ({ ...current, content: event.target.value }))}
+            required
           />
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">
-            Add note
-          </button>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" type="button" onClick={() => setCreateOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit">{t('notes.addNote')}</Button>
+          </div>
         </form>
-      </Card>
+      </Modal>
 
       {notes.length ? (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -71,8 +90,8 @@ const NotesPage: React.FC = () => {
       ) : (
         <EmptyState
           icon={StickyNote}
-          title="No notes yet"
-          description="Capture meeting notes, project context, blockers, and report ideas so they can feed future summaries."
+          title={t('notes.emptyTitle')}
+          description={t('notes.emptyDescription')}
         />
       )}
     </div>

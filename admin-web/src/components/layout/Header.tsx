@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import LanguageToggle from './LanguageToggle';
+import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import { assessmentService } from '../../services/assessment.service';
 import { financeService } from '../../services/finance.service';
@@ -46,6 +49,7 @@ const pageItems: SearchItem[] = [
 ];
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const userRoles = useMemo(() => user?.roles || [], [user?.roles]);
@@ -168,7 +172,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           <input
             className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-3 text-sm dark:border-gray-700 dark:bg-gray-800"
-            placeholder="Search tasks, projects, audits, reports..."
+            placeholder={t('common.search')}
             type="search"
             value={query}
             onBlur={() => window.setTimeout(() => setFocused(false), 150)}
@@ -213,7 +217,16 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         </div>
       </div>
 
-      <div className="ml-4 flex items-center gap-3">
+      <div className="ml-4 flex items-center gap-2 sm:gap-3">
+        {/*
+          Both of these were fully built and unreachable: the theme context
+          has supported light, dark and system from the start with every
+          component styled for it, and the translations were only switchable
+          from a Settings page three clicks away. A capability nobody can
+          reach is the same as not having it.
+        */}
+        <LanguageToggle />
+        <ThemeToggle />
         <div className="hidden text-right sm:block">
           <div className="text-sm font-medium text-gray-900 dark:text-white">
             {user?.name || 'Admin user'}
@@ -227,7 +240,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           onClick={handleLogout}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
         >
-          Logout
+          {t('common.logout')}
         </button>
       </div>
     </header>

@@ -1,21 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import HorizontalBarChart from '../components/charts/HorizontalBarChart';
 import Card from '../components/common/Card';
 import EmptyState from '../components/common/EmptyState';
+import Table from '../components/common/Table';
 import KpiCard from '../components/widgets/KpiCard';
 import { assessmentService } from '../services/assessment.service';
 import { operationsService } from '../services/operations.service';
 import { peopleService } from '../services/people.service';
 import { AssessmentResponse } from '../types/assessment.types';
 import { OperationsSummary, Project, WorkTask } from '../types/operations.types';
-import { Department, TeamUser } from '../types/people.types';
+import { Department } from '../types/people.types';
 
 const AnalyticsPage: React.FC = () => {
+  const { t } = useTranslation();
   const [summary, setSummary] = useState<OperationsSummary | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<WorkTask[]>([]);
   const [responses, setResponses] = useState<AssessmentResponse[]>([]);
-  const [users, setUsers] = useState<TeamUser[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,14 +28,12 @@ const AnalyticsPage: React.FC = () => {
       operationsService.getProjects(),
       operationsService.getTasks(),
       assessmentService.getResponses(),
-      peopleService.getUsers(),
       peopleService.getDepartments(),
-    ]).then(([operationsSummary, projectItems, taskItems, responseItems, userItems, departmentItems]) => {
+    ]).then(([operationsSummary, projectItems, taskItems, responseItems, departmentItems]) => {
       setSummary(operationsSummary);
       setProjects(projectItems);
       setTasks(taskItems);
       setResponses(responseItems);
-      setUsers(userItems);
       setDepartments(departmentItems);
     }).finally(() => setLoading(false));
   }, []);
@@ -41,10 +42,37 @@ const AnalyticsPage: React.FC = () => {
     ? Math.round(responses.reduce((sum, response) => sum + response.score, 0) / responses.length)
     : 0;
 
+  const projectProgress = useMemo(
+    () => projects.map((project) => ({ label: project.name, value: project.progress })),
+    [projects],
+  );
+
+  // Ordered pipeline stages, so the ordinal ramp reads as progression.
+  const taskStatusMix = useMemo(() => {
+    const stages: Array<{ key: WorkTask['status']; label: string }> = [
+      { key: 'backlog', label: t('tasks.status.backlog') },
+      { key: 'todo', label: t('tasks.status.todo') },
+      { key: 'in_progress', label: t('tasks.status.inProgress') },
+      { key: 'review', label: t('tasks.status.review') },
+      { key: 'done', label: t('tasks.status.done') },
+    ];
+
+    return stages.map((stage) => ({
+      label: stage.label,
+      value: tasks.filter((task) => task.status === stage.key).length,
+    }));
+    // `t` belongs here: without it the stage labels keep the previous language
+    // after a switch.
+  }, [tasks, t]);
+
   const departmentRows = useMemo(
     () =>
       departments.map((department) => {
-        const members = users.filter((user) => user.departmentId === department.id);
+        // Members per department is not counted here any more. Departments are
+        // browser-local and members come from the server, so the old count
+        // compared one list against the other and reported a number that meant
+        // nothing. What is real is the assessment work recorded against the
+        // department's name.
         const departmentResponses = responses.filter((response) => response.department === department.name);
         const score = departmentResponses.length
           ? Math.round(departmentResponses.reduce((sum, response) => sum + response.score, 0) / departmentResponses.length)
@@ -52,115 +80,104 @@ const AnalyticsPage: React.FC = () => {
 
         return {
           department,
-          members: members.length,
           responses: departmentResponses.length,
           score,
         };
       }),
-    [departments, responses, users],
+    [departments, responses],
   );
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Analytics</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Productivity, project progress, task completion, assessment scores, and department workload.
-        </p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('analytics.title')}</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('analytics.subtitle')}</p>
       </div>
 
       {loading || !summary ? (
-        <Card loading title="Loading analytics">
+        <Card loading title={t('common.loading')}>
           <div />
         </Card>
       ) : (
         <>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <KpiCard title="Task completion" value={`${summary.kpis.taskCompletionRate}%`} description={`${summary.totals.completedTasks}/${summary.totals.tasks} tasks done`} />
-        <KpiCard title="Project progress" value={`${summary.kpis.averageProjectProgress}%`} description={`${projects.length} projects tracked`} />
-        <KpiCard title="Assessment score" value={`${responseAverage}%`} description={`${responses.length} questionnaire responses`} />
-        <KpiCard title="Logged hours" value={summary.totals.totalHours} description="Total demo time entries" />
+        <KpiCard title={t('analytics.taskCompletion')} value={`${summary.kpis.taskCompletionRate}%`} description={t('analytics.tasksDone', { done: summary.totals.completedTasks, total: summary.totals.tasks })} />
+        <KpiCard title={t('analytics.projectProgress')} value={`${summary.kpis.averageProjectProgress}%`} description={t('analytics.projectsTracked', { count: projects.length })} />
+        <KpiCard title={t('analytics.assessmentScore')} value={`${responseAverage}%`} description={t('analytics.questionnaireResponses', { count: responses.length })} />
+        <KpiCard title={t('analytics.loggedHours')} value={summary.totals.totalHours} description={t('analytics.totalTimeEntries')} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card title="Project progress">
-          <div className="space-y-4">
-            {projects.length ? (
-              projects.map((project) => (
-                <div key={project.id}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-800 dark:text-gray-200">{project.name}</span>
-                    <span className="text-gray-500">{project.progress}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-900">
-                    <div className="h-2 rounded-full bg-blue-600" style={{ width: `${project.progress}%` }} />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <EmptyState
-                icon={BarChart3}
-                title="No project data yet"
-                description="Project progress analytics will appear after projects are created."
-              />
-            )}
-          </div>
+        <Card title={t('analytics.projectProgress')} subtitle={t('analytics.projectProgressSubtitle')}>
+          {projectProgress.length ? (
+            <HorizontalBarChart
+              data={projectProgress}
+              unit="%"
+              maxValue={100}
+              categoryLabel={t('analytics.project')}
+              valueLabel={t('analytics.progress')}
+            />
+          ) : (
+            <EmptyState
+              icon={BarChart3}
+              title={t('analytics.noProjectsTitle')}
+              description={t('analytics.noProjectsDescription')}
+            />
+          )}
         </Card>
 
-        <Card title="Task status mix">
-          <div className="space-y-3">
-            {['backlog', 'todo', 'in_progress', 'review', 'done'].map((status) => {
-              const count = tasks.filter((task) => task.status === status).length;
-              const width = tasks.length ? Math.round((count / tasks.length) * 100) : 0;
-              return (
-                <div key={status}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="capitalize text-gray-700 dark:text-gray-300">{status.replace('_', ' ')}</span>
-                    <span className="text-gray-500">{count}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-900">
-                    <div className="h-2 rounded-full bg-green-600" style={{ width: `${width}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <Card title={t('analytics.taskStatusMix')} subtitle={t('analytics.taskStatusSubtitle')}>
+          {tasks.length ? (
+            <HorizontalBarChart
+              data={taskStatusMix}
+              colorMode="ordinal"
+              labelWidth={110}
+              allowDecimals={false}
+              categoryLabel={t('analytics.status')}
+              valueLabel={t('analytics.tasks')}
+            />
+          ) : (
+            <EmptyState
+              icon={BarChart3}
+              title={t('analytics.noTasksTitle')}
+              description={t('analytics.noTasksDescription')}
+            />
+          )}
         </Card>
       </div>
 
-      <Card title="Department performance">
-        {departmentRows.length ? (
-          <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b text-gray-500 dark:border-gray-700">
-              <tr>
-                <th className="py-3">Department</th>
-                <th className="py-3">Members</th>
-                <th className="py-3">Responses</th>
-                <th className="py-3">Assessment score</th>
-                <th className="py-3">Focus area</th>
-              </tr>
-            </thead>
-            <tbody>
-              {departmentRows.map((row) => (
-                <tr key={row.department.id} className="border-b dark:border-gray-700">
-                  <td className="py-3 font-medium text-gray-900 dark:text-white">{row.department.name}</td>
-                  <td className="py-3">{row.members}</td>
-                  <td className="py-3">{row.responses}</td>
-                  <td className="py-3">{row.score ? `${row.score}%` : '-'}</td>
-                  <td className="py-3 text-gray-500">{row.department.focusArea}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        ) : (
-          <EmptyState
-            icon={BarChart3}
-            title="No department analytics yet"
-            description="Department performance will appear after departments and users are configured."
-          />
-        )}
+      <Card title={t('analytics.departmentPerformance')}>
+        <Table
+          rows={departmentRows}
+          rowKey={(row) => row.department.id}
+          columns={[
+            {
+              key: 'name',
+              header: t('analytics.department'),
+              className: 'py-3 font-medium text-gray-900 dark:text-white',
+              render: (row) => row.department.name,
+            },
+            { key: 'responses', header: t('analytics.responses'), render: (row) => row.responses },
+            {
+              key: 'score',
+              header: t('analytics.assessmentScore'),
+              render: (row) => (row.responses ? `${row.score}%` : '-'),
+            },
+            {
+              key: 'focus',
+              header: t('analytics.focusArea'),
+              className: 'py-3 text-gray-500',
+              render: (row) => row.department.focusArea || '-',
+            },
+          ]}
+          empty={
+            <EmptyState
+              icon={BarChart3}
+              title={t('analytics.noDepartmentsTitle')}
+              description={t('analytics.noDepartmentsDescription')}
+            />
+          }
+        />
       </Card>
         </>
       )}

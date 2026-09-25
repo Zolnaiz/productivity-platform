@@ -1,5 +1,6 @@
 import { ArgumentsHost, BadRequestException, Logger } from '@nestjs/common';
 import { HttpExceptionFilter } from './http-exception.filter';
+import { apiError, ErrorCode } from '../errors/api-error';
 
 const createHost = (headers: Record<string, string> = {}) => {
   const json = jest.fn();
@@ -59,8 +60,36 @@ describe('HttpExceptionFilter', () => {
       expect.objectContaining({
         statusCode: 500,
         message: 'Internal server error',
+        errorCode: 'INTERNAL_ERROR',
         requestId: 'request-2',
       }),
+    );
+  });
+
+  it('passes a coded error through to the client unchanged', () => {
+    const filter = new HttpExceptionFilter();
+    const { host, status, json } = createHost();
+
+    filter.catch(apiError(ErrorCode.AuthInvalidCredentials), host);
+
+    expect(status).toHaveBeenCalledWith(401);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 401,
+        errorCode: 'AUTH_INVALID_CREDENTIALS',
+      }),
+    );
+  });
+
+  it('classifies uncoded exceptions by status, so every error carries a code', () => {
+    const filter = new HttpExceptionFilter();
+    const { host, json } = createHost();
+
+    // A class-validator rejection: thrown by Nest, not by our code.
+    filter.catch(new BadRequestException(['email must be an email']), host);
+
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({ errorCode: 'VALIDATION_FAILED' }),
     );
   });
 });

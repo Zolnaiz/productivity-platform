@@ -77,7 +77,10 @@ class Validators {
       return '$fieldName must be less than 50 characters';
     }
     
-    final nameRegex = RegExp(r'^[a-zA-Z\s\-]+$');
+    // Letters from any script, not just a-z. The first deployment is
+    // Mongolian, and an ASCII-only rule rejects every Cyrillic name — which
+    // meant no Mongolian user could finish registration or edit their profile.
+    final nameRegex = RegExp(r"^[\p{L}\p{M}\s\-']+$", unicode: true);
     if (!nameRegex.hasMatch(value)) {
       return 'Please enter a valid $fieldName';
     }

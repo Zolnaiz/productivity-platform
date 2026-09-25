@@ -14,19 +14,40 @@ export type FloorPlanObjectType =
   | 'sofa'
   | 'plant'
   | 'waste_bin'
-  | 'sink';
+  | 'sink'
+  | 'pallet'
+  | 'racking'
+  | 'workbench';
 
 export type FiveSRedTagStatus = 'open' | 'review' | 'disposed' | 'returned';
 
 export interface FiveSRedTag {
   id: string;
   title: string;
+  /**
+   * Where on the floor plan the item is, in canvas coordinates.
+   *
+   * Position is information: "the pallet by the north door" is a different
+   * finding from "the pallet by the bench". Optional, because tags recorded
+   * before pins existed have none and are placed when first dragged.
+   */
+  x?: number;
+  y?: number;
   disposition: string;
   status: FiveSRedTagStatus;
   ownerId?: string;
   ownerName?: string;
   dueDate?: string;
   createdAt?: string;
+  /**
+   * When the item was moved to the red-tag holding area.
+   *
+   * In practice a tagged item is taken out of the work area and parked
+   * somewhere visible for a month or two while its use is watched. Status
+   * `review` is that state; these dates say how long it has left.
+   */
+  heldAt?: string;
+  holdUntil?: string;
   closedAt?: string;
 }
 
@@ -41,6 +62,15 @@ export interface FiveSZone {
   height: number;
   ownerId?: string;
   ownerName?: string;
+  /**
+   * The department answerable for this area.
+   *
+   * Beside the owner rather than instead of them: a person is who to ask
+   * today, a department is who still answers for the area when that person
+   * moves on. Held as an id, so renaming a department does not have to rewrite
+   * every plan.
+   */
+  departmentId?: string;
   contents: string;
   standard: string;
   labelText: string;
@@ -48,6 +78,19 @@ export interface FiveSZone {
   auditFrequency: 'daily' | 'weekly' | 'monthly';
   lastAuditScore?: number;
   lastAuditAt?: string;
+  /**
+   * The first score this zone ever received. Frozen by the server so later
+   * improvement is measurable rather than merely visible.
+   */
+  /**
+   * What each layer of a layered audit last found here, keyed by tier number.
+   *
+   * The layers run on their own clocks, so a zone can be up to date for the
+   * operator and overdue for the manager at once.
+   */
+  tierAudits?: Record<string, { lastAuditAt?: string; lastAuditScore?: number }>;
+  baselineScore?: number;
+  baselineAt?: string;
   redTagCount?: number;
   redTags?: FiveSRedTag[];
   lastCleanedAt?: string;
@@ -64,15 +107,166 @@ export interface FloorPlanObject {
   rotation?: number;
 }
 
+/** One layer of a layered process audit. Declared per organization. */
+export interface AuditTier {
+  tier: number;
+  name: string;
+  role?: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  templateId?: string;
+}
+
+/** A point where walls meet. */
+export interface PlanCorner {
+  id: string;
+  x: number;
+  y: number;
+}
+
+/**
+ * What a plan looked like on a given day.
+ *
+ * Listed without the drawing itself: sixty floor plans is megabytes, and the
+ * list is read to choose one.
+ */
+export interface FiveSLayoutVersion {
+  id: string;
+  layoutId: string;
+  takenOn: string;
+  takenBy?: string;
+  label?: string;
+  createdAt?: string;
+}
+
+/** A position on the plan, in canvas units. */
+export interface PlanPoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * A path somebody or something takes through the area.
+ *
+ * A spaghetti diagram: the oldest tool in this trade, and the one that answers
+ * the question nobody can answer from memory — how far a person actually walks
+ * to do a job, and how much of that is going back over the same ground. The
+ * plan has known its scale for a while; what was missing was somewhere to put
+ * the path.
+ */
+export interface PlanRoute {
+  id: string;
+  name: string;
+  /** Distinguishes one path from another when several are drawn at once. */
+  colour: string;
+  points: PlanPoint[];
+  /** Who or what walks it — an operator, a part, a trolley. Free text. */
+  subject?: string;
+}
+
+export interface PlanWall {
+  id: string;
+  from: string;
+  to: string;
+  /** In canvas units: outer walls are drawn thicker than partitions. */
+  thickness: number;
+}
+
+/**
+ * A door or a window: a hole in a wall, not a thing standing on the floor.
+ *
+ * It belongs to a wall and is measured along it, so moving a corner carries
+ * its doors with it. Stored among the objects it would float free of the wall
+ * again, which is the mistake the wall graph exists to correct.
+ */
+export interface PlanOpening {
+  id: string;
+  wallId: string;
+  kind: 'door' | 'double_door' | 'window';
+  /** The centre of the opening, in canvas units from the wall's `from` end. */
+  offset: number;
+  width: number;
+  hinge?: 'from' | 'to';
+  flip?: boolean;
+}
+
+/**
+ * A room's name: a point with words on it.
+ *
+ * Rooms are not stored — they are whatever the walls close in — so there is
+ * nothing to hang a name on. The room a name belongs to is whichever room its
+ * point falls inside, which is also why moving a wall keeps the name in the
+ * room and knocking the room through leaves the name standing on open floor.
+ */
+export interface PlanRoomLabel {
+  id: string;
+  x: number;
+  y: number;
+  name: string;
+}
+
 export interface FiveSLayoutPlan {
   id: string;
   organizationId?: string;
   name: string;
   site: string;
+  /**
+   * Which floor of that site this plan is of.
+   *
+   * Empty for a single-storey place. An organization has a plan per floor, and
+   * this and `site` together are how somebody tells one from another.
+   */
+  floor?: string;
+  /**
+   * Free text describing the scale, kept for plans drawn before the scale
+   * became a number. Nothing computes with it.
+   *
+   * @deprecated Read `metresPerUnit`.
+   */
   scale: string;
+  /**
+   * How many metres one canvas unit covers.
+   *
+   * The whole of a floor plan's usefulness beyond decoration rests on this:
+   * area per zone, red tags per square metre, printing to scale, and one day a
+   * spaghetti diagram reporting a walking distance in metres. Absent on plans
+   * drawn before it existed, which are read at one grid square to the metre —
+   * what their free-text `scale` already claimed.
+   */
+  metresPerUnit?: number;
   backgroundImage?: string;
   backgroundOpacity?: number;
   showGrid?: boolean;
+  /**
+   * Whether a drag snaps to the grid.
+   *
+   * Separate from `showGrid` because they are separate questions, though one
+   * checkbox used to answer both: turning the grid off to look at the plan also
+   * turned off snapping without saying so.
+   */
+  snapToGrid?: boolean;
+  /** Whether every wall carries its length, not only the one being drawn. */
+  showDimensions?: boolean;
+  /** Absent until an organization configures its own layers. */
+  auditTiers?: AuditTier[];
+  /**
+   * The corners walls meet at. Shared, so dragging one moves every wall on it.
+   */
+  corners?: PlanCorner[];
+  /**
+   * The walls of the building.
+   *
+   * Rooms are not stored: they are whatever the walls close in, worked out
+   * from the wall graph whenever the plan is drawn. Storing them as well would
+   * be a second copy of the same fact, and the two would part company the
+   * first time somebody moved a corner.
+   */
+  walls?: PlanWall[];
+  /** Doors and windows, each cut into one of the walls above. */
+  openings?: PlanOpening[];
+  /** Names for rooms, each a point inside the room it names. */
+  roomLabels?: PlanRoomLabel[];
+  /** Spaghetti diagrams: the paths people and parts actually take. */
+  routes?: PlanRoute[];
   zones: FiveSZone[];
   objects: FloorPlanObject[];
   createdAt?: string;
@@ -124,6 +318,26 @@ export interface FiveSChecklistProgress {
   id: string;
   done: boolean;
   note: string;
+}
+
+/**
+ * The 5S standard an organization works to.
+ *
+ * Not UI copy: the cadence, the labelling rules, the assessment criteria and
+ * the checklists are the customer's own, and they used to be a hundred
+ * Mongolian strings inside the component that drew them — so every
+ * organization read one customer's standard and that customer could not change
+ * a word of it without a release. They come from the organization's register
+ * now; see `backend/src/operations/five-s-guideline-content.ts` for what a new
+ * organization is created with.
+ */
+export interface FiveSGuidelineContent {
+  operatingCadence: Array<{ title: string; timing: string; detail: string }>;
+  labelStandards: string[];
+  assessmentCriteria: Array<{ id: string; category: string; criterion: string }>;
+  publicChecklistGroups: Array<{ code: string; title: string; items: string[] }>;
+  /** What a full assessment adds up to, for the percentage on screen. */
+  maxScore: number;
 }
 
 export interface FiveSGuidelineState {

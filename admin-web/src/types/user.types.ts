@@ -1,8 +1,28 @@
-import { USER_ROLES, USER_PERMISSIONS } from '../utils/constants';
-import { Organization } from './organization.types';
+import { USER_ROLES } from '../utils/constants';
+/**
+ * The organization a user belongs to, as the API returns it.
+ *
+ * Kept minimal on purpose: nothing in the app reads these fields yet, so this
+ * describes the contract rather than a model. Widen it when a screen needs
+ * more, not before.
+ */
+export interface Organization {
+  id: string;
+  name: string;
+  code?: string;
+  industry?: string;
+  size?: string;
+  settings?: {
+    language?: string;
+    currency?: string;
+  };
+  isActive?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
-export type UserPermission = typeof USER_PERMISSIONS[keyof typeof USER_PERMISSIONS];
 
 export interface User {
   id: string;
@@ -11,7 +31,15 @@ export interface User {
   avatar?: string;
   phone?: string;
   roles: UserRole[];
-  permissions: UserPermission[];
+  /**
+   * What the server says this person may do, from `GET /users/profile/permissions`.
+   *
+   * Plain strings, because the names belong to the server's table in
+   * `backend/src/shared/roles.ts`. There was a `UserPermission` union here
+   * listing `create_user` and `view_questionnaires`, which matched nothing the
+   * API has ever accepted and was read by nobody.
+   */
+  permissions: string[];
   organizationId?: string;
   organization?: Organization;
   isActive: boolean;

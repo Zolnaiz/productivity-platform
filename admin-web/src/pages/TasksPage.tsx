@@ -1,20 +1,29 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { raisedTitle } from '../components/common/raisedText';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import Input from '../components/common/Input';
+import Modal from '../components/common/Modal';
+import Select from '../components/common/Select';
 import { operationsService } from '../services/operations.service';
 import { WorkTask } from '../types/operations.types';
 
-const columns: Array<{ key: WorkTask['status']; label: string }> = [
-  { key: 'backlog', label: 'Backlog' },
-  { key: 'todo', label: 'To do' },
-  { key: 'in_progress', label: 'In progress' },
-  { key: 'review', label: 'Review' },
-  { key: 'done', label: 'Done' },
+const columns: Array<{ key: WorkTask['status']; labelKey: string }> = [
+  { key: 'backlog', labelKey: 'tasks.status.backlog' },
+  { key: 'todo', labelKey: 'tasks.status.todo' },
+  { key: 'in_progress', labelKey: 'tasks.status.inProgress' },
+  { key: 'review', labelKey: 'tasks.status.review' },
+  { key: 'done', labelKey: 'tasks.status.done' },
 ];
 
 const TasksPage: React.FC = () => {
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<WorkTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const [draft, setDraft] = useState({
     title: '',
     dueDate: '',
@@ -29,7 +38,7 @@ const TasksPage: React.FC = () => {
         const data = await operationsService.getTasks();
         if (active) setTasks(data);
       } catch {
-        if (active) setError('Ажлын жагсаалт ачаалж чадсангүй.');
+        if (active) setError(t('tasks.loadFailed'));
       } finally {
         if (active) setLoading(false);
       }
@@ -68,11 +77,12 @@ const TasksPage: React.FC = () => {
 
     setTasks((current) => [optimistic, ...current]);
     setDraft({ title: '', dueDate: '', estimatedHours: '1' });
+    setCreateOpen(false);
 
     try {
       await operationsService.createTask(optimistic);
     } catch {
-      setError('Ажил хадгалах үед алдаа гарлаа.');
+      setError(t('tasks.saveFailed'));
     }
   };
 
@@ -83,17 +93,20 @@ const TasksPage: React.FC = () => {
     try {
       await operationsService.updateTask(task.id, { status });
     } catch {
-      setError('Ажлын төлөв шинэчлэх үед алдаа гарлаа.');
+      setError(t('tasks.statusFailed'));
     }
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Tasks / Kanban</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Ирээдүйд хийх, шинээр гарсан, хийж байгаа, review, дууссан ажлуудыг нэг урсгалаар хянана.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('tasks.title')}</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('tasks.subtitle')}</p>
+        </div>
+        <Button icon={Plus} type="button" onClick={() => setCreateOpen(true)}>
+          {t('tasks.newTask')}
+        </Button>
       </div>
 
       {error && (
@@ -102,50 +115,67 @@ const TasksPage: React.FC = () => {
         </div>
       )}
 
-      <Card title="New task">
-        <form onSubmit={handleCreate} className="grid gap-3 lg:grid-cols-5">
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 lg:col-span-2"
-            placeholder="Task title"
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title={t('tasks.newTask')}>
+        <form onSubmit={handleCreate} className="space-y-4">
+          <Input
+            label={t('tasks.taskTitle')}
+            placeholder={t('tasks.taskTitle')}
             value={draft.title}
             onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+            required
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label={t('tasks.dueDate')}
             type="date"
             value={draft.dueDate}
             onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))}
           />
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          <Input
+            label={t('tasks.estimatedHours')}
             type="number"
             min="0"
             step="0.5"
             value={draft.estimatedHours}
             onChange={(event) => setDraft((current) => ({ ...current, estimatedHours: event.target.value }))}
           />
-          <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white" type="submit">
-            Add task
-          </button>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" type="button" onClick={() => setCreateOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit">{t('tasks.addTask')}</Button>
+          </div>
         </form>
-      </Card>
+      </Modal>
 
-      {loading && <Card>Ажлуудыг ачаалж байна...</Card>}
+      {loading && (
+        <Card loading>
+          <div />
+        </Card>
+      )}
       {!loading && tasks.length === 0 && (
         <Card>
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            Одоогоор ажил алга. Эхний ажлаа нэмээд kanban төлөвөөр хянаж эхэлнэ.
+            {t('tasks.empty')}
           </div>
         </Card>
       )}
 
       <div className="grid gap-4 xl:grid-cols-5">
         {grouped.map((column) => (
-          <Card key={column.key} title={`${column.label} (${column.tasks.length})`}>
+          <Card key={column.key} title={`${t(column.labelKey)} (${column.tasks.length})`}>
             <div className="space-y-3">
               {column.tasks.map((task) => (
                 <div key={task.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div className="font-medium text-gray-900 dark:text-white">{task.title}</div>
+                  <div className="font-medium text-gray-900 dark:text-white">
+                    {raisedTitle(task, t)}
+                  </div>
+                  {/* Work raised by a finding says so, so nobody has to guess
+                      why a task they did not write appeared in their column. */}
+                  {task.sourceType && (
+                    <div className="mt-1 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                      {t(`tasks.source.${task.sourceType}`)}
+                    </div>
+                  )}
                   <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
                     <span>{task.priority}</span>
                     <span>{task.dueDate || '-'}</span>
@@ -153,17 +183,19 @@ const TasksPage: React.FC = () => {
                   <div className="mt-2 text-xs text-gray-500">
                     {task.actualHours || 0}h / {task.estimatedHours || 0}h
                   </div>
-                  <select
-                    className="mt-3 w-full rounded-lg border border-gray-300 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900"
+                  <Select
+                    className="mt-3"
+                    fieldSize="sm"
+                    aria-label={t('tasks.statusFor', { title: raisedTitle(task, t) })}
                     value={task.status}
                     onChange={(event) => updateStatus(task, event.target.value as WorkTask['status'])}
                   >
                     {columns.map((option) => (
                       <option key={option.key} value={option.key}>
-                        {option.label}
+                        {t(option.labelKey)}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               ))}
             </div>

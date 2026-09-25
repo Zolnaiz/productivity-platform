@@ -1,5 +1,5 @@
 import { ExpenseItem } from '../types/finance.types';
-import { get, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
+import { get, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
 
 const expenseKey = 'productivity-demo-expenses';
 
@@ -65,7 +65,7 @@ export const financeService = {
       return post<ExpenseItem>('/expenses', data);
     }
 
-    const item: ExpenseItem = { ...data, id: `local-expense-${Date.now()}` };
+    const item: ExpenseItem = { ...data, id: localId('local-expense') };
     writeExpenses([item, ...readExpenses()]);
     return Promise.resolve(item);
   },
