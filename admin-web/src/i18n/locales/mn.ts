@@ -1517,6 +1517,7 @@ const mn: Translations<typeof en> = {
     workspacePreferences: 'Workspace тохиргоо',
     timezone: 'Цагийн бүс',
     language: 'Хэл',
+    languageHint: 'Хүн өөрөө хэл сонгох хүртэл харагдах хэл.',
     monthCloseDay: 'Сар хаах өдөр',
     timezoneHint: 'Тайлан сарыг энэ цагаар тоолж, өглөөний сануулгыг энэ цагаар илгээнэ.',
     monthCloseDayHint: 'Өмнөх сарын тайлан энэ өдөр (1–28) өөрөө хаагдана, менежер түрүүлж хаагаагүй бол.',

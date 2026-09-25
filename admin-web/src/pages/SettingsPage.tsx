@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { applyWorkspaceLanguage } from '../i18n';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
@@ -39,6 +40,7 @@ const SettingsPage: React.FC = () => {
     if (!settings) return;
     const updated = await adminService.updateWorkspaceSettings(settings);
     setSettings(updated);
+    applyWorkspaceLanguage(updated.language);
     setSaved(true);
   };
 
@@ -69,6 +71,7 @@ const SettingsPage: React.FC = () => {
           </Select>
           <Select
             label={t('settings.language')}
+            helperText={t('settings.languageHint')}
             value={settings.language}
             onChange={(event) => updateField('language', event.target.value)}
           >

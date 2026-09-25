@@ -5,6 +5,7 @@ import { clearStoredAuth, isDemoEnabled } from '../services/api';
 import { useNotification } from './NotificationContext';
 import { useTranslation } from 'react-i18next';
 import { apiErrorMessage } from '../i18n/apiError';
+import { applyWorkspaceLanguage } from '../i18n';
 import { peopleService } from '../services/people.service';
 
 interface AuthContextType {
@@ -72,6 +73,11 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+
+  // The workspace's language for anybody who has not picked their own.
+  useEffect(() => {
+    applyWorkspaceLanguage(user?.organization?.settings?.language);
+  }, [user?.organization?.settings?.language]);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { addNotification } = useNotification();

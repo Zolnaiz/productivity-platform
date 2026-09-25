@@ -52,4 +52,25 @@ export const changeLanguage = (value: string) => {
   return i18n.changeLanguage(language);
 };
 
+/**
+ * The workspace's language, used for anybody who has not chosen their own.
+ *
+ * The settings page has let an administrator set it all along and nothing
+ * read it, so every new reader got Mongolian whatever the workspace said. A
+ * person's own choice, once made, is stored and wins; this never overwrites
+ * it and never stores anything itself.
+ */
+export const applyWorkspaceLanguage = (value: string | null | undefined) => {
+  if (!value) return;
+
+  try {
+    if (localStorage.getItem(languageStorageKey)) return;
+  } catch {
+    // Without storage there is no personal choice to respect.
+  }
+
+  const language = normalizeLanguage(value);
+  if (i18n.language !== language) void i18n.changeLanguage(language);
+};
+
 export default i18n;

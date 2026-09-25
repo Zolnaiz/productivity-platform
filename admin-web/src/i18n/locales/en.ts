@@ -1530,6 +1530,7 @@ const en = {
     workspacePreferences: 'Workspace preferences',
     timezone: 'Timezone',
     language: 'Language',
+    languageHint: 'What people see until they choose their own language.',
     monthCloseDay: 'Month close day',
     timezoneHint: 'Reports count months, and the morning reminder is sent, on this clock.',
     monthCloseDayHint: 'Last month’s report closes by itself on this day (1–28), unless a manager closed it sooner.',

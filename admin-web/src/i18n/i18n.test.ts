@@ -75,3 +75,25 @@ describe('language selection', () => {
     expect([...supportedLanguages].sort()).toEqual(['en', 'mn']);
   });
 });
+
+describe('the workspace language', () => {
+  it('is what somebody sees until they choose their own', async () => {
+    const { default: i18n, applyWorkspaceLanguage, languageStorageKey } = await import('./index');
+    localStorage.removeItem(languageStorageKey);
+    await i18n.changeLanguage('mn');
+
+    applyWorkspaceLanguage('en-US');
+
+    expect(i18n.language).toBe('en');
+  });
+
+  it('never overrides a language somebody chose', async () => {
+    const { default: i18n, applyWorkspaceLanguage, changeLanguage, languageStorageKey } = await import('./index');
+    await changeLanguage('mn');
+
+    applyWorkspaceLanguage('en-US');
+
+    expect(i18n.language).toBe('mn');
+    localStorage.removeItem(languageStorageKey);
+  });
+});
