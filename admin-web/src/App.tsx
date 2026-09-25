@@ -19,6 +19,7 @@ import FiveSSetupPage from "./pages/FiveSSetupPage";
 import AuditTemplatesPage from "./pages/AuditTemplatesPage";
 import MonthlyReportPage from "./pages/MonthlyReportPage";
 import PeriodReportPage from "./pages/PeriodReportPage";
+import ProgressBoardPage from "./pages/ProgressBoardPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import CalendarPage from "./pages/CalendarPage";
 import NotesPage from "./pages/NotesPage";
@@ -89,6 +90,7 @@ function App() {
                 <Route path="dashboard" element={<OperationsDashboardPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="tasks" element={<TasksPage />} />
+                <Route path="progress" element={<ProgressBoardPage />} />
                 <Route path="kanban" element={<TasksPage />} />
                 <Route path="calendar" element={<CalendarPage />} />
                 <Route path="work-logs" element={<WorkLogsPage />} />

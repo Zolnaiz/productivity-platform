@@ -391,8 +391,10 @@ const createDemo = <T extends { id: string }>(key: DemoKey, data: Partial<T>) =>
   const items = readDemo<T>(key);
   // The server stamps createdAt; the demo store has to as well, or anything
   // that shows when a record was made renders a dash.
+  const stamp = new Date().toISOString();
   const item = {
-    createdAt: new Date().toISOString(),
+    createdAt: stamp,
+    updatedAt: stamp,
     ...data,
     id: data.id || localId(),
   } as unknown as T;
@@ -566,7 +568,10 @@ const closeDemoFindingForTask = (task: Partial<WorkTask> | undefined) => {
 
 const updateDemo = <T extends { id: string }>(key: DemoKey, id: string, data: Partial<T>) => {
   const items = readDemo<T>(key);
-  const updated = items.map((item) => (item.id === id ? { ...item, ...data } : item));
+  // Stamped like the server does, so "nothing has changed for three days" can
+  // be asked of the demo too.
+  const updatedAt = new Date().toISOString();
+  const updated = items.map((item) => (item.id === id ? { ...item, ...data, updatedAt } : item));
   writeDemo(key, updated);
   return updated.find((item) => item.id === id) as T;
 };

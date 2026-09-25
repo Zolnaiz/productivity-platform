@@ -27,6 +27,7 @@ import {
   Trophy,
   Users,
   CalendarRange,
+  Activity,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
@@ -41,6 +42,9 @@ interface MenuItem {
 }
 
 const adminRoles = ["admin", "super_admin"];
+// Whoever runs other people's work. An operator's own tasks are on the task
+// list; the board is about everybody's.
+const managerRoles = ["manager", "admin", "organization_admin", "super_admin"];
 const ownerRoles = ["super_admin"];
 
 const menuItems: MenuItem[] = [
@@ -49,6 +53,13 @@ const menuItems: MenuItem[] = [
     labelKey: "nav.dashboard",
     path: "/dashboard",
     group: "Work",
+  },
+  {
+    icon: <Activity className="h-5 w-5" />,
+    labelKey: "nav.progressBoard",
+    path: "/progress",
+    group: "Work",
+    roles: managerRoles,
   },
   {
     icon: <Briefcase className="h-5 w-5" />,
