@@ -816,6 +816,7 @@ const en = {
     emptyDescription: 'Capture meeting notes, report ideas and blockers so nothing is lost between days.',
   },
   goals: {
+    doneOfTotal: '{{done}} of {{total}} goals done.',
     title: 'Goal Wall',
     subtitle: 'Set daily goals, tick them off, and carry the unfinished ones forward.',
     todayGoals: 'Today goals',
@@ -838,6 +839,7 @@ const en = {
     progressSnapshot: 'Progress snapshot',
   },
   pomodoro: {
+    subtitleLong: 'Record focus sessions to measure the concentrated time worked each day.',
     title: 'Pomodoro / Focus',
     subtitle: 'Log focus sessions and see how much deep work each day holds.',
     focusSessions: 'Focus sessions',

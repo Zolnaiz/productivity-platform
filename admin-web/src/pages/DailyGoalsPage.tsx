@@ -220,7 +220,7 @@ const DailyGoalsPage: React.FC = () => {
         <Card title={t('goals.progressSnapshot')}>
           <div className="flex flex-col gap-3 text-sm text-gray-600 dark:text-gray-400 sm:flex-row sm:items-center sm:justify-between">
             <span>
-              Нийт {goals.length} зорилгоос {stats.completedAll} нь биелсэн байна.
+              {t('goals.doneOfTotal', { done: stats.completedAll, total: goals.length })}
             </span>
             <span className="font-medium text-gray-900 dark:text-white">
               {goals.length ? Math.round((stats.completedAll / goals.length) * 100) : 0}% overall

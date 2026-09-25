@@ -377,7 +377,7 @@ const AuditTemplatesPage: React.FC = () => {
             <div className="space-y-3">
               {!loading && runs.length === 0 && (
                 <div className="text-sm text-gray-500">
-                  Одоогоор audit run бүртгэгдээгүй байна.
+                  {t('dashboard.noAuditsYet')}
                 </div>
               )}
               {runs.map((run) => {
