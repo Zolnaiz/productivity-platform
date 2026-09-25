@@ -59,6 +59,7 @@ const SettingsPage: React.FC = () => {
         <div className="grid gap-4 md:grid-cols-3">
           <Select
             label={t('settings.timezone')}
+            helperText={t('settings.timezoneHint')}
             value={settings.timezone}
             onChange={(event) => updateField('timezone', event.target.value)}
           >
@@ -77,7 +78,10 @@ const SettingsPage: React.FC = () => {
           </Select>
           <Input
             label={t('settings.monthCloseDay')}
-            max={31}
+            helperText={t('settings.monthCloseDayHint')}
+            // Up to the 28th, the last day every month has; the server reads
+            // anything else as the default.
+            max={28}
             min={1}
             type="number"
             value={settings.monthCloseDay}

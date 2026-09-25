@@ -1263,8 +1263,8 @@ export class OperationsService {
    * What a closed month stores, so it is always the whole team's: whose view
    * it is decides only how the records are read back.
    */
-  async monthRecords(user: CurrentUser, month: string): Promise<MonthRecords> {
-    return selectMonthRecords(await this.organizationRecords(user), month);
+  async monthRecords(user: CurrentUser, month: string, timeZone?: string): Promise<MonthRecords> {
+    return selectMonthRecords(await this.organizationRecords(user), month, timeZone);
   }
 
   /** Everything the monthly report counts, for the whole organization, read once. */

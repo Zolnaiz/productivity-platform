@@ -1,4 +1,4 @@
-import { previousMonth, ReportArchiveService } from './report-archive.service';
+import { clockFrom, previousMonth, ReportArchiveService } from './report-archive.service';
 import { ReportsController } from './reports.controller';
 import { selectMonthRecords } from './monthly-report';
 
@@ -27,11 +27,15 @@ const createService = () => {
     save: jest.fn((value) => Promise.resolve({ id: 'close-1', createdAt: new Date('2026-04-05'), ...value })),
     softRemove: jest.fn((value) => Promise.resolve(value)),
   };
-  const organizations = { find: jest.fn().mockResolvedValue([{ id: 'org-1' }]) };
+  const organizations = {
+    find: jest.fn().mockResolvedValue([{ id: 'org-1' }]),
+    findOne: jest.fn().mockResolvedValue({ id: 'org-1', settings: {} }),
+  };
   const operations = {
     resolveReportMonth: jest.fn((month?: string) => month || '2026-04'),
     monthlyReport: jest.fn().mockResolvedValue({ period: '2026-03', live: true }),
     monthRecords: jest.fn().mockResolvedValue(march),
+    organizationRecords: jest.fn(),
   };
   const config = { get: jest.fn((_key: string, fallback?: unknown) => fallback) };
   const service = new ReportArchiveService(
@@ -48,13 +52,14 @@ const manager = { id: 'manager-1', role: 'manager', organizationId: 'org-1' };
 const aprilTenth = new Date('2026-04-10T09:00:00Z');
 
 describe('a month that has been closed', () => {
-  it('is counted live while it is open', async () => {
+  it('is counted live while it is open, on the organization’s clock', async () => {
     const { service, operations } = createService();
 
     const report = await service.monthlyReport(manager, '2026-03');
 
-    expect(operations.monthlyReport).toHaveBeenCalledWith(manager, '2026-03');
-    expect(report).toMatchObject({ live: true, closed: null });
+    expect(operations.monthRecords).toHaveBeenCalledWith(manager, '2026-03', 'Asia/Ulaanbaatar');
+    expect(report).toMatchObject({ period: '2026-03', closed: null });
+    expect(report.totals.completedTasks).toBe(2);
   });
 
   it('is read from what was stored, whatever has happened to the work since', async () => {
@@ -109,7 +114,7 @@ describe('a month that has been closed', () => {
 
     await service.closeMonth(manager, '2026-03', aprilTenth);
 
-    expect(operations.monthRecords).toHaveBeenCalledWith({ organizationId: 'org-1' }, '2026-03');
+    expect(operations.monthRecords).toHaveBeenCalledWith({ organizationId: 'org-1' }, '2026-03', 'Asia/Ulaanbaatar');
     expect(closes.save).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: 'org-1', period: '2026-03', closedBy: 'manager-1', records: march }),
     );
@@ -243,5 +248,40 @@ describe('the report routes', () => {
     expect(archive.monthlyReport).toHaveBeenCalledWith(manager, '2026-06');
     expect(archive.closeMonth).toHaveBeenCalledWith(manager, '2026-06');
     expect(archive.reopenMonth).toHaveBeenCalledWith(manager, '2026-06');
+  });
+});
+
+/**
+ * The workspace settings page has let an administrator choose a time zone and
+ * a close day for a long time; nothing read either until now.
+ */
+describe('the organization’s own clock', () => {
+  it('closes on the day the organization chose', async () => {
+    const { service, closes, organizations } = createService();
+    organizations.find.mockResolvedValue([{ id: 'org-1', settings: { monthCloseDay: 10 } }]);
+
+    await service.closePreviousMonth(new Date('2026-04-05T06:30:00Z'));
+    expect(closes.save).not.toHaveBeenCalled();
+
+    await service.closePreviousMonth(new Date('2026-04-10T06:30:00Z'));
+    expect(closes.save).toHaveBeenCalledWith(expect.objectContaining({ period: '2026-03' }));
+  });
+
+  it('decides which month has ended by the organization’s time zone', async () => {
+    // 20:00 on 30 April in New York is already 1 May in Ulaanbaatar.
+    const { service, organizations } = createService();
+    organizations.findOne.mockResolvedValue({ id: 'org-1', settings: { timezone: 'America/New_York' } });
+
+    await expect(service.closeMonth(manager, '2026-04', new Date('2026-05-01T00:00:00Z'))).rejects.toMatchObject({
+      response: expect.objectContaining({ errorCode: 'REPORT_MONTH_NOT_ENDED' }),
+    });
+  });
+
+  it('falls back rather than failing on a setting that is not one', () => {
+    expect(clockFrom({ timezone: 'Mars/Olympus', monthCloseDay: 31 })).toEqual({
+      timeZone: 'Asia/Ulaanbaatar',
+      closeDay: 5,
+    });
+    expect(clockFrom({ timezone: 'Europe/London', monthCloseDay: 3 })).toEqual({ timeZone: 'Europe/London', closeDay: 3 });
   });
 });

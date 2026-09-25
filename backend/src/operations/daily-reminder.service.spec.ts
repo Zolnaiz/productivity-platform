@@ -7,9 +7,17 @@ const createService = (config: Record<string, unknown> = {}) => {
   const tasks = { find: jest.fn().mockResolvedValue([]) };
   const notifications = { notify: jest.fn(async (request) => ({ id: 'n', createdAt: new Date(), ...request })) };
   const configService = { get: jest.fn((key: string, fallback?: unknown) => (key in config ? config[key] : fallback)) };
-  const service = new DailyReminderService(tasks as never, notifications as never, configService as never);
+  const organizations = {
+    find: jest.fn().mockResolvedValue([{ id: 'org-1', settings: {} }]),
+  };
+  const service = new DailyReminderService(
+    tasks as never,
+    organizations as never,
+    notifications as never,
+    configService as never,
+  );
 
-  return { service, tasks, notifications };
+  return { service, tasks, notifications, organizations };
 };
 
 // 08:15 in Ulaanbaatar, which is UTC+8.
@@ -132,5 +140,26 @@ describe('the morning reminder', () => {
     await service.remind(eightFifteen);
 
     expect(tasks.find).not.toHaveBeenCalled();
+  });
+});
+
+describe('each organization in its own morning', () => {
+  it('reminds an organization when its own clock says it is morning', async () => {
+    // 08:15 in Ulaanbaatar is 00:15 in London: one is reminded, one is not.
+    const { service, tasks, organizations, notifications } = createService();
+    organizations.find.mockResolvedValue([
+      { id: 'org-1', settings: {} },
+      { id: 'org-london', settings: { timezone: 'Europe/London' } },
+    ]);
+    tasks.find.mockResolvedValue([
+      task({ organizationId: 'org-1', assigneeId: 'u1', dueDate: '2026-09-25' }),
+      task({ organizationId: 'org-london', assigneeId: 'u9', dueDate: '2026-09-24' }),
+    ]);
+
+    await service.remind(eightFifteen);
+
+    expect(tasks.find.mock.calls[0][0].where.organizationId).toBeDefined();
+    expect(notifications.notify).toHaveBeenCalledTimes(1);
+    expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u1' }));
   });
 });

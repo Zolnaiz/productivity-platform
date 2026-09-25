@@ -7,6 +7,8 @@ import { TaskStatus, WorkTask } from './entities/task.entity';
 import { NotificationKind } from './entities/notification.entity';
 import { NotificationsService } from './notifications.service';
 import { dayIn } from './task-completion';
+import { Organization } from '../organizations/entities/organization.entity';
+import { clockFrom } from './organization-clock';
 
 /** How many tasks a reminder names before it says "and more". */
 const NAMED = 5;
@@ -75,13 +77,11 @@ export class DailyReminderService {
 
   constructor(
     @InjectRepository(WorkTask) private readonly tasks: Repository<WorkTask>,
+    // Read-only, for each organization's own time zone.
+    @InjectRepository(Organization) private readonly organizations: Repository<Organization>,
     private readonly notifications: NotificationsService,
     private readonly configService: ConfigService,
   ) {}
-
-  private get timeZone() {
-    return this.configService.get<string>('APP_TIME_ZONE') || 'Asia/Ulaanbaatar';
-  }
 
   private get hour() {
     return Number(this.configService.get<number>('REMINDER_HOUR') ?? 8);
@@ -93,20 +93,34 @@ export class DailyReminderService {
 
   @Cron('0 0 * * * *', { name: 'daily-work-reminder' })
   async remind(now = new Date()) {
-    const hour = hourIn(this.timeZone, now);
-
-    // Mornings only: a reminder of the day's work that arrives in the evening
-    // is noise, so a server that was down all morning skips the day.
-    if (!this.enabled || hour < this.hour || hour >= 12) {
+    if (!this.enabled) {
       return 0;
     }
 
-    const today = dayIn(this.timeZone, now);
+    // Each organization in its own morning. Mornings only: a reminder of the
+    // day's work that arrives in the evening is noise, so a server that was
+    // down all morning skips the day.
+    const organizations = await this.organizations.find({ select: { id: true, settings: true } });
+    const todayOf = new Map<string, string>();
+    for (const organization of organizations) {
+      const { timeZone } = clockFrom(organization.settings);
+      const hour = hourIn(timeZone, now);
+      if (hour >= this.hour && hour < 12) todayOf.set(organization.id, dayIn(timeZone, now));
+    }
+
+    if (!todayOf.size) {
+      return 0;
+    }
+
+    // One query for all of them; the latest "today" bounds it, and each
+    // organization's own day decides what is due and what is late.
+    const latest = [...todayOf.values()].sort().pop() as string;
     const open = await this.tasks.find({
       where: {
+        organizationId: In([...todayOf.keys()]),
         status: In([TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.REVIEW]),
         assigneeId: Not(IsNull()),
-        dueDate: LessThanOrEqual(today),
+        dueDate: LessThanOrEqual(latest),
       },
     });
 
@@ -115,10 +129,13 @@ export class DailyReminderService {
     // the log would claim a fresh round of reminders every hour until noon.
     const runStartedAt = Date.now();
     let sent = 0;
-    for (const digest of digestsFor(open, today)) {
-      const delivered = await this.notifications.notify(this.notificationFor(digest, today));
-      const createdAt = (delivered as { createdAt?: Date | string } | null)?.createdAt;
-      if (createdAt && new Date(createdAt).getTime() >= runStartedAt - 1000) sent += 1;
+    for (const [organizationId, today] of todayOf) {
+      const theirs = open.filter((task) => task.organizationId === organizationId);
+      for (const digest of digestsFor(theirs, today)) {
+        const delivered = await this.notifications.notify(this.notificationFor(digest, today));
+        const createdAt = (delivered as { createdAt?: Date | string } | null)?.createdAt;
+        if (createdAt && new Date(createdAt).getTime() >= runStartedAt - 1000) sent += 1;
+      }
     }
 
     if (sent) {

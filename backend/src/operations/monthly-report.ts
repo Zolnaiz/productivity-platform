@@ -52,24 +52,37 @@ export interface ReportViewer {
   ownOnly: boolean;
 }
 
-const isIn = (value: Date | string | null | undefined, month: string) => monthOf(value) === month;
+/**
+ * A month's worth of an organization's records, for everybody in it.
+ *
+ * `timeZone` is the organization's clock; moments are placed on its calendar
+ * before their month is taken. Left out, the server-wide default is used.
+ */
+export const selectMonthRecords = (
+  all: OrganizationRecords,
+  month: string,
+  timeZone?: string
+): MonthRecords => {
+  const isIn = (value: Date | string | null | undefined) => monthOf(value, timeZone) === month;
 
-/** A month's worth of an organization's records, for everybody in it. */
-export const selectMonthRecords = (all: OrganizationRecords, month: string): MonthRecords => ({
-  tasks: all.tasks.filter((task) => plannedMonth(task) === month || completionMonth(task) === month),
-  workLogs: all.workLogs.filter((log) => isIn(log.logDate || log.createdAt, month)),
-  timeEntries: all.timeEntries.filter((entry) => isIn(entry.workDate || entry.createdAt, month)),
-  auditRuns: all.auditRuns.filter((run) => isIn(run.createdAt, month)),
-  assessmentResponses: all.assessmentResponses.filter((response) =>
-    isIn(response.submittedAt || response.createdAt, month),
-  ),
-  expenses: all.expenses.filter((expense) => isIn(expense.expenseDate || expense.createdAt, month)),
-  dailyGoals: all.dailyGoals.filter((goal) => isIn(goal.date || goal.createdAt, month)),
-  projects: all.projects,
-  projectProgress: Object.fromEntries(
-    all.projects.map((project) => [project.id, projectProgressPercent(project, all.tasks)]),
-  ),
-});
+  return {
+    tasks: all.tasks.filter(
+      (task) => plannedMonth(task, timeZone) === month || completionMonth(task, timeZone) === month
+    ),
+    workLogs: all.workLogs.filter((log) => isIn(log.logDate || log.createdAt)),
+    timeEntries: all.timeEntries.filter((entry) => isIn(entry.workDate || entry.createdAt)),
+    auditRuns: all.auditRuns.filter((run) => isIn(run.createdAt)),
+    assessmentResponses: all.assessmentResponses.filter((response) =>
+      isIn(response.submittedAt || response.createdAt)
+    ),
+    expenses: all.expenses.filter((expense) => isIn(expense.expenseDate || expense.createdAt)),
+    dailyGoals: all.dailyGoals.filter((goal) => isIn(goal.date || goal.createdAt)),
+    projects: all.projects,
+    projectProgress: Object.fromEntries(
+      all.projects.map((project) => [project.id, projectProgressPercent(project, all.tasks)])
+    ),
+  };
+};
 
 /**
  * The monthly report, counted from one month's records.
@@ -79,31 +92,42 @@ export const selectMonthRecords = (all: OrganizationRecords, month: string): Mon
  * many of the month's planned tasks were done by its end. Both stay what they
  * were when the month ended, however the work moves afterwards.
  */
-export const buildMonthlyReport = (records: MonthRecords, month: string, viewer: ReportViewer) => {
+export const buildMonthlyReport = (
+  records: MonthRecords,
+  month: string,
+  viewer: ReportViewer,
+  timeZone?: string
+) => {
   const { ownOnly } = viewer;
-  const mine = <T>(owner: (record: T) => string | undefined) => (record: T) =>
-    !ownOnly || owner(record) === viewer.id;
+  const mine =
+    <T>(owner: (record: T) => string | undefined) =>
+    (record: T) =>
+      !ownOnly || owner(record) === viewer.id;
 
   const monthlyTasks = records.tasks.filter(mine((task) => task.assigneeId));
   const monthlyWorkLogs = records.workLogs.filter(mine((log) => log.userId));
   const monthlyTimeEntries = records.timeEntries.filter(mine((entry) => entry.userId));
   const monthlyAuditRuns = records.auditRuns.filter(mine((run) => run.auditorId));
-  const monthlyAssessmentResponses = records.assessmentResponses.filter(mine((response) => response.respondentId));
+  const monthlyAssessmentResponses = records.assessmentResponses.filter(
+    mine((response) => response.respondentId)
+  );
   const monthlyExpenses = records.expenses.filter(mine((expense) => expense.submittedBy));
   const monthlyDailyGoals = records.dailyGoals.filter(mine((goal) => goal.userId));
   const visibleProjects = records.projects.filter(
     (project) =>
       !ownOnly ||
       project.ownerId === viewer.id ||
-      monthlyTasks.some((task) => task.projectId === project.id),
+      monthlyTasks.some((task) => task.projectId === project.id)
   );
 
-  const completedTasks = monthlyTasks.filter((task) => completionMonth(task) === month);
-  const plannedTasks = monthlyTasks.filter((task) => plannedMonth(task) === month);
-  const plannedDone = plannedTasks.filter((task) => doneByEndOf(task, month));
+  const completedTasks = monthlyTasks.filter((task) => completionMonth(task, timeZone) === month);
+  const plannedTasks = monthlyTasks.filter((task) => plannedMonth(task, timeZone) === month);
+  const plannedDone = plannedTasks.filter((task) => doneByEndOf(task, month, timeZone));
   const completedDailyGoals = monthlyDailyGoals.filter((goal) => goal.completed);
   const totalHours = sumRecordedHours(monthlyWorkLogs, monthlyTimeEntries);
-  const completionRate = plannedTasks.length ? Math.round((plannedDone.length / plannedTasks.length) * 100) : 0;
+  const completionRate = plannedTasks.length
+    ? Math.round((plannedDone.length / plannedTasks.length) * 100)
+    : 0;
   const dailyGoalCompletionRate = monthlyDailyGoals.length
     ? Math.round((completedDailyGoals.length / monthlyDailyGoals.length) * 100)
     : 0;
@@ -115,12 +139,15 @@ export const buildMonthlyReport = (records: MonthRecords, month: string, viewer:
       ? projectProgressPercent(project, monthlyTasks)
       : (records.projectProgress[project.id] ?? projectProgressPercent(project, monthlyTasks));
   const averageProjectProgress = visibleProjects.length
-    ? Math.round(visibleProjects.reduce((sum, project) => sum + progressOf(project), 0) / visibleProjects.length)
+    ? Math.round(
+        visibleProjects.reduce((sum, project) => sum + progressOf(project), 0) /
+          visibleProjects.length
+      )
     : 0;
   const averageAssessmentScore = monthlyAssessmentResponses.length
     ? Math.round(
         monthlyAssessmentResponses.reduce((sum, response) => sum + Number(response.score || 0), 0) /
-          monthlyAssessmentResponses.length,
+          monthlyAssessmentResponses.length
       )
     : 0;
   const approvedExpenseTotal = monthlyExpenses
@@ -136,7 +163,7 @@ export const buildMonthlyReport = (records: MonthRecords, month: string, viewer:
     tasks: monthlyTasks.map((task) => ({
       assigneeId: task.assigneeId,
       status: task.status,
-      finishedInPeriod: completionMonth(task) === month,
+      finishedInPeriod: completionMonth(task, timeZone) === month,
     })),
     workLogs: monthlyWorkLogs,
     timeEntries: monthlyTimeEntries,

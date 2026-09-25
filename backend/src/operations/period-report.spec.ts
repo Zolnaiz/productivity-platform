@@ -21,7 +21,13 @@ const createService = () => {
     findOne: jest.fn().mockResolvedValue(null),
   };
   const operations = { organizationRecords: jest.fn().mockResolvedValue(organization()) };
-  const service = new ReportArchiveService(closes as never, {} as never, operations as never, { get: jest.fn() } as never);
+  const organizations = { findOne: jest.fn().mockResolvedValue({ id: 'org-1', settings: {} }) };
+  const service = new ReportArchiveService(
+    closes as never,
+    organizations as never,
+    operations as never,
+    { get: jest.fn() } as never,
+  );
 
   return { service, closes, operations };
 };

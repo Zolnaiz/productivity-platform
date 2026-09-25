@@ -1403,6 +1403,8 @@ const mn: Translations<typeof en> = {
     timezone: 'Цагийн бүс',
     language: 'Хэл',
     monthCloseDay: 'Сар хаах өдөр',
+    timezoneHint: 'Тайлан сарыг энэ цагаар тоолж, өглөөний сануулгыг энэ цагаар илгээнэ.',
+    monthCloseDayHint: 'Өмнөх сарын тайлан энэ өдөр (1–28) өөрөө хаагдана, менежер түрүүлж хаагаагүй бол.',
     saveSettings: 'Тохиргоо хадгалах',
     saved: 'Хадгалагдлаа',
   },

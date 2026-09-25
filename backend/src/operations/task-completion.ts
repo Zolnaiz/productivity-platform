@@ -37,18 +37,19 @@ const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
  * is read as written. A moment — when a task was finished, when an audit was
  * saved — is placed on the organization's calendar first.
  */
-export const monthOf = (value?: Date | string | null): string | undefined => {
+export const monthOf = (value?: Date | string | null, timeZone = organizationTimeZone()): string | undefined => {
   if (!value) return undefined;
   if (typeof value === 'string' && dateOnly.test(value)) return value.slice(0, 7);
 
   const moment = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(moment.getTime())) return String(value).slice(0, 7);
 
-  return dayIn(organizationTimeZone(), moment).slice(0, 7);
+  return dayIn(timeZone, moment).slice(0, 7);
 };
 
 /** The month a task was planned for: when it is due, or when it was raised. */
-export const plannedMonth = (task: CompletableTask) => monthOf(task.dueDate || task.createdAt);
+export const plannedMonth = (task: CompletableTask, timeZone?: string) =>
+  monthOf(task.dueDate || task.createdAt, timeZone);
 
 /**
  * The month a task was finished in, or nothing if it is not finished.
@@ -58,15 +59,15 @@ export const plannedMonth = (task: CompletableTask) => monthOf(task.dueDate || t
  * guessing a better month from `updated_at` would rewrite reports people have
  * already read, which is the fault this exists to end.
  */
-export const completionMonth = (task: CompletableTask): string | undefined => {
+export const completionMonth = (task: CompletableTask, timeZone?: string): string | undefined => {
   if (task.status !== 'done') return undefined;
 
-  return task.completedAt ? monthOf(task.completedAt) : plannedMonth(task);
+  return task.completedAt ? monthOf(task.completedAt, timeZone) : plannedMonth(task, timeZone);
 };
 
 /** Whether a task was finished by the end of `month` — the question a month's rate asks. */
-export const doneByEndOf = (task: CompletableTask, month: string) => {
-  const finished = completionMonth(task);
+export const doneByEndOf = (task: CompletableTask, month: string, timeZone?: string) => {
+  const finished = completionMonth(task, timeZone);
 
   return Boolean(finished && finished <= month);
 };

@@ -1416,6 +1416,8 @@ const en = {
     timezone: 'Timezone',
     language: 'Language',
     monthCloseDay: 'Month close day',
+    timezoneHint: 'Reports count months, and the morning reminder is sent, on this clock.',
+    monthCloseDayHint: 'Last month’s report closes by itself on this day (1–28), unless a manager closed it sooner.',
     saveSettings: 'Save settings',
     saved: 'Saved',
   },
