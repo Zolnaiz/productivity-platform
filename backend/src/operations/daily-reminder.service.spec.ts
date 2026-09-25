@@ -5,7 +5,7 @@ const task = (over: Record<string, unknown>) =>
 
 const createService = (config: Record<string, unknown> = {}) => {
   const tasks = { find: jest.fn().mockResolvedValue([]) };
-  const notifications = { notify: jest.fn(async (request) => ({ id: 'n', ...request })) };
+  const notifications = { notify: jest.fn(async (request) => ({ id: 'n', createdAt: new Date(), ...request })) };
   const configService = { get: jest.fn((key: string, fallback?: unknown) => (key in config ? config[key] : fallback)) };
   const service = new DailyReminderService(tasks as never, notifications as never, configService as never);
 
@@ -84,6 +84,16 @@ describe('the morning reminder', () => {
         sourceId: '2026-09-25',
       }),
     );
+  });
+
+  it('counts only the reminders it made, not the ones people already had', async () => {
+    // The job runs hourly until noon; the second run finds today's reminder
+    // already delivered and must not report it as sent again.
+    const { service, tasks, notifications } = createService();
+    tasks.find.mockResolvedValue([task({ assigneeId: 'u1', dueDate: '2026-09-25' })]);
+    notifications.notify.mockResolvedValueOnce({ id: 'old', createdAt: new Date('2026-09-25T00:00:05Z') } as never);
+
+    await expect(service.remind(new Date('2026-09-25T01:15:00Z'))).resolves.toBe(0);
   });
 
   it('names the tasks, and says how many more rather than listing them all', async () => {

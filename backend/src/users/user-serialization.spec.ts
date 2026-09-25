@@ -1,5 +1,5 @@
 import { classToPlain, plainToInstance } from 'class-transformer';
-import { User } from './user.entity';
+import { User } from './entities/user.entity';
 
 /**
  * What leaves the server when a user is sent anywhere.

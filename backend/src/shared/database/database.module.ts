@@ -25,7 +25,16 @@ const toBoolean = (value: unknown, defaultValue = false) => {
         entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
         synchronize: toBoolean(config.get('DB_SYNCHRONIZE'), false),
         logging: toBoolean(config.get('DB_LOGGING'), false),
-        migrations: [__dirname + '/../../migrations/**/*{.ts,.js}'],
+        // The same rule as `migrations/data-source.ts`: only the Runtime and
+        // Operations migrations. Everything in the folder matched before, so
+        // running from source loaded the schema spec, the helpers and the two
+        // legacy questionnaire migrations as if they were migrations; the
+        // compiled build happened to leave them out, which is the only reason
+        // production never met it.
+        migrations: [
+          __dirname + '/../../migrations/*Runtime*{.ts,.js}',
+          __dirname + '/../../migrations/*Operations*{.ts,.js}',
+        ],
         migrationsRun: toBoolean(config.get('DB_MIGRATIONS_RUN'), false),
         ssl: toBoolean(config.get('DB_SSL'), false),
         extra: toBoolean(config.get('DB_SSL'), false)

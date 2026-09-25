@@ -111,10 +111,15 @@ export class DailyReminderService {
       },
     });
 
+    // `notify` hands back the existing reminder when this person already had
+    // today's, so only the ones made by this run count as sent — otherwise
+    // the log would claim a fresh round of reminders every hour until noon.
+    const runStartedAt = Date.now();
     let sent = 0;
     for (const digest of digestsFor(open, today)) {
       const delivered = await this.notifications.notify(this.notificationFor(digest, today));
-      if (delivered) sent += 1;
+      const createdAt = (delivered as { createdAt?: Date | string } | null)?.createdAt;
+      if (createdAt && new Date(createdAt).getTime() >= runStartedAt - 1000) sent += 1;
     }
 
     if (sent) {
