@@ -1,6 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import TasksPage from './TasksPage';
+
+const renderPage = (path = '/tasks') =>
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <TasksPage />
+    </MemoryRouter>,
+  );
 
 const mocks = vi.hoisted(() => ({
   getTasks: vi.fn(),
@@ -46,7 +54,7 @@ describe('giving work to somebody', () => {
   });
 
   it('shows who each task is for, and which has nobody', async () => {
-    render(<TasksPage />);
+    renderPage();
 
     const [racking, dock] = await screen.findAllByTestId('task-card');
     await waitFor(() => expect(racking.textContent).toContain('Bat Erdene'));
@@ -60,7 +68,7 @@ describe('giving work to somebody', () => {
     // that did not exist.
     mocks.createTask.mockResolvedValue({ id: 'server-id', title: 'Audit the paint store', status: 'todo', priority: 'medium', assigneeId: 'u2' });
     mocks.updateTask.mockResolvedValue({ id: 'server-id', status: 'in_progress' });
-    render(<TasksPage />);
+    renderPage();
     await screen.findAllByTestId('task-card');
     await waitFor(() => expect(screen.getAllByRole('option', { name: 'Saran Tuya' }).length).toBeGreaterThan(0));
 
@@ -77,7 +85,7 @@ describe('giving work to somebody', () => {
 
   it('hands a task to somebody else, and takes it off them', async () => {
     mocks.updateTask.mockResolvedValue(undefined);
-    render(<TasksPage />);
+    renderPage();
     const who = await screen.findByLabelText('Who Label the racking is for');
 
     fireEvent.change(who, { target: { value: 'u2' } });
@@ -88,7 +96,7 @@ describe('giving work to somebody', () => {
   });
 
   it('narrows the board to one person', async () => {
-    render(<TasksPage />);
+    renderPage();
     await screen.findAllByTestId('task-card');
 
     fireEvent.change(screen.getByLabelText('Show work for'), { target: { value: 'unassigned' } });
@@ -100,7 +108,7 @@ describe('giving work to somebody', () => {
 
   it('does not offer to give work out to somebody the server would refuse', async () => {
     mocks.permissions = ['tasks:update'];
-    render(<TasksPage />);
+    renderPage();
     await screen.findAllByTestId('task-card');
 
     expect(screen.queryByRole('button', { name: 'New task' })).toBeNull();
@@ -110,9 +118,8 @@ describe('giving work to somebody', () => {
   });
 
   it('opened from a project, shows only its work and files new work under it', async () => {
-    window.history.pushState({}, '', '/tasks?project=p1');
     mocks.createTask.mockResolvedValue({ id: 'server-id', title: 'Mark the walkways', status: 'todo', priority: 'medium', projectId: 'p1' });
-    render(<TasksPage />);
+    renderPage('/tasks?project=p1');
 
     await waitFor(() => expect(screen.getByTestId('project-filter').textContent).toContain('Warehouse 5S'));
     expect(screen.getAllByTestId('task-card')).toHaveLength(1);
@@ -122,6 +129,15 @@ describe('giving work to somebody', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
 
     await waitFor(() => expect(mocks.createTask).toHaveBeenCalledWith(expect.objectContaining({ projectId: 'p1' })));
-    window.history.pushState({}, '', '/');
+  });
+
+  it('shows every project again when the filter is lifted', async () => {
+    renderPage('/tasks?project=p1');
+    await waitFor(() => expect(screen.getAllByTestId('task-card')).toHaveLength(1));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show every project' }));
+
+    await waitFor(() => expect(screen.getAllByTestId('task-card')).toHaveLength(2));
+    expect(screen.queryByTestId('project-filter')).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { raisedTitle } from '../components/common/raisedText';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
@@ -36,8 +37,6 @@ const emptyDraft = {
 /** Everybody, nobody, or one person: what the board is showing. */
 type Filter = 'all' | 'unassigned' | string;
 
-/** The project named in the address, when the board was opened from one. */
-const projectFromAddress = () => new URLSearchParams(window.location.search).get('project') ?? '';
 
 /**
  * The work, by stage, and who it is for.
@@ -58,12 +57,23 @@ const TasksPage: React.FC = () => {
   const [members, setMembers] = useState<TeamUser[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [filter, setFilter] = useState<Filter>('all');
-  const [projectFilter, setProjectFilter] = useState(projectFromAddress);
+  /*
+    The project comes from the address and nowhere else, so the menu's
+    "Tasks" link - which has none - shows every project again, and a link
+    to one project's work can be shared.
+  */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const projectFilter = searchParams.get('project') ?? '';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   // New work opened from a project is filed under it.
-  const [draft, setDraft] = useState(() => ({ ...emptyDraft, projectId: projectFromAddress() }));
+  const [draft, setDraft] = useState(emptyDraft);
+
+  // New work opened from a project is filed under it.
+  useEffect(() => {
+    setDraft((current) => ({ ...current, projectId: projectFilter }));
+  }, [projectFilter]);
 
   useEffect(() => {
     let active = true;
@@ -218,10 +228,7 @@ const TasksPage: React.FC = () => {
           <button
             type="button"
             className="font-medium underline"
-            onClick={() => {
-              setProjectFilter('');
-              setDraft((current) => ({ ...current, projectId: '' }));
-            }}
+            onClick={() => setSearchParams({})}
           >
             {t('tasks.allProjects')}
           </button>
