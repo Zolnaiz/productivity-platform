@@ -517,6 +517,7 @@ const en = {
     loadFailed: 'The plan could not be loaded.',
   },
   progressBoard: {
+    giveTo: 'Give it to…',
     title: 'Progress board',
     subtitle: 'Where the work stands right now: what is late, what has gone quiet, and who is carrying what.',
     updated: 'Updated {{time}} · refreshes every minute',

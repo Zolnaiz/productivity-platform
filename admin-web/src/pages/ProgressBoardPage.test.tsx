@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ProgressBoardPage, { REFRESH_MS } from './ProgressBoardPage';
 
@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getTasks: vi.fn(),
   getWorkLogs: vi.fn(),
   getTimeEntries: vi.fn(),
+  updateTask: vi.fn(),
   getMembers: vi.fn(),
 }));
 
@@ -16,6 +17,7 @@ vi.mock('../services/operations.service', () => ({
     getTasks: mocks.getTasks,
     getWorkLogs: mocks.getWorkLogs,
     getTimeEntries: mocks.getTimeEntries,
+    updateTask: mocks.updateTask,
   },
 }));
 
@@ -81,5 +83,19 @@ describe('the progress board', () => {
 
     expect(await screen.findByText(/could not be refreshed/)).toBeTruthy();
     expect(screen.getByTestId('overdue-list').textContent).toContain('Label the racking');
+  });
+
+  it('gives work with nobody on it to somebody, from where it is seen', async () => {
+    mocks.getTasks.mockResolvedValue([
+      { id: 'orphan', title: 'Sweep the dock', status: 'todo', priority: 'low', dueDate: '2099-01-01' },
+    ]);
+    mocks.updateTask.mockResolvedValue({ id: 'orphan', assigneeId: 'u1' });
+    render(<ProgressBoardPage />);
+
+    fireEvent.change(await screen.findByLabelText('Who Sweep the dock is for'), { target: { value: 'u1' } });
+
+    await waitFor(() => expect(mocks.updateTask).toHaveBeenCalledWith('orphan', { assigneeId: 'u1' }));
+    // Asked again, so the lists and the counts move together.
+    await waitFor(() => expect(mocks.getTasks).toHaveBeenCalledTimes(2));
   });
 });

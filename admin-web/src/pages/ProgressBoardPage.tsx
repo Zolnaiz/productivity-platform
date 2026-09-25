@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import Select from '../components/common/Select';
 import { raisedTitle } from '../components/common/raisedText';
 import { operationsService } from '../services/operations.service';
 import { peopleService } from '../services/people.service';
@@ -45,6 +46,21 @@ const ProgressBoardPage: React.FC = () => {
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  /*
+    Work with nobody on it is given to somebody from here, where it is seen,
+    rather than by going to find it on the task board. The board is asked
+    again afterwards so the lists and the counts move together.
+  */
+  const assign = async (taskId: string, assigneeId: string) => {
+    if (!assigneeId) return;
+    try {
+      await operationsService.updateTask(taskId, { assigneeId });
+      await load();
+    } catch {
+      setError(t('tasks.assignFailed'));
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -204,12 +220,30 @@ const ProgressBoardPage: React.FC = () => {
               {board.unassigned.length ? (
                 <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="unassigned-list">
                   {board.unassigned.slice(0, 8).map((task) => (
-                    <li key={task.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                      <span className="truncate font-medium text-gray-900 dark:text-white">{raisedTitle(task, t)}</span>
-                      {task.dueDate && (
-                        <span className="shrink-0 tabular-nums text-gray-500 dark:text-gray-400">
-                          {task.dueDate.slice(0, 10)}
-                        </span>
+                    <li key={task.id} className="py-2 text-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="truncate font-medium text-gray-900 dark:text-white">{raisedTitle(task, t)}</span>
+                        {task.dueDate && (
+                          <span className="shrink-0 tabular-nums text-gray-500 dark:text-gray-400">
+                            {task.dueDate.slice(0, 10)}
+                          </span>
+                        )}
+                      </div>
+                      {members.length > 0 && (
+                        <Select
+                          className="mt-1"
+                          fieldSize="sm"
+                          aria-label={t('tasks.assigneeFor', { title: raisedTitle(task, t) })}
+                          value=""
+                          onChange={(event) => assign(task.id, event.target.value)}
+                        >
+                          <option value="">{t('progressBoard.giveTo')}</option>
+                          {members.map((member) => (
+                            <option key={member.id} value={member.id}>
+                              {memberName(member)}
+                            </option>
+                          ))}
+                        </Select>
                       )}
                     </li>
                   ))}
