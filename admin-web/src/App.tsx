@@ -3,7 +3,6 @@ import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
-import { LoadingProvider } from "./contexts/LoadingContext";
 import Layout from "./components/layout/Layout";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
@@ -45,8 +44,7 @@ function App() {
   return (
     <ThemeProvider>
       <NotificationProvider>
-        <LoadingProvider>
-          <AuthProvider>
+        <AuthProvider>
             <Toaster position="top-right" />
             <Routes>
               <Route path="/" element={<LandingPage />} />
@@ -179,8 +177,7 @@ function App() {
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </AuthProvider>
-        </LoadingProvider>
+        </AuthProvider>
       </NotificationProvider>
     </ThemeProvider>
   );

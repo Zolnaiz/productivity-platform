@@ -168,15 +168,3 @@ export const STORAGE_KEYS = {
   APP_CONFIG: 'appConfig',
   SIDEBAR_COLLAPSED: 'sidebarCollapsed',
 } as const;
-
-// Error messages
-export const ERROR_MESSAGES = {
-  NETWORK_ERROR: 'Сүлжээний алдаа. Интернэт холболтоо шалгана уу.',
-  SERVER_ERROR: 'Серверийн алдаа. Дараа дахин оролдоно уу.',
-  UNAUTHORIZED: 'Таны эрх хүрэхгүй байна.',
-  FORBIDDEN: 'Хандах эрхгүй.',
-  NOT_FOUND: 'Мэдээлэл олдсонгүй.',
-  VALIDATION_ERROR: 'Мэдээлэл буруу байна.',
-  TIMEOUT: 'Хэтэрхий удаан. Дараа дахин оролдоно уу.',
-  UNKNOWN: 'Тодорхойгүй алдаа гарлаа.',
-} as const;
