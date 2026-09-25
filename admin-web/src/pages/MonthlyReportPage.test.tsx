@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MonthlyReportPage from './MonthlyReportPage';
 
 const serviceMocks = vi.hoisted(() => ({
@@ -7,11 +7,16 @@ const serviceMocks = vi.hoisted(() => ({
   getMembers: vi.fn(),
   getDepartments: vi.fn(),
   getPlans: vi.fn(),
+  closeMonth: vi.fn(),
+  reopenMonth: vi.fn(),
+  getOwnPermissions: vi.fn(),
 }));
 
 vi.mock('../services/operations.service', () => ({
   operationsService: {
     getMonthlyReport: serviceMocks.getMonthlyReport,
+    closeMonth: serviceMocks.closeMonth,
+    reopenMonth: serviceMocks.reopenMonth,
   },
 }));
 
@@ -19,6 +24,7 @@ vi.mock('../services/people.service', () => ({
   peopleService: {
     getMembers: serviceMocks.getMembers,
     getDepartments: serviceMocks.getDepartments,
+    getOwnPermissions: serviceMocks.getOwnPermissions,
   },
 }));
 
@@ -417,5 +423,113 @@ describe('the month, building by building', () => {
 
     await screen.findByText('Build report endpoint');
     expect(screen.queryByText('By building')).toBeNull();
+  });
+});
+
+/**
+ * A report handed in last month has to say the same thing when it is read
+ * next year. The page is where a reader learns which kind they are holding.
+ */
+describe('closing a month', () => {
+  const may = (...permissions: string[]) =>
+    serviceMocks.getOwnPermissions.mockResolvedValue({ permissions, role: 'manager' });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-07-10T09:00:00Z'));
+    serviceMocks.getMembers.mockResolvedValue([{ id: 'm1', firstName: 'Oyun', lastName: 'Bat', isActive: true }]);
+    serviceMocks.closeMonth.mockReset();
+    serviceMocks.reopenMonth.mockReset();
+    serviceMocks.getOwnPermissions.mockReset();
+    may();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const showJune = async () => {
+    render(<MonthlyReportPage />);
+    fireEvent.change(await screen.findByLabelText('Report month'), { target: { value: '2026-06' } });
+    await waitFor(() => expect(serviceMocks.getMonthlyReport).toHaveBeenCalledWith('2026-06'));
+  };
+
+  it('says a closed month no longer changes, and who closed it', async () => {
+    serviceMocks.getMonthlyReport.mockResolvedValue({ ...report, closed: { at: '2026-07-05T06:30:00Z', by: 'm1' } });
+
+    await showJune();
+
+    const status = await screen.findByTestId('month-close-status');
+    await waitFor(() => expect(status.textContent).toContain('Oyun Bat'));
+    expect(status.textContent).toContain('no longer change');
+  });
+
+  it('says so when nobody closed it by hand', async () => {
+    serviceMocks.getMonthlyReport.mockResolvedValue({ ...report, closed: { at: '2026-07-05T06:30:00Z', by: null } });
+
+    await showJune();
+
+    expect((await screen.findByTestId('month-close-status')).textContent).toContain('Closed automatically');
+  });
+
+  it('offers to close an ended month, and shows the report that comes back', async () => {
+    may('reports:close');
+    serviceMocks.getMonthlyReport.mockResolvedValue({ ...report, closed: null });
+    serviceMocks.closeMonth.mockResolvedValue({ ...report, closed: { at: '2026-07-10T09:00:00Z', by: 'm1' } });
+
+    await showJune();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close month' }));
+
+    await waitFor(() => expect(serviceMocks.closeMonth).toHaveBeenCalledWith('2026-06'));
+    await waitFor(() =>
+      expect(screen.getByTestId('month-close-status').getAttribute('data-closed')).toBe('true'),
+    );
+  });
+
+  it('does not offer to close a month that is still running', async () => {
+    // Freezing it would keep a report with the rest of the month missing.
+    may('reports:close');
+    serviceMocks.getMonthlyReport.mockResolvedValue({ ...report, period: '2026-07', closed: null });
+
+    render(<MonthlyReportPage />);
+
+    expect((await screen.findByTestId('month-close-status')).textContent).toContain('still running');
+    expect(screen.queryByRole('button', { name: 'Close month' })).toBeNull();
+  });
+
+  it('does not offer the button to somebody the server would refuse', async () => {
+    serviceMocks.getMonthlyReport.mockResolvedValue({ ...report, closed: null });
+
+    await showJune();
+    await screen.findByTestId('month-close-status');
+
+    expect(screen.queryByRole('button', { name: 'Close month' })).toBeNull();
+  });
+
+  it('says in words why a close was refused', async () => {
+    may('reports:close');
+    serviceMocks.getMonthlyReport.mockResolvedValue({ ...report, closed: null });
+    serviceMocks.closeMonth.mockRejectedValue({
+      response: { status: 409, data: { errorCode: 'REPORT_MONTH_NOT_ENDED' } },
+    });
+
+    await showJune();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close month' }));
+
+    expect(await screen.findByText('A month can be closed only after it has ended.')).toBeTruthy();
+  });
+
+  it('lets an administrator reopen a closed month', async () => {
+    may('reports:close', 'reports:reopen');
+    serviceMocks.getMonthlyReport.mockResolvedValue({ ...report, closed: { at: '2026-07-05T06:30:00Z', by: null } });
+    serviceMocks.reopenMonth.mockResolvedValue({ ...report, closed: null });
+
+    await showJune();
+    fireEvent.click(await screen.findByRole('button', { name: 'Reopen month' }));
+
+    await waitFor(() => expect(serviceMocks.reopenMonth).toHaveBeenCalledWith('2026-06'));
+    await waitFor(() =>
+      expect(screen.getByTestId('month-close-status').getAttribute('data-closed')).toBe('false'),
+    );
   });
 });

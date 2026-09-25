@@ -48,6 +48,8 @@ export interface WorkTask extends RaisedTitle {
   dueDate?: string;
   estimatedHours?: number;
   actualHours?: number;
+  /** When it was moved to done; set by the server, cleared on reopening. */
+  completedAt?: string | null;
 }
 
 export interface WorkLog {
@@ -158,8 +160,22 @@ export interface MonthlyPerson {
   assessments: number;
 }
 
+/** A month whose report has been frozen. */
+export interface ClosedMonth {
+  period: string;
+  closedAt: string;
+  /** Nobody, when the scheduled close did it. */
+  closedBy: string | null;
+}
+
 export interface OperationsMonthlyReport {
   period: string;
+  /**
+   * When the month was closed and by whom, or nothing while it is open.
+   * A closed month is read from what was stored, so its figures no longer
+   * move when the work does.
+   */
+  closed?: { at: string; by: string | null } | null;
   /**
    * Everybody who appears in the month's records.
    *

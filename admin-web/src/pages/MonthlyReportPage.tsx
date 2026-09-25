@@ -9,6 +9,7 @@ import { fiveSLayoutService } from '../services/fiveSLayout.service';
 import { summariseDepartments } from '../components/reports/monthlyDepartments';
 import { summariseSites } from '../components/reports/monthlySites';
 import { OperationsMonthlyReport } from '../types/operations.types';
+import { apiErrorMessage } from '../i18n/apiError';
 import { Department, TeamUser, memberName } from '../types/people.types';
 import { FiveSLayoutPlan } from '../types/fiveS.types';
 
@@ -44,6 +45,14 @@ const MonthlyReportPage: React.FC = () => {
   const [plans, setPlans] = useState<FiveSLayoutPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /*
+    What the reader may do to the month. Asked of the server rather than
+    guessed from the role, so the buttons shown and the requests accepted come
+    from the same table.
+  */
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [changingClose, setChangingClose] = useState(false);
+  const may = (permission: string) => permissions.includes('*') || permissions.includes(permission);
 
   useEffect(() => {
     let active = true;
@@ -82,6 +91,13 @@ const MonthlyReportPage: React.FC = () => {
       .then(() => peopleService.getMembers())
       .then((memberData) => {
         if (active) setMembers(memberData ?? []);
+      })
+      .catch(() => undefined);
+
+    Promise.resolve()
+      .then(() => peopleService.getOwnPermissions())
+      .then((access) => {
+        if (active) setPermissions(access?.permissions ?? []);
       })
       .catch(() => undefined);
 
@@ -216,6 +232,9 @@ const MonthlyReportPage: React.FC = () => {
     const rows = [
       ['Metric', 'Value'],
       ['Period', report.period],
+      // A copy that does not say whether it can still change is one nobody
+      // can compare with another.
+      ['Status', report.closed ? `Closed ${report.closed.at}` : 'Open'],
       ['Projects', report.totals.projects],
       ['Tasks', report.totals.tasks],
       ['Completed tasks', report.totals.completedTasks],
@@ -306,6 +325,36 @@ const MonthlyReportPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  /** Closes or reopens the month shown, and shows the report that comes back. */
+  const changeClose = async (action: 'close' | 'reopen') => {
+    setChangingClose(true);
+    setError(null);
+
+    try {
+      const next =
+        action === 'close'
+          ? await operationsService.closeMonth(selectedMonth)
+          : await operationsService.reopenMonth(selectedMonth);
+      setReport(next);
+    } catch (closeError) {
+      setError(apiErrorMessage(closeError, t));
+    } finally {
+      setChangingClose(false);
+    }
+  };
+
+  const monthEnded = selectedMonth < currentMonth();
+  const closedByName = (() => {
+    const by = report?.closed?.by;
+    if (!by) return null;
+    const member = members.find((candidate) => candidate.id === by);
+
+    return member ? memberName(member) : by;
+  })();
+  // Year first: the browser's own format put American dates in a Mongolian
+  // sentence, and a date read the wrong way round is a different day.
+  const closedOn = report?.closed ? new Date(report.closed.at).toISOString().slice(0, 10) : '';
+
   const copySummary = async () => {
     await navigator.clipboard.writeText(executiveSummary);
   };
@@ -335,6 +384,45 @@ const MonthlyReportPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/*
+        Whether the figures below can still move. A reader comparing this
+        month's report with the copy they were sent last week needs to know
+        which of the two is the one that stays.
+      */}
+      {report && !loading && (
+        <div
+          data-testid="month-close-status"
+          data-closed={report.closed ? 'true' : 'false'}
+          className={`flex flex-col gap-3 rounded-lg border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between ${
+            report.closed
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200'
+              : 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-300'
+          }`}
+        >
+          <span>
+            {report.closed
+              ? closedByName
+                ? t('monthlyReport.statusClosed', { date: closedOn, name: closedByName })
+                : t('monthlyReport.statusClosedAutomatically', { date: closedOn })
+              : monthEnded
+                ? t('monthlyReport.statusOpen')
+                : t('monthlyReport.statusRunning')}
+          </span>
+          {report.closed
+            ? may('reports:reopen') && (
+                <Button variant="outline" type="button" onClick={() => changeClose('reopen')} disabled={changingClose}>
+                  {t('monthlyReport.reopenMonth')}
+                </Button>
+              )
+            : monthEnded &&
+              may('reports:close') && (
+                <Button type="button" onClick={() => changeClose('close')} disabled={changingClose}>
+                  {t('monthlyReport.closeMonth')}
+                </Button>
+              )}
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">

@@ -19,7 +19,8 @@ const hoursOf = (record: { hours?: number }) => {
 };
 
 export const summarisePeople = (records: {
-  tasks: WorkTask[];
+  /** `finishedInPeriod` says the task was finished within the month; without it, status today decides. */
+  tasks: Array<WorkTask & { finishedInPeriod?: boolean }>;
   workLogs: WorkLog[];
   timeEntries: TimeEntry[];
   auditRuns: AuditRun[];
@@ -51,7 +52,7 @@ export const summarisePeople = (records: {
     if (!person) return;
 
     person.assignedTasks += 1;
-    if (task.status === 'done') person.completedTasks += 1;
+    if (task.finishedInPeriod ?? task.status === 'done') person.completedTasks += 1;
   });
 
   // Both places people record hours; counting one reports half the month.

@@ -3,6 +3,7 @@ import { planHoldingZone, readDemoPlans, replaceDemoPlan, writeDemoPlans } from 
 import {
   AuditTemplate,
   AuditRun,
+  ClosedMonth,
   OperationsMonthlyReport,
   OperationsSummary,
   Project,
@@ -12,6 +13,7 @@ import {
 } from '../types/operations.types';
 import { DailyGoal } from '../types/productivity.types';
 import { summarisePeople } from '../components/reports/monthlyPeople';
+import { completionAfter, completionMonth, doneByEndOf, plannedMonth } from '../components/reports/taskCompletion';
 
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
 type DemoKey = 'projects' | 'tasks' | 'workLogs' | 'timeEntries' | 'auditTemplates' | 'auditRuns' | 'goals';
@@ -657,8 +659,12 @@ const buildMonthlyReport = (month = currentMonth()): OperationsMonthlyReport => 
   const timeEntries = readDemo<TimeEntry>('timeEntries').filter((entry) => inMonth(entry.workDate, month));
   const dailyGoals = readDemo<DailyGoal>('goals').filter((goal) => inMonth(goal.date, month));
   const auditRuns = readDemo<AuditRun>('auditRuns').filter((run) => inMonth(run.createdAt, month));
-  const completedTasks = tasks.filter((task) => task.status === 'done' && inMonth(task.dueDate, month));
-  const monthlyTasks = tasks.filter((task) => inMonth(task.dueDate, month));
+  // The server's rule: a month is about the tasks planned for it and the
+  // tasks finished in it, and a task counts as finished in the month it was.
+  const monthlyTasks = tasks.filter((task) => plannedMonth(task) === month || completionMonth(task) === month);
+  const completedTasks = monthlyTasks.filter((task) => completionMonth(task) === month);
+  const plannedTasks = monthlyTasks.filter((task) => plannedMonth(task) === month);
+  const plannedDone = plannedTasks.filter((task) => doneByEndOf(task, month));
   const completedDailyGoals = dailyGoals.filter((goal) => goal.completed);
   const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
   const averageProjectProgress = projects.length
@@ -669,7 +675,12 @@ const buildMonthlyReport = (month = currentMonth()): OperationsMonthlyReport => 
     period: month,
     // The demo builds its report in the browser, so it groups the records by
     // person here rather than being handed the answer by the server.
-    people: summarisePeople({ tasks: monthlyTasks, workLogs, timeEntries, auditRuns }),
+    people: summarisePeople({
+      tasks: monthlyTasks.map((task) => ({ ...task, finishedInPeriod: completionMonth(task) === month })),
+      workLogs,
+      timeEntries,
+      auditRuns,
+    }),
     totals: {
       projects: projects.length,
       tasks: monthlyTasks.length,
@@ -685,7 +696,7 @@ const buildMonthlyReport = (month = currentMonth()): OperationsMonthlyReport => 
       pendingExpenseTotal: 0,
     },
     kpis: {
-      completionRate: monthlyTasks.length ? Math.round((completedTasks.length / monthlyTasks.length) * 100) : 0,
+      completionRate: plannedTasks.length ? Math.round((plannedDone.length / plannedTasks.length) * 100) : 0,
       dailyGoalCompletionRate: dailyGoals.length ? Math.round((completedDailyGoals.length / dailyGoals.length) * 100) : 0,
       averageProjectProgress,
       averageAssessmentScore: 0,
@@ -700,13 +711,85 @@ const buildMonthlyReport = (month = currentMonth()): OperationsMonthlyReport => 
   };
 };
 
+/*
+  Closed months in the demo. The demo has one viewer, so it keeps the finished
+  report rather than the records the server keeps; what it shows is the same:
+  a month that stops moving once it is closed.
+*/
+const demoClosesKey = 'productivity-demo-month-closes';
+
+type DemoClose = ClosedMonth & { report: OperationsMonthlyReport };
+
+const readDemoCloses = (): DemoClose[] => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(demoClosesKey) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeDemoCloses = (closes: DemoClose[]) => {
+  try {
+    localStorage.setItem(demoClosesKey, JSON.stringify(closes));
+  } catch {
+    // A demo that cannot store its closes still shows the live month.
+  }
+};
+
+const demoMonthlyReport = (month = currentMonth()): OperationsMonthlyReport => {
+  const closed = readDemoCloses().find((entry) => entry.period === month);
+
+  return closed
+    ? { ...closed.report, closed: { at: closed.closedAt, by: closed.closedBy } }
+    : { ...buildMonthlyReport(month), closed: null };
+};
+
+/** Mirrors `ReportArchiveService.closeMonth`, including its refusal. */
+const closeDemoMonth = (month: string) => {
+  if (month >= currentMonth()) {
+    throw Object.assign(new Error('REPORT_MONTH_NOT_ENDED'), {
+      response: { status: 409, data: { errorCode: 'REPORT_MONTH_NOT_ENDED' } },
+    });
+  }
+
+  const closes = readDemoCloses();
+  if (!closes.some((entry) => entry.period === month)) {
+    writeDemoCloses([
+      ...closes,
+      { period: month, closedAt: new Date().toISOString(), closedBy: 'u1', report: buildMonthlyReport(month) },
+    ]);
+  }
+
+  return demoMonthlyReport(month);
+};
+
+const reopenDemoMonth = (month: string) => {
+  writeDemoCloses(readDemoCloses().filter((entry) => entry.period !== month));
+
+  return demoMonthlyReport(month);
+};
+
 export const operationsService = {
   getSummary: () => fallback<OperationsSummary>(() => get('/operations/summary'), buildSummary()),
   getMonthlyReport: (month?: string) =>
     fallback<OperationsMonthlyReport>(
       () => get('/operations/monthly-report', month ? { month } : undefined),
-      buildMonthlyReport(month),
+      demoMonthlyReport(month),
     ),
+  getClosedMonths: () =>
+    fallback<ClosedMonth[]>(
+      () => get('/operations/monthly-closes'),
+      readDemoCloses().map(({ period, closedAt, closedBy }) => ({ period, closedAt, closedBy })),
+    ),
+  closeMonth: (month: string) =>
+    isDemoMode()
+      ? Promise.resolve().then(() => closeDemoMonth(month))
+      : post<OperationsMonthlyReport>('/operations/monthly-closes', { month }),
+  reopenMonth: (month: string) =>
+    isDemoMode()
+      ? Promise.resolve(reopenDemoMonth(month))
+      : del<OperationsMonthlyReport>(`/operations/monthly-closes/${month}`),
   getProjects: () => fallback<Project[]>(() => get('/projects'), readDemo<Project>('projects')),
   createProject: (data: Partial<Project>) =>
     isDemoMode()
@@ -721,14 +804,23 @@ export const operationsService = {
   getTasks: () => fallback<WorkTask[]>(() => get('/tasks'), readDemo<WorkTask>('tasks')),
   createTask: (data: Partial<WorkTask>) =>
     isDemoMode()
-      ? Promise.resolve(findOpenDemoTaskForSource(data) ?? createDemo<WorkTask>('tasks', data))
+      ? Promise.resolve(
+          findOpenDemoTaskForSource(data) ??
+            createDemo<WorkTask>('tasks', { ...data, completedAt: completionAfter(undefined, data) }),
+        )
       : post<WorkTask>('/tasks', withoutClientScopedFields(data)),
   updateTask: (id: string, data: Partial<WorkTask>) => {
     if (!isDemoMode()) {
       return patch<WorkTask>(`/tasks/${id}`, withoutClientScopedFields(data));
     }
 
-    const updated = updateDemo<WorkTask>('tasks', id, data);
+    const before = readDemo<WorkTask>('tasks').find((task) => task.id === id);
+    // The server stamps when a task was finished; the demo has to, or its
+    // monthly report falls back to reading today's status.
+    const updated = updateDemo<WorkTask>('tasks', id, {
+      ...data,
+      completedAt: completionAfter(before?.status, { ...before, ...data, completedAt: before?.completedAt }),
+    });
     closeDemoFindingForTask(updated);
 
     return Promise.resolve(updated);

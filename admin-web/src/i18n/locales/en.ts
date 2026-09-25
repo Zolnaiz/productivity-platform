@@ -320,6 +320,14 @@ const en = {
       'Security events, report exports, permission changes, and audit submissions will appear here.',
   },
   monthlyReport: {
+    statusClosed: 'Closed on {{date}} by {{name}}. These are the figures stored then, and they no longer change.',
+    statusClosedAutomatically:
+      'Closed automatically on {{date}}. These are the figures stored then, and they no longer change.',
+    statusOpen:
+      'Open. The figures still change as work is updated; closing the month keeps them as they are now.',
+    statusRunning: 'This month is still running. It can be closed once it has ended.',
+    closeMonth: 'Close month',
+    reopenMonth: 'Reopen month',
     sitesTitle: 'By building',
     sitesSubtitle: 'Shown once an organization has more than one; a plant with two of them should not read as one.',
     site: 'Site',
@@ -529,6 +537,7 @@ const en = {
     UNSUPPORTED_FILE_TYPE: 'Only photographs and PDF files can be attached.',
     FILE_TOO_LARGE: 'That file is too large. Attach one under 12 MB.',
     METRICS_DISABLED: 'The metrics endpoint is switched off.',
+    REPORT_MONTH_NOT_ENDED: 'A month can be closed only after it has ended.',
     INTERNAL_ERROR: 'Something went wrong on the server. Try again in a moment.',
     offline: 'Could not reach the server. Check your connection and try again.',
     unknown: 'Something went wrong. Try again.',
