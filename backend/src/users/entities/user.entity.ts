@@ -80,13 +80,24 @@ export class User {
   @Column({ nullable: true, name: 'email_verified' })
   emailVerified: boolean;
 
+  /*
+    The tokens are as good as the password while they are live: whoever holds
+    a reset token can set the account's password. They were serialised with
+    every user, so anybody allowed to list colleagues could read a pending
+    reset for an administrator and take the account. The response is built
+    through class-transformer, which is what keeps `password` out; these are
+    kept out the same way.
+  */
   @Column({ nullable: true, name: 'verification_token' })
+  @Exclude()
   verificationToken?: string;
 
   @Column({ nullable: true, name: 'reset_password_token' })
+  @Exclude()
   resetPasswordToken?: string;
 
   @Column({ nullable: true, name: 'reset_password_expires' })
+  @Exclude()
   resetPasswordExpires?: Date;
 
   @CreateDateColumn({ name: 'created_at' })
