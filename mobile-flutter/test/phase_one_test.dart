@@ -312,6 +312,33 @@ void main() {
     expect(await tokens.read('access_token'), 'shared-access');
   });
 
+  test('clears the refreshed credentials when the server rejects the retry',
+      () async {
+    final (api, adapter, tokens) = await makeApi((request) {
+      if (request.path.endsWith('/auth/refresh')) {
+        return jsonReply(envelope({
+          'access_token': 'fresh-but-rejected',
+          'refresh_token': 'rotated-refresh',
+          'token_type': 'Bearer',
+          'user': {},
+        }));
+      }
+      return jsonReply({'errorCode': 'AUTH_TOKEN_INVALID'}, status: 401);
+    });
+    await tokens.write('access_token', 'expired-access');
+    await tokens.write('refresh_token', 'valid-refresh');
+
+    await expectLater(api.getTasks(), throwsA(isA<DioException>()));
+
+    expect(adapter.requests.map((request) => request.path), [
+      '/tasks',
+      '/auth/refresh',
+      '/tasks',
+    ]);
+    expect(await tokens.read('access_token'), isNull);
+    expect(await tokens.read('refresh_token'), isNull);
+  });
+
   test('clears credentials after refresh fails rather than retrying forever',
       () async {
     final (api, adapter, tokens) = await makeApi((request) =>

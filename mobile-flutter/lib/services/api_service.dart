@@ -142,8 +142,13 @@ class ApiService {
 
         // Handle 401 Unauthorized (Token expired)
         if (error.response?.statusCode == 401) {
-          if (error.requestOptions.extra['retriedAfterRefresh'] == true ||
-              error.requestOptions.path.endsWith('/auth/login') ||
+          if (error.requestOptions.extra['retriedAfterRefresh'] == true) {
+            // A refreshed credential that the server still rejects cannot
+            // recover this session; retaining it would replay the same 401.
+            await _clearAuth();
+            return handler.next(error);
+          }
+          if (error.requestOptions.path.endsWith('/auth/login') ||
               error.requestOptions.path.endsWith('/auth/refresh')) {
             return handler.next(error);
           }
