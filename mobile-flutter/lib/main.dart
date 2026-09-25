@@ -11,6 +11,9 @@ import 'providers/auth_provider.dart';
 import 'providers/expense_provider.dart';
 import 'providers/questionnaire_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/task_provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'utils/phase_one_strings.dart';
 // Services
 import 'services/api_service.dart';
 import 'services/notification_service.dart';
@@ -55,6 +58,7 @@ class ProductivityApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => TaskProvider(ApiService())),
         ChangeNotifierProvider(
           create: (_) => QuestionnaireProvider(ApiService()),
         ),
@@ -65,6 +69,14 @@ class ProductivityApp extends StatelessWidget {
             (BuildContext context, ThemeProvider themeProvider, Widget? child) {
           return MaterialApp.router(
             title: 'Productivity Platform',
+            supportedLocales: const [Locale('en'), Locale('mn')],
+            localizationsDelegates: const [
+              MongolianMaterialDelegate(),
+              MongolianCupertinoDelegate(),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             debugShowCheckedModeBanner: false,
             theme: _buildLightTheme(),
             darkTheme: _buildDarkTheme(),
