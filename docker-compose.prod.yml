@@ -8,7 +8,16 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.production}
       POSTGRES_DB: ${DB_DATABASE:?Set DB_DATABASE in .env.production}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      # Loopback only. The backend reaches PostgreSQL over the compose network
+      # and never needs this; it is published so that the seed, the backup and
+      # psql can be run from the host. Published on 0.0.0.0 it put the
+      # production database on every interface the server has.
+      #
+      # DB_PORT is also a collision: a host that already runs PostgreSQL owns
+      # 5432, Docker Desktop does not refuse the binding, and everything run
+      # from the host then silently talks to the wrong server. Pick a free port
+      # if 5432 is taken.
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
     networks:
@@ -102,7 +111,11 @@ services:
     networks:
       - productivity-network-prod
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/ >/dev/null || exit 1"]
+      # 127.0.0.1, not localhost. nginx.conf says `listen 3001`, which binds
+      # IPv4 only; `localhost` in this image resolves to ::1 first, so the
+      # check was refused every time and the container sat permanently
+      # unhealthy while serving the application perfectly well.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/ >/dev/null || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
