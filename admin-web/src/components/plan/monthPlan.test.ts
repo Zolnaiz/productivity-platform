@@ -76,3 +76,21 @@ describe('a month’s plan', () => {
     expect(nextMonth(new Date('2026-12-15T00:00:00Z'))).toBe('2027-01');
   });
 });
+
+describe('a half-year’s plan', () => {
+  it('is the work due across its months, done by the end of the last', () => {
+    const plan = buildMonthPlan(
+      [
+        task({ assigneeId: 'u1', dueDate: '2026-01-10', status: 'done', completedAt: '2026-05-02T10:00:00Z' }),
+        task({ assigneeId: 'u1', dueDate: '2026-06-28' }),
+        task({ assigneeId: 'u1', dueDate: '2026-07-01' }),
+        task({ id: 'carried', assigneeId: 'u1', dueDate: '2025-12-20' }),
+      ],
+      '2026-01',
+      '2026-06',
+    );
+
+    expect(plan.totals).toMatchObject({ planned: 2, plannedDone: 1, carriedOver: 1 });
+    expect(plan.people[0].carriedOver.map((item) => item.id)).toEqual(['carried']);
+  });
+});

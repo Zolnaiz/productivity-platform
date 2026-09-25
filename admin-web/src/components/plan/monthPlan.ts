@@ -25,7 +25,9 @@ export interface PersonPlan {
 }
 
 export interface MonthPlan {
+  /** The first month of the plan, and the last; the same for a monthly plan. */
   month: string;
+  to: string;
   people: PersonPlan[];
   /** Due in the month with nobody to do it: a plan with a hole in it. */
   unassigned: WorkTask[];
@@ -41,12 +43,18 @@ export const nextMonth = (today: Date) => {
 
 const byDue = (a: WorkTask, b: WorkTask) => String(a.dueDate ?? '').localeCompare(String(b.dueDate ?? ''));
 
-export const buildMonthPlan = (tasks: WorkTask[], month: string): MonthPlan => {
+/**
+ * The plan for a month, or for a run of months — a half-year, a year — when
+ * `to` is given. Work carried in is what was due before the first month and
+ * still open when it began; "done" is done by the end of the last.
+ */
+export const buildMonthPlan = (tasks: WorkTask[], month: string, to: string = month): MonthPlan => {
   // Backlog has no promise attached, so it is not in anybody's plan.
   const committed = tasks.filter((task) => task.status !== 'backlog');
-  const planned = committed.filter((task) => task.dueDate && plannedMonth(task) === month);
-  // Carried over: due before the month and not finished before it started.
-  // Work finished during the month still came into it unfinished.
+  const inRange = (due?: string) => Boolean(due && due >= month && due <= to);
+  const planned = committed.filter((task) => task.dueDate && inRange(plannedMonth(task)));
+  // Carried over: due before the plan and not finished before it started.
+  // Work finished during the plan still came into it unfinished.
   const carried = committed.filter((task) => {
     const due = task.dueDate ? plannedMonth(task) : undefined;
     if (!due || due >= month) return false;
@@ -69,7 +77,7 @@ export const buildMonthPlan = (tasks: WorkTask[], month: string): MonthPlan => {
     const person = personOf(task.assigneeId);
     person.planned.push(task);
     person.estimatedHours += Number(task.estimatedHours || 0);
-    if (doneByEndOf(task, month)) person.plannedDone += 1;
+    if (doneByEndOf(task, to)) person.plannedDone += 1;
   });
   carried.forEach((task) => {
     if (!task.assigneeId) return;
@@ -90,11 +98,12 @@ export const buildMonthPlan = (tasks: WorkTask[], month: string): MonthPlan => {
 
   return {
     month,
+    to,
     people,
     unassigned: planned.filter((task) => !task.assigneeId).sort(byDue),
     totals: {
       planned: planned.length,
-      plannedDone: planned.filter((task) => doneByEndOf(task, month)).length,
+      plannedDone: planned.filter((task) => doneByEndOf(task, to)).length,
       carriedOver: carried.filter((task) => task.assigneeId).length,
       estimatedHours: Math.round(people.reduce((sum, person) => sum + person.estimatedHours, 0) * 10) / 10,
     },

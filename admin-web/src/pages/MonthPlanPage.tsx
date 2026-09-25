@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
+import Select from '../components/common/Select';
+import { spanOf } from '../components/reports/periodReport';
 import { raisedTitle } from '../components/common/raisedText';
 import { operationsService } from '../services/operations.service';
 import { peopleService } from '../services/people.service';
@@ -28,6 +30,10 @@ const statusKey: Record<WorkTask['status'], string> = {
 const MonthPlanPage: React.FC = () => {
   const { t } = useTranslation();
   const [month, setMonth] = useState(nextMonth(new Date()));
+  // A month by default; a half or a whole year for the plans written twice a
+  // year and once.
+  const [span, setSpan] = useState<'month' | 'h1' | 'h2' | 'year'>('month');
+  const [year, setYear] = useState(Number(nextMonth(new Date()).slice(0, 4)));
   const [tasks, setTasks] = useState<WorkTask[]>([]);
   const [members, setMembers] = useState<TeamUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +68,9 @@ const MonthPlanPage: React.FC = () => {
     };
   }, []);
 
-  const plan = useMemo(() => buildMonthPlan(tasks, month), [tasks, month]);
+  const range = span === 'month' ? { from: month, to: month } : spanOf(year, span);
+  const plan = useMemo(() => buildMonthPlan(tasks, range.from, range.to), [tasks, range.from, range.to]);
+  const years = Array.from({ length: 4 }, (_, index) => new Date().getUTCFullYear() - 1 + index);
 
   const nameOf = (userId: string) => {
     const member = members.find((candidate) => candidate.id === userId);
@@ -72,7 +80,7 @@ const MonthPlanPage: React.FC = () => {
 
   const exportCsv = () => {
     const rows: Array<Array<string | number>> = [
-      ['Month', plan.month],
+      ['Period', plan.month === plan.to ? plan.month : `${plan.month} to ${plan.to}`],
       [],
       ['Person', 'Task', 'Due', 'Status', 'Estimated hours', 'Carried over'],
       ...plan.people.flatMap((person) => [
@@ -99,7 +107,7 @@ const MonthPlanPage: React.FC = () => {
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `plan-${plan.month}.csv`;
+    link.download = plan.month === plan.to ? `plan-${plan.month}.csv` : `plan-${plan.month}-${plan.to}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -131,12 +139,40 @@ const MonthPlanPage: React.FC = () => {
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('monthPlan.subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Input
-            type="month"
-            value={month}
-            onChange={(event) => setMonth(event.target.value || nextMonth(new Date()))}
-            aria-label={t('monthPlan.month')}
-          />
+          <div className="w-52">
+            <Select
+              aria-label={t('periodReport.span')}
+              value={span}
+              onChange={(event) => setSpan(event.target.value as typeof span)}
+            >
+              <option value="month">{t('monthPlan.spanMonth')}</option>
+              <option value="h1">{t('periodReport.spanH1')}</option>
+              <option value="h2">{t('periodReport.spanH2')}</option>
+              <option value="year">{t('periodReport.spanYear')}</option>
+            </Select>
+          </div>
+          {span === 'month' ? (
+            <Input
+              type="month"
+              value={month}
+              onChange={(event) => setMonth(event.target.value || nextMonth(new Date()))}
+              aria-label={t('monthPlan.month')}
+            />
+          ) : (
+            <div className="w-28">
+              <Select
+                aria-label={t('periodReport.year')}
+                value={year}
+                onChange={(event) => setYear(Number(event.target.value))}
+              >
+                {years.map((candidate) => (
+                  <option key={candidate} value={candidate}>
+                    {candidate}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
           <Button type="button" onClick={exportCsv} disabled={loading}>
             {t('monthlyReport.exportCsv')}
           </Button>

@@ -55,3 +55,29 @@ describe('the monthly plan page', () => {
     expect(screen.queryByTestId('plan-unassigned')).toBeNull();
   });
 });
+
+describe('the half-year plan', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-25T09:00:00Z'));
+    mocks.getTasks.mockResolvedValue([
+      { id: 'a', title: 'Audit the paint store', status: 'todo', priority: 'high', assigneeId: 'u1', dueDate: '2026-10-08' },
+      { id: 'b', title: 'Standardise the tool wall', status: 'todo', priority: 'high', assigneeId: 'u1', dueDate: '2026-12-15' },
+    ]);
+    mocks.getMembers.mockResolvedValue([{ id: 'u1', firstName: 'Bat', lastName: 'Erdene', isActive: true }]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('gathers the work due across the second half', async () => {
+    render(<MonthPlanPage />);
+    await screen.findByText('Bat Erdene');
+    expect(screen.getByTestId('plan-planned').textContent).toBe('1');
+
+    fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'h2' } });
+
+    await waitFor(() => expect(screen.getByTestId('plan-planned').textContent).toBe('2'));
+  });
+});
