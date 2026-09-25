@@ -28,9 +28,9 @@ describe('what each person did this month', () => {
     expect(people.find((person) => person.userId === 'u2')).toMatchObject({ completedTasks: 1 });
   });
 
-  it('adds up hours from both places people record them', () => {
-    // Time entries and work logs are two ways of recording the same hours, and
-    // counting one would report half of everybody's month.
+  it('adds up distinct hours from clock entries and unpaired work logs', () => {
+    // Separate records still contribute; a linked work-log/time-entry pair is
+    // counted once by the same rule used in the monthly report.
     const people = summarisePeople(
       records({
         timeEntries: [{ userId: 'u1', hours: 6 }],

@@ -363,6 +363,7 @@ const mn: Translations<typeof en> = {
     personTasks: 'Дууссан ажил',
     personHours: 'Цаг',
     personLogs: 'Ажлын тэмдэглэл',
+    personGoals: 'Биелсэн зорилт',
     personAudits: 'Аудит',
     personAssessments: 'Үнэлгээ',
     personTasksValue: '{{total}}-аас {{done}}',

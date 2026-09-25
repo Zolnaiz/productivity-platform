@@ -69,6 +69,7 @@ export interface TimeEntry {
   userId?: string;
   projectId?: string;
   taskId?: string;
+  workLogId?: string;
   workDate: string;
   startedAt?: string;
   endedAt?: string;
@@ -151,6 +152,8 @@ export interface MonthlyPerson {
   assignedTasks: number;
   hours: number;
   workLogs: number;
+  dailyGoals?: number;
+  completedDailyGoals?: number;
   auditRuns: number;
   assessments: number;
 }

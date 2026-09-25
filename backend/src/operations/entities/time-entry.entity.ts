@@ -5,6 +5,7 @@ import { BaseEntity } from '../../shared/entities/base.entity';
 @Index(['organizationId'])
 @Index(['userId'])
 @Index(['workDate'])
+@Index(['workLogId'], { unique: true })
 export class TimeEntry extends BaseEntity {
   @Column({ name: 'organization_id', nullable: true })
   organizationId?: string;
@@ -17,6 +18,10 @@ export class TimeEntry extends BaseEntity {
 
   @Column({ type: 'uuid', name: 'task_id', nullable: true })
   taskId?: string;
+
+  /** The daily narrative whose hours this entry measures, when paired. */
+  @Column({ type: 'uuid', name: 'work_log_id', nullable: true })
+  workLogId?: string;
 
   @Column({ type: 'date', name: 'work_date' })
   workDate: string;

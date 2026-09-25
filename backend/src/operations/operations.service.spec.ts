@@ -960,7 +960,6 @@ describe('OperationsService organization scoping', () => {
     expect(repositories.dailyGoals.find).toHaveBeenCalledWith({
       where: {
         organizationId: 'org-1',
-        userId: 'user-1',
       },
     });
   });

@@ -119,6 +119,13 @@ export class OperationsController {
     return this.operationsService.createWorkLog(body, req.user);
   }
 
+  /** Save a daily narrative and its measured time as one record. */
+  @Post('work-logs/daily')
+  @RequirePermission('worklogs:create')
+  createDailyWorkLog(@Body() body: CreateWorkLogDto, @Request() req) {
+    return this.operationsService.createDailyWorkLog(body, req.user);
+  }
+
   @Get('time-entries')
   @RequirePermission('time:read')
   findTimeEntries(@Request() req) {

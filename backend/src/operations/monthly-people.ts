@@ -13,8 +13,9 @@
 
 export interface PersonRecords {
   tasks: Array<{ assigneeId?: string; status?: string }>;
-  workLogs: Array<{ userId?: string; hours?: number | string }>;
-  timeEntries: Array<{ userId?: string; hours?: number | string }>;
+  workLogs: Array<{ id?: string; userId?: string; hours?: number | string }>;
+  timeEntries: Array<{ userId?: string; hours?: number | string; workLogId?: string }>;
+  dailyGoals?: Array<{ userId?: string; completed?: boolean }>;
   auditRuns: Array<{ auditorId?: string }>;
   assessmentResponses: Array<{ respondentId?: string }>;
 }
@@ -26,6 +27,8 @@ export interface PersonMonth {
   assignedTasks: number;
   hours: number;
   workLogs: number;
+  dailyGoals: number;
+  completedDailyGoals: number;
   auditRuns: number;
   assessments: number;
 }
@@ -34,6 +37,23 @@ const hoursOf = (record: { hours?: number | string }) => {
   const value = Number(record.hours ?? 0);
 
   return Number.isFinite(value) ? value : 0;
+};
+
+/** Sum clock entries and any legacy/unpaired work-log hours exactly once. */
+export const sumRecordedHours = (
+  workLogs: Array<{ id?: string; hours?: number | string }>,
+  timeEntries: Array<{ workLogId?: string; hours?: number | string }>,
+) => {
+  const linkedWorkLogIds = new Set(
+    timeEntries.map((entry) => entry.workLogId).filter((id): id is string => Boolean(id)),
+  );
+
+  return (
+    timeEntries.reduce((sum, entry) => sum + hoursOf(entry), 0) +
+    workLogs
+      .filter((log) => !log.id || !linkedWorkLogIds.has(log.id))
+      .reduce((sum, log) => sum + hoursOf(log), 0)
+  );
 };
 
 /**
@@ -60,6 +80,8 @@ export const summarisePeople = (records: PersonRecords): PersonMonth[] => {
       assignedTasks: 0,
       hours: 0,
       workLogs: 0,
+      dailyGoals: 0,
+      completedDailyGoals: 0,
       auditRuns: 0,
       assessments: 0,
     };
@@ -76,8 +98,10 @@ export const summarisePeople = (records: PersonRecords): PersonMonth[] => {
     if (task.status === 'done') person.completedTasks += 1;
   });
 
-  // Time entries and work logs are two ways of recording the same hours and
-  // both are in use; counting one would report half of everybody's month.
+  // The time entry measures a linked work log; count that duration once.
+  const linkedWorkLogIds = new Set(
+    records.timeEntries.map((entry) => entry.workLogId).filter((id): id is string => Boolean(id)),
+  );
   records.timeEntries.forEach((entry) => {
     const person = forUser(entry.userId);
     if (person) person.hours += hoursOf(entry);
@@ -87,8 +111,16 @@ export const summarisePeople = (records: PersonRecords): PersonMonth[] => {
     const person = forUser(log.userId);
     if (!person) return;
 
-    person.hours += hoursOf(log);
+    if (!log.id || !linkedWorkLogIds.has(log.id)) person.hours += hoursOf(log);
     person.workLogs += 1;
+  });
+
+  (records.dailyGoals ?? []).forEach((goal) => {
+    const person = forUser(goal.userId);
+    if (!person) return;
+
+    person.dailyGoals += 1;
+    if (goal.completed) person.completedDailyGoals += 1;
   });
 
   records.auditRuns.forEach((run) => {

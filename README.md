@@ -93,6 +93,7 @@ For PostgreSQL-backed local smoke testing, see:
 - [Architecture Decisions](docs/DECISIONS.md)
 - [UI Guidelines](docs/UI_GUIDELINES.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Product Execution Plan](docs/PRODUCT_EXECUTION_PLAN.md)
 
 ## Mobile
 
@@ -307,8 +308,10 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 - Backend tests: 677 passing
 - Frontend tests: 848 passing, plus eleven browser checks
-- Mobile tests: 40 passing
+- Mobile tests: 50 passing (latest `mobile/phase-1` verification)
 - Mobile `flutter analyze`: no issues
+- Mobile host-side live API check previously passed login, access-token refresh,
+  task listing and task status update against an isolated backend.
 - Backend lint/build/audit passing
 - Frontend lint/build/audit passing
 - Runtime smoke passing against a native PostgreSQL 18 install: seeded owner login, project create/update/delete, and auth refused without a token

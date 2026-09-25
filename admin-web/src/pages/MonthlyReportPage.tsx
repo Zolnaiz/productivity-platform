@@ -235,13 +235,25 @@ const MonthlyReportPage: React.FC = () => {
       [],
       // The per-person rows go in the same file: a monthly report that has to
       // be read on screen and re-typed to be shared is not a report.
-      ['Person', 'Tasks done', 'Tasks assigned', 'Hours', 'Work logs', 'Audits', 'Assessments'],
+      [
+        'Person',
+        'Tasks done',
+        'Tasks assigned',
+        'Hours',
+        'Work logs',
+        'Daily goals done',
+        'Daily goals',
+        'Audits',
+        'Assessments',
+      ],
       ...peopleRows.map((row) => [
         row.name,
         row.month?.completedTasks ?? 0,
         row.month?.assignedTasks ?? 0,
         (row.month?.hours ?? 0).toFixed(1),
         row.month?.workLogs ?? 0,
+        row.month?.completedDailyGoals ?? 0,
+        row.month?.dailyGoals ?? 0,
         row.month?.auditRuns ?? 0,
         row.month?.assessments ?? 0,
       ]),
@@ -399,6 +411,7 @@ const MonthlyReportPage: React.FC = () => {
                     <th className="py-2 pr-4">{t('monthlyReport.personTasks')}</th>
                     <th className="py-2 pr-4">{t('monthlyReport.personHours')}</th>
                     <th className="py-2 pr-4">{t('monthlyReport.personLogs')}</th>
+                    <th className="py-2 pr-4">{t('monthlyReport.personGoals')}</th>
                     <th className="py-2 pr-4">{t('monthlyReport.personAudits')}</th>
                     <th className="py-2">{t('monthlyReport.personAssessments')}</th>
                   </tr>
@@ -417,13 +430,16 @@ const MonthlyReportPage: React.FC = () => {
                       </td>
                       <td className="py-2 pr-4 tabular-nums">{(row.month?.hours ?? 0).toFixed(1)}</td>
                       <td className="py-2 pr-4 tabular-nums">{row.month?.workLogs ?? 0}</td>
+                      <td className="py-2 pr-4 tabular-nums">
+                        {row.month?.completedDailyGoals ?? 0}/{row.month?.dailyGoals ?? 0}
+                      </td>
                       <td className="py-2 pr-4 tabular-nums">{row.month?.auditRuns ?? 0}</td>
                       <td className="py-2 tabular-nums">{row.month?.assessments ?? 0}</td>
                     </tr>
                   ))}
                   {!peopleRows.length && (
                     <tr>
-                      <td className="py-3 text-gray-500" colSpan={6}>
+                      <td className="py-3 text-gray-500" colSpan={7}>
                         {t('monthlyReport.peopleEmpty')}
                       </td>
                     </tr>

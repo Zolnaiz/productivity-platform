@@ -738,6 +738,27 @@ export const operationsService = {
     isDemoMode()
       ? Promise.resolve(createDemo<WorkLog>('workLogs', data))
       : post<WorkLog>('/work-logs', withoutClientScopedFields(data)),
+  createDailyWorkLog: (data: Partial<WorkLog>) => {
+    if (isDemoMode()) {
+      const workLog = createDemo<WorkLog>('workLogs', data);
+      const timeEntry = createDemo<TimeEntry>('timeEntries', {
+        userId: workLog.userId,
+        projectId: workLog.projectId,
+        taskId: workLog.taskId,
+        workDate: workLog.logDate,
+        hours: workLog.hours,
+        note: workLog.summary,
+        workLogId: workLog.id,
+      });
+
+      return Promise.resolve({ workLog, timeEntry });
+    }
+
+    return post<{ workLog: WorkLog; timeEntry: TimeEntry }>(
+      '/work-logs/daily',
+      withoutClientScopedFields(data),
+    );
+  },
   getTimeEntries: () => fallback<TimeEntry[]>(() => get('/time-entries'), readDemo<TimeEntry>('timeEntries')),
   createTimeEntry: (data: Partial<TimeEntry>) =>
     isDemoMode()

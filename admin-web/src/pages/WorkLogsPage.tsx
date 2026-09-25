@@ -66,6 +66,7 @@ const WorkLogsPage: React.FC = () => {
     };
     const optimisticTime: TimeEntry = {
       id: `local-time-${Date.now()}`,
+      workLogId: optimisticLog.id,
       workDate: draft.logDate,
       hours: Number(draft.hours || 0),
       note: draft.summary,
@@ -76,9 +77,11 @@ const WorkLogsPage: React.FC = () => {
     setDraft({ logDate: today(), summary: '', hours: '1', blockers: '', nextSteps: '' });
 
     try {
-      await operationsService.createWorkLog(optimisticLog);
-      await operationsService.createTimeEntry(optimisticTime);
+      await operationsService.createDailyWorkLog(optimisticLog);
     } catch {
+      setLogs((current) => current.filter((log) => log.id !== optimisticLog.id));
+      setTimeEntries((current) => current.filter((entry) => entry.id !== optimisticTime.id));
+      setDraft(draft);
       setError(t('workLogs.saveFailed'));
     }
   };

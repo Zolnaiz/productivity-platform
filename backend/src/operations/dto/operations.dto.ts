@@ -319,10 +319,6 @@ export class UpdateTaskDto extends PartialType(CreateTaskDto) {}
 
 export class CreateWorkLogDto extends OrganizationScopedDto {
   @IsOptional()
-  @IsString()
-  userId?: string;
-
-  @IsOptional()
   @IsUUID()
   projectId?: string;
 
@@ -352,10 +348,6 @@ export class CreateWorkLogDto extends OrganizationScopedDto {
 }
 
 export class CreateTimeEntryDto extends OrganizationScopedDto {
-  @IsOptional()
-  @IsString()
-  userId?: string;
-
   @IsOptional()
   @IsUUID()
   projectId?: string;

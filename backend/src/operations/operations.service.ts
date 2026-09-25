@@ -18,12 +18,13 @@ import { FiveSGuideline } from './entities/five-s-guideline.entity';
 import { FiveSLayoutVersion } from './entities/five-s-layout-version.entity';
 import { defaultGuidelineContent } from './five-s-guideline-content';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
-import { projectProgressPercent, summarisePeople } from './monthly-people';
+import { projectProgressPercent, summarisePeople, sumRecordedHours } from './monthly-people';
 import { NotificationsService } from './notifications.service';
 import { noteAuditBefore } from '../audit/audit-context';
 
 type CurrentUser = {
   id?: string;
+  role?: string;
   organizationId?: string;
 };
 
@@ -219,6 +220,7 @@ export class OperationsService {
     return this.tasks.find({
       where: {
         ...this.organizationWhere(user),
+        ...(user?.role === 'user' ? { assigneeId: user.id } : {}),
         ...(projectId ? { projectId } : {}),
       },
       order: { createdAt: 'DESC' },
@@ -322,6 +324,14 @@ export class OperationsService {
 
   async updateTask(id: string, payload: Partial<WorkTask>, user: CurrentUser) {
     const task = await this.findOneScoped(this.tasks, id, user, 'Task');
+    if (user?.role === 'user') {
+      if (task.assigneeId !== user.id) {
+        throw apiError(ErrorCode.ResourceNotFound, 'Task');
+      }
+      if (Object.keys(payload).some((field) => field !== 'status')) {
+        throw apiError(ErrorCode.AccessDenied);
+      }
+    }
     this.assignWithoutOrganizationChange(task, payload);
 
     const saved = await this.tasks.save(task);
@@ -396,7 +406,7 @@ export class OperationsService {
 
   findWorkLogs(user: CurrentUser) {
     return this.workLogs.find({
-      where: this.organizationWhere(user),
+      where: user?.role === 'user' ? this.personalWhere(user) : this.organizationWhere(user),
       order: { logDate: 'DESC', createdAt: 'DESC' },
     });
   }
@@ -405,15 +415,47 @@ export class OperationsService {
     const log = this.workLogs.create({
       ...payload,
       organizationId: this.resolveOrganizationId(user, payload.organizationId),
-      userId: payload.userId || user?.id,
+      userId: user?.id,
       logDate: payload.logDate || new Date().toISOString().slice(0, 10),
     });
     return this.workLogs.save(log);
   }
 
+  async createDailyWorkLog(payload: Partial<WorkLog>, user: CurrentUser) {
+    const organizationId = this.resolveOrganizationId(user, payload.organizationId);
+    const logDate = payload.logDate || new Date().toISOString().slice(0, 10);
+
+    return this.workLogs.manager.transaction(async (manager) => {
+      const workLogs = manager.getRepository(WorkLog);
+      const timeEntries = manager.getRepository(TimeEntry);
+      const log = await workLogs.save(
+        workLogs.create({
+          ...payload,
+          organizationId,
+          userId: user?.id,
+          logDate,
+        }),
+      );
+      const timeEntry = await timeEntries.save(
+        timeEntries.create({
+          organizationId,
+          userId: user?.id,
+          projectId: log.projectId,
+          taskId: log.taskId,
+          workDate: logDate,
+          hours: log.hours,
+          note: log.summary,
+          workLogId: log.id,
+        }),
+      );
+
+      return { workLog: log, timeEntry };
+    });
+  }
+
   findTimeEntries(user: CurrentUser) {
     return this.timeEntries.find({
-      where: this.organizationWhere(user),
+      where: user?.role === 'user' ? this.personalWhere(user) : this.organizationWhere(user),
       order: { workDate: 'DESC', createdAt: 'DESC' },
     });
   }
@@ -422,7 +464,7 @@ export class OperationsService {
     const entry = this.timeEntries.create({
       ...payload,
       organizationId: this.resolveOrganizationId(user, payload.organizationId),
-      userId: payload.userId || user?.id,
+      userId: user?.id,
       workDate: payload.workDate || new Date().toISOString().slice(0, 10),
     });
     return this.timeEntries.save(entry);
@@ -1134,51 +1176,69 @@ export class OperationsService {
       this.expenses.find({ where: organization }),
     ]);
 
-    const completedTasks = tasks.filter((task) => task.status === 'done').length;
-    const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
+    const ownOnly = user?.role === 'user';
+    const visibleTasks = tasks.filter((task) => !ownOnly || task.assigneeId === user?.id);
+    const visibleWorkLogs = workLogs.filter((log) => !ownOnly || log.userId === user?.id);
+    const visibleTimeEntries = timeEntries.filter((entry) => !ownOnly || entry.userId === user?.id);
+    const visibleAuditRuns = auditRuns.filter((run) => !ownOnly || run.auditorId === user?.id);
+    const visibleAssessments = assessmentResponses.filter(
+      (response) => !ownOnly || response.respondentId === user?.id,
+    );
+    const visibleExpenses = expenses.filter((expense) => !ownOnly || expense.submittedBy === user?.id);
+    const visibleProjects = projects.filter(
+      (project) =>
+        !ownOnly ||
+        project.ownerId === user?.id ||
+        visibleTasks.some((task) => task.projectId === project.id),
+    );
+
+    const completedTasks = visibleTasks.filter((task) => task.status === 'done').length;
+    const totalHours = sumRecordedHours(visibleWorkLogs, visibleTimeEntries);
     // Counted from the tasks, the same way the projects page counts it. This
     // used to average `project.progress` — a figure somebody set with a slider
-    // — and report it as the organization's progress for the month.
-    const averageProjectProgress = projects.length
+    // — and report it as measured progress.
+    const averageProjectProgress = visibleProjects.length
       ? Math.round(
-          projects.reduce((sum, project) => sum + projectProgressPercent(project, tasks), 0) /
-            projects.length,
+          visibleProjects.reduce((sum, project) => sum + projectProgressPercent(project, visibleTasks), 0) /
+            visibleProjects.length,
         )
       : 0;
-    const averageAuditScore = auditRuns.length
-      ? Math.round(auditRuns.reduce((sum, run) => sum + Number(run.score || 0), 0) / auditRuns.length)
-      : 0;
-    const averageAssessmentScore = assessmentResponses.length
+    const averageAuditScore = visibleAuditRuns.length
       ? Math.round(
-          assessmentResponses.reduce((sum, response) => sum + Number(response.score || 0), 0) /
-            assessmentResponses.length,
+          visibleAuditRuns.reduce((sum, run) => sum + Number(run.score || 0), 0) / visibleAuditRuns.length,
         )
       : 0;
-    const approvedExpenseTotal = expenses
+    const averageAssessmentScore = visibleAssessments.length
+      ? Math.round(
+          visibleAssessments.reduce((sum, response) => sum + Number(response.score || 0), 0) /
+            visibleAssessments.length,
+        )
+      : 0;
+    const approvedExpenseTotal = visibleExpenses
       .filter((expense) => expense.status === 'approved')
       .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
 
     return {
       totals: {
-        projects: projects.length,
-        tasks: tasks.length,
+        projects: visibleProjects.length,
+        tasks: visibleTasks.length,
         completedTasks,
-        workLogs: workLogs.length,
+        workLogs: visibleWorkLogs.length,
         totalHours,
-        auditRuns: auditRuns.length,
-        assessmentResponses: assessmentResponses.length,
+        auditRuns: visibleAuditRuns.length,
+        assessmentResponses: visibleAssessments.length,
         approvedExpenseTotal,
       },
       kpis: {
-        taskCompletionRate: tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0,
+        taskCompletionRate: visibleTasks.length ? Math.round((completedTasks / visibleTasks.length) * 100) : 0,
         averageProjectProgress,
         averageAuditScore,
         averageAssessmentScore,
       },
       recent: {
-        projects: projects.slice(0, 5),
-        tasks: tasks.slice(0, 5),
-        workLogs: workLogs.slice(0, 5),
+        projects: visibleProjects.slice(0, 5),
+        tasks: visibleTasks.slice(0, 5),
+        workLogs: visibleWorkLogs.slice(0, 5),
       },
     };
   }
@@ -1193,33 +1253,63 @@ export class OperationsService {
       this.auditRuns.find({ where: organization }),
       this.assessmentResponses.find({ where: organization }),
       this.expenses.find({ where: organization }),
-      this.dailyGoals.find({ where: this.personalWhere(user) }),
+      this.dailyGoals.find({ where: organization }),
     ]);
 
+    // Employees can inspect their own monthly results. Managers and
+    // administrators retain the team view for review and planning.
+    const ownOnly = user?.role === 'user';
     const reportMonth = this.resolveReportMonth(month);
-    const monthlyTasks = tasks.filter((task) => this.isInMonth(task.dueDate || task.createdAt, reportMonth));
-    const monthlyWorkLogs = workLogs.filter((log) => this.isInMonth(log.logDate || log.createdAt, reportMonth));
-    const monthlyTimeEntries = timeEntries.filter((entry) => this.isInMonth(entry.workDate || entry.createdAt, reportMonth));
-    const monthlyAuditRuns = auditRuns.filter((run) => this.isInMonth(run.createdAt, reportMonth));
-    const monthlyAssessmentResponses = assessmentResponses.filter((response) =>
-      this.isInMonth(response.submittedAt || response.createdAt, reportMonth),
+    const monthlyTasks = tasks.filter(
+      (task) =>
+        (!ownOnly || task.assigneeId === user?.id) &&
+        this.isInMonth(task.dueDate || task.createdAt, reportMonth),
     );
-    const monthlyExpenses = expenses.filter((expense) => this.isInMonth(expense.expenseDate || expense.createdAt, reportMonth));
-    const monthlyDailyGoals = dailyGoals.filter((goal) => this.isInMonth(goal.date || goal.createdAt, reportMonth));
+    const monthlyWorkLogs = workLogs.filter(
+      (log) => (!ownOnly || log.userId === user?.id) && this.isInMonth(log.logDate || log.createdAt, reportMonth),
+    );
+    const monthlyTimeEntries = timeEntries.filter(
+      (entry) =>
+        (!ownOnly || entry.userId === user?.id) &&
+        this.isInMonth(entry.workDate || entry.createdAt, reportMonth),
+    );
+    const monthlyAuditRuns = auditRuns.filter(
+      (run) => (!ownOnly || run.auditorId === user?.id) && this.isInMonth(run.createdAt, reportMonth),
+    );
+    const monthlyAssessmentResponses = assessmentResponses.filter(
+      (response) =>
+        (!ownOnly || response.respondentId === user?.id) &&
+        this.isInMonth(response.submittedAt || response.createdAt, reportMonth),
+    );
+    const monthlyExpenses = expenses.filter(
+      (expense) =>
+        (!ownOnly || expense.submittedBy === user?.id) &&
+        this.isInMonth(expense.expenseDate || expense.createdAt, reportMonth),
+    );
+    const monthlyDailyGoals = dailyGoals.filter(
+      (goal) => (!ownOnly || goal.userId === user?.id) && this.isInMonth(goal.date || goal.createdAt, reportMonth),
+    );
+    const visibleProjects = projects.filter(
+      (project) =>
+        !ownOnly ||
+        project.ownerId === user?.id ||
+        monthlyTasks.some((task) => task.projectId === project.id),
+    );
+    const progressTasks = ownOnly ? monthlyTasks : tasks;
 
     const completedTasks = monthlyTasks.filter((task) => task.status === 'done');
     const completedDailyGoals = monthlyDailyGoals.filter((goal) => goal.completed);
-    const totalHours = monthlyTimeEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0);
+    const totalHours = sumRecordedHours(monthlyWorkLogs, monthlyTimeEntries);
     const completionRate = monthlyTasks.length ? Math.round((completedTasks.length / monthlyTasks.length) * 100) : 0;
     const dailyGoalCompletionRate = monthlyDailyGoals.length
       ? Math.round((completedDailyGoals.length / monthlyDailyGoals.length) * 100)
       : 0;
     // Counted from the tasks, the same rule the projects page and the
     // dashboard use: `project.progress` is a figure somebody set with a slider.
-    const averageProjectProgress = projects.length
+    const averageProjectProgress = visibleProjects.length
       ? Math.round(
-          projects.reduce((sum, project) => sum + projectProgressPercent(project, tasks), 0) /
-            projects.length,
+          visibleProjects.reduce((sum, project) => sum + projectProgressPercent(project, progressTasks), 0) /
+            visibleProjects.length,
         )
       : 0;
     const averageAssessmentScore = monthlyAssessmentResponses.length
@@ -1235,18 +1325,13 @@ export class OperationsService {
       .filter((expense) => expense.status === 'submitted')
       .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
 
-    /*
-      What each person did, which is the conversation a manager actually has.
-      The totals above are for a board paper; nobody can act on them.
-
-      Daily goals are deliberately absent: they are personal notes, scoped to
-      the person who wrote them, and turning them into a number somebody else
-      reads would change what they are for.
-    */
+    // Group organization-scoped records into per-person rows. A user's own
+    // goals API remains personal; the manager's monthly summary includes them.
     const people = summarisePeople({
       tasks: monthlyTasks,
       workLogs: monthlyWorkLogs,
       timeEntries: monthlyTimeEntries,
+      dailyGoals: monthlyDailyGoals,
       auditRuns: monthlyAuditRuns,
       assessmentResponses: monthlyAssessmentResponses,
     });
@@ -1255,7 +1340,7 @@ export class OperationsService {
       period: reportMonth,
       people,
       totals: {
-        projects: projects.length,
+        projects: visibleProjects.length,
         tasks: monthlyTasks.length,
         completedTasks: completedTasks.length,
         workLogs: monthlyWorkLogs.length,
@@ -1277,7 +1362,7 @@ export class OperationsService {
       completedTasks,
       workLogs: monthlyWorkLogs,
       timeEntries: monthlyTimeEntries,
-      projects,
+      projects: visibleProjects,
       dailyGoals: monthlyDailyGoals,
       assessmentResponses: monthlyAssessmentResponses,
       expenses: monthlyExpenses,

@@ -135,10 +135,17 @@ could be built honestly.
 
 ### 5. Mobile
 
-- Build the Phase 1 screens against the real API: login, my tasks, calendar,
-  work log, clock in and out. The Flutter app compiles and its logic is tested;
-  its screens have never spoken to the server.
-- Cover `auth_provider` first, since login is the path every user takes.
+- **Phase 1 is connected on `mobile/phase-1`.** Login, assigned tasks and task
+  status changes use the real API, including token refresh and Mongolian task
+  titles. The host-side live check has exercised login, refresh, task listing
+  and a status update. Flutter analyze is clean and the current suite has 50
+  passing tests; the live backend check is opt-in.
+- The employee daily record is still web-only. Add work-log and time entry,
+  daily goals, calendar and 5S zone work to mobile so a person can record the
+  shift from where the work happens.
+- Run the Flutter app on a supported Android or iOS device before calling the
+  mobile workflow field-ready; this development machine has no Android SDK or
+  emulator configured.
 
 ### 6. Dependencies
 
@@ -254,14 +261,10 @@ could be built honestly.
 
 ## Next Mobile Work
 
-- Run `powershell -ExecutionPolicy Bypass -File .\scripts\mobile-verify.ps1`
-  after each change; it runs analyze and the tests, and both are clean as of
-  2026-09-02.
-- Extend the mobile tests past the pure logic. Providers, the API service and
-  the screens have no coverage; `auth_provider` is the next one worth having,
-  since login is the path every user takes.
-- Build Phase 1 screens against the real API: login, my tasks, calendar, work
-  log, clock in/out.
+- Add the worker's daily work log and time entry, with task/project linking and
+  clear retry behavior.
+- Bring the calendar and the zone QR/checklist workflow to mobile.
+- Exercise the connected workflow on a physical device or emulator.
 
 ## Recently Completed Hardening
 
@@ -318,9 +321,9 @@ could be built honestly.
   [DECISIONS.md](DECISIONS.md).
 - Fixed the migration glob, which silently skipped both 5S layout migrations —
   `five_s_layouts` was never created in any real database.
-- Gave `mobile-flutter` its first tests (40), covering the validators the login,
-  register and profile screens call, the user model's API parsing, and the date
-  formatting the profile screen uses. They found two defects, both fixed:
+- Expanded `mobile-flutter` to 50 passing tests: validators the login, register
+  and profile screens call, user-model API parsing, date formatting, and the
+  connected Phase 1 auth/task flow. They found two earlier defects, both fixed:
   `validateName` rejected every Cyrillic name, so no Mongolian user could
   complete registration or edit their profile; and `initials` threw a
   `RangeError` on a name with a double or trailing space, or on the empty user

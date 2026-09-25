@@ -365,6 +365,7 @@ const en = {
     personTasks: 'Tasks done',
     personHours: 'Hours',
     personLogs: 'Work logs',
+    personGoals: 'Daily goals done',
     personAudits: 'Audits',
     personAssessments: 'Assessments',
     personTasksValue: '{{done}} of {{total}}',
