@@ -308,3 +308,39 @@ test('a walk can be drawn on the plan and comes back in metres', async ({ page }
   await expect(canvas).toContainText(name);
   await expect(canvas).toContainText(/[0-9]/);
 });
+
+test('a month that has ended can be closed, and stays closed after a reload', async ({ page }) => {
+  // The point of closing is that the figures stop moving. A close that did
+  // not survive a reload would be a button that only looked like it worked.
+  await signIn(page);
+  await page.goto('/reports');
+
+  const status = page.getByTestId('month-close-status');
+  await expect(status).toHaveAttribute('data-closed', 'false');
+
+  // Last month has always ended, whenever this runs.
+  const now = new Date();
+  const last = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
+  await page.locator('input[type="month"]').fill(last);
+  await status.getByRole('button').click();
+  await expect(status).toHaveAttribute('data-closed', 'true');
+
+  await page.reload();
+  await page.locator('input[type="month"]').fill(last);
+  await expect(page.getByTestId('month-close-status')).toHaveAttribute('data-closed', 'true');
+});
+
+test('the progress board, the plan and the half-year all open on real figures', async ({ page }) => {
+  await signIn(page);
+
+  await page.goto('/progress');
+  await expect(page.getByTestId('project-row').first()).toBeVisible();
+  await expect(page.getByTestId('board-updated')).toBeVisible();
+
+  await page.goto('/plan');
+  await expect(page.getByTestId('plan-planned')).toBeVisible();
+
+  await page.goto('/reports/period');
+  await expect(page.getByTestId('period-month-row').first()).toBeVisible();
+  await expect(page.getByTestId('period-close-status')).toBeVisible();
+});
