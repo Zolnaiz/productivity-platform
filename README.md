@@ -4,8 +4,12 @@ Productivity Platform is a web-based operations and productivity management syst
 
 ## What It Covers
 
-- Projects, tasks, kanban, calendar, and work logs
+- Projects, tasks, kanban, calendar, and work logs; managers give work to people and plan a project's work from the project
 - Employee time entries and monthly summaries
+- A live progress board for managers: late work, work that has gone quiet, work with nobody on it, and each person's load
+- Monthly, half-year and annual plans read off the assigned work
+- Monthly reports that close - on a chosen day, in the organization's time zone - and then no longer change; half-year and annual reports added up from the closed months
+- A morning reminder for everyone of their work due and late, and for managers of the team's late and unowned work, in the inbox and by email
 - 5S, safety, quality, compliance, risk, and operational excellence audit templates
 - Assessment forms and responses
 - Expenses and reporting
@@ -97,7 +101,12 @@ For PostgreSQL-backed local smoke testing, see:
 
 ## Mobile
 
-The Flutter workspace is in `mobile-flutter`. After installing Flutter SDK and adding `flutter\bin` to PATH:
+The Flutter app in `mobile-flutter` signs in against the API and gives an employee
+their tasks, a Today screen for writing up the day with its hours, and their
+inbox, in Mongolian and English. It builds for Android (flavor `dev`); see
+`mobile-flutter/README.md` for the toolchain and how to point it at a server.
+
+After installing Flutter SDK and adding `flutter\bin` to PATH:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\mobile-verify.ps1
@@ -306,14 +315,18 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-- Backend tests: 677 passing
-- Frontend tests: 848 passing, plus eleven browser checks
-- Mobile tests: 50 passing (latest `mobile/phase-1` verification)
-- Mobile `flutter analyze`: no issues
-- Mobile host-side live API check previously passed login, access-token refresh,
-  task listing and task status update against an isolated backend.
-- Backend lint/build/audit passing
-- Frontend lint/build/audit passing
-- Runtime smoke passing against a native PostgreSQL 18 install: seeded owner login, project create/update/delete, and auth refused without a token
-- Audit trail verified against that database: the three writes the smoke makes leave three rows with the actor taken from the token, the deletion marked as a warning, and no rows at all for the reads
-- Playwright browser smoke passing for seeded owner login and Projects page load
+As of 2026-09-26, on branch `codex/productivity-core-integrity`:
+
+- Backend: 758 tests passing; lint clean; the migration check applies all 30
+  migrations to a real PostgreSQL (WebAssembly) and checks every mapped
+  column, including the ones every entity inherits
+- Frontend: 915 tests passing, 13 browser checks passing, lint and build clean;
+  a test fails the build if Mongolian is written straight into a screen
+- Mobile: `flutter analyze` clean, 60 tests passing; the integration test
+  passes on an Android 35 emulator against a running backend (sign in, tasks,
+  a day written up, the inbox)
+- Live API: against a fresh PostgreSQL 16, the smoke test's reads of every page
+  and, with `SMOKE_WRITES=true`, one of every write pass - which is how the
+  broken notification inbox was found. CI runs both on every push.
+- Production compose stack: built from scratch, migrations applied in the
+  container, seeded, smoke test passing through nginx's `/api` proxy
