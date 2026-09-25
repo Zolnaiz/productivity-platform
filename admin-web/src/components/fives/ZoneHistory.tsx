@@ -129,6 +129,15 @@ const ZoneHistory: React.FC<ZoneHistoryProps> = ({ zone }) => {
                 <th scope="col" className="py-1 text-right font-medium">
                   {t('zoneHistory.score')}
                 </th>
+                {/*
+                  Which drawing it was walked against. A plan changes — walls
+                  move, areas merge — so a score three months old read against
+                  today's drawing cannot say whether an area improved or was
+                  simply redrawn.
+                */}
+                <th scope="col" className="py-1 text-right font-medium">
+                  {t('zoneHistory.plan')}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -137,6 +146,9 @@ const ZoneHistory: React.FC<ZoneHistoryProps> = ({ zone }) => {
                   <td className="py-1 text-gray-600 dark:text-gray-300">{formatDate(run.createdAt)}</td>
                   <td className="py-1 text-right tabular-nums text-gray-900 dark:text-white">
                     {run.score}%
+                  </td>
+                  <td className="py-1 text-right tabular-nums text-gray-500 dark:text-gray-400">
+                    {run.layoutVersionOn ? formatDate(run.layoutVersionOn) : '—'}
                   </td>
                 </tr>
               ))}

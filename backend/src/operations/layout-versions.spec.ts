@@ -174,3 +174,61 @@ describe('what the plan looked like on a given day', () => {
     await expect(service.restoreLayoutVersion('l1', 'v1', user)).rejects.toBeDefined();
   });
 });
+
+/**
+ * A score is only as readable as the drawing behind it. Matching one to a
+ * version by memory is the thing nobody can do three months later.
+ */
+describe('which drawing an audit was walked against', () => {
+  const run = { templateId: 't-1', zoneId: 'z1', score: 82, status: 'submitted' };
+
+  it('records the most recent snapshot, and its date', async () => {
+    // A plan that has not changed since June is still the June drawing.
+    const { service, repositories } = createService();
+    repositories.fiveSLayouts.find.mockResolvedValue([layout()]);
+    repositories.layoutVersions.findOne.mockResolvedValue({ id: 'v7', takenOn: '2026-06-02' });
+
+    await service.createAuditRun(run as never, user);
+
+    expect(repositories.auditRuns.save).toHaveBeenCalledWith(
+      expect.objectContaining({ layoutVersionId: 'v7', layoutVersionOn: '2026-06-02' }),
+    );
+  });
+
+  it('takes a snapshot for a plan that has never had one', async () => {
+    // A score with no drawing behind it is the state this was meant to end.
+    const { service, repositories } = createService();
+    repositories.fiveSLayouts.find.mockResolvedValue([layout()]);
+    repositories.layoutVersions.findOne.mockResolvedValue(null);
+    repositories.layoutVersions.save.mockResolvedValue({ id: 'v-new', takenOn: '2026-09-25' });
+
+    await service.createAuditRun(run as never, user);
+
+    expect(repositories.auditRuns.save).toHaveBeenCalledWith(
+      expect.objectContaining({ layoutVersionId: 'v-new' }),
+    );
+  });
+
+  it('records the audit anyway when no drawing can be found', async () => {
+    // The run is the measurement. Losing it because a copy of a drawing could
+    // not be made would be the wrong trade entirely.
+    const { service, repositories } = createService();
+    repositories.fiveSLayouts.find.mockResolvedValue([]);
+
+    await expect(service.createAuditRun(run as never, user)).resolves.toBeTruthy();
+    expect(repositories.auditRuns.save).toHaveBeenCalledWith(
+      expect.objectContaining({ layoutVersionId: undefined }),
+    );
+  });
+
+  it('says nothing about a drawing for an audit of no particular area', async () => {
+    const { service, repositories } = createService();
+
+    await service.createAuditRun({ templateId: 't-1', score: 90, status: 'submitted' } as never, user);
+
+    expect(repositories.auditRuns.save).toHaveBeenCalledWith(
+      expect.objectContaining({ layoutVersionId: undefined }),
+    );
+  });
+});
+

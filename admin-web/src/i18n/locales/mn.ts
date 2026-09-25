@@ -479,6 +479,7 @@ const mn: Translations<typeof en> = {
     disposeItem: 'Устгах',
   },
   zoneHistory: {
+    plan: 'Зургийн огноо',
     evidence: 'Сүүлийн шалгалтын зураг',
     title: 'Аудитын түүх',
     latest: 'Сүүлийн',

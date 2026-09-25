@@ -858,11 +858,17 @@ export class OperationsService {
   }
 
   async createAuditRun(payload: Partial<AuditRun>, user: CurrentUser) {
+    // The drawing this was walked against, decided before the run is written
+    // rather than matched to one afterwards by somebody's memory.
+    const version = await this.versionWalkedAgainst(payload, user);
+
     const run = this.auditRuns.create({
       ...payload,
       organizationId: this.resolveOrganizationId(user, payload.organizationId),
       auditorId: payload.auditorId || user?.id,
       answers: payload.answers || [],
+      layoutVersionId: version?.id,
+      layoutVersionOn: version?.takenOn,
     });
 
     const saved = await this.auditRuns.save(run);
@@ -870,6 +876,37 @@ export class OperationsService {
     await this.raiseCorrectiveWork(saved, user);
 
     return saved;
+  }
+
+  /**
+   * The snapshot of the plan this run was walked against.
+   *
+   * The most recent one, because a plan that has not changed since June is
+   * still the June drawing. A plan that has never been snapshotted gets one
+   * now: a score with no drawing behind it is the state this was meant to end.
+   *
+   * Never fails the audit. The run is the measurement, and losing it because a
+   * copy of a drawing could not be made would be the wrong trade entirely.
+   */
+  private async versionWalkedAgainst(payload: Partial<AuditRun>, user: CurrentUser) {
+    if (!payload.zoneId) return null;
+
+    try {
+      const layout = await this.layoutHolding(user, (candidate) =>
+        (candidate.zones ?? []).some((zone) => zone.id === payload.zoneId),
+      );
+
+      if (!layout) return null;
+
+      const latest = await this.layoutVersions.findOne({
+        where: { layoutId: layout.id },
+        order: { takenOn: 'DESC' },
+      });
+
+      return latest ?? (await this.keepLayoutVersion(layout, user));
+    } catch {
+      return null;
+    }
   }
 
   /**

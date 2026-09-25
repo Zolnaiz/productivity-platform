@@ -160,4 +160,25 @@ describe('ZoneHistory', () => {
     expect(await screen.findByText('This area has not been audited yet.')).toBeTruthy();
     expect(screen.queryByTestId('photo-evidence')).toBeNull();
   });
+
+  it('says which drawing each score was walked against', async () => {
+    // A March score read against a June plan cannot say whether an area
+    // improved or was simply redrawn.
+    serviceMocks.getAuditRuns.mockResolvedValue([
+      { ...run('r-2', 88, '2026-09-01T00:00:00.000Z'), layoutVersionOn: '2026-08-30' },
+    ]);
+
+    render(<ZoneHistory zone={zone({ lastAuditScore: 88 })} />);
+
+    expect(await screen.findByText('2026-08-30')).toBeTruthy();
+  });
+
+  it('says nothing rather than today for a score with no drawing behind it', async () => {
+    // Every run recorded before the snapshots existed.
+    serviceMocks.getAuditRuns.mockResolvedValue([run('r-1', 62, '2026-06-01T00:00:00.000Z')]);
+
+    render(<ZoneHistory zone={zone({ lastAuditScore: 62 })} />);
+
+    expect(await screen.findByText('—')).toBeTruthy();
+  });
 });

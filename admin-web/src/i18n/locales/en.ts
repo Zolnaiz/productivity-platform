@@ -482,6 +482,7 @@ const en = {
     disposeItem: 'Dispose of it',
   },
   zoneHistory: {
+    plan: 'Plan of',
     evidence: 'Photographs from the last check',
     title: 'Audit history',
     latest: 'Latest',

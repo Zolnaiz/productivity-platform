@@ -41,6 +41,20 @@ export class AuditRun extends BaseEntity {
   @Column({ nullable: true })
   location?: string;
 
+  /**
+   * The floor plan as it stood when this was walked.
+   *
+   * A score is only as readable as the drawing behind it: a March result
+   * against a June plan cannot say whether an area improved or was redrawn.
+   * The date is kept beside the id because the date is what a reader wants
+   * and a snapshot's date never changes.
+   */
+  @Column({ name: 'layout_version_id', nullable: true })
+  layoutVersionId?: string;
+
+  @Column({ name: 'layout_version_on', type: 'date', nullable: true })
+  layoutVersionOn?: string;
+
   @Column({ type: 'jsonb', default: [] })
   answers: Array<{
     questionId: string;

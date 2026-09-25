@@ -102,6 +102,14 @@ export interface AuditRun {
   zoneId?: string;
   /** Which layer of a layered audit this was. The server resets that clock. */
   tier?: number;
+  /**
+   * The floor plan as it stood when this was walked.
+   *
+   * A score is only as readable as the drawing behind it: a March result read
+   * against a June plan cannot say whether an area improved or was redrawn.
+   */
+  layoutVersionId?: string;
+  layoutVersionOn?: string;
   /** Human-readable place, kept so a run still reads well if the zone is gone. */
   location?: string;
   answers: Array<{
