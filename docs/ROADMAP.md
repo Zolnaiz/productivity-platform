@@ -135,17 +135,19 @@ could be built honestly.
 
 ### 5. Mobile
 
-- **Phase 1 is connected on `mobile/phase-1`.** Login, assigned tasks and task
-  status changes use the real API, including token refresh and Mongolian task
-  titles. The host-side live check has exercised login, refresh, task listing
-  and a status update. Flutter analyze is clean and the current suite has 50
-  passing tests; the live backend check is opt-in.
-- The employee daily record is still web-only. Add work-log and time entry,
-  daily goals, calendar and 5S zone work to mobile so a person can record the
-  shift from where the work happens.
-- Run the Flutter app on a supported Android or iOS device before calling the
-  mobile workflow field-ready; this development machine has no Android SDK or
-  emulator configured.
+- **The app is connected and runs on Android.** Sign in with token refresh,
+  My tasks, Today (the day's write-up with its hours, saved with its clock
+  entry) and the inbox, in Mongolian and English. The integration test passes
+  on an Android 35 emulator against a running backend, and the production
+  release APK builds, installs and opens. The sample-data screens that never
+  spoke to the server have been removed.
+- **Push notifications.** The inbox is read in the app; nothing reaches a
+  locked phone. That needs the server to register device tokens and send, and
+  an FCM or equivalent project - a decision about a third-party service, not
+  a code change.
+- **iOS** has not been built or run.
+- **5S on the phone**: the zone QR page works in a phone's browser already;
+  bringing the checklist walk into the app is the next piece.
 
 ### 6. Dependencies
 
@@ -183,25 +185,15 @@ could be built honestly.
 
 ## Next Backend Work
 
-- Decide what a department owns before giving it a table. The Users screen is
-  on the real API now; Departments is still browser-local and says so on the
-  page. The question is not how to store a name and a manager — it is whether
-  a department owns zones, projects, or the people assigned to them.
-- Give the audit trail a retention policy. Every accepted change writes a row
-  and nothing removes one, which is correct for evidence and unbounded for a
-  database. Decide how long entries are kept, and whether they are archived
-  rather than deleted.
-- Record what changed, not only that something did. An entry names the actor,
-  the route and the record; it does not carry a before and after. That is a
-  deliberate first step — a diff has to be taken without putting a password or
-  a token into a table people read — but it is the next thing a reader wants.
+- Departments, audit-trail retention (730 days by default, 0 to keep) and
+  before-values in the trail are done; see *Recently Completed Hardening*.
 - Bring back the automation settings when there is automation behind them:
   monthly report preparation, notifying a manager about an overdue task,
   notifying the quality team below 85%, and work-log approval. All four were
   switches that were read by nothing, so they were removed rather than left
   looking functional.
-- Deliver invitations. The API issues the token and the inviter shares it by
-  hand; there is no email transport.
+- Invitations are emailed when a mail transport is configured
+  (`MAIL_TRANSPORT=smtp`); with `log` they are shared by hand, as before.
 - Add browser-driven API smoke automation for login, dashboard load, and core module navigation.
 - Decide whether runtime auth tables should remain as dedicated operations-platform migrations or be merged into the legacy initial migration set before first production deployment.
 - Seeded demo content is still written in one language in the source. Unlike
@@ -261,12 +253,24 @@ could be built honestly.
 
 ## Next Mobile Work
 
-- Add the worker's daily work log and time entry, with task/project linking and
-  clear retry behavior.
-- Bring the calendar and the zone QR/checklist workflow to mobile.
-- Exercise the connected workflow on a physical device or emulator.
+- Push notifications, server side first (see section 5).
+- The 5S checklist walk and the zone QR in the app.
+- An iOS build.
 
 ## Recently Completed Hardening
+
+- Monthly reports close - on the organization's chosen day, in its time zone -
+  and are then read from the stored month, so they no longer change; half-year
+  and annual reports add up the closed months.
+- A live progress board, monthly/half-year/annual plans read off assigned work,
+  managers assigning work to people and planning a project's work from it.
+- A morning reminder of each person's due and late work, and for managers the
+  team's late and unowned work.
+- Found by running against a real database: the notification inbox and the
+  departments page failed on every request (their timestamp columns were
+  misnamed), and the user list exposed password-reset tokens. Both fixed; CI
+  now runs every page and every write against a real PostgreSQL.
+- The Android app builds, and its release build runs, on the current toolchain.
 
 - Deleted the scaffolding: four backend modules outside the application graph,
   five frontend services with no importers, the legacy shared entities and the
