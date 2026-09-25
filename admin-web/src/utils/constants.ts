@@ -121,14 +121,6 @@ export const REPORT_TYPES = {
 
 export type ReportType = typeof REPORT_TYPES[keyof typeof REPORT_TYPES];
 
-// Date formats
-export const DATE_FORMATS = {
-  DISPLAY: 'YYYY-MM-DD',
-  DATETIME: 'YYYY-MM-DD HH:mm',
-  FULL_DATE: 'YYYY оны MM сарын DD',
-  FULL_DATETIME: 'YYYY-MM-DD HH:mm:ss',
-} as const;
-
 // Pagination defaults
 export const PAGINATION = {
   DEFAULT_PAGE: 1,
