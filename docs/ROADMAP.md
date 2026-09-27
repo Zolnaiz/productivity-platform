@@ -217,8 +217,11 @@ could be built honestly.
   dimensions.
 - Floor plan versions, so an old audit still makes sense against the map of its
   time.
-- Raise tasks from the improvement register too. Red tags and audits are linked
-  now; an improvement record's action plan is still free text.
+- Improvement records raise work too: "Make it a task" turns the action plan
+  into a task tied to its record, the row shows that task's state, and
+  finishing it moves the record to management review. What is left: a page
+  open while the task finishes still holds the old status, and its next save
+  writes it back.
 - Record the disposition when a tag is closed. `closedAt` is set automatically;
   whether the item was disposed of or returned still has to be filed by hand,
   and nothing prompts for it.

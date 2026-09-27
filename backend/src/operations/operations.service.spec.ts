@@ -487,6 +487,56 @@ describe('OperationsService organization scoping', () => {
       expect(saved).toMatchObject({ titleKey: 'raised.auditFollowUp', descriptionKey: null });
     });
 
+    it('hands a finished improvement to management review', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({
+        id: 't1',
+        organizationId: 'org-1',
+        status: 'in_progress',
+        sourceType: 'five_s_improvement',
+        sourceId: 'imp-1',
+      });
+      repositories.tasks.save.mockImplementation(async (value: any) => value);
+      repositories.guidelines.findOne.mockResolvedValue({
+        organizationId: 'org-1',
+        records: {
+          improvements: [
+            { id: 'imp-1', area: 'Stores', status: 'in_progress' },
+            { id: 'imp-2', area: 'Line 2', status: 'open' },
+          ],
+        },
+      });
+
+      await service.updateTask('t1', { status: 'done' } as never, { id: 'm1', role: 'manager', organizationId: 'org-1' });
+
+      const saved = repositories.guidelines.save.mock.calls[0][0];
+      expect(saved.records.improvements).toEqual([
+        { id: 'imp-1', area: 'Stores', status: 'management_review' },
+        // Only the record the task was raised from.
+        { id: 'imp-2', area: 'Line 2', status: 'open' },
+      ]);
+    });
+
+    it('leaves an improvement management already closed', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({
+        id: 't1',
+        organizationId: 'org-1',
+        status: 'review',
+        sourceType: 'five_s_improvement',
+        sourceId: 'imp-1',
+      });
+      repositories.tasks.save.mockImplementation(async (value: any) => value);
+      repositories.guidelines.findOne.mockResolvedValue({
+        organizationId: 'org-1',
+        records: { improvements: [{ id: 'imp-1', status: 'closed' }] },
+      });
+
+      await service.updateTask('t1', { status: 'done' } as never, { id: 'm1', role: 'manager', organizationId: 'org-1' });
+
+      expect(repositories.guidelines.save).not.toHaveBeenCalled();
+    });
+
     it('can take work off somebody', async () => {
       const { service, repositories } = createService();
       repositories.tasks.findOne.mockResolvedValue({ id: 't1', organizationId: 'org-1', status: 'todo', assigneeId: 'u1' });

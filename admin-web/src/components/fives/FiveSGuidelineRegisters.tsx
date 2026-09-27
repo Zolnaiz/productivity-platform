@@ -5,15 +5,19 @@ import {
   ClipboardList,
   Download,
   FileText,
+  ListPlus,
   Plus,
   Tag,
   Trash2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import Button from '../common/Button';
 import Card from '../common/Card';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { fiveSGuidelineService } from '../../services/fiveSGuideline.service';
+import { operationsService } from '../../services/operations.service';
+import { WorkTask } from '../../types/operations.types';
 import { useAuth } from '../../contexts/AuthContext';
 import FiveSStandardEditor from './FiveSStandardEditor';
 import {
@@ -109,6 +113,36 @@ const FiveSGuidelineRegisters: React.FC = () => {
   const [content, setContent] = useState<FiveSGuidelineContent>(emptyContent);
   const [actionMessage, setActionMessage] = useState('');
   const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(null);
+  /*
+    The work raised from each improvement, by the record's id. An action plan
+    written in a register and given to nobody is a wish; as a task it has an
+    owner, a date and a place on the progress board.
+  */
+  const [improvementTasks, setImprovementTasks] = useState<Map<string, WorkTask>>(new Map());
+  const canReadTasks = hasPermission('tasks:read');
+  const canRaiseTasks = hasPermission('tasks:create');
+
+  useEffect(() => {
+    if (!canReadTasks) return;
+    let active = true;
+
+    operationsService
+      .getTasks()
+      .then((tasks) => {
+        if (!active) return;
+        const raised = tasks.filter((task) => task.sourceType === 'five_s_improvement' && task.sourceId);
+        // Finished ones first, so an open task raised again after them wins.
+        raised.sort((a, b) => Number(a.status !== 'done') - Number(b.status !== 'done'));
+        setImprovementTasks(new Map(raised.map((task) => [task.sourceId as string, task])));
+      })
+      .catch(() => {
+        // The register stands without them; the button is still offered.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [canReadTasks]);
 
   useEffect(() => {
     let active = true;
@@ -179,6 +213,27 @@ const FiveSGuidelineRegisters: React.FC = () => {
       ...current,
       improvements: current.improvements.map((item) => (item.id === id ? { ...item, ...patch } : item)),
     }));
+  };
+
+  const raiseImprovementTask = async (item: FiveSImprovementRecord) => {
+    try {
+      const task = await operationsService.createTask({
+        title: t('fiveSRegisters.improvementTaskTitle', {
+          area: item.area.trim() || t('fiveSRegisters.improvementNoArea'),
+        }),
+        // Their own words: what the team decided to do about it.
+        description: item.actionPlan.trim() || item.teamDecision.trim() || item.symptomLoss.trim() || undefined,
+        sourceType: 'five_s_improvement',
+        sourceId: item.id,
+        status: 'todo',
+        priority: 'medium',
+      });
+      setImprovementTasks((current) => new Map(current).set(item.id, task));
+      if (item.status === 'open') updateImprovement(item.id, { status: 'in_progress' });
+      setActionMessage(t('fiveSRegisters.improvementTaskRaised'));
+    } catch {
+      setActionMessage(t('fiveSRegisters.improvementTaskFailed'));
+    }
   };
 
   const removeImprovement = (id: string) => {
@@ -439,6 +494,35 @@ const FiveSGuidelineRegisters: React.FC = () => {
                   </td>
                   <td className="px-3 py-3 align-top">
                     <textarea className={textareaClass} value={item.actionPlan} onChange={(event) => updateImprovement(item.id, { actionPlan: event.target.value })} />
+                    {(() => {
+                      const task = improvementTasks.get(item.id);
+
+                      if (task && task.status !== 'done') {
+                        return (
+                          <Link
+                            to="/progress"
+                            className="mt-2 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 hover:underline dark:bg-blue-900/30 dark:text-blue-300"
+                          >
+                            {t('fiveSRegisters.improvementTaskStatus', {
+                              status: t(`tasks.status.${task.status === 'in_progress' ? 'inProgress' : task.status}`),
+                            })}
+                          </Link>
+                        );
+                      }
+
+                      return canRaiseTasks && item.status !== 'closed' ? (
+                        <Button
+                          className="mt-2"
+                          variant="outline"
+                          size="sm"
+                          icon={ListPlus}
+                          onClick={() => void raiseImprovementTask(item)}
+                          type="button"
+                        >
+                          {t('fiveSRegisters.raiseImprovementTask')}
+                        </Button>
+                      ) : null;
+                    })()}
                   </td>
                   <td className="px-3 py-3 align-top">
                     <textarea className={textareaClass} value={item.managementDecision} onChange={(event) => updateImprovement(item.id, { managementDecision: event.target.value })} />

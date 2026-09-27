@@ -400,6 +400,7 @@ export class OperationsService {
 
     const saved = await this.tasks.save(task);
     await this.closeFindingForCompletedTask(saved, user);
+    await this.reviewImprovementForCompletedTask(saved);
 
     // Work handed to somebody new reaches them the way new work does. Told
     // only when it changed hands, so editing a task does not re-announce it.
@@ -472,6 +473,46 @@ export class OperationsService {
 
     layout.zones = zones;
     await this.fiveSLayouts.save(layout);
+  }
+
+  /**
+   * Hands a finished improvement to management.
+   *
+   * An improvement record's action plan becomes a task somebody is given; when
+   * that task is done the record moves on to management review, which is the
+   * register's own next step - somebody senior confirms the cause is gone.
+   * Not to closed: finishing the work says it happened, not that it worked.
+   *
+   * A record already past review, or no longer in the register, is left alone.
+   */
+  private async reviewImprovementForCompletedTask(task: WorkTask) {
+    if (task.status !== TaskStatus.DONE || task.sourceType !== TaskSource.IMPROVEMENT || !task.sourceId) {
+      return;
+    }
+
+    const register = await this.guidelines.findOne({ where: { organizationId: task.organizationId } });
+    const improvements = register?.records?.improvements;
+
+    if (!register || !Array.isArray(improvements)) {
+      return;
+    }
+
+    let matched = false;
+    const next = improvements.map((item: Record<string, unknown>) => {
+      if (item?.id !== task.sourceId || !['open', 'in_progress'].includes(String(item.status))) {
+        return item;
+      }
+
+      matched = true;
+      return { ...item, status: 'management_review' };
+    });
+
+    if (!matched) {
+      return;
+    }
+
+    register.records = { ...register.records, improvements: next, updatedAt: new Date().toISOString() };
+    await this.guidelines.save(register);
   }
 
   findWorkLogs(user: CurrentUser) {
