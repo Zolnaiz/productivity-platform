@@ -6,10 +6,11 @@ import {
 } from '../types/fiveS.types';
 import { demoGuidelineContent } from './demoGuidelineContent';
 import { get, isDemoMode, patch, shouldUseDemoFallback } from './api';
+import { localDay } from '../utils/localDay';
 
 const storageKey = 'productivity-demo-5s-guideline-registers';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => localDay();
 
 const now = () => new Date().toISOString();
 

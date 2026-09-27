@@ -17,6 +17,7 @@ import { summarisePeople } from '../components/reports/monthlyPeople';
 import { completionAfter, completionMonth, doneByEndOf, plannedMonth } from '../components/reports/taskCompletion';
 import { combineMonths, monthsBetween } from '../components/reports/periodReport';
 import { localDay } from '../components/progress/progressBoard';
+import { daysFromToday } from '../utils/localDay';
 
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
 type DemoKey = 'projects' | 'tasks' | 'workLogs' | 'timeEntries' | 'auditTemplates' | 'auditRuns' | 'goals';
@@ -520,7 +521,7 @@ const raiseDemoFollowUp = (run: Partial<AuditRun> | undefined) => {
     sourceId: run.id,
     status: 'todo',
     priority: score < DEMO_URGENT_SCORE ? 'high' : 'medium',
-    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    dueDate: daysFromToday(7),
     estimatedHours: 2,
     actualHours: 0,
   } as Partial<WorkTask>);

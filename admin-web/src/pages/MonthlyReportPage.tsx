@@ -12,6 +12,7 @@ import { OperationsMonthlyReport } from '../types/operations.types';
 import { apiErrorMessage } from '../i18n/apiError';
 import { Department, TeamUser, memberName } from '../types/people.types';
 import { FiveSLayoutPlan } from '../types/fiveS.types';
+import { localDay } from '../utils/localDay';
 
 const formatMnt = (value: number) =>
   new Intl.NumberFormat('mn-MN', {
@@ -363,7 +364,7 @@ const MonthlyReportPage: React.FC = () => {
   })();
   // Year first: the browser's own format put American dates in a Mongolian
   // sentence, and a date read the wrong way round is a different day.
-  const closedOn = report?.closed ? new Date(report.closed.at).toISOString().slice(0, 10) : '';
+  const closedOn = report?.closed ? localDay(new Date(report.closed.at)) : '';
 
   const copySummary = async () => {
     await navigator.clipboard.writeText(executiveSummary);

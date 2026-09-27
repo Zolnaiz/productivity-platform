@@ -5,8 +5,9 @@ import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import { operationsService } from '../services/operations.service';
 import { TimeEntry, WorkLog } from '../types/operations.types';
+import { localDay } from '../utils/localDay';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => localDay();
 
 const WorkLogsPage: React.FC = () => {
   const { t } = useTranslation();

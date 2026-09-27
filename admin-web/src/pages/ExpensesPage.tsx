@@ -11,6 +11,7 @@ import { financeService } from '../services/finance.service';
 import { operationsService } from '../services/operations.service';
 import { ExpenseItem } from '../types/finance.types';
 import { Project } from '../types/operations.types';
+import { localDay } from '../utils/localDay';
 
 const formatMnt = (value: number) =>
   new Intl.NumberFormat('mn-MN', {
@@ -36,7 +37,7 @@ const ExpensesPage: React.FC = () => {
     projectId: '',
     amount: '0',
     category: 'other' as ExpenseItem['category'],
-    expenseDate: new Date().toISOString().slice(0, 10),
+    expenseDate: localDay(),
     note: '',
   });
 
@@ -78,7 +79,7 @@ const ExpensesPage: React.FC = () => {
       projectId: projects[0]?.id || '',
       amount: '0',
       category: 'other',
-      expenseDate: new Date().toISOString().slice(0, 10),
+      expenseDate: localDay(),
       note: '',
     });
   };

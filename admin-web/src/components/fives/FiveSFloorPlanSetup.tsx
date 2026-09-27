@@ -2424,7 +2424,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       return;
     }
 
-    const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const dueDate = getDateFromToday(7);
 
     try {
       await Promise.all(
@@ -2493,7 +2493,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       return;
     }
 
-    const dueDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const dueDate = getDateFromToday(3);
 
     try {
       await Promise.all([

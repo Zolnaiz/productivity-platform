@@ -7,8 +7,9 @@ import EmptyState from '../components/common/EmptyState';
 import Input from '../components/common/Input';
 import { productivityService } from '../services/productivity.service';
 import { DailyGoal } from '../types/productivity.types';
+import { localDay } from '../utils/localDay';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => localDay();
 
 const DailyGoalsPage: React.FC = () => {
   const { t } = useTranslation();

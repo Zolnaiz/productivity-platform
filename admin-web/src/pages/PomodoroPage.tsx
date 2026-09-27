@@ -7,6 +7,7 @@ import EmptyState from '../components/common/EmptyState';
 import Input from '../components/common/Input';
 import { productivityService } from '../services/productivity.service';
 import { FocusSession } from '../types/productivity.types';
+import { localDay } from '../utils/localDay';
 
 const PomodoroPage: React.FC = () => {
   const { t } = useTranslation();
@@ -23,7 +24,7 @@ const PomodoroPage: React.FC = () => {
     const session = await productivityService.createFocusSession({
       title: draft.title,
       minutes: Number(draft.minutes || 25),
-      date: new Date().toISOString().slice(0, 10),
+      date: localDay(),
     });
     setSessions((current) => [session, ...current]);
     setDraft({ title: '', minutes: '25' });

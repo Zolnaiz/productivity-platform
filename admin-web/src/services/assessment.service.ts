@@ -1,5 +1,6 @@
 import { AssessmentResponse, AssessmentTemplate } from '../types/assessment.types';
 import { get, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
+import { localDay } from '../utils/localDay';
 
 type AssessmentKey = 'templates' | 'responses';
 
@@ -116,7 +117,7 @@ export const assessmentService = {
     const item: AssessmentTemplate = {
       ...data,
       id: localId('local-template'),
-      createdAt: new Date().toISOString().slice(0, 10),
+      createdAt: localDay(),
     };
     write('templates', [item, ...read<AssessmentTemplate>('templates')]);
     return Promise.resolve(item);

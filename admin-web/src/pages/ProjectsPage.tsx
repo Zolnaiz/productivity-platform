@@ -11,6 +11,7 @@ import Select from '../components/common/Select';
 import { operationsService } from '../services/operations.service';
 import { Project, TimeEntry, WorkLog, WorkTask } from '../types/operations.types';
 import { isProjectLate, summariseProject } from '../components/projects/projectProgress';
+import { localDay } from '../utils/localDay';
 
 const statusKey: Record<string, string> = {
   planned: 'projects.statusPlanned',
@@ -78,7 +79,7 @@ const ProjectsPage: React.FC = () => {
   }, []);
 
   /** Today, decided once: two cards must not disagree about what is overdue. */
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDay();
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();

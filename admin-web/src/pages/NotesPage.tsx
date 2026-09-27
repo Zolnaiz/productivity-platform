@@ -9,6 +9,7 @@ import Modal from '../components/common/Modal';
 import Textarea from '../components/common/Textarea';
 import { productivityService } from '../services/productivity.service';
 import { Note } from '../types/productivity.types';
+import { localDay } from '../utils/localDay';
 
 const NotesPage: React.FC = () => {
   const { t } = useTranslation();
@@ -25,7 +26,7 @@ const NotesPage: React.FC = () => {
     if (!draft.title.trim() || !draft.content.trim()) return;
     const note = await productivityService.createNote({
       ...draft,
-      createdAt: new Date().toISOString().slice(0, 10),
+      createdAt: localDay(),
     });
     setNotes((current) => [note, ...current]);
     setDraft({ title: '', content: '', tag: 'work' });

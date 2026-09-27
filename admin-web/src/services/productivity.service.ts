@@ -1,10 +1,11 @@
 import { Badge, DailyGoal, FocusSession, Note } from '../types/productivity.types';
 import { get, getStoredAccessToken, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
+import { localDay } from '../utils/localDay';
 
 type ProductivityKey = 'notes' | 'goals' | 'focusSessions' | 'badges';
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => localDay();
 
 const defaults = {
   notes: [
