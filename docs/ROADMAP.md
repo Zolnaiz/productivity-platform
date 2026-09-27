@@ -146,8 +146,10 @@ could be built honestly.
   an FCM or equivalent project - a decision about a third-party service, not
   a code change.
 - **iOS** has not been built or run.
-- **5S on the phone**: the zone QR page works in a phone's browser already;
-  bringing the checklist walk into the app is the next piece.
+- **5S on the phone**: the checklist walk is in the app - the areas with their
+  last score, the checklist answered at the area, recorded against the
+  person's own layer. What is left is the zone QR: scanning an area's label
+  opens its page in the phone's browser, not the app.
 
 ### 6. Dependencies
 
@@ -254,7 +256,7 @@ could be built honestly.
 ## Next Mobile Work
 
 - Push notifications, server side first (see section 5).
-- The 5S checklist walk and the zone QR in the app.
+- The zone QR in the app: scanning an area's label to open its checklist.
 - An iOS build.
 
 ## Recently Completed Hardening

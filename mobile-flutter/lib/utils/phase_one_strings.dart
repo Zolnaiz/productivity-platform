@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import '../models/work_log_model.dart' show localDay;
+
 class MongolianMaterialDelegate
     extends LocalizationsDelegate<MaterialLocalizations> {
   const MongolianMaterialDelegate();
@@ -73,6 +75,23 @@ class PhaseOneStrings {
       ? 'Өнөөдөр: ${hoursValue(hours)}'
       : 'Today: ${hoursValue(hours)}';
 
+  /// When an area was last checked, as the day on the phone's calendar: a
+  /// check at 07:00 in Ulaanbaatar is the day before in UTC.
+  String lastChecked(String at) {
+    final parsed = DateTime.tryParse(at);
+    final day = parsed == null
+        ? (at.length >= 10 ? at.substring(0, 10) : at)
+        : at.length <= 10
+            ? at
+            : localDay(parsed.toLocal());
+    return mn ? 'Сүүлд шалгасан: $day' : 'Last checked $day';
+  }
+
+  String scoreSoFar(int score) => mn ? 'Оноо: $score%' : 'Score: $score%';
+
+  String auditSaved(int score) =>
+      mn ? 'Шалгалт бүртгэгдлээ: $score%' : 'Check recorded: $score%';
+
   String taskTitle(
       {required String title,
       String? key,
@@ -116,6 +135,16 @@ const _en = {
   'tasks': 'My tasks',
   'today': 'Today',
   'inbox': 'Inbox',
+  'fiveS': '5S',
+  'fiveSEmpty': 'No areas on the floor plan yet. They are drawn on the web.',
+  'neverChecked': 'Not checked yet',
+  'noChecklist': 'No 5S checklist is set up yet. Ask an admin to add one.',
+  'layer': 'Audit layer',
+  'checklist': 'Checklist',
+  'yes': 'Yes',
+  'no': 'No',
+  'auditNote': 'What you found',
+  'saveAudit': 'Record the check',
   'inboxEmpty': 'Nothing here yet. Work given to you and the morning reminder arrive here.',
   'whatDidYouDo': 'What did you do?',
   'summaryRequired': 'Say what you did.',
@@ -178,6 +207,16 @@ const _mn = {
   'tasks': 'Миний ажлууд',
   'today': 'Өнөөдөр',
   'inbox': 'Мэдэгдэл',
+  'fiveS': '5S',
+  'fiveSEmpty': 'Зураг төсөлд бүс алга байна. Бүсийг вэб дээр зурна.',
+  'neverChecked': 'Одоогоор шалгаагүй',
+  'noChecklist': '5S шалгах хуудас тохируулаагүй байна. Админд хандана уу.',
+  'layer': 'Аудитын түвшин',
+  'checklist': 'Шалгах хуудас',
+  'yes': 'Тийм',
+  'no': 'Үгүй',
+  'auditNote': 'Юу ажигласан бэ',
+  'saveAudit': 'Шалгалтыг бүртгэх',
   'inboxEmpty': 'Одоогоор алга. Танд оноосон ажил, өглөөний сануулга энд ирнэ.',
   'whatDidYouDo': 'Юу хийсэн бэ?',
   'summaryRequired': 'Юу хийснээ бичнэ үү.',

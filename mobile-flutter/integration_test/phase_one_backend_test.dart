@@ -2,6 +2,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'package:productivity_mobile/models/five_s_model.dart';
 import 'package:productivity_mobile/services/api_service.dart';
 
 void main() {
@@ -52,5 +53,38 @@ void main() {
 
     // The inbox, as the Inbox screen reads it.
     expect(await api.getNotifications(), isA<List>());
+
+    // A 5S walk, as the 5S screen records it: every answer at its best, so
+    // the check raises no follow-up work on the shared database.
+    final plans = (await api.getFiveSPlans()).map(FiveSPlan.fromJson);
+    final zone = plans.expand((plan) => plan.zones).firstOrNull;
+    final template = (await api.getAuditTemplates())
+        .map(AuditTemplate.fromJson)
+        .where((item) => item.isActive && item.category == '5s')
+        .firstOrNull;
+    if (zone != null && template != null) {
+      final answers = {
+        for (final question in template.questions)
+          question.id: switch (question.type) {
+            'score' => '${question.outOf}',
+            'yes_no' => 'yes',
+            _ => 'Emulator check',
+          }
+      };
+      final run = await api.createAuditRun({
+        'templateId': template.id,
+        'zoneId': zone.id,
+        'location': zone.location,
+        'score': scoreAnswers(template, answers),
+        'status': 'submitted',
+        'answers': answersForRun(template, answers),
+      });
+      expect(run['zoneId'], zone.id);
+      final walked = (await api.getFiveSPlans())
+          .map(FiveSPlan.fromJson)
+          .expand((plan) => plan.zones)
+          .firstWhere((each) => each.id == zone.id);
+      expect(walked.lastAuditScore, scoreAnswers(template, answers));
+    }
   });
 }

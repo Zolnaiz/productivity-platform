@@ -4,8 +4,12 @@ What it does today, against the real API: sign in (with token refresh), **My
 tasks** — the work assigned to the signed-in person, whose status they can
 move — and **Today**, where they write up the day's work with the hours it
 took. The write-up is saved with its clock entry through `POST
-/work-logs/daily`, so the monthly report counts the hours once. **Inbox**
-shows what the person has been told: work given to them and the morning
+/work-logs/daily`, so the monthly report counts the hours once. **5S** lists
+the areas on the organization's floor plans with how each last scored, and
+walks an area's checklist where the area is: answers, the score as it builds,
+and the check recorded against the person's own audit layer - the checklist
+that layer names, when it names one. **Inbox** shows what the person has been
+told: work given to them and the morning
 reminders. Every screen reads in Mongolian and English, and there is nothing
 else in the app - the earlier expense, questionnaire, report and profile
 screens were built on sample data, never spoke to the server, and have been

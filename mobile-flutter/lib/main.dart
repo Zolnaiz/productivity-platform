@@ -11,6 +11,7 @@ import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/task_provider.dart';
 import 'providers/work_log_provider.dart';
+import 'providers/five_s_provider.dart';
 import 'providers/inbox_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'utils/phase_one_strings.dart';
@@ -55,6 +56,7 @@ class ProductivityApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TaskProvider(ApiService())),
         ChangeNotifierProvider(create: (_) => WorkLogProvider(ApiService())),
         ChangeNotifierProvider(create: (_) => InboxProvider(ApiService())),
+        ChangeNotifierProvider(create: (_) => FiveSProvider(ApiService())),
       ],
       child: Consumer<ThemeProvider>(
         builder:
@@ -258,9 +260,12 @@ class ProductivityApp extends StatelessWidget {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: Colors.grey.shade100,
+        // A colour of its own: without one the label took the chip's
+        // foreground and read white on the pale grey, like a disabled chip.
         labelStyle: GoogleFonts.inter(
           fontSize: 12,
           fontWeight: FontWeight.w500,
+          color: const Color(0xFF1B1B1F),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

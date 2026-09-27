@@ -3,12 +3,13 @@ import 'package:provider/provider.dart';
 
 import '../providers/inbox_provider.dart';
 import '../utils/phase_one_strings.dart';
+import 'five_s_screen.dart';
 import 'inbox_screen.dart';
 import 'tasks_screen.dart';
 import 'work_log_screen.dart';
 
 /// What somebody on shift does with the app: see their work, write up their
-/// day, and read what they have been told. Kept side by side so writing up is
+/// day, check their area, and read what they have been told. Kept side by side so writing up is
 /// one tap away from the task it is about.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,7 +27,12 @@ class _HomeScreenState extends State<HomeScreen> {
       // All kept alive, so a half-typed entry survives a look at the tasks.
       body: IndexedStack(
           index: _tab,
-          children: const [TasksScreen(), WorkLogScreen(), InboxScreen()]),
+          children: const [
+            TasksScreen(),
+            WorkLogScreen(),
+            FiveSScreen(),
+            InboxScreen()
+          ]),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (index) => setState(() => _tab = index),
@@ -35,6 +41,9 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.checklist), label: strings.text('tasks')),
           NavigationDestination(
               icon: const Icon(Icons.edit_note), label: strings.text('today')),
+          NavigationDestination(
+              icon: const Icon(Icons.fact_check_outlined),
+              label: strings.text('fiveS')),
           NavigationDestination(
             icon: Badge(
               isLabelVisible: context.watch<InboxProvider>().unread > 0,

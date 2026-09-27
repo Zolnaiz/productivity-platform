@@ -377,6 +377,25 @@ class ApiService {
 
   // ========== ORGANIZATION METHODS ==========
 
+  /// The organization's floor plans, each with its areas and audit layers.
+  Future<List<Map<String, dynamic>>> getFiveSPlans() async {
+    final response = await _dio.get('/five-s-layouts');
+    return (response.data as List).cast<Map>().map((plan) => plan.cast<String, dynamic>()).toList();
+  }
+
+  /// The checklists an area can be walked against.
+  Future<List<Map<String, dynamic>>> getAuditTemplates() async {
+    final response = await _dio.get('/audit-templates');
+    return (response.data as List).cast<Map>().map((item) => item.cast<String, dynamic>()).toList();
+  }
+
+  /// Records a walked checklist. The server moves the area's score and raises
+  /// the follow-up work a failing walk calls for.
+  Future<Map<String, dynamic>> createAuditRun(Map<String, dynamic> run) async {
+    final response = await _dio.post('/audit-runs', data: run);
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
   // ========== FILE UPLOAD ==========
 
   // ========== MISC METHODS ==========

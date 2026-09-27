@@ -102,8 +102,8 @@ For PostgreSQL-backed local smoke testing, see:
 ## Mobile
 
 The Flutter app in `mobile-flutter` signs in against the API and gives an employee
-their tasks, a Today screen for writing up the day with its hours, and their
-inbox, in Mongolian and English. It builds for Android (flavor `dev`); see
+their tasks, a Today screen for writing up the day with its hours, the 5S
+checklist walked at the area itself, and their inbox, in Mongolian and English. It builds for Android (flavor `dev`); see
 `mobile-flutter/README.md` for the toolchain and how to point it at a server.
 
 After installing Flutter SDK and adding `flutter\bin` to PATH:
@@ -322,9 +322,9 @@ As of 2026-09-26, on branch `codex/productivity-core-integrity`:
   column, including the ones every entity inherits
 - Frontend: 915 tests passing, 13 browser checks passing, lint and build clean;
   a test fails the build if Mongolian is written straight into a screen
-- Mobile: `flutter analyze` clean, 60 tests passing; the integration test
+- Mobile: `flutter analyze` clean, 74 tests passing; the integration test
   passes on an Android 35 emulator against a running backend (sign in, tasks,
-  a day written up, the inbox)
+  a day written up, the inbox, a 5S check recorded)
 - Live API: against a fresh PostgreSQL 16, the smoke test's reads of every page
   and, with `SMOKE_WRITES=true`, one of every write pass - which is how the
   broken notification inbox was found. CI runs both on every push.
