@@ -159,7 +159,7 @@ const ResponsesPage: React.FC = () => {
       estimatedHours: 2,
       actualHours: 0,
     });
-    setMessage("Improvement task created from response.");
+    setMessage(t("responses.improvementTaskCreated"));
   };
 
   return (

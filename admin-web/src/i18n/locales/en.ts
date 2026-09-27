@@ -1073,6 +1073,8 @@ const en = {
     },
     ui: {
       msgAreaAdded: '{{area}} area added.',
+      newRedTagTitle: 'New red-tag item',
+      newRedTagDisposition: 'Decide disposition',
       msgAreasCopied: '{{count}} area(s) copied.',
       msgCalibrated: 'Plan calibrated: it is now {{metres}} m across.',
       msgObjectRemoved: '{{label}} removed from the floor plan.',
@@ -1544,6 +1546,7 @@ const en = {
     submittedWithScore: 'Response submitted with a {{score}}% score.',
     improveTitle: 'Improve the response score: {{template}}',
     improveDescription: '{{respondent}} scored {{score}}%. Review the answers and assign improvement work.',
+    improvementTaskCreated: 'Improvement task created from the response.',
     assessment: 'Assessment',
     title: 'Responses',
     subtitle: 'Review submitted checklists and questionnaires, and turn low scores into action.',

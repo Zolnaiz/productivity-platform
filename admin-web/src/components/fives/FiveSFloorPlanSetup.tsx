@@ -2295,8 +2295,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     const spot = nextPinSpot(selectedZone, redTags.length);
     const redTag: FiveSRedTag = {
       id: `redtag-${Date.now()}`,
-      title: 'New red-tag item',
-      disposition: 'Decide disposition',
+      // Placeholders the person overwrites, in their own language.
+      title: t('fiveS.ui.newRedTagTitle'),
+      disposition: t('fiveS.ui.newRedTagDisposition'),
       status: 'open',
       x: spot.x,
       y: spot.y,

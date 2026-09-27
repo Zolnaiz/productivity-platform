@@ -1060,6 +1060,8 @@ const mn: Translations<typeof en> = {
     },
     ui: {
       msgAreaAdded: '{{area}} талбай нэмэгдлээ.',
+      newRedTagTitle: 'Шинэ улаан шошготой зүйл',
+      newRedTagDisposition: 'Шийдвэр гаргах',
       msgAreasCopied: '{{count}} талбай хуулагдлаа.',
       msgCalibrated: 'Зургийн масштаб тохирлоо: одоо {{metres}} м өргөн.',
       msgObjectRemoved: '{{label}} зургаас хасагдлаа.',
@@ -1531,6 +1533,7 @@ const mn: Translations<typeof en> = {
     submittedWithScore: 'Хариулт {{score}}% оноотойгоор илгээгдлээ.',
     improveTitle: 'Хариултын оноог сайжруулах: {{template}}',
     improveDescription: '{{respondent}} {{score}}% авсан. Хариултыг хянаж, сайжруулах ажил оноо.',
+    improvementTaskCreated: 'Хариултаас сайжруулах ажил үүслээ.',
     assessment: 'Үнэлгээ',
     title: 'Хариултууд',
     subtitle: 'Илгээсэн шалгах хуудас, судалгааг хянаж, бага оноог арга хэмжээ болгоно.',
