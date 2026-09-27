@@ -380,13 +380,36 @@ class ApiService {
   /// The organization's floor plans, each with its areas and audit layers.
   Future<List<Map<String, dynamic>>> getFiveSPlans() async {
     final response = await _dio.get('/five-s-layouts');
-    return (response.data as List).cast<Map>().map((plan) => plan.cast<String, dynamic>()).toList();
+    return (response.data as List)
+        .cast<Map>()
+        .map((plan) => plan.cast<String, dynamic>())
+        .toList();
   }
 
   /// The checklists an area can be walked against.
   Future<List<Map<String, dynamic>>> getAuditTemplates() async {
     final response = await _dio.get('/audit-templates');
-    return (response.data as List).cast<Map>().map((item) => item.cast<String, dynamic>()).toList();
+    return (response.data as List)
+        .cast<Map>()
+        .map((item) => item.cast<String, dynamic>())
+        .toList();
+  }
+
+  /// Tags something in an area as not belonging there. Its own route, so the
+  /// person who finds the clutter can say so without editing the plan.
+  Future<Map<String, dynamic>> addRedTag(
+      String planId, String zoneId, Map<String, dynamic> redTag) async {
+    final response = await _dio
+        .post('/five-s-layouts/$planId/zones/$zoneId/red-tags', data: redTag);
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
+  /// Records that an area was cleaned today; the server dates it.
+  Future<Map<String, dynamic>> markZoneCleaned(
+      String planId, String zoneId) async {
+    final response =
+        await _dio.post('/five-s-layouts/$planId/zones/$zoneId/cleaned');
+    return (response.data as Map).cast<String, dynamic>();
   }
 
   /// Records a walked checklist. The server moves the area's score and raises

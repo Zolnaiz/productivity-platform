@@ -147,9 +147,9 @@ could be built honestly.
   an FCM or equivalent project - a decision about a third-party service, not
   a code change.
 - **iOS** has not been built or run.
-- **5S on the phone**: the checklist walk is in the app - the areas with their
-  last score, the checklist answered at the area, recorded against the
-  person's own layer. What is left is the zone QR: scanning an area's label
+- **5S on the phone**: the areas with their last score; an area's open red
+  tags, a new tag raised from the floor, "cleaned today"; and the checklist
+  answered at the area, recorded against the person's own layer. What is left is the zone QR: scanning an area's label
   opens its page in the phone's browser, not the app.
 
 ### 6. Dependencies

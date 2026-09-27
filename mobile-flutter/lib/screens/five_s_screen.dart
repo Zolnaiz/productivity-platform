@@ -71,7 +71,7 @@ class _FiveSScreenState extends State<FiveSScreen> {
                       : strings.lastChecked(zone.lastAuditAt!)),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => FiveSWalkScreen(plan: plan, zone: zone))),
+                      builder: (_) => FiveSZoneScreen(plan: plan, zone: zone))),
                 ),
             ],
           ]),
@@ -96,6 +96,150 @@ class _ScoreBadge extends StatelessWidget {
               : colors.errorContainer,
       child: Text(score == null ? '–' : '${score!.round()}',
           style: Theme.of(context).textTheme.labelLarge),
+    );
+  }
+}
+
+/// One area, as somebody standing in it needs it: how it last scored, what
+/// is tagged there, and the three things they can do about it - tag
+/// something, say it was cleaned, walk the checklist.
+class FiveSZoneScreen extends StatefulWidget {
+  const FiveSZoneScreen({super.key, required this.plan, required this.zone});
+  final FiveSPlan plan;
+  final FiveSZone zone;
+
+  @override
+  State<FiveSZoneScreen> createState() => _FiveSZoneScreenState();
+}
+
+class _FiveSZoneScreenState extends State<FiveSZoneScreen> {
+  final _title = TextEditingController();
+  final _disposition = TextEditingController();
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _disposition.dispose();
+    super.dispose();
+  }
+
+  Future<void> _tag(FiveSPlan plan, FiveSZone zone) async {
+    final strings = PhaseOneStrings(Localizations.localeOf(context));
+    final title = _title.text.trim();
+    if (title.isEmpty) return;
+    final fiveS = context.read<FiveSProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final saved = await fiveS.addRedTag(plan, zone,
+        title: title, disposition: _disposition.text.trim());
+    if (saved) {
+      _title.clear();
+      _disposition.clear();
+      messenger
+          .showSnackBar(SnackBar(content: Text(strings.text('redTagSaved'))));
+    } else if (fiveS.error != null) {
+      messenger
+          .showSnackBar(SnackBar(content: Text(strings.error(fiveS.error!))));
+    }
+  }
+
+  Future<void> _cleaned(FiveSPlan plan, FiveSZone zone) async {
+    final strings = PhaseOneStrings(Localizations.localeOf(context));
+    final fiveS = context.read<FiveSProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    if (!await fiveS.markCleaned(plan, zone) && fiveS.error != null) {
+      messenger
+          .showSnackBar(SnackBar(content: Text(strings.error(fiveS.error!))));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = PhaseOneStrings(Localizations.localeOf(context));
+    final fiveS = context.watch<FiveSProvider>();
+    // The area as last read, so a tag or a clean shows as soon as it is saved.
+    final (plan, zone) = fiveS.find(widget.plan.id, widget.zone.id) ??
+        (widget.plan, widget.zone);
+    // A viewer may look; everybody else on the floor may tag and clean.
+    final canAct = context.read<AuthProvider>().user?.role != 'viewer';
+    final tags = zone.openRedTags;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(zone.location)),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        Row(children: [
+          _ScoreBadge(score: zone.lastAuditScore),
+          const SizedBox(width: 12),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(zone.lastAuditAt == null
+                  ? strings.text('neverChecked')
+                  : strings.lastChecked(zone.lastAuditAt!)),
+              Text(zone.lastCleanedAt == null
+                  ? strings.text('neverCleaned')
+                  : strings.lastCleaned(zone.lastCleanedAt!)),
+            ]),
+          ),
+        ]),
+        const SizedBox(height: 16),
+        if (canAct) ...[
+          FilledButton.icon(
+            key: const Key('zone-walk'),
+            icon: const Icon(Icons.fact_check_outlined),
+            label: Text(strings.text('walkChecklist')),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => FiveSWalkScreen(plan: plan, zone: zone))),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const Key('zone-cleaned'),
+            icon: const Icon(Icons.cleaning_services_outlined),
+            label: Text(strings.text('cleanedToday')),
+            onPressed: fiveS.saving ? null : () => _cleaned(plan, zone),
+          ),
+          const SizedBox(height: 16),
+        ],
+        Text(strings.redTagsHeading(tags.length),
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 4),
+        if (tags.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(strings.text('noRedTags')),
+          ),
+        for (final redTag in tags)
+          ListTile(
+            key: Key('redtag-${redTag.id}'),
+            contentPadding: EdgeInsets.zero,
+            leading:
+                const Icon(Icons.label_important_outline, color: Colors.red),
+            title: Text(redTag.title),
+            subtitle:
+                redTag.disposition.isEmpty ? null : Text(redTag.disposition),
+          ),
+        if (canAct) ...[
+          const SizedBox(height: 8),
+          TextField(
+            key: const Key('redtag-title'),
+            controller: _title,
+            decoration: InputDecoration(labelText: strings.text('redTagTitle')),
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            key: const Key('redtag-disposition'),
+            controller: _disposition,
+            decoration:
+                InputDecoration(labelText: strings.text('redTagDisposition')),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            key: const Key('redtag-save'),
+            onPressed: fiveS.saving ? null : () => _tag(plan, zone),
+            child: Text(strings.text('addRedTag')),
+          ),
+        ],
+      ]),
     );
   }
 }
@@ -141,10 +285,12 @@ class _FiveSWalkScreenState extends State<FiveSWalkScreen> {
     final score = await fiveS.submit(
         zone: widget.zone, template: template, answers: _answers, tier: _tier);
     if (score != null) {
-      messenger.showSnackBar(SnackBar(content: Text(strings.auditSaved(score))));
+      messenger
+          .showSnackBar(SnackBar(content: Text(strings.auditSaved(score))));
       navigator.pop();
     } else if (fiveS.error != null) {
-      messenger.showSnackBar(SnackBar(content: Text(strings.error(fiveS.error!))));
+      messenger
+          .showSnackBar(SnackBar(content: Text(strings.error(fiveS.error!))));
     }
   }
 
@@ -169,7 +315,8 @@ class _FiveSWalkScreenState extends State<FiveSWalkScreen> {
                   decoration: InputDecoration(labelText: strings.text('layer')),
                   items: [
                     for (final layer in _layers)
-                      DropdownMenuItem(value: layer.tier, child: Text(layer.name))
+                      DropdownMenuItem(
+                          value: layer.tier, child: Text(layer.name))
                   ],
                   onChanged: (value) => setState(() {
                     _tier = _layers.firstWhere((layer) => layer.tier == value);
@@ -271,7 +418,8 @@ class _QuestionCard extends StatelessWidget {
             _ => TextFormField(
                 key: Key('answer-${question.id}'),
                 initialValue: answer,
-                decoration: InputDecoration(hintText: strings.text('auditNote')),
+                decoration:
+                    InputDecoration(hintText: strings.text('auditNote')),
                 maxLines: null,
                 onChanged: onAnswer,
               ),

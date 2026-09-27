@@ -85,6 +85,11 @@ void main() {
           .expand((plan) => plan.zones)
           .firstWhere((each) => each.id == zone.id);
       expect(walked.lastAuditScore, scoreAnswers(template, answers));
+
+      // And the area cleaned today, as the area's screen records it.
+      final plan = plans.firstWhere((each) => each.zones.any((z) => z.id == zone.id));
+      final cleaned = await api.markZoneCleaned(plan.id, zone.id);
+      expect(cleaned['lastCleanedAt'], isA<String>());
     }
   });
 }

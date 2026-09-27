@@ -8,7 +8,10 @@ library;
 
 class AuditQuestion {
   const AuditQuestion(
-      {required this.id, required this.text, required this.type, this.maxScore});
+      {required this.id,
+      required this.text,
+      required this.type,
+      this.maxScore});
 
   final String id;
   final String text;
@@ -17,7 +20,8 @@ class AuditQuestion {
   final String type;
   final int? maxScore;
 
-  int get outOf => maxScore == null || maxScore! <= 0 ? _defaultMaxScore : maxScore!;
+  int get outOf =>
+      maxScore == null || maxScore! <= 0 ? _defaultMaxScore : maxScore!;
 
   factory AuditQuestion.fromJson(Map<String, dynamic> json) => AuditQuestion(
         id: json['id'] as String,
@@ -82,19 +86,55 @@ class AuditTier {
   }
 }
 
+/// A thing tagged in an area as not belonging there.
+class FiveSRedTag {
+  const FiveSRedTag(
+      {required this.id,
+      required this.title,
+      this.disposition = '',
+      this.status = 'open',
+      this.closedAt});
+
+  final String id;
+  final String title;
+  final String disposition;
+  final String status;
+  final String? closedAt;
+
+  /// Still waiting for something to be done about it, as the web counts it.
+  bool get isOpen =>
+      (closedAt == null || closedAt!.isEmpty) &&
+      (status == 'open' || status == 'review');
+
+  factory FiveSRedTag.fromJson(Map<String, dynamic> json) => FiveSRedTag(
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? '',
+        disposition: json['disposition'] as String? ?? '',
+        status: json['status'] as String? ?? 'open',
+        closedAt: json['closedAt'] as String?,
+      );
+}
+
 class FiveSZone {
   const FiveSZone(
       {required this.id,
       required this.code,
       required this.name,
       this.lastAuditScore,
-      this.lastAuditAt});
+      this.lastAuditAt,
+      this.lastCleanedAt,
+      this.redTags = const []});
 
   final String id;
   final String code;
   final String name;
   final num? lastAuditScore;
   final String? lastAuditAt;
+  final String? lastCleanedAt;
+  final List<FiveSRedTag> redTags;
+
+  List<FiveSRedTag> get openRedTags =>
+      redTags.where((redTag) => redTag.isOpen).toList();
 
   /// How the area is written on the run, as the web writes it.
   String get location => code.isEmpty ? name : '$code - $name';
@@ -105,6 +145,12 @@ class FiveSZone {
         name: json['name'] as String? ?? '',
         lastAuditScore: json['lastAuditScore'] as num?,
         lastAuditAt: json['lastAuditAt'] as String?,
+        lastCleanedAt: json['lastCleanedAt'] as String?,
+        redTags: [
+          for (final redTag in (json['redTags'] as List? ?? const []))
+            if (redTag is Map)
+              FiveSRedTag.fromJson(redTag.cast<String, dynamic>())
+        ],
       );
 }
 

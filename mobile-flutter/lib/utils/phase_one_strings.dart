@@ -71,9 +71,8 @@ class PhaseOneStrings {
     return mn ? '$shown цаг' : '$shown h';
   }
 
-  String hoursToday(double hours) => mn
-      ? 'Өнөөдөр: ${hoursValue(hours)}'
-      : 'Today: ${hoursValue(hours)}';
+  String hoursToday(double hours) =>
+      mn ? 'Өнөөдөр: ${hoursValue(hours)}' : 'Today: ${hoursValue(hours)}';
 
   /// When an area was last checked, as the day on the phone's calendar: a
   /// check at 07:00 in Ulaanbaatar is the day before in UTC.
@@ -86,6 +85,14 @@ class PhaseOneStrings {
             : localDay(parsed.toLocal());
     return mn ? 'Сүүлд шалгасан: $day' : 'Last checked $day';
   }
+
+  String lastCleaned(String day) {
+    final shown = day.length >= 10 ? day.substring(0, 10) : day;
+    return mn ? 'Сүүлд цэвэрлэсэн: $shown' : 'Last cleaned $shown';
+  }
+
+  String redTagsHeading(int count) =>
+      mn ? 'Улаан шошго ($count)' : 'Red tags ($count)';
 
   String scoreSoFar(int score) => mn ? 'Оноо: $score%' : 'Score: $score%';
 
@@ -135,7 +142,8 @@ const _raisedEn = {
   'raised.redTagDecision': 'Red-tag decision due: {{item}}',
   'raised.auditFollowUp': '5S follow-up: {{place}}',
   'raised.dailyDigest': 'Today: {{dueToday}} due, {{overdue}} late',
-  'raised.teamDigest': 'Team today: {{late}} late, {{unassigned}} with nobody on it',
+  'raised.teamDigest':
+      'Team today: {{late}} late, {{unassigned}} with nobody on it',
   'raised.dueOn': 'Due {{date}}',
   'raised.dailyDigestBody': 'Late:\n{{overdue}}\nDue today:\n{{dueToday}}',
   'raised.teamDigestBody': 'Nobody on it:\n{{unassigned}}\nLate:\n{{late}}',
@@ -165,7 +173,16 @@ const _en = {
   'no': 'No',
   'auditNote': 'What you found',
   'saveAudit': 'Record the check',
-  'inboxEmpty': 'Nothing here yet. Work given to you and the morning reminder arrive here.',
+  'neverCleaned': 'No cleaning recorded yet',
+  'walkChecklist': 'Walk the checklist',
+  'cleanedToday': 'Cleaned today',
+  'noRedTags': 'Nothing is tagged here.',
+  'redTagTitle': 'What does not belong here',
+  'redTagDisposition': 'What should happen to it (optional)',
+  'addRedTag': 'Add a red tag',
+  'redTagSaved': 'Red tag added.',
+  'inboxEmpty':
+      'Nothing here yet. Work given to you and the morning reminder arrive here.',
   'whatDidYouDo': 'What did you do?',
   'summaryRequired': 'Say what you did.',
   'hours': 'Hours',
@@ -237,6 +254,14 @@ const _mn = {
   'no': 'Үгүй',
   'auditNote': 'Юу ажигласан бэ',
   'saveAudit': 'Шалгалтыг бүртгэх',
+  'neverCleaned': 'Цэвэрлэгээ бүртгэгдээгүй',
+  'walkChecklist': 'Шалгах хуудсаар шалгах',
+  'cleanedToday': 'Өнөөдөр цэвэрлэсэн',
+  'noRedTags': 'Энд улаан шошготой зүйл алга.',
+  'redTagTitle': 'Энд байх ёсгүй зүйл',
+  'redTagDisposition': 'Юу хийх вэ (заавал биш)',
+  'addRedTag': 'Улаан шошго нэмэх',
+  'redTagSaved': 'Улаан шошго нэмэгдлээ.',
   'inboxEmpty': 'Одоогоор алга. Танд оноосон ажил, өглөөний сануулга энд ирнэ.',
   'whatDidYouDo': 'Юу хийсэн бэ?',
   'summaryRequired': 'Юу хийснээ бичнэ үү.',

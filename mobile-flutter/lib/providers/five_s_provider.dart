@@ -50,6 +50,50 @@ class FiveSProvider extends ChangeNotifier {
     }
   }
 
+  /// The plan and area as last read, found again after a reload.
+  (FiveSPlan, FiveSZone)? find(String planId, String zoneId) {
+    for (final plan in plans) {
+      if (plan.id != planId) continue;
+      for (final zone in plan.zones) {
+        if (zone.id == zoneId) return (plan, zone);
+      }
+    }
+    return null;
+  }
+
+  /// Tags something in an area. Returns whether it was saved.
+  Future<bool> addRedTag(FiveSPlan plan, FiveSZone zone,
+      {required String title, String disposition = ''}) async {
+    return _write(() => _api.addRedTag(plan.id, zone.id, {
+          'title': title,
+          if (disposition.isNotEmpty) 'disposition': disposition,
+        }));
+  }
+
+  /// Records that an area was cleaned today. Returns whether it was saved.
+  Future<bool> markCleaned(FiveSPlan plan, FiveSZone zone) =>
+      _write(() => _api.markZoneCleaned(plan.id, zone.id));
+
+  /// Sends one change, then reads the plans again rather than guess at what
+  /// the server made of it.
+  Future<bool> _write(Future<Object?> Function() send) async {
+    saving = true;
+    error = null;
+    notifyListeners();
+    try {
+      await send();
+      saving = false;
+      await load();
+      return true;
+    } catch (e) {
+      error = e;
+      return false;
+    } finally {
+      saving = false;
+      notifyListeners();
+    }
+  }
+
   /// Records the walk. Returns the score it was recorded with, or null when it
   /// was not saved, so the answers stay on screen to be sent again.
   Future<int?> submit({

@@ -46,7 +46,18 @@ final _plan = {
     {'tier': 2, 'name': 'Supervisor', 'role': 'manager', 'frequency': 'weekly', 'templateId': 't-weekly'},
   ],
   'zones': [
-    {'id': 'z1', 'code': 'A1', 'name': 'Tool wall', 'lastAuditScore': 62, 'lastAuditAt': '2026-09-20T03:00:00.000Z'},
+    {
+      'id': 'z1',
+      'code': 'A1',
+      'name': 'Tool wall',
+      'lastAuditScore': 62,
+      'lastAuditAt': '2026-09-20T03:00:00.000Z',
+      'lastCleanedAt': '2026-09-26',
+      'redTags': [
+        {'id': 'rt1', 'title': 'Broken pallet', 'disposition': 'Scrap it', 'status': 'open'},
+        {'id': 'rt2', 'title': 'Old drill', 'status': 'open', 'closedAt': '2026-09-01'},
+      ],
+    },
     {'id': 'z2', 'code': 'A2', 'name': 'Stores'},
   ],
 };
@@ -61,6 +72,12 @@ Future<(ApiService, MockAdapter)> _server({int saveStatus = 201}) async {
         {'id': 't-old', 'title': 'Retired', 'category': '5s', 'isActive': false, 'questions': []},
         {'id': 't-safety', 'title': 'Safety walk', 'category': 'safety', 'isActive': true, 'questions': []},
       ]));
+    }
+    if (request.path.endsWith('/red-tags') && request.method == 'POST') {
+      return jsonReply(envelope({'id': 'rt3', 'title': 'Spare chair', 'status': 'open'}), status: 201);
+    }
+    if (request.path.endsWith('/cleaned') && request.method == 'POST') {
+      return jsonReply(envelope({'zoneId': 'z1', 'lastCleanedAt': '2026-09-28'}), status: 201);
     }
     if (request.path == '/audit-runs' && request.method == 'POST') {
       return saveStatus < 300
@@ -180,6 +197,8 @@ void main() {
 
     await tester.tap(find.text('A1 - Tool wall'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('zone-walk')));
+    await tester.pumpAndSettle();
 
     // An operator covers one layer, so there is nothing to choose.
     expect(find.byKey(const Key('audit-layer')), findsNothing);
@@ -209,8 +228,8 @@ void main() {
       ],
     });
     expect(find.text('Check recorded: 80%'), findsOneWidget);
-    // Back on the list, which was read again for the area's new score.
-    expect(find.text('A2 - Stores'), findsOneWidget);
+    // Back on the area, which was read again for its new score.
+    expect(find.byKey(const Key('zone-walk')), findsOneWidget);
     expect(adapter.requests.where((r) => r.path == '/five-s-layouts').length, 2);
   });
 
@@ -220,6 +239,8 @@ void main() {
     await _pump(tester, api, role: 'manager');
 
     await tester.tap(find.text('A2 - Stores'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('zone-walk')));
     await tester.pumpAndSettle();
 
     expect(find.text('Supervisor'), findsOneWidget);
@@ -240,6 +261,8 @@ void main() {
 
     await tester.tap(find.text('A1 - Tool wall'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('zone-walk')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('answer-q1-4')));
     await tester.ensureVisible(find.byKey(const Key('audit-save')));
     await tester.tap(find.byKey(const Key('audit-save')));
@@ -257,7 +280,66 @@ void main() {
     expect(find.text('Одоогоор шалгаагүй'), findsOneWidget);
     await tester.tap(find.text('A1 - Tool wall'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('zone-walk')));
+    await tester.pumpAndSettle();
     expect(find.text('Тийм'), findsOneWidget);
     expect(find.text('Шалгалтыг бүртгэх'), findsOneWidget);
+  });
+
+  group('an area, from where it is', () {
+    testWidgets('shows what is still tagged there, not what was cleared',
+        (tester) async {
+      final (api, _) = await _server();
+      await _pump(tester, api);
+      await tester.tap(find.text('A1 - Tool wall'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Red tags (1)'), findsOneWidget);
+      expect(find.text('Broken pallet'), findsOneWidget);
+      expect(find.text('Scrap it'), findsOneWidget);
+      expect(find.text('Old drill'), findsNothing);
+      expect(find.text('Last cleaned 2026-09-26'), findsOneWidget);
+    });
+
+    testWidgets('tags something from the floor', (tester) async {
+      final (api, adapter) = await _server();
+      await _pump(tester, api);
+      await tester.tap(find.text('A1 - Tool wall'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const Key('redtag-title')), 'Spare chair');
+      await tester.ensureVisible(find.byKey(const Key('redtag-save')));
+      await tester.tap(find.byKey(const Key('redtag-save')));
+      await tester.pumpAndSettle();
+
+      final request = adapter.requests.lastWhere((r) => r.path.endsWith('/red-tags'));
+      expect(request.path, '/five-s-layouts/plan-1/zones/z1/red-tags');
+      expect(request.data, {'title': 'Spare chair'});
+      expect(find.text('Red tag added.'), findsOneWidget);
+    });
+
+    testWidgets('says the area was cleaned today', (tester) async {
+      final (api, adapter) = await _server();
+      await _pump(tester, api);
+      await tester.tap(find.text('A1 - Tool wall'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('zone-cleaned')));
+      await tester.pumpAndSettle();
+
+      expect(adapter.requests.map((r) => r.path),
+          contains('/five-s-layouts/plan-1/zones/z1/cleaned'));
+    });
+
+    testWidgets('lets a viewer look, not act', (tester) async {
+      final (api, _) = await _server();
+      await _pump(tester, api, role: 'viewer');
+      await tester.tap(find.text('A1 - Tool wall'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Broken pallet'), findsOneWidget);
+      expect(find.byKey(const Key('zone-walk')), findsNothing);
+      expect(find.byKey(const Key('redtag-save')), findsNothing);
+    });
   });
 }

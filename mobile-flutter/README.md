@@ -5,8 +5,9 @@ tasks** — the work assigned to the signed-in person, whose status they can
 move — and **Today**, where they write up the day's work with the hours it
 took. The write-up is saved with its clock entry through `POST
 /work-logs/daily`, so the monthly report counts the hours once. **5S** lists
-the areas on the organization's floor plans with how each last scored, and
-walks an area's checklist where the area is: answers, the score as it builds,
+the areas on the organization's floor plans with how each last scored. An
+area's screen shows what is still red-tagged there, tags something new,
+records that the area was cleaned today, and walks its checklist: answers, the score as it builds,
 and the check recorded against the person's own audit layer - the checklist
 that layer names, when it names one. **Inbox** shows what the person has been
 told: work given to them and the morning
