@@ -219,9 +219,9 @@ could be built honestly.
   time.
 - Improvement records raise work too: "Make it a task" turns the action plan
   into a task tied to its record, the row shows that task's state, and
-  finishing it moves the record to management review. What is left: a page
-  open while the task finishes still holds the old status, and its next save
-  writes it back.
+  finishing it moves the record to management review. The register is read
+  again when its tab comes back into view, so a page left open does not write
+  the old status back; two people editing the same row at once still race.
 - Record the disposition when a tag is closed. `closedAt` is set automatically;
   whether the item was disposed of or returned still has to be filed by hand,
   and nothing prompts for it.

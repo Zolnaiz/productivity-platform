@@ -122,41 +122,49 @@ const FiveSGuidelineRegisters: React.FC = () => {
   const canReadTasks = hasPermission('tasks:read');
   const canRaiseTasks = hasPermission('tasks:create');
 
+  /*
+    Read on arrival, and again whenever the tab comes back into view. The
+    server moves a record on by itself - finishing its task sends it to
+    management review - and a page left open from before would otherwise
+    write the old status back with its next keystroke.
+  */
   useEffect(() => {
-    if (!canReadTasks) return;
     let active = true;
 
-    operationsService
-      .getTasks()
-      .then((tasks) => {
+    const refresh = () => {
+      void fiveSGuidelineService.getRegister().then((register) => {
         if (!active) return;
-        const raised = tasks.filter((task) => task.sourceType === 'five_s_improvement' && task.sourceId);
-        // Finished ones first, so an open task raised again after them wins.
-        raised.sort((a, b) => Number(a.status !== 'done') - Number(b.status !== 'done'));
-        setImprovementTasks(new Map(raised.map((task) => [task.sourceId as string, task])));
-      })
-      .catch(() => {
-        // The register stands without them; the button is still offered.
+        setContent(register.content);
+        setState(register.records);
       });
 
+      if (!canReadTasks) return;
+      operationsService
+        .getTasks()
+        .then((tasks) => {
+          if (!active) return;
+          const raised = tasks.filter((task) => task.sourceType === 'five_s_improvement' && task.sourceId);
+          // Finished ones first, so an open task raised again after them wins.
+          raised.sort((a, b) => Number(a.status !== 'done') - Number(b.status !== 'done'));
+          setImprovementTasks(new Map(raised.map((task) => [task.sourceId as string, task])));
+        })
+        .catch(() => {
+          // The register stands without them; the button is still offered.
+        });
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+
+    refresh();
+    document.addEventListener('visibilitychange', onVisible);
+
     return () => {
       active = false;
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [canReadTasks]);
-
-  useEffect(() => {
-    let active = true;
-
-    void fiveSGuidelineService.getRegister().then((register) => {
-      if (!active) return;
-      setContent(register.content);
-      setState(register.records);
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const scoreById = useMemo(
     () => new Map(state.assessmentScores.map((score) => [score.id, score])),

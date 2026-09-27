@@ -115,3 +115,27 @@ describe('raising work from an improvement', () => {
     expect(screen.queryByRole('button', { name: 'Make it a task' })).toBeNull();
   });
 });
+
+describe('a register left open while its work finishes', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem('token', 'demo-token');
+    mocks.permissions = ['guidelines:update', 'tasks:read', 'tasks:create'];
+    mocks.getTasks.mockReset();
+    mocks.getTasks.mockResolvedValue([]);
+  });
+
+  it('reads the register again when the tab comes back into view', async () => {
+    seed([improvement({ status: 'in_progress' })]);
+    renderRegisters();
+    await screen.findByDisplayValue('Assembly line');
+
+    // Meanwhile the task was finished and the server moved the record on.
+    seed([improvement({ status: 'management_review' })]);
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    await waitFor(() =>
+      expect((screen.getByDisplayValue('Management review') as HTMLSelectElement).value).toBe('management_review'),
+    );
+  });
+});
