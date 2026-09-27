@@ -322,7 +322,7 @@ As of 2026-09-26, on branch `codex/productivity-core-integrity`:
   column, including the ones every entity inherits
 - Frontend: 937 tests passing, 13 browser checks passing, lint and build clean;
   a test fails the build if Mongolian, or English markup text, is written straight into a screen
-- Mobile: `flutter analyze` clean, 79 tests passing; the integration test
+- Mobile: `flutter analyze` clean, 80 tests passing; the integration test
   passes on an Android 35 emulator against a running backend (sign in, tasks,
   a day written up, the inbox, a 5S check recorded with a photograph, an area
   cleaned)

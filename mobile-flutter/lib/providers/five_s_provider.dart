@@ -136,9 +136,10 @@ class FiveSProvider extends ChangeNotifier {
     }
   }
 
-  /// Records the walk. Returns the score it was recorded with, or null when it
-  /// was not saved, so the answers stay on screen to be sent again.
-  Future<int?> submit({
+  /// Records the walk. Returns the score it was recorded with and the run's
+  /// id, or null when it was not saved, so the answers stay on screen to be
+  /// sent again.
+  Future<({int score, String runId})?> submit({
     required FiveSZone zone,
     required AuditTemplate template,
     required AuditAnswers answers,
@@ -149,7 +150,7 @@ class FiveSProvider extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      await _api.createAuditRun({
+      final run = await _api.createAuditRun({
         'templateId': template.id,
         'zoneId': zone.id,
         if (tier != null) 'tier': tier.tier,
@@ -162,10 +163,38 @@ class FiveSProvider extends ChangeNotifier {
       // guess at how the server rounds and stores it.
       saving = false;
       await load();
-      return score;
+      return (score: score, runId: run['id'] as String? ?? '');
     } catch (e) {
       error = e;
       return null;
+    } finally {
+      saving = false;
+      notifyListeners();
+    }
+  }
+
+  /// How many photographs each question of a run has, by the question's id.
+  final Map<String, int> shortfallPhotoCounts = {};
+
+  /// Attaches a photograph of what one question of a run fell short on.
+  Future<bool> addShortfallPhoto(String runId, AuditQuestion question,
+      {required List<int> bytes, required String fileName}) async {
+    saving = true;
+    error = null;
+    notifyListeners();
+    try {
+      await _api.uploadAttachment(
+          ownerType: 'audit_run',
+          ownerId: runId,
+          part: question.id,
+          bytes: bytes,
+          fileName: fileName);
+      shortfallPhotoCounts[question.id] =
+          (shortfallPhotoCounts[question.id] ?? 0) + 1;
+      return true;
+    } catch (e) {
+      error = e;
+      return false;
     } finally {
       saving = false;
       notifyListeners();

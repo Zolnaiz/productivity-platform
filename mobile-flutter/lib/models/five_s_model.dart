@@ -215,6 +215,18 @@ int scoreAnswers(AuditTemplate? template, AuditAnswers answers) {
   return possible == 0 ? 0 : (earned / possible * 100).round();
 }
 
+/// The questions a walk fell short on: a score below its maximum, or a no.
+/// What a photograph most needs to show.
+List<AuditQuestion> shortfallsOf(
+        AuditTemplate template, AuditAnswers answers) =>
+    [
+      for (final question in template.questions)
+        if (question.type == 'score'
+            ? (num.tryParse(answers[question.id] ?? '') ?? 0) < question.outOf
+            : question.type == 'yes_no' && answers[question.id] != 'yes')
+          question
+    ];
+
 /// The answers as the server stores them: a number, a boolean or a string.
 List<Map<String, dynamic>> answersForRun(
         AuditTemplate? template, AuditAnswers answers) =>

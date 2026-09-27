@@ -231,7 +231,8 @@ class _FiveSZoneScreenState extends State<FiveSZoneScreen> {
             icon: const Icon(Icons.fact_check_outlined),
             label: Text(strings.text('walkChecklist')),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => FiveSWalkScreen(plan: plan, zone: zone))),
+                builder: (_) => FiveSWalkScreen(
+                    plan: plan, zone: zone, pickPhoto: widget.pickPhoto))),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
@@ -299,11 +300,79 @@ class _FiveSZoneScreenState extends State<FiveSZoneScreen> {
   }
 }
 
+/// The questions a recorded walk fell short on, each with a camera: of twelve
+/// answers, the one a picture has to explain.
+class FiveSShortfallScreen extends StatelessWidget {
+  const FiveSShortfallScreen(
+      {super.key,
+      required this.runId,
+      required this.zone,
+      required this.shortfalls,
+      this.pickPhoto});
+  final String runId;
+  final FiveSZone zone;
+  final List<AuditQuestion> shortfalls;
+  final PhotoPicker? pickPhoto;
+
+  Future<void> _photograph(BuildContext context, AuditQuestion question) async {
+    final strings = PhaseOneStrings(Localizations.localeOf(context));
+    final fiveS = context.read<FiveSProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final photo = await (pickPhoto ?? takePhoto)();
+    if (photo == null) return;
+    final saved = await fiveS.addShortfallPhoto(runId, question,
+        bytes: photo.bytes, fileName: photo.name);
+    messenger.showSnackBar(SnackBar(
+        content: Text(saved
+            ? strings.text('photoSaved')
+            : strings.error(fiveS.error ?? 'error.unknown'))));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = PhaseOneStrings(Localizations.localeOf(context));
+    final fiveS = context.watch<FiveSProvider>();
+    return Scaffold(
+      appBar: AppBar(title: Text(zone.location)),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        Text(strings.text('shortfallPrompt')),
+        const SizedBox(height: 8),
+        for (final question in shortfalls)
+          ListTile(
+            key: Key('shortfall-${question.id}'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(question.text),
+            trailing: IconButton(
+              key: Key('shortfall-photo-${question.id}'),
+              tooltip: strings.text('takePhoto'),
+              onPressed:
+                  fiveS.saving ? null : () => _photograph(context, question),
+              icon: Badge(
+                isLabelVisible:
+                    (fiveS.shortfallPhotoCounts[question.id] ?? 0) > 0,
+                label: Text('${fiveS.shortfallPhotoCounts[question.id] ?? 0}'),
+                child: const Icon(Icons.photo_camera_outlined),
+              ),
+            ),
+          ),
+        const SizedBox(height: 16),
+        FilledButton(
+          key: const Key('shortfall-done'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(strings.text('walkDone')),
+        ),
+      ]),
+    );
+  }
+}
+
 /// One area's checklist, answered where the area is.
 class FiveSWalkScreen extends StatefulWidget {
-  const FiveSWalkScreen({super.key, required this.plan, required this.zone});
+  const FiveSWalkScreen(
+      {super.key, required this.plan, required this.zone, this.pickPhoto});
   final FiveSPlan plan;
   final FiveSZone zone;
+  final PhotoPicker? pickPhoto;
 
   @override
   State<FiveSWalkScreen> createState() => _FiveSWalkScreenState();
@@ -337,12 +406,24 @@ class _FiveSWalkScreenState extends State<FiveSWalkScreen> {
     final fiveS = context.read<FiveSProvider>();
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    final score = await fiveS.submit(
+    final recorded = await fiveS.submit(
         zone: widget.zone, template: template, answers: _answers, tier: _tier);
-    if (score != null) {
-      messenger
-          .showSnackBar(SnackBar(content: Text(strings.auditSaved(score))));
-      navigator.pop();
+    if (recorded != null) {
+      messenger.showSnackBar(
+          SnackBar(content: Text(strings.auditSaved(recorded.score))));
+      final shortfalls = shortfallsOf(template, _answers);
+      if (shortfalls.isEmpty || recorded.runId.isEmpty) {
+        navigator.pop();
+      } else {
+        // Where it fell short, while the person is still standing there.
+        fiveS.shortfallPhotoCounts.clear();
+        navigator.pushReplacement(MaterialPageRoute(
+            builder: (_) => FiveSShortfallScreen(
+                runId: recorded.runId,
+                zone: widget.zone,
+                shortfalls: shortfalls,
+                pickPhoto: widget.pickPhoto)));
+      }
     } else if (fiveS.error != null) {
       messenger
           .showSnackBar(SnackBar(content: Text(strings.error(fiveS.error!))));

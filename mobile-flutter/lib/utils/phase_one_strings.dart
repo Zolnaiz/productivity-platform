@@ -183,6 +183,8 @@ const _en = {
   'redTagSaved': 'Red tag added.',
   'takePhoto': 'Photograph it',
   'photoSaved': 'Photograph added.',
+  'shortfallPrompt': 'Where it fell short. A photograph of each shows what has to change.',
+  'walkDone': 'Done',
   'inboxEmpty':
       'Nothing here yet. Work given to you and the morning reminder arrive here.',
   'whatDidYouDo': 'What did you do?',
@@ -266,6 +268,8 @@ const _mn = {
   'redTagSaved': 'Улаан шошго нэмэгдлээ.',
   'takePhoto': 'Зураг авах',
   'photoSaved': 'Зураг нэмэгдлээ.',
+  'shortfallPrompt': 'Шаардлага хангаагүй хэсгүүд. Тус бүрийн зураг юуг өөрчлөхийг харуулна.',
+  'walkDone': 'Болсон',
   'inboxEmpty': 'Одоогоор алга. Танд оноосон ажил, өглөөний сануулга энд ирнэ.',
   'whatDidYouDo': 'Юу хийсэн бэ?',
   'summaryRequired': 'Юу хийснээ бичнэ үү.',

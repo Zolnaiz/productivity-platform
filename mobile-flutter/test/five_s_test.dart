@@ -232,6 +232,11 @@ void main() {
       ],
     });
     expect(find.text('Check recorded: 80%'), findsOneWidget);
+    // Three of four on the tools: a photograph of that is asked for next.
+    expect(find.byKey(const Key('shortfall-q1')), findsOneWidget);
+    expect(find.byKey(const Key('shortfall-q2')), findsNothing);
+    await tester.tap(find.byKey(const Key('shortfall-done')));
+    await tester.pumpAndSettle();
     // Back on the area, which was read again for its new score.
     expect(find.byKey(const Key('zone-walk')), findsOneWidget);
     expect(adapter.requests.where((r) => r.path == '/five-s-layouts').length, 2);
@@ -382,5 +387,55 @@ void main() {
     expect(find.text('Photograph added.'), findsOneWidget);
     // The count on the camera, so the next person sees it has one.
     expect(find.text('1'), findsOneWidget);
+  });
+
+  testWidgets('photographs the question a walk fell short on', (tester) async {
+    final (api, adapter) = await _server();
+    SharedPreferences.setMockInitialValues({
+      'user': jsonEncode({'id': 'u1', 'email': 'op@example.com', 'role': 'user'}),
+    });
+    final fiveS = FiveSProvider(api);
+    await tester.runAsync(fiveS.load);
+    final plan = FiveSPlan.fromJson(_plan);
+    await tester.pumpWidget(MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: AuthProvider(apiService: api)),
+        ChangeNotifierProvider.value(value: fiveS),
+      ],
+      child: MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: const [Locale('en'), Locale('mn')],
+        localizationsDelegates: testDelegates,
+        home: FiveSZoneScreen(
+          plan: plan,
+          zone: plan.zones.first,
+          pickPhoto: () async => (bytes: [0xff, 0xd8, 0xff, 0xe0], name: 'tools.jpg'),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('zone-walk')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('answer-q1-2')));
+    await tester.tap(find.byKey(const Key('answer-q2-yes')));
+    await tester.ensureVisible(find.byKey(const Key('audit-save')));
+    await tester.tap(find.byKey(const Key('audit-save')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('shortfall-photo-q1')));
+    await tester.pumpAndSettle();
+
+    final upload = adapter.requests
+        .lastWhere((r) => r.path == '/attachments' && r.method == 'POST');
+    expect(Map.fromEntries((upload.data as FormData).fields), {
+      'ownerType': 'audit_run',
+      'ownerId': 'run-1',
+      'kind': 'evidence',
+      'part': 'q1',
+    });
+    // The count on that question's camera; the snackbar is still queued
+    // behind the one that said the check was recorded.
+    expect(fiveS.shortfallPhotoCounts['q1'], 1);
   });
 }
