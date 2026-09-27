@@ -404,6 +404,38 @@ class ApiService {
     return (response.data as Map).cast<String, dynamic>();
   }
 
+  /// The files attached to a record, such as a red tag's photographs.
+  Future<List<Map<String, dynamic>>> getAttachments(
+      String ownerType, String ownerId) async {
+    final response = await _dio.get('/attachments',
+        queryParameters: {'ownerType': ownerType, 'ownerId': ownerId});
+    return (response.data as List)
+        .cast<Map>()
+        .map((item) => item.cast<String, dynamic>())
+        .toList();
+  }
+
+  /// Attaches a photograph to a record. The server decides what the bytes
+  /// are from the bytes, not from the name.
+  Future<Map<String, dynamic>> uploadAttachment({
+    required String ownerType,
+    required String ownerId,
+    required List<int> bytes,
+    required String fileName,
+    String kind = 'evidence',
+    String? part,
+  }) async {
+    final form = FormData.fromMap({
+      'file': MultipartFile.fromBytes(bytes, filename: fileName),
+      'ownerType': ownerType,
+      'ownerId': ownerId,
+      'kind': kind,
+      if (part != null) 'part': part,
+    });
+    final response = await _dio.post('/attachments', data: form);
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
   /// Records that an area was cleaned today; the server dates it.
   Future<Map<String, dynamic>> markZoneCleaned(
       String planId, String zoneId) async {

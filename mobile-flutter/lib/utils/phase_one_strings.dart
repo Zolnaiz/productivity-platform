@@ -181,6 +181,8 @@ const _en = {
   'redTagDisposition': 'What should happen to it (optional)',
   'addRedTag': 'Add a red tag',
   'redTagSaved': 'Red tag added.',
+  'takePhoto': 'Photograph it',
+  'photoSaved': 'Photograph added.',
   'inboxEmpty':
       'Nothing here yet. Work given to you and the morning reminder arrive here.',
   'whatDidYouDo': 'What did you do?',
@@ -262,6 +264,8 @@ const _mn = {
   'redTagDisposition': 'Юу хийх вэ (заавал биш)',
   'addRedTag': 'Улаан шошго нэмэх',
   'redTagSaved': 'Улаан шошго нэмэгдлээ.',
+  'takePhoto': 'Зураг авах',
+  'photoSaved': 'Зураг нэмэгдлээ.',
   'inboxEmpty': 'Одоогоор алга. Танд оноосон ажил, өглөөний сануулга энд ирнэ.',
   'whatDidYouDo': 'Юу хийсэн бэ?',
   'summaryRequired': 'Юу хийснээ бичнэ үү.',

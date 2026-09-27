@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../models/five_s_model.dart';
@@ -103,10 +104,27 @@ class _ScoreBadge extends StatelessWidget {
 /// One area, as somebody standing in it needs it: how it last scored, what
 /// is tagged there, and the three things they can do about it - tag
 /// something, say it was cleaned, walk the checklist.
+/// A photograph taken for the app: its bytes and a name. Null when the person
+/// backed out of the camera.
+typedef PhotoPicker = Future<({List<int> bytes, String name})?> Function();
+
+/// The phone's camera, at a size that is enough to see a pallet by and small
+/// enough to send from the floor.
+Future<({List<int> bytes, String name})?> takePhoto() async {
+  final photo = await ImagePicker()
+      .pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 80);
+  if (photo == null) return null;
+  return (bytes: await photo.readAsBytes(), name: photo.name);
+}
+
 class FiveSZoneScreen extends StatefulWidget {
-  const FiveSZoneScreen({super.key, required this.plan, required this.zone});
+  const FiveSZoneScreen(
+      {super.key, required this.plan, required this.zone, this.pickPhoto});
   final FiveSPlan plan;
   final FiveSZone zone;
+
+  /// Where photographs come from; the camera unless a test says otherwise.
+  final PhotoPicker? pickPhoto;
 
   @override
   State<FiveSZoneScreen> createState() => _FiveSZoneScreenState();
@@ -117,10 +135,35 @@ class _FiveSZoneScreenState extends State<FiveSZoneScreen> {
   final _disposition = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<FiveSProvider>().loadPhotoCounts(widget.zone.openRedTags);
+    });
+  }
+
+  @override
   void dispose() {
     _title.dispose();
     _disposition.dispose();
     super.dispose();
+  }
+
+  /// A photograph of the tagged item as it was found - the "before" a 5S
+  /// board shows beside the "after".
+  Future<void> _photograph(FiveSRedTag redTag) async {
+    final strings = PhaseOneStrings(Localizations.localeOf(context));
+    final fiveS = context.read<FiveSProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final photo = await (widget.pickPhoto ?? takePhoto)();
+    if (photo == null) return;
+    final saved = await fiveS.addRedTagPhoto(redTag,
+        bytes: photo.bytes, fileName: photo.name);
+    messenger.showSnackBar(SnackBar(
+        content: Text(saved
+            ? strings.text('photoSaved')
+            : strings.error(fiveS.error ?? 'error.unknown'))));
   }
 
   Future<void> _tag(FiveSPlan plan, FiveSZone zone) async {
@@ -216,6 +259,18 @@ class _FiveSZoneScreenState extends State<FiveSZoneScreen> {
             title: Text(redTag.title),
             subtitle:
                 redTag.disposition.isEmpty ? null : Text(redTag.disposition),
+            trailing: canAct
+                ? IconButton(
+                    key: Key('redtag-photo-${redTag.id}'),
+                    tooltip: strings.text('takePhoto'),
+                    onPressed: fiveS.saving ? null : () => _photograph(redTag),
+                    icon: Badge(
+                      isLabelVisible: (fiveS.photoCounts[redTag.id] ?? 0) > 0,
+                      label: Text('${fiveS.photoCounts[redTag.id] ?? 0}'),
+                      child: const Icon(Icons.photo_camera_outlined),
+                    ),
+                  )
+                : null,
           ),
         if (canAct) ...[
           const SizedBox(height: 8),

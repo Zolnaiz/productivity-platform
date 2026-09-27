@@ -148,7 +148,8 @@ could be built honestly.
   a code change.
 - **iOS** has not been built or run.
 - **5S on the phone**: the areas with their last score; an area's open red
-  tags, a new tag raised from the floor, "cleaned today"; and the checklist
+  tags, each photographed with the phone's camera, a new tag raised from the
+  floor, "cleaned today"; and the checklist
   answered at the area, recorded against the person's own layer. What is left is the zone QR: scanning an area's label
   opens its page in the phone's browser, not the app.
 

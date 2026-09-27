@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -80,6 +82,19 @@ void main() {
         'answers': answersForRun(template, answers),
       });
       expect(run['zoneId'], zone.id);
+
+      // A photograph of it, sent the way the area's screen sends one: the
+      // multipart upload, which only a real server can say it accepts.
+      final photo = await api.uploadAttachment(
+        ownerType: 'audit_run',
+        ownerId: run['id'] as String,
+        bytes: base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEklEQVR4nGP4z8CAFWEXHbQSACj/P8Fu7N9hAAAAAElFTkSuQmCC'),
+        fileName: 'emulator-check.png',
+      );
+      expect(photo['mimeType'], 'image/png');
+      expect((await api.getAttachments('audit_run', run['id'] as String))
+          .map((file) => file['id']), contains(photo['id']));
       final walked = (await api.getFiveSPlans())
           .map(FiveSPlan.fromJson)
           .expand((plan) => plan.zones)

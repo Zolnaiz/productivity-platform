@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -72,6 +73,9 @@ Future<(ApiService, MockAdapter)> _server({int saveStatus = 201}) async {
         {'id': 't-old', 'title': 'Retired', 'category': '5s', 'isActive': false, 'questions': []},
         {'id': 't-safety', 'title': 'Safety walk', 'category': 'safety', 'isActive': true, 'questions': []},
       ]));
+    }
+    if (request.path == '/attachments' && request.method == 'POST') {
+      return jsonReply(envelope({'id': 'photo-1'}), status: 201);
     }
     if (request.path.endsWith('/red-tags') && request.method == 'POST') {
       return jsonReply(envelope({'id': 'rt3', 'title': 'Spare chair', 'status': 'open'}), status: 201);
@@ -341,5 +345,42 @@ void main() {
       expect(find.byKey(const Key('zone-walk')), findsNothing);
       expect(find.byKey(const Key('redtag-save')), findsNothing);
     });
+  });
+
+  testWidgets('photographs a tagged item as it was found', (tester) async {
+    final (api, adapter) = await _server();
+    SharedPreferences.setMockInitialValues({
+      'user': jsonEncode({'id': 'u1', 'email': 'op@example.com', 'role': 'user'}),
+    });
+    final plan = FiveSPlan.fromJson(_plan);
+    await tester.pumpWidget(MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: AuthProvider(apiService: api)),
+        ChangeNotifierProvider.value(value: FiveSProvider(api)),
+      ],
+      child: MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: const [Locale('en'), Locale('mn')],
+        localizationsDelegates: testDelegates,
+        home: FiveSZoneScreen(
+          plan: plan,
+          zone: plan.zones.first,
+          pickPhoto: () async => (bytes: [0xff, 0xd8, 0xff, 0xe0], name: 'pallet.jpg'),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('redtag-photo-rt1')));
+    await tester.pumpAndSettle();
+
+    final upload = adapter.requests
+        .lastWhere((r) => r.path == '/attachments' && r.method == 'POST');
+    final fields = Map.fromEntries((upload.data as FormData).fields);
+    expect(fields, {'ownerType': 'five_s_red_tag', 'ownerId': 'rt1', 'kind': 'before'});
+    expect((upload.data as FormData).files.single.value.filename, 'pallet.jpg');
+    expect(find.text('Photograph added.'), findsOneWidget);
+    // The count on the camera, so the next person sees it has one.
+    expect(find.text('1'), findsOneWidget);
   });
 }

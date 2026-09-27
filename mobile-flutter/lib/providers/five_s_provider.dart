@@ -61,6 +61,48 @@ class FiveSProvider extends ChangeNotifier {
     return null;
   }
 
+  /// How many photographs each red tag has, by the tag's id.
+  final Map<String, int> photoCounts = {};
+
+  /// Reads how many photographs these tags have. Quietly: the counts are a
+  /// courtesy, and a tag without one still shows.
+  Future<void> loadPhotoCounts(List<FiveSRedTag> redTags) async {
+    for (final redTag in redTags) {
+      try {
+        final files = await _api.getAttachments('five_s_red_tag', redTag.id);
+        photoCounts[redTag.id] = files.length;
+      } catch (_) {
+        // Left as it was.
+      }
+    }
+    notifyListeners();
+  }
+
+  /// Attaches a photograph of the tagged item, as it was found. Returns
+  /// whether it was saved.
+  Future<bool> addRedTagPhoto(FiveSRedTag redTag,
+      {required List<int> bytes, required String fileName}) async {
+    saving = true;
+    error = null;
+    notifyListeners();
+    try {
+      await _api.uploadAttachment(
+          ownerType: 'five_s_red_tag',
+          ownerId: redTag.id,
+          kind: 'before',
+          bytes: bytes,
+          fileName: fileName);
+      photoCounts[redTag.id] = (photoCounts[redTag.id] ?? 0) + 1;
+      return true;
+    } catch (e) {
+      error = e;
+      return false;
+    } finally {
+      saving = false;
+      notifyListeners();
+    }
+  }
+
   /// Tags something in an area. Returns whether it was saved.
   Future<bool> addRedTag(FiveSPlan plan, FiveSZone zone,
       {required String title, String disposition = ''}) async {
