@@ -154,6 +154,17 @@ describe('UsersService', () => {
       expect(result.password).toBe('hashed-old-password');
       expect(hash).not.toHaveBeenCalled();
     });
+
+    it('remembers the language somebody reads in, and forgets it on request', async () => {
+      repository.findOne.mockResolvedValue({ ...user });
+      const chosen = await service.updateProfile('user-1', { language: 'en' });
+      expect(chosen.language).toBe('en');
+
+      repository.findOne.mockResolvedValue({ ...user, language: 'en' });
+      const forgotten = await service.updateProfile('user-1', { language: '' });
+      // Empty, so the organization's language applies again.
+      expect(forgotten.language).toBeNull();
+    });
   });
 
   describe('changing a role', () => {

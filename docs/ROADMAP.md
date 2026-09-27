@@ -117,9 +117,10 @@ could be built honestly.
   a screen words the key. An email has no reader to ask, so it goes out in the
   organization's language - the one its settings name - and in the stored
   English sentence when it names none; invitations too. The server, web and
-  phone copies of these words are held together by a test. What is still
-  missing is a person's own language: somebody reading in English in a
-  Mongolian workspace gets their email in Mongolian.
+  phone copies of these words are held together by a test. A person's own
+  choice comes first: the language switch in the browser is remembered by the
+  server, so an English reader in a Mongolian workspace is emailed in English,
+  and a second browser opens in the language they chose on the first.
 
 - **The translation is finished for the pages people use daily.** What is left
   is the pages nobody has needed in Mongolian yet — the platform placeholders

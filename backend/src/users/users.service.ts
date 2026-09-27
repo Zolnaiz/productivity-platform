@@ -168,6 +168,10 @@ export class UsersService {
       }
     }
 
+    if (updateUserDto.language !== undefined) {
+      user.language = updateUserDto.language || null;
+    }
+
     return this.usersRepository.save(user);
   }
 

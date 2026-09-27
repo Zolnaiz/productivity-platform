@@ -255,6 +255,21 @@ describe('telling somebody outside the application too', () => {
     expect(String(sent[0].body)).toContain('2026-09-28-нд дуусна');
   });
 
+  it('writes it in the person’s own language before the organization’s', async () => {
+    // An English reader in a Mongolian workspace chose English in the browser.
+    const { service, notifications, sent } = createService(
+      { id: 'u1', email: 'u1@example.com', language: 'en' },
+      { id: 'org-1', settings: { language: 'mn' } },
+    );
+    notifications.findOne.mockResolvedValue(null);
+
+    await service.notify(
+      request({ title: 'Stored', titleKey: 'raised.redTagDecision', titleParams: { item: 'Pallet' } }),
+    );
+
+    expect(sent[0].subject).toBe('Red-tag decision due: Pallet');
+  });
+
   it('keeps the stored sentence when the organization names no language', async () => {
     const { service, notifications, sent } = createService({ id: 'u1', email: 'u1@example.com' }, { id: 'org-1' });
     notifications.findOne.mockResolvedValue(null);

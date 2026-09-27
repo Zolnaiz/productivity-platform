@@ -42,6 +42,7 @@ const normalizeUser = (user: BackendUser): User => {
     permissions: user.permissions || [],
     organizationId: user.organizationId,
     organization: user.organization,
+    language: user.language || undefined,
     isActive: user.isActive ?? true,
     lastLogin: user.lastLogin ? new Date(user.lastLogin) : undefined,
     createdAt: user.createdAt ? new Date(user.createdAt) : new Date(),

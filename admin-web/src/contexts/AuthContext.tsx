@@ -74,10 +74,11 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  // The workspace's language for anybody who has not picked their own.
+  // Their own language if they chose one on another device, else the
+  // workspace's - for a browser where nobody has picked one yet.
   useEffect(() => {
-    applyWorkspaceLanguage(user?.organization?.settings?.language);
-  }, [user?.organization?.settings?.language]);
+    applyWorkspaceLanguage(user?.language || user?.organization?.settings?.language);
+  }, [user?.language, user?.organization?.settings?.language]);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { addNotification } = useNotification();

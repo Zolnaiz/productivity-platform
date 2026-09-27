@@ -42,6 +42,8 @@ export interface User {
   permissions: string[];
   organizationId?: string;
   organization?: Organization;
+  /** The language they chose to read in, `mn` or `en`; absent until they choose. */
+  language?: string;
   isActive: boolean;
   lastLogin?: Date;
   createdAt: Date;

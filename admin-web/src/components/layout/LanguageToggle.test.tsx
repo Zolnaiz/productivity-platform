@@ -6,6 +6,7 @@ import LanguageToggle from './LanguageToggle';
 const mocks = vi.hoisted(() => ({
   language: 'mn-MN',
   changeLanguage: vi.fn(),
+  rememberLanguage: vi.fn(),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -13,6 +14,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('../../i18n', () => ({ changeLanguage: mocks.changeLanguage }));
+vi.mock('../../services/language.service', () => ({ rememberLanguage: mocks.rememberLanguage }));
 
 describe('LanguageToggle', () => {
   beforeEach(() => {
@@ -50,6 +52,8 @@ describe('LanguageToggle', () => {
     await userEvent.click(screen.getByLabelText('English'));
 
     expect(mocks.changeLanguage).toHaveBeenCalledWith('en-US');
+    // And tells the server, which writes their email in it.
+    expect(mocks.rememberLanguage).toHaveBeenCalledWith('en-US');
   });
 
   it('treats anything unrecognised as English, the fallback', () => {

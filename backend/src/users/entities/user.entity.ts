@@ -62,6 +62,10 @@ export class User {
   @Column({ nullable: true, name: 'profile_image_url' })
   profileImageUrl?: string;
 
+  /** The language they read in, `mn` or `en`; empty until they choose one. */
+  @Column({ type: 'varchar', length: 8, nullable: true })
+  language?: string | null;
+
   @Column({ default: true, name: 'is_active' })
   isActive: boolean;
 

@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { applyWorkspaceLanguage } from '../i18n';
+import { applyWorkspaceLanguage, changeLanguage } from '../i18n';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import Select from '../components/common/Select';
-import { changeLanguage } from '../i18n';
 import { adminService } from '../services/admin.service';
 import { WorkspaceSettings } from '../types/admin.types';
 
@@ -21,8 +20,9 @@ const SettingsPage: React.FC = () => {
       .then((workspaceSettings) => {
         setSettings(workspaceSettings);
         // A browser that has never chosen a language still follows the
-        // workspace's own setting.
-        void changeLanguage(workspaceSettings.language);
+        // workspace's own setting. Applied, not chosen: opening this page used
+        // to store the workspace's language as the reader's own choice.
+        applyWorkspaceLanguage(workspaceSettings.language);
       })
       .finally(() => setLoading(false));
   }, []);

@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
@@ -71,4 +71,13 @@ export class UpdateUserDto {
   @IsString()
   @MaxLength(500)
   profileImageUrl?: string;
+
+  /**
+   * The language they read in. An empty string forgets the choice, so the
+   * organization's language applies again.
+   */
+  @ApiPropertyOptional({ example: 'mn', enum: ['mn', 'en', ''] })
+  @IsOptional()
+  @IsIn(['mn', 'en', ''])
+  language?: string;
 }

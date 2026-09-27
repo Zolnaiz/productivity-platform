@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '../../i18n';
+import { rememberLanguage } from '../../services/language.service';
 
 /**
  * Mongolian or English, from wherever you are.
@@ -39,7 +40,11 @@ const LanguageToggle: React.FC = () => {
             aria-checked={active}
             aria-label={label}
             title={label}
-            onClick={() => void changeLanguage(value)}
+            onClick={() => {
+              void changeLanguage(value);
+              // So their email is written in it too.
+              void rememberLanguage(value);
+            }}
             className={`rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
               active
                 ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'

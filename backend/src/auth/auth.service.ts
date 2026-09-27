@@ -206,6 +206,7 @@ export class AuthService {
       organization: user.organization,
       avatarUrl: user.profileImageUrl,
       phoneNumber: user.phone,
+      language: user.language ?? undefined,
       isActive: user.isActive,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,

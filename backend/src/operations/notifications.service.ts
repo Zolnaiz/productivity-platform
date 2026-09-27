@@ -94,8 +94,10 @@ export class NotificationsService {
       if (!recipient?.email) return;
 
       const base = (this.configService.get<string>('APP_BASE_URL') ?? '').replace(/\/$/, '');
-      // In the organization's language, as the inbox would word it for them.
-      const language = await this.languageFor(notification.organizationId ?? recipient.organizationId);
+      // In the language they read in, or else the organization's.
+      const language =
+        mailLanguageOf({ language: recipient.language }) ??
+        (await this.languageFor(notification.organizationId ?? recipient.organizationId));
 
       await this.mailer.send({
         to: recipient.email,
