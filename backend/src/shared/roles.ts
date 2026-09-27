@@ -143,6 +143,10 @@ const admin = [
   // Unfreezing a month changes a report people may already have been shown,
   // so it sits a level above closing one.
   'reports:reopen',
+  // Whether the evidence survived a restore: a question about the whole
+  // organization's store, for whoever looks after the workspace - which is
+  // the administrator who registered it.
+  'attachments:check',
 ];
 
 const organizationAdmin = [...admin, 'organization:update', 'auditlog:read'];

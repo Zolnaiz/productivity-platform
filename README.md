@@ -317,10 +317,10 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 As of 2026-09-26, on branch `codex/productivity-core-integrity`:
 
-- Backend: 770 tests passing; lint clean; the migration check applies all 33
+- Backend: 773 tests passing; lint clean; the migration check applies all 33
   migrations to a real PostgreSQL (WebAssembly) and checks every mapped
   column, including the ones every entity inherits
-- Frontend: 918 tests passing, 13 browser checks passing, lint and build clean;
+- Frontend: 924 tests passing, 13 browser checks passing, lint and build clean;
   a test fails the build if Mongolian is written straight into a screen
 - Mobile: `flutter analyze` clean, 74 tests passing; the integration test
   passes on an Android 35 emulator against a running backend (sign in, tasks,

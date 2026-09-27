@@ -1553,6 +1553,25 @@ const en = {
     monthCloseDayHint: 'Last month’s report closes by itself on this day (1–28), unless a manager closed it sooner.',
     saveSettings: 'Save settings',
     saved: 'Saved',
+    attachmentCheck: {
+      title: 'Photographs and files',
+      hint: 'After restoring a backup, check that every photograph and file still has its contents. The database comes back complete even when the files do not.',
+      run: 'Check the files',
+      running: 'Checking…',
+      failed: 'The check could not be run. Try again.',
+      allPresent_one: '{{count}} file checked. It has its contents.',
+      allPresent_other: '{{count}} files checked. Every one has its contents.',
+      missing_one: '{{count}} of {{checked}} files has lost its contents:',
+      missing_other: '{{count}} of {{checked}} files have lost their contents:',
+      store: 'Kept in: {{store}}',
+      owner: {
+        five_s_red_tag: 'Red tag',
+        five_s_zone: '5S area',
+        audit_run: 'Audit',
+        five_s_improvement: 'Improvement record',
+        work_log: 'Work log',
+      },
+    },
   },
 } as const;
 

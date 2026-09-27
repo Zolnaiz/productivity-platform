@@ -120,12 +120,15 @@ you which.
 - Run the backend migrations against the restored database.
 - Start the backend with the restored database connection.
 - Run `npm run smoke:api` from `backend`.
-- Run `npm run attachments:check` from `backend`, against the same environment
-  the application uses. It reports every attachment row whose bytes are not in
-  the store and exits non-zero, which is the one failure a restore otherwise
-  hides: the database comes back complete and the evidence does not.
+- Check that every attachment still has its bytes - the one failure a restore
+  otherwise hides: the database comes back complete and the evidence does not.
+  Ask the running application, which is where the store is: sign in as an
+  administrator and use **Settings -> Photographs and files -> Check the
+  files**, or `GET /api/attachments/check` with an administrator's token. It
+  names every row whose bytes are missing and what the row belonged to.
 
-  Run it **where the bytes are**. With `ATTACHMENT_STORE=local` in Docker the
+  `npm run attachments:check` from `backend` asks the same question from
+  outside, and has to be run **where the bytes are**. With `ATTACHMENT_STORE=local` in Docker the
   bytes live on the `attachments_prod` volume and the host has no such
   directory, so running the check from the host reports every row as missing
   and exits non-zero — a reader under pressure would conclude they had lost

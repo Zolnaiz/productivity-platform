@@ -64,6 +64,17 @@ export class AttachmentsController {
   }
 
   /**
+   * Whether every attachment still has its bytes - after a restore, above all.
+   *
+   * Declared before `:id/file` only for readability; the paths do not overlap.
+   */
+  @Get('check')
+  @RequirePermission('attachments:check')
+  check(@Request() request: { user?: { id?: string; organizationId?: string } }) {
+    return this.attachments.checkStore(request.user ?? {});
+  }
+
+  /**
    * Streams the bytes back.
    *
    * `Content-Disposition: attachment` and a locked-down CSP mean a stored PDF

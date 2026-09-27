@@ -219,6 +219,19 @@ all thirty migrations applied inside the container, on 2026-09-25.
 
 ## 7. Every attachment still has its bytes
 
+Ask the running application: sign in as an administrator and use
+**Settings -> Photographs and files -> Check the files**, or
+
+```powershell
+curl.exe -H "Authorization: Bearer <an administrator's access token>" `
+  https://<your host>/api/attachments/check
+```
+
+which answers `{ "store": ..., "checked": N, "missing": [...] }` for the
+organization. The API is inside the container with the volume, so it sees the
+store the application serves from. The rest of this step is the script, for
+when the application cannot be started.
+
 **Do not run `npm run attachments:check` from the host.** With
 `ATTACHMENT_STORE=local` the photographs live on the `attachments_prod` volume
 inside the container, and the host has no such directory. The check runs, finds
@@ -443,9 +456,9 @@ found at the worst possible moment.
 
 - `npm run attachments:check` cannot be run against a containerised `local`
   store without the mounts in step 7, and run naively it reports a false
-  catastrophe. Fixing that properly means shipping the scripts in the production
-  image or compiling the check into `dist`, which is more than a deployment
-  change; step 7 documents the working command instead.
+  catastrophe. The running API now answers the same question
+  (`GET /api/attachments/check`, and a button in Settings), which is the way
+  to ask it; the script stays for when the application cannot start.
 - `docs/POSTGRES_BACKUP_RESTORE.md` documents `pg_dump -Fc` / `pg_restore`
   while the backup container writes gzipped plain SQL. Both restore paths are
   correct for their own format; step 9 has the one that matches the container.

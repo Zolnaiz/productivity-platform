@@ -1,4 +1,4 @@
-import { api, isDemoMode, localId } from './api';
+import { api, isDemoMode, localId, unwrapApiResponse } from './api';
 
 export type AttachmentOwner =
   | 'five_s_red_tag'
@@ -81,14 +81,33 @@ const toThumbnailDataUrl = (file: File) =>
     reader.readAsDataURL(file);
   });
 
+/** Which attachments have lost their bytes, as the server's store sees it. */
+export interface AttachmentStoreCheck {
+  store: string;
+  checked: number;
+  missing: Array<Pick<Attachment, 'id' | 'ownerType' | 'ownerId' | 'kind' | 'fileName'> & { createdAt: string }>;
+}
+
 export const attachmentService = {
+  check: async (): Promise<AttachmentStoreCheck> => {
+    // The demo keeps its pictures in this browser, so they are all here.
+    if (isDemoMode()) return { store: 'demo', checked: readDemo().length, missing: [] };
+
+    const response = await api.get<AttachmentStoreCheck | { data: AttachmentStoreCheck }>('/attachments/check');
+    return unwrapApiResponse(response.data);
+  },
+
   list: async (ownerType: AttachmentOwner, ownerId: string): Promise<Attachment[]> => {
     if (isDemoMode()) {
       return readDemo().filter((item) => item.ownerType === ownerType && item.ownerId === ownerId);
     }
 
-    const response = await api.get<Attachment[]>('/attachments', { params: { ownerType, ownerId } });
-    return response.data;
+    // The server wraps every answer as `{ success, data }`. Read raw, the list
+    // was the envelope, and the photographs panel failed on every real page.
+    const response = await api.get<Attachment[] | { data: Attachment[] }>('/attachments', {
+      params: { ownerType, ownerId },
+    });
+    return unwrapApiResponse(response.data);
   },
 
   upload: async (
@@ -121,8 +140,8 @@ export const attachmentService = {
     if (target.kind) form.append('kind', target.kind);
     if (caption) form.append('caption', caption);
 
-    const response = await api.post<Attachment>('/attachments', form);
-    return response.data;
+    const response = await api.post<Attachment | { data: Attachment }>('/attachments', form);
+    return unwrapApiResponse(response.data);
   },
 
   remove: async (id: string): Promise<void> => {

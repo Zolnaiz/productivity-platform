@@ -115,6 +115,47 @@ export class AttachmentsService {
     return { attachment, buffer };
   }
 
+  /**
+   * Which of the organization's attachments have lost their bytes.
+   *
+   * The question a restore has to answer, asked of the running API because
+   * that is where the store is: the production image ships no scripts, and
+   * the host cannot see a Docker volume, so the script run from outside
+   * reported every photograph as missing. One `exists` per row rather than a
+   * read, so a large store is not pulled through the API to answer it.
+   */
+  async checkStore(user: CurrentUser) {
+    const rows = await this.attachments.find({
+      where: this.organizationWhere(user),
+      order: { createdAt: 'ASC' },
+    });
+    const missing: Attachment[] = [];
+
+    for (const row of rows) {
+      let present = false;
+      try {
+        present = await this.store.exists(row.storageKey);
+      } catch {
+        // A store that cannot answer for a row has not shown the row is safe.
+      }
+      if (!present) missing.push(row);
+    }
+
+    return {
+      store: this.store.describe(),
+      checked: rows.length,
+      missing: missing.map((row) => ({
+        id: row.id,
+        ownerType: row.ownerType,
+        ownerId: row.ownerId,
+        kind: row.kind,
+        fileName: row.fileName,
+        storageKey: row.storageKey,
+        createdAt: row.createdAt,
+      })),
+    };
+  }
+
   async remove(id: string, user: CurrentUser) {
     const attachment = await this.findScoped(id, user);
 

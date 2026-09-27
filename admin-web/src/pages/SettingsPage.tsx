@@ -5,11 +5,14 @@ import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import Select from '../components/common/Select';
+import AttachmentCheck from '../components/settings/AttachmentCheck';
+import { useAuth } from '../contexts/AuthContext';
 import { adminService } from '../services/admin.service';
 import { WorkspaceSettings } from '../types/admin.types';
 
 const SettingsPage: React.FC = () => {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const [settings, setSettings] = useState<WorkspaceSettings | null>(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -99,6 +102,8 @@ const SettingsPage: React.FC = () => {
           {saved && <span className="text-sm text-green-600">{t('settings.saved')}</span>}
         </div>
       </Card>
+
+      {hasPermission('attachments:check') && <AttachmentCheck />}
 
       {/*
         Four switches stood here — automatic monthly reports, notify on overdue

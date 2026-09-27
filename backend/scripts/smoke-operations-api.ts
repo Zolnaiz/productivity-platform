@@ -25,7 +25,7 @@ const signToken = () => {
     JSON.stringify({
       sub: process.env.SMOKE_USER_ID || '22222222-2222-4222-8222-000000000001',
       email: smokeUserEmail,
-      role: process.env.SMOKE_USER_ROLE || 'admin',
+      role: process.env.SMOKE_USER_ROLE || 'organization_admin',
       organizationId,
       permissions: ['operations:read', 'operations:write'],
       iat: now,
@@ -272,6 +272,8 @@ async function main() {
     '/operations/monthly-closes',
     `/operations/period-report?from=${new Date().getUTCFullYear()}-01&to=${new Date().getUTCFullYear()}-06`,
     '/auth/invitations',
+    // Asked of the running API because that is where the store is.
+    '/attachments/check',
   ];
 
   for (const path of readRoutes) {

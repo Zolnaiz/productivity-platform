@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, readFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AttachmentsService } from './attachments.service';
@@ -17,13 +17,9 @@ const createService = async () => {
       rows.push(value);
       return value;
     }),
+    // Every condition given has to hold; one not given is not a condition.
     find: jest.fn(async ({ where }) =>
-      rows.filter(
-        (row) =>
-          row.organizationId === where.organizationId &&
-          row.ownerType === where.ownerType &&
-          row.ownerId === where.ownerId,
-      ),
+      rows.filter((row) => Object.entries(where).every(([key, value]) => row[key] === value)),
     ),
     findOne: jest.fn(async ({ where }) =>
       rows.find((row) => row.id === where.id && row.organizationId === where.organizationId) ?? null,
@@ -160,5 +156,35 @@ describe('deleting an attachment', () => {
     // The row is the record. Losing it because the bytes vanished first would
     // leave an attachment nobody can see and nobody can clear.
     await expect(service.remove(saved.id, user)).resolves.toEqual({ id: saved.id, deleted: true });
+  });
+});
+
+/**
+ * A restore brings the rows back with the database and the bytes back from
+ * wherever they were kept - or not. This is the question that tells which.
+ */
+describe('checking the store', () => {
+  it('names every row whose bytes are gone', async () => {
+    const { service, uploadDir } = await createService();
+    await upload(service, user, jpeg(), 'kept.jpg');
+    const lost = await upload(service, user, jpeg(), 'lost.jpg');
+    await unlink(join(uploadDir, lost.storageKey));
+
+    const report = await service.checkStore(user);
+
+    expect(report.checked).toBe(2);
+    expect(report.missing).toEqual([
+      expect.objectContaining({ id: lost.id, fileName: 'lost.jpg', ownerType: AttachmentOwner.RED_TAG }),
+    ]);
+    expect(report.store).toContain(uploadDir);
+  });
+
+  it('answers for the caller’s organization only', async () => {
+    const { service } = await createService();
+    await upload(service, user);
+
+    const report = await service.checkStore(otherTenant);
+
+    expect(report).toMatchObject({ checked: 0, missing: [] });
   });
 });
