@@ -73,7 +73,7 @@ async function seed() {
         'Owner',
         $2,
         $3,
-        'admin',
+        'organization_admin',
         'Workspace Owner',
         '99000000',
         true,

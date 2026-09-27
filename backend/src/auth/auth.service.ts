@@ -87,7 +87,11 @@ export class AuthService {
         lastName: registerDto.lastName,
         email: registerDto.email,
         password: registerDto.password,
-        role: UserRole.ADMIN,
+        // Whoever registers a workspace owns it. As `admin` they could not
+        // open its settings - its time zone, language and close day - and
+        // could not appoint a second administrator, since nobody may hand
+        // out their own level.
+        role: UserRole.ORGANIZATION_ADMIN,
         position: registerDto.position,
         phone: registerDto.phone,
         isActive: true,

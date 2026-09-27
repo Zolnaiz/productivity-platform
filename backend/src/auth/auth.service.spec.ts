@@ -122,7 +122,7 @@ describe('AuthService', () => {
       expect.objectContaining({
         firstName: 'Org',
         lastName: 'Admin',
-        role: UserRole.ADMIN,
+        role: UserRole.ORGANIZATION_ADMIN,
       }),
       'org-1',
     );
