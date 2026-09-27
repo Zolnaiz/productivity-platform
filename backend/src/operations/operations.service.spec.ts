@@ -439,6 +439,54 @@ describe('OperationsService organization scoping', () => {
       expect(notifications.notify).not.toHaveBeenCalled();
     });
 
+    it('forgets the server’s wording of a title somebody rewrote', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({
+        id: 't1',
+        organizationId: 'org-1',
+        status: 'todo',
+        title: 'Supervisor 5S audit due: A02 - Storage',
+        titleKey: 'raised.tierAuditDue',
+        titleParams: { layer: 'Supervisor', place: 'A02 - Storage' },
+        description: 'Layer: tier 2 (Supervisor)',
+        descriptionKey: 'raised.tierAuditDueBody.weekly',
+        descriptionParams: { tier: 2 },
+      });
+      repositories.tasks.save.mockImplementation(async (value: any) => value);
+
+      const saved = await service.updateTask('t1', { title: 'Storage check, with the new racking' } as never, {
+        id: 'm1',
+        role: 'manager',
+        organizationId: 'org-1',
+      });
+
+      expect(saved).toMatchObject({ title: 'Storage check, with the new racking', titleKey: null, titleParams: {} });
+      // The description was not touched, so its wording stands.
+      expect(saved).toMatchObject({ descriptionKey: 'raised.tierAuditDueBody.weekly' });
+    });
+
+    it('keeps the wording of text that comes back unchanged', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({
+        id: 't1',
+        organizationId: 'org-1',
+        status: 'todo',
+        title: '5S follow-up: A02',
+        titleKey: 'raised.auditFollowUp',
+        description: 'The audit scored 60%.',
+        descriptionKey: 'raised.auditFollowUpBody',
+      });
+      repositories.tasks.save.mockImplementation(async (value: any) => value);
+
+      const saved = await service.updateTask('t1', { title: '5S follow-up: A02', description: 'Parts on the floor' } as never, {
+        id: 'm1',
+        role: 'manager',
+        organizationId: 'org-1',
+      });
+
+      expect(saved).toMatchObject({ titleKey: 'raised.auditFollowUp', descriptionKey: null });
+    });
+
     it('can take work off somebody', async () => {
       const { service, repositories } = createService();
       repositories.tasks.findOne.mockResolvedValue({ id: 't1', organizationId: 'org-1', status: 'todo', assigneeId: 'u1' });

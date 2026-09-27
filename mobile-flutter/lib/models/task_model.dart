@@ -6,6 +6,8 @@ class Task {
     this.titleKey,
     this.titleParams = const {},
     this.description,
+    this.descriptionKey,
+    this.descriptionParams = const {},
     this.priority = 'medium',
     this.dueDate,
     this.assigneeId,
@@ -17,6 +19,10 @@ class Task {
   final String? titleKey;
   final Map<String, dynamic> titleParams;
   final String? description;
+
+  /// The description as a key and its parts, for work the server raised.
+  final String? descriptionKey;
+  final Map<String, dynamic> descriptionParams;
   final String priority;
   final DateTime? dueDate;
   final String? assigneeId;
@@ -29,6 +35,10 @@ class Task {
             (json['titleParams'] as Map?)?.cast<String, dynamic>() ?? const {},
         status: json['status'] as String? ?? 'backlog',
         description: json['description'] as String?,
+        descriptionKey: json['descriptionKey'] as String?,
+        descriptionParams:
+            (json['descriptionParams'] as Map?)?.cast<String, dynamic>() ??
+                const {},
         priority: json['priority'] as String? ?? 'medium',
         dueDate: DateTime.tryParse(json['dueDate'] as String? ?? ''),
         assigneeId: json['assigneeId'] as String?,
@@ -41,6 +51,8 @@ class Task {
         'titleParams': titleParams,
         'status': status,
         'description': description,
+        'descriptionKey': descriptionKey,
+        'descriptionParams': descriptionParams,
         'priority': priority,
         'dueDate': dueDate?.toIso8601String(),
         'assigneeId': assigneeId,
@@ -53,6 +65,8 @@ class Task {
         titleParams: titleParams,
         status: status ?? this.status,
         description: description,
+        descriptionKey: descriptionKey,
+        descriptionParams: descriptionParams,
         priority: priority,
         dueDate: dueDate,
         assigneeId: assigneeId,

@@ -160,6 +160,8 @@ export class AuditSchedulerService {
               `Held since: ${redTag.heldAt ? redTag.heldAt.slice(0, 10) : 'not recorded'}`,
               'Decide whether the item is disposed of or returned to the area.',
             ].join('\n'),
+            descriptionKey: 'raised.redTagDecisionBody',
+            descriptionParams: { place, heldSince: redTag.heldAt ? redTag.heldAt.slice(0, 10) : '-' },
             assigneeId: area.ownerId,
             sourceType: TaskSource.RED_TAG,
             sourceId: holdTaskSourceId(redTag.id),
@@ -209,6 +211,14 @@ export class AuditSchedulerService {
           `Last checked at this layer: ${lastAt ? lastAt.slice(0, 10) : 'never'}`,
           `Due: ${dueDate}`,
         ].join('\n'),
+        // One key per frequency, so "weekly" is worded by the reader as well.
+        descriptionKey: `raised.tierAuditDueBody.${tier.frequency}`,
+        descriptionParams: {
+          tier: tier.tier,
+          layer: tier.name,
+          lastChecked: lastAt ? lastAt.slice(0, 10) : '-',
+          due: dueDate,
+        },
         /*
           Whoever is expected to walk this layer. Every tier used to go to the
           zone owner, which put the supervisor's weekly check and the

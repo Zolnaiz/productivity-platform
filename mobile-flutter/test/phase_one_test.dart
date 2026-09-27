@@ -84,6 +84,14 @@ void main() {
           'title': 'Tier 1 5S audit due: A03 - Storage',
           'titleKey': 'raised.tierAuditDue',
           'titleParams': {'layer': 'Tier 1', 'place': 'A03 - Storage'},
+          'description': 'Layer: tier 1 (Tier 1)',
+          'descriptionKey': 'raised.tierAuditDueBody.weekly',
+          'descriptionParams': {
+            'tier': 1,
+            'layer': 'Tier 1',
+            'lastChecked': '-',
+            'due': '2026-09-28'
+          },
           'assigneeId': 'worker-id',
           'status': 'todo'
         },
@@ -117,6 +125,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Tier 1-ын 5S аудитын хугацаа болсон: A03 - Storage'),
         findsOneWidget);
+    // The description under it reads in the same language as the title.
+    expect(find.textContaining('Давтамж: долоо хоног бүр'), findsOneWidget);
+    expect(find.textContaining('Дуусах: 2026-09-28'), findsOneWidget);
     await tester.tap(find.byType(DropdownButton<String>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Дууссан').last);

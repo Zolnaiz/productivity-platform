@@ -42,6 +42,21 @@ type CurrentUser = {
  * recorded it and from wherever.
  */
 const PASSING_SCORE = 85;
+
+/**
+ * Forgets the server's wording of a title or description somebody rewrote.
+ *
+ * A raised task carries a key its clients word in the reader's language. Left
+ * in place after an edit, the key would keep showing the old sentence and hide
+ * the new one - the edit would look as if it had not saved.
+ */
+const withoutStaleWording = (task: WorkTask, payload: Partial<WorkTask>): Partial<WorkTask> => ({
+  ...payload,
+  ...('title' in payload && payload.title !== task.title ? { titleKey: null as never, titleParams: {} } : {}),
+  ...('description' in payload && payload.description !== task.description
+    ? { descriptionKey: null as never, descriptionParams: {} }
+    : {}),
+});
 const URGENT_SCORE = 70;
 const CORRECTIVE_DUE_DAYS = 7;
 
@@ -380,7 +395,7 @@ export class OperationsService {
     if ('assigneeId' in payload) {
       await this.assertAssignable(payload.assigneeId, task.organizationId);
     }
-    this.assignWithoutOrganizationChange(task, withoutCompletionDate(payload));
+    this.assignWithoutOrganizationChange(task, withoutStaleWording(task, withoutCompletionDate(payload)));
     stampCompletion(task, statusBefore);
 
     const saved = await this.tasks.save(task);
@@ -1073,6 +1088,12 @@ export class OperationsService {
           `The standard for this area is ${PASSING_SCORE}%.`,
           'Bring the area back to its standard; the next audit verifies it.',
         ].join('\n'),
+        descriptionKey: 'raised.auditFollowUpBody',
+        descriptionParams: {
+          date: (run.createdAt ?? new Date()).toISOString().slice(0, 10),
+          score,
+          standard: PASSING_SCORE,
+        },
         // The area's owner, because a 5S finding belongs to whoever owns the
         // area rather than to whoever happened to walk past it.
         assigneeId: zone?.ownerId,

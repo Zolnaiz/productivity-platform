@@ -93,9 +93,13 @@ class _TaskCard extends StatelessWidget {
                       key: task.titleKey,
                       params: task.titleParams),
                   style: Theme.of(context).textTheme.titleMedium),
-              if (task.description?.isNotEmpty == true) ...[
+              if (task.description?.isNotEmpty == true ||
+                  task.descriptionKey != null) ...[
                 const SizedBox(height: 8),
-                Text(task.description!)
+                Text(strings.taskTitle(
+                    title: task.description ?? '',
+                    key: task.descriptionKey,
+                    params: task.descriptionParams))
               ],
               const SizedBox(height: 12),
               Row(children: [

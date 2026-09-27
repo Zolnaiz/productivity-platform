@@ -119,6 +119,16 @@ const _raisedMn = {
   'raised.dailyDigestBody':
       'Хоцорсон:\n{{overdue}}\nӨнөөдөр дуусах:\n{{dueToday}}',
   'raised.teamDigestBody': 'Хариуцагчгүй:\n{{unassigned}}\nХоцорсон:\n{{late}}',
+  'raised.tierAuditDueBody.daily':
+      'Түвшин: {{tier}} ({{layer}})\nДавтамж: өдөр бүр\nЭнэ түвшинд сүүлд шалгасан: {{lastChecked}}\nДуусах: {{due}}',
+  'raised.tierAuditDueBody.weekly':
+      'Түвшин: {{tier}} ({{layer}})\nДавтамж: долоо хоног бүр\nЭнэ түвшинд сүүлд шалгасан: {{lastChecked}}\nДуусах: {{due}}',
+  'raised.tierAuditDueBody.monthly':
+      'Түвшин: {{tier}} ({{layer}})\nДавтамж: сар бүр\nЭнэ түвшинд сүүлд шалгасан: {{lastChecked}}\nДуусах: {{due}}',
+  'raised.redTagDecisionBody':
+      'Бүс: {{place}}\nШошголсон: {{heldSince}}\nЗүйлийг хаях эсвэл бүсэд нь буцаахыг шийднэ үү.',
+  'raised.auditFollowUpBody':
+      '{{date}}-ны аудитын оноо {{score}}%.\nЭнэ бүсийн стандарт {{standard}}%.\nБүсийг стандартад нь эргүүлж оруулна уу; дараагийн аудит үүнийг шалгана.',
 };
 const _raisedEn = {
   'raised.tierAuditDue': '{{layer}} 5S audit due: {{place}}',
@@ -129,6 +139,16 @@ const _raisedEn = {
   'raised.dueOn': 'Due {{date}}',
   'raised.dailyDigestBody': 'Late:\n{{overdue}}\nDue today:\n{{dueToday}}',
   'raised.teamDigestBody': 'Nobody on it:\n{{unassigned}}\nLate:\n{{late}}',
+  'raised.tierAuditDueBody.daily':
+      'Layer: tier {{tier}} ({{layer}})\nFrequency: daily\nLast checked at this layer: {{lastChecked}}\nDue: {{due}}',
+  'raised.tierAuditDueBody.weekly':
+      'Layer: tier {{tier}} ({{layer}})\nFrequency: weekly\nLast checked at this layer: {{lastChecked}}\nDue: {{due}}',
+  'raised.tierAuditDueBody.monthly':
+      'Layer: tier {{tier}} ({{layer}})\nFrequency: monthly\nLast checked at this layer: {{lastChecked}}\nDue: {{due}}',
+  'raised.redTagDecisionBody':
+      'Area: {{place}}\nHeld since: {{heldSince}}\nDecide whether the item is disposed of or returned to the area.',
+  'raised.auditFollowUpBody':
+      'The audit on {{date}} scored {{score}}%.\nThe standard for this area is {{standard}}%.\nBring the area back to its standard; the next audit verifies it.',
 };
 
 const _en = {

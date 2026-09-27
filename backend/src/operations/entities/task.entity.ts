@@ -53,6 +53,13 @@ export class WorkTask extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
+  /** The description as a key and its parts, as `titleKey` is for the title. */
+  @Column({ name: 'description_key', nullable: true })
+  descriptionKey?: string;
+
+  @Column({ type: 'jsonb', name: 'description_params', default: {} })
+  descriptionParams: Record<string, string | number>;
+
   @Column({ name: 'organization_id', nullable: true })
   organizationId?: string;
 

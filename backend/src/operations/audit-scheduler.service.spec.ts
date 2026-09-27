@@ -305,6 +305,9 @@ describe("what a raised task says, in the reader's language", () => {
     expect(raised.title).toContain('A03 - Storage');
     expect(raised.titleKey).toBe('raised.tierAuditDue');
     expect(raised.titleParams).toEqual({ layer: 'Operator', place: 'A03 - Storage' });
+    // The description too, one key per frequency, and a dash for never.
+    expect(raised.descriptionKey).toBe('raised.tierAuditDueBody.daily');
+    expect(raised.descriptionParams).toEqual(expect.objectContaining({ tier: 1, layer: 'Operator', lastChecked: '-' }));
   });
 });
 
