@@ -349,20 +349,25 @@ export const getZoneTaskDueDate = (zone: FiveSZone, includeAudit = true) => {
   return getDateFromToday(7);
 };
 
-export const buildZoneTaskPayload = (zone: FiveSZone, titlePrefix: string, includeAudit = true) => {
+/**
+ * A task for an area: who has it, how urgent it is and when it is due.
+ *
+ * The words are the caller's. A task raised from the page is written in the
+ * language of whoever raises it, like a typed one, and this module has no
+ * language - it used to write "Next actions: ..., Owner: ..." in English into
+ * every task, and joined the gaps as "[object Object]" once they became keys.
+ */
+export const buildZoneTaskPayload = (
+  zone: FiveSZone,
+  title: string,
+  describe: (gaps: ZoneAction[]) => string,
+  includeAudit = true,
+) => {
   const gaps = getZoneActionItems(zone, includeAudit);
 
   return {
-    title: `${titlePrefix}: ${zone.code} - ${zone.name}`,
-    description: [
-      `Next actions: ${gaps.length ? gaps.join(', ') : 'Maintain current standard'}`,
-      `Owner: ${zone.ownerName || 'Unassigned'}`,
-      `Stage: ${stageLabels[zone.stage]}`,
-      ...(includeAudit ? [`Audit cycle: ${zone.auditFrequency}`] : []),
-      `Contents: ${zone.contents || 'Not documented'}`,
-      `Standard: ${zone.standard || 'Not documented'}`,
-      `Label note: ${zone.labelText || 'Not documented'}`,
-    ].join('\n'),
+    title,
+    description: describe(gaps),
     assigneeId: zone.ownerId,
     status: 'todo' as const,
     priority: getZoneTaskPriority(zone, gaps, includeAudit),

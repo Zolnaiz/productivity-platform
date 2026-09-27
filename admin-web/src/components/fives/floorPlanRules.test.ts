@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   buildZoneTaskPayload,
   getAuditWalkStatus,
@@ -247,11 +247,14 @@ describe('when an area is due a walk', () => {
 
 describe('the task raised from an area', () => {
   it('says which area, what is outstanding and who owns it', () => {
-    const payload = buildZoneTaskPayload(zone({ ownerName: 'Bat', ownerId: 'u1' }), '5S setup');
+    const area = zone({ ownerName: 'Bat', ownerId: 'u1' });
+    const describe = vi.fn(() => 'Described by the page');
+    const payload = buildZoneTaskPayload(area, '5S setup: A01 - Reception', describe);
 
     expect(payload.title).toBe('5S setup: A01 - Reception');
-    expect(payload.description).toContain('Owner: Bat');
-    expect(payload.description).toContain('Stage: 1 Sort');
+    // The page words the gaps; the rules only say what they are.
+    expect(describe).toHaveBeenCalledWith(getZoneActionItems(area, true));
+    expect(payload.description).toBe('Described by the page');
     expect(payload.assigneeId).toBe('u1');
     expect(payload.status).toBe('todo');
   });
@@ -261,31 +264,31 @@ describe('the task raised from an area', () => {
     // which is high priority on its own.
     const audited = { ...fullySetUp, lastAuditScore: 95, lastAuditAt: formatLocalDate() };
 
-    expect(buildZoneTaskPayload(zone(audited), 'x').priority).toBe('medium');
-    expect(buildZoneTaskPayload(zone({ ...audited, redTags: [tag()] }), 'x').priority).toBe('high');
+    expect(buildZoneTaskPayload(zone(audited), 'x', () => '').priority).toBe('medium');
+    expect(buildZoneTaskPayload(zone({ ...audited, redTags: [tag()] }), 'x', () => '').priority).toBe('high');
   });
 
   it('gives tags three days and everything else a week', () => {
     const audited = { ...fullySetUp, lastAuditScore: 95, lastAuditAt: formatLocalDate() };
-    const withTags = buildZoneTaskPayload(zone({ ...audited, redTags: [tag()] }), 'x');
-    const without = buildZoneTaskPayload(zone(audited), 'x');
+    const withTags = buildZoneTaskPayload(zone({ ...audited, redTags: [tag()] }), 'x', () => '');
+    const without = buildZoneTaskPayload(zone(audited), 'x', () => '');
 
     expect(new Date(withTags.dueDate).getTime()).toBeLessThan(new Date(without.dueDate).getTime());
   });
 
   it('makes an area that is due an audit today due today', () => {
-    expect(buildZoneTaskPayload(zone(fullySetUp), 'x').dueDate).toBe(formatLocalDate());
+    expect(buildZoneTaskPayload(zone(fullySetUp), 'x', () => '').dueDate).toBe(formatLocalDate());
   });
 
-  it('leaves the audit cycle out when audits are switched off', () => {
-    expect(buildZoneTaskPayload(zone(), 'x', false).description).not.toContain('Audit cycle');
-    expect(buildZoneTaskPayload(zone(), 'x', true).description).toContain('Audit cycle');
+  it('leaves the audit gaps out when audits are switched off', () => {
+    const describe = vi.fn(() => '');
+
+    buildZoneTaskPayload(zone(), 'x', describe, false);
+
+    expect(describe).toHaveBeenCalledWith(getZoneActionItems(zone(), false));
   });
 
-  it('says so plainly when an unowned area has nobody to assign to', () => {
-    const payload = buildZoneTaskPayload(zone(), 'x');
-
-    expect(payload.description).toContain('Owner: Unassigned');
-    expect(payload.assigneeId).toBeUndefined();
+  it('gives an unowned area to nobody rather than guessing', () => {
+    expect(buildZoneTaskPayload(zone(), 'x', () => '').assigneeId).toBeUndefined();
   });
 });

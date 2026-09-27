@@ -167,6 +167,24 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     await waitFor(() => expect(getZoneRect()?.getAttribute('x')).toBe('101'));
   });
 
+  it('writes a setup task in the reader’s words, the gaps worded as on the page', async () => {
+    // The rules module once joined its gap objects straight into the text,
+    // which read "[object Object]" in every task it raised.
+    serviceMocks.createTask.mockResolvedValue({ id: 't1' });
+    renderEditor();
+    expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create setup task' }));
+
+    await waitFor(() => expect(serviceMocks.createTask).toHaveBeenCalled());
+    const task = serviceMocks.createTask.mock.calls[0][0];
+    expect(task.title).toBe('5S setup: A01 - Reception');
+    expect(task.description).toContain('Owner: Demo Owner');
+    expect(task.description).toContain('Stage: 2 Set');
+    expect(task.description).toContain('Next actions: Advance to 3 Shine');
+    expect(task.description).not.toContain('[object Object]');
+  });
+
   it('jumps the selected zone by one grid step with shift and an arrow key', async () => {
     renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();

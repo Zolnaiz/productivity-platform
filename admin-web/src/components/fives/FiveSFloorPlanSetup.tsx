@@ -2372,8 +2372,37 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     });
   };
 
-  const createTaskForZone = (zone: FiveSZone, titlePrefix = '5S setup') =>
-    operationsService.createTask(buildZoneTaskPayload(zone, titlePrefix, showAuditControls));
+  const placeOf = (zone: FiveSZone) => `${zone.code} - ${zone.name}`;
+
+  /**
+   * An area's task, in the language of whoever raises it - like a typed task.
+   * The gaps are worded by `actionText`, the same as on the page.
+   */
+  const describeZoneTask = (zone: FiveSZone) => (gaps: ZoneAction[]) =>
+    [
+      t('fiveS.task.nextActions', {
+        actions: gaps.length ? gaps.map(actionText).join(', ') : t('fiveS.action.maintain'),
+      }),
+      t('fiveS.task.owner', { owner: zone.ownerName || t('fiveS.ui.unassigned') }),
+      t('fiveS.task.stage', { stage: t(`fiveS.stage.${stageKeys[zone.stage]}`) }),
+      ...(showAuditControls
+        ? [t('fiveS.task.auditCycle', { frequency: t(`auditTiers.frequency.${zone.auditFrequency}`) })]
+        : []),
+      t('fiveS.task.contents', { value: zone.contents || t('fiveS.task.notDocumented') }),
+      t('fiveS.task.standard', { value: zone.standard || t('fiveS.task.notDocumented') }),
+      t('fiveS.task.labelNote', { value: zone.labelText || t('fiveS.task.notDocumented') }),
+    ].join('\n');
+
+  const zoneTaskPayload = (zone: FiveSZone, kind: 'setup' | 'launch' | 'rollout') =>
+    buildZoneTaskPayload(
+      zone,
+      t(`fiveS.task.${kind}Title`, { place: placeOf(zone) }),
+      describeZoneTask(zone),
+      showAuditControls,
+    );
+
+  const createTaskForZone = (zone: FiveSZone, kind: 'setup' | 'rollout' = 'setup') =>
+    operationsService.createTask(zoneTaskPayload(zone, kind));
 
   const createSelectedZoneTask = async () => {
     if (!selectedZone) return;
@@ -2399,7 +2428,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     try {
       await Promise.all(
         zonesNeedingLaunchTasks.map((zone) =>
-          operationsService.createTask({ ...buildZoneTaskPayload(zone, '5S launch', showAuditControls), dueDate }),
+          operationsService.createTask({ ...zoneTaskPayload(zone, 'launch'), dueDate }),
         ),
       );
 
@@ -2411,7 +2440,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
   const createRolloutQueueTask = async (zone: FiveSZone) => {
     try {
-      await createTaskForZone(zone, '5S rollout');
+      await createTaskForZone(zone, 'rollout');
       setActionMessage(t('fiveS.ui.msgRolloutTaskCreated', { area: `${zone.code} - ${zone.name}` }));
     } catch {
       setActionMessage(t('fiveS.ui.msgRolloutTaskFailed', { area: `${zone.code} - ${zone.name}` }));
@@ -2425,7 +2454,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     }
 
     try {
-      await Promise.all(rolloutQueue.map((item) => createTaskForZone(item.zone, '5S rollout')));
+      await Promise.all(rolloutQueue.map((item) => createTaskForZone(item.zone, 'rollout')));
       setActionMessage(t('fiveS.ui.msgRolloutTasks', { count: rolloutQueue.length }));
     } catch {
       setActionMessage(t('fiveS.ui.msgRolloutTasksFailed'));
@@ -2469,13 +2498,13 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       await Promise.all([
         ...openRedTagItems.map(({ zone, redTag }) =>
           operationsService.createTask({
-            title: `5S red tag: ${zone.code} - ${redTag.title}`,
+            // In the language of whoever raises it, like a typed task.
+            title: t('fiveS.task.redTagTitle', { place: zone.code, item: redTag.title }),
             description: [
-              `Area: ${zone.code} - ${zone.name}`,
-              `Disposition: ${redTag.disposition || 'Not documented'}`,
-              `Status: ${redTag.status}`,
-              `Owner: ${redTag.ownerName || zone.ownerName || 'Unassigned'}`,
-              `Created: ${redTag.createdAt || 'Not recorded'}`,
+              t('fiveS.task.area', { place: placeOf(zone) }),
+              t('fiveS.task.disposition', { value: redTag.disposition || t('fiveS.task.notDocumented') }),
+              t('fiveS.task.owner', { owner: redTag.ownerName || zone.ownerName || t('fiveS.ui.unassigned') }),
+              t('fiveS.task.created', { date: redTag.createdAt?.slice(0, 10) || t('fiveS.task.notRecorded') }),
             ].join('\n'),
             assigneeId: redTag.ownerId || zone.ownerId,
             sourceType: 'five_s_red_tag',
@@ -2489,12 +2518,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
         ),
         ...legacyRedTagZones.map((zone) =>
           operationsService.createTask({
-            title: `5S red tags: ${zone.code} - ${zone.name}`,
+            title: t('fiveS.task.redTagsTitle', { place: placeOf(zone) }),
             description: [
-              `Clear ${getRedTagCount(zone)} red tag(s).`,
-              `Owner: ${zone.ownerName || t('fiveS.ui.unassigned')}`,
-              `Contents: ${zone.contents || 'Not documented'}`,
-              `Standard: ${zone.standard || 'Not documented'}`,
+              t('fiveS.task.clearRedTags', { count: getRedTagCount(zone) }),
+              t('fiveS.task.owner', { owner: zone.ownerName || t('fiveS.ui.unassigned') }),
+              t('fiveS.task.contents', { value: zone.contents || t('fiveS.task.notDocumented') }),
+              t('fiveS.task.standard', { value: zone.standard || t('fiveS.task.notDocumented') }),
             ].join('\n'),
             assigneeId: zone.ownerId,
             sourceType: 'five_s_red_tag',
@@ -2526,12 +2555,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       await Promise.all(
         zonesAuditDue.map((zone) =>
           operationsService.createTask({
-            title: `5S audit due: ${zone.code} - ${zone.name}`,
+            title: t('fiveS.task.auditDueTitle', { place: placeOf(zone) }),
             description: [
-              `Audit frequency: ${zone.auditFrequency}`,
-              `Last audit: ${zone.lastAuditAt || 'Not recorded'}`,
-              `Due date: ${getAuditDueDate(zone) || 'Now'}`,
-              `Owner: ${zone.ownerName || t('fiveS.ui.unassigned')}`,
+              t('fiveS.task.auditCycle', { frequency: t(`auditTiers.frequency.${zone.auditFrequency}`) }),
+              t('fiveS.task.lastAudit', { date: zone.lastAuditAt?.slice(0, 10) || t('fiveS.task.notRecorded') }),
+              t('fiveS.task.dueDate', { date: getAuditDueDate(zone) || t('fiveS.task.now') }),
+              t('fiveS.task.owner', { owner: zone.ownerName || t('fiveS.ui.unassigned') }),
             ].join('\n'),
             assigneeId: zone.ownerId,
             sourceType: 'audit_run',
