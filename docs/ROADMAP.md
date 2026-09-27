@@ -114,9 +114,12 @@ could be built honestly.
   a template by hand rather than from the layer being recorded.
 - **What the server raises now reads in the reader's language.** A task and a
   notification carry the key and its parts beside the assembled sentence, and
-  a screen words the key. The sentence stays because a CSV export and an email
-  have no reader to ask — which is the piece still outstanding: an email goes
-  out in English, because nothing records what language a person reads in.
+  a screen words the key. An email has no reader to ask, so it goes out in the
+  organization's language - the one its settings name - and in the stored
+  English sentence when it names none; invitations too. The server, web and
+  phone copies of these words are held together by a test. What is still
+  missing is a person's own language: somebody reading in English in a
+  Mongolian workspace gets their email in Mongolian.
 
 - **The translation is finished for the pages people use daily.** What is left
   is the pages nobody has needed in Mongolian yet — the platform placeholders

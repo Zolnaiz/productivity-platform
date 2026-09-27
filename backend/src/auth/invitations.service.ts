@@ -1,10 +1,12 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, LessThan, MoreThan, Repository } from 'typeorm';
 import { Invitation } from './entities/invitation.entity';
 import { UsersService } from '../users/users.service';
+import { Organization } from '../organizations/entities/organization.entity';
 import { MAILER, Mailer } from '../shared/mail/mailer';
+import { interpolate, MailLanguage, mailLanguageOf } from '../shared/mail/wording';
 import { UserRole } from '../shared/constants';
 import { canAssignRole } from '../shared/roles';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
@@ -15,6 +17,24 @@ import {
   invitationExpiry,
   normalizeEmail,
 } from './invitation-token';
+
+/** The invitation, in each language an organization can work in. */
+const INVITATION_MAIL: Record<MailLanguage, Record<'subject' | 'invited' | 'open' | 'code' | 'expiry', string>> = {
+  en: {
+    subject: 'You have been invited to the productivity platform',
+    invited: 'Somebody has invited you to their workspace.',
+    open: 'Open this link to accept it:\n{{link}}',
+    code: 'Your invitation code is: {{token}}',
+    expiry: 'The invitation expires; ask whoever invited you to reissue it if it has.',
+  },
+  mn: {
+    subject: 'Таныг бүтээмжийн платформд урьж байна',
+    invited: 'Таныг байгууллагынхаа ажлын орчинд урьсан байна.',
+    open: 'Урилгыг хүлээн авахын тулд энэ холбоосыг нээнэ үү:\n{{link}}',
+    code: 'Таны урилгын код: {{token}}',
+    expiry: 'Урилга хугацаатай. Хугацаа нь дууссан бол таныг урьсан хүнээс дахин илгээхийг хүснэ үү.',
+  },
+};
 
 interface Inviter {
   id?: string;
@@ -32,7 +52,22 @@ export class InvitationsService {
     private readonly usersService: UsersService,
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly configService: ConfigService,
+    // For the language the invitation is written in.
+    @Optional()
+    @InjectRepository(Organization)
+    private readonly organizations?: Repository<Organization>,
   ) {}
+
+  /** The inviting organization's language; English when it names none. */
+  private async languageFor(organizationId: string): Promise<MailLanguage> {
+    try {
+      const organization = await this.organizations?.findOne({ where: { id: organizationId } });
+
+      return mailLanguageOf(organization?.settings) ?? 'en';
+    } catch {
+      return 'en';
+    }
+  }
 
   /**
    * Sends the invitation to the person it is for.
@@ -50,13 +85,15 @@ export class InvitationsService {
     const link = base ? `${base}/accept-invitation?token=${token}` : token;
 
     try {
+      const words = INVITATION_MAIL[await this.languageFor(organizationId)];
+
       await this.mailer.send({
         to: email,
-        subject: 'You have been invited to the productivity platform',
+        subject: words.subject,
         body: [
-          'Somebody has invited you to their workspace.',
-          base ? `Open this link to accept it:\n${link}` : `Your invitation code is: ${token}`,
-          'The invitation expires; ask whoever invited you to reissue it if it has.',
+          words.invited,
+          base ? interpolate(words.open, { link }) : interpolate(words.code, { token }),
+          words.expiry,
         ].join('\n\n'),
       });
     } catch {

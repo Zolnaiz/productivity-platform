@@ -876,6 +876,15 @@ const en = {
     dueOn: 'Due {{date}}',
     dailyDigestBody: 'Late:\n{{overdue}}\nDue today:\n{{dueToday}}',
     teamDigestBody: 'Nobody on it:\n{{unassigned}}\nLate:\n{{late}}',
+    tierAuditDueBody: {
+      daily: 'Layer: tier {{tier}} ({{layer}})\nFrequency: daily\nLast checked at this layer: {{lastChecked}}\nDue: {{due}}',
+      weekly: 'Layer: tier {{tier}} ({{layer}})\nFrequency: weekly\nLast checked at this layer: {{lastChecked}}\nDue: {{due}}',
+      monthly: 'Layer: tier {{tier}} ({{layer}})\nFrequency: monthly\nLast checked at this layer: {{lastChecked}}\nDue: {{due}}',
+    },
+    redTagDecisionBody:
+      'Area: {{place}}\nHeld since: {{heldSince}}\nDecide whether the item is disposed of or returned to the area.',
+    auditFollowUpBody:
+      'The audit on {{date}} scored {{score}}%.\nThe standard for this area is {{standard}}%.\nBring the area back to its standard; the next audit verifies it.',
   },
   zone: {
     auditPhotoPrompt: 'Add a photograph of what you saw.',

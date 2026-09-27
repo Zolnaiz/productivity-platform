@@ -1,10 +1,13 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { Notification, NotificationKind } from './entities/notification.entity';
 import { User } from '../users/entities/user.entity';
+import { Organization } from '../organizations/entities/organization.entity';
 import { MAILER, Mailer } from '../shared/mail/mailer';
+import { mailLanguageOf } from '../shared/mail/wording';
+import { wordRaised } from './raised-wording';
 
 type CurrentUser = { id?: string; organizationId?: string } | undefined;
 
@@ -58,7 +61,20 @@ export class NotificationsService {
     @InjectRepository(User) private readonly users: Repository<User>,
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly configService: ConfigService,
+    // For the language an email is written in.
+    @Optional()
+    @InjectRepository(Organization)
+    private readonly organizations?: Repository<Organization>,
   ) {}
+
+  /** The organization's language, or none - and then the English sentence. */
+  private async languageFor(organizationId?: string) {
+    if (!organizationId || !this.organizations) return undefined;
+
+    const organization = await this.organizations.findOne({ where: { id: organizationId } });
+
+    return mailLanguageOf(organization?.settings);
+  }
 
   /**
    * Sends the same words to the person's address.
@@ -78,12 +94,16 @@ export class NotificationsService {
       if (!recipient?.email) return;
 
       const base = (this.configService.get<string>('APP_BASE_URL') ?? '').replace(/\/$/, '');
+      // In the organization's language, as the inbox would word it for them.
+      const language = await this.languageFor(notification.organizationId ?? recipient.organizationId);
 
       await this.mailer.send({
         to: recipient.email,
-        subject: notification.title,
+        subject: wordRaised(notification.titleKey, notification.titleParams, language, notification.title),
         body: [
-          notification.body,
+          notification.body || notification.bodyKey
+            ? wordRaised(notification.bodyKey, notification.bodyParams, language, notification.body)
+            : '',
           base ? `${base}${notification.link}` : '',
         ]
           .filter(Boolean)

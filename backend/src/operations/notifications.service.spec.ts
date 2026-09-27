@@ -9,7 +9,10 @@ const repositoryMock = () => ({
   update: jest.fn(async () => ({ affected: 1 })),
 });
 
-const createService = (recipient: Record<string, unknown> | null = { id: 'u1', email: 'u1@example.com' }) => {
+const createService = (
+  recipient: Record<string, unknown> | null = { id: 'u1', email: 'u1@example.com' },
+  organization: Record<string, unknown> | null = null,
+) => {
   const notifications = repositoryMock();
   const users = { findOne: jest.fn(async () => recipient) };
   // A mailer that records rather than sends, so a test can say what somebody
@@ -23,6 +26,7 @@ const createService = (recipient: Record<string, unknown> | null = { id: 'u1', e
     users as never,
     mailer as never,
     configService as never,
+    { findOne: jest.fn(async () => organization) } as never,
   );
 
   return { service, notifications, users, mailer, sent };
@@ -226,6 +230,51 @@ describe('telling somebody outside the application too', () => {
       service.notify({ userId: 'gone', title: 'Audit due: A01' }),
     ).resolves.toBeTruthy();
     expect(mailer.send).not.toHaveBeenCalled();
+  });
+
+  it('writes the email in the organization’s language', async () => {
+    // The inbox words the key for its reader; an email has no reader to ask,
+    // so it goes out in the language the workspace runs in.
+    const { service, notifications, sent } = createService(
+      { id: 'u1', email: 'u1@example.com' },
+      { id: 'org-1', settings: { language: 'mn' } },
+    );
+    notifications.findOne.mockResolvedValue(null);
+
+    await service.notify(
+      request({
+        titleKey: 'raised.tierAuditDue',
+        titleParams: { layer: 'Operator', place: 'A01 - Reception' },
+        body: 'Due 2026-09-28',
+        bodyKey: 'raised.dueOn',
+        bodyParams: { date: '2026-09-28' },
+      }),
+    );
+
+    expect(sent[0].subject).toBe('Operator-ын 5S аудитын хугацаа болсон: A01 - Reception');
+    expect(String(sent[0].body)).toContain('2026-09-28-нд дуусна');
+  });
+
+  it('keeps the stored sentence when the organization names no language', async () => {
+    const { service, notifications, sent } = createService({ id: 'u1', email: 'u1@example.com' }, { id: 'org-1' });
+    notifications.findOne.mockResolvedValue(null);
+
+    await service.notify(request({ titleKey: 'raised.tierAuditDue', titleParams: { layer: 'Operator', place: 'A01' } }));
+
+    expect(sent[0].subject).toBe('Tier 1 5S audit due: A01 - Reception');
+  });
+
+  it('keeps the stored sentence for a key it does not know', async () => {
+    // A key from a newer server, or a typo, must not reach somebody as a key.
+    const { service, notifications, sent } = createService(
+      { id: 'u1', email: 'u1@example.com' },
+      { id: 'org-1', settings: { language: 'mn' } },
+    );
+    notifications.findOne.mockResolvedValue(null);
+
+    await service.notify(request({ titleKey: 'raised.somethingNew' }));
+
+    expect(sent[0].subject).toBe('Tier 1 5S audit due: A01 - Reception');
   });
 
   it('keeps the notification when the mail fails', async () => {

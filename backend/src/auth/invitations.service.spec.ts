@@ -3,7 +3,7 @@ import { InvitationsService } from './invitations.service';
 import { UserRole } from '../shared/constants';
 import { hashInvitationToken } from './invitation-token';
 
-const createService = () => {
+const createService = (organization: Record<string, unknown> | null = null) => {
   const rows: any[] = [];
 
   const invitations = {
@@ -59,6 +59,7 @@ const createService = () => {
     usersService as never,
     mailer as never,
     configService as never,
+    { findOne: jest.fn(async () => organization) } as never,
   );
 
   return { service, invitations, usersService, rows, mailer, sent };
@@ -274,6 +275,24 @@ describe('delivering the invitation', () => {
     expect(sent).toHaveLength(1);
     expect(sent[0].to).toBe('new@example.com');
     expect(String(sent[0].body)).toContain(`https://plant.example.com/accept-invitation?token=${token}`);
+  });
+
+  it('invites in the organization’s language', async () => {
+    const { service, sent } = createService({ id: 'org-1', settings: { language: 'mn' } });
+
+    const { token } = await service.invite('new@example.com', UserRole.USER, owner);
+
+    expect(sent[0].subject).toBe('Таныг бүтээмжийн платформд урьж байна');
+    expect(String(sent[0].body)).toContain('Урилгыг хүлээн авахын тулд энэ холбоосыг нээнэ үү');
+    expect(String(sent[0].body)).toContain(`accept-invitation?token=${token}`);
+  });
+
+  it('invites in English when the organization names no language', async () => {
+    const { service, sent } = createService({ id: 'org-1', settings: {} });
+
+    await service.invite('new@example.com', UserRole.USER, owner);
+
+    expect(sent[0].subject).toBe('You have been invited to the productivity platform');
   });
 
   it('issues the invitation even when it cannot be delivered', async () => {

@@ -864,6 +864,15 @@ const mn: Translations<typeof en> = {
     dueOn: '{{date}}-нд дуусна',
     dailyDigestBody: 'Хоцорсон:\n{{overdue}}\nӨнөөдөр дуусах:\n{{dueToday}}',
     teamDigestBody: 'Хариуцагчгүй:\n{{unassigned}}\nХоцорсон:\n{{late}}',
+    tierAuditDueBody: {
+      daily: 'Түвшин: {{tier}} ({{layer}})\nДавтамж: өдөр бүр\nЭнэ түвшинд сүүлд шалгасан: {{lastChecked}}\nДуусах: {{due}}',
+      weekly: 'Түвшин: {{tier}} ({{layer}})\nДавтамж: долоо хоног бүр\nЭнэ түвшинд сүүлд шалгасан: {{lastChecked}}\nДуусах: {{due}}',
+      monthly: 'Түвшин: {{tier}} ({{layer}})\nДавтамж: сар бүр\nЭнэ түвшинд сүүлд шалгасан: {{lastChecked}}\nДуусах: {{due}}',
+    },
+    redTagDecisionBody:
+      'Бүс: {{place}}\nШошголсон: {{heldSince}}\nЗүйлийг хаях эсвэл бүсэд нь буцаахыг шийднэ үү.',
+    auditFollowUpBody:
+      '{{date}}-ны аудитын оноо {{score}}%.\nЭнэ бүсийн стандарт {{standard}}%.\nБүсийг стандартад нь эргүүлж оруулна уу; дараагийн аудит үүнийг шалгана.',
   },
   zone: {
     auditPhotoPrompt: 'Харсан зүйлээ зургаар нэмнэ үү.',
