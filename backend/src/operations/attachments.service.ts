@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Attachment, AttachmentKind, AttachmentOwner } from './entities/attachment.entity';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { buildStorageKey, safeFileName, sniffMimeType } from './attachment-storage';
@@ -45,7 +45,7 @@ export class AttachmentsService {
 
   async upload(
     file: UploadedAttachment | undefined,
-    target: { ownerType: AttachmentOwner; ownerId: string; kind: AttachmentKind },
+    target: { ownerType: AttachmentOwner; ownerId: string; kind: AttachmentKind; part?: string },
     caption: string | undefined,
     user: CurrentUser,
   ) {
@@ -71,6 +71,7 @@ export class AttachmentsService {
       ownerType: target.ownerType,
       ownerId: target.ownerId,
       kind: target.kind,
+      part: target.part ?? null,
       fileName: safeFileName(file.originalname || 'file'),
       storageKey,
       mimeType,
@@ -82,9 +83,18 @@ export class AttachmentsService {
     return this.attachments.save(attachment);
   }
 
-  findForOwner(ownerType: AttachmentOwner, ownerId: string, user: CurrentUser) {
+  /**
+   * A record's files. `part` narrows them: a value to that part's, `null` to
+   * the record-as-a-whole's, `undefined` not at all.
+   */
+  findForOwner(ownerType: AttachmentOwner, ownerId: string, user: CurrentUser, part?: string | null) {
     return this.attachments.find({
-      where: { ...this.organizationWhere(user), ownerType, ownerId },
+      where: {
+        ...this.organizationWhere(user),
+        ownerType,
+        ownerId,
+        ...(part === undefined ? {} : { part: part === null ? IsNull() : part }),
+      },
       order: { createdAt: 'ASC' },
     });
   }

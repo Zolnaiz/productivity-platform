@@ -47,6 +47,13 @@ export class Attachment extends BaseEntity {
   @Column({ type: 'varchar', default: AttachmentKind.EVIDENCE })
   kind: AttachmentKind;
 
+  /**
+   * Which part of the record the file shows - for an audit run, the question.
+   * Empty for the record as a whole.
+   */
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  part?: string | null;
+
   /** The name the uploader's file had. Shown to people; never used as a path. */
   @Column({ name: 'file_name' })
   fileName: string;

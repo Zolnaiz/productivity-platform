@@ -1,6 +1,7 @@
 import {
   buildStorageKey,
   isAllowedMimeType,
+  parseAttachmentPart,
   parseAttachmentTarget,
   safeFileName,
   sniffMimeType,
@@ -120,5 +121,21 @@ describe('isAllowedMimeType', () => {
     expect(isAllowedMimeType('application/pdf')).toBe(true);
     expect(isAllowedMimeType('text/html')).toBe(false);
     expect(isAllowedMimeType('image/svg+xml')).toBe(false);
+  });
+});
+
+describe('parseAttachmentPart', () => {
+  it('takes a question id and trims it', () => {
+    expect(parseAttachmentPart(' q-labels ')).toBe('q-labels');
+  });
+
+  it('reads nothing as the record as a whole', () => {
+    expect(parseAttachmentPart(undefined)).toBeUndefined();
+    expect(parseAttachmentPart('')).toBeUndefined();
+  });
+
+  it('refuses what cannot be an id', () => {
+    expect(() => parseAttachmentPart('x'.repeat(101))).toThrow();
+    expect(() => parseAttachmentPart(42)).toThrow();
   });
 });

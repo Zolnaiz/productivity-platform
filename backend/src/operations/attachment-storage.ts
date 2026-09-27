@@ -70,6 +70,20 @@ const isEnumValue = <T extends Record<string, string>>(values: T, value: unknown
   typeof value === 'string' && Object.values(values).includes(value);
 
 /** Validates the multipart fields, which arrive as strings and are not typed. */
+/**
+ * The part of a record a file shows, or none. An id from the record's own
+ * JSON - a checklist question's - so a short string rather than a UUID.
+ */
+export const parseAttachmentPart = (part: unknown): string | undefined => {
+  if (part === undefined || part === null || part === '') return undefined;
+
+  if (typeof part !== 'string' || !part.trim() || part.trim().length > 100) {
+    throw apiError(ErrorCode.ValidationFailed, 'part');
+  }
+
+  return part.trim();
+};
+
 export const parseAttachmentTarget = (ownerType: unknown, ownerId: unknown, kind: unknown) => {
   if (!isEnumValue(AttachmentOwner, ownerType)) {
     throw apiError(ErrorCode.ValidationFailed, 'ownerType');

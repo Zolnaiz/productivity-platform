@@ -171,7 +171,20 @@ describe('walking a checklist in the area it is about', () => {
 
     // The score on the page after a walk is the server's, not the one the
     // browser worked out — they agree today and would diverge silently.
-    await waitFor(() => expect(onRecorded).toHaveBeenCalledWith({ id: 'run-1', score: 62, createdAt: 'x' }));
+    await waitFor(() => expect(onRecorded).toHaveBeenCalledWith({ id: 'run-1', score: 62, createdAt: 'x' }, []));
+  });
+
+  it('names the questions the walk fell short on, for their own photographs', async () => {
+    const onRecorded = vi.fn();
+    serviceMocks.createAuditRun.mockResolvedValue({ id: 'run-1', score: 50 });
+
+    renderWalk({ onRecorded });
+    fireEvent.click(await screen.findByRole('button', { name: '2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Record the check' }));
+
+    await waitFor(() =>
+      expect(onRecorded).toHaveBeenCalledWith(expect.anything(), [{ id: 'q1', text: 'How clear is the aisle?' }]),
+    );
   });
 });
 

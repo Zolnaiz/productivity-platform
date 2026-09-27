@@ -14,6 +14,8 @@ export interface Attachment {
   ownerType: AttachmentOwner;
   ownerId: string;
   kind: AttachmentKind;
+  /** Which part of the record it shows - for an audit, the question. */
+  part?: string | null;
   fileName: string;
   mimeType: string;
   sizeBytes: number;
@@ -97,22 +99,31 @@ export const attachmentService = {
     return unwrapApiResponse(response.data);
   },
 
-  list: async (ownerType: AttachmentOwner, ownerId: string): Promise<Attachment[]> => {
+  /**
+   * A record's files. `part` narrows them: a question's id to that question's,
+   * `null` to the record-as-a-whole's, left out to all of them.
+   */
+  list: async (ownerType: AttachmentOwner, ownerId: string, part?: string | null): Promise<Attachment[]> => {
     if (isDemoMode()) {
-      return readDemo().filter((item) => item.ownerType === ownerType && item.ownerId === ownerId);
+      return readDemo().filter(
+        (item) =>
+          item.ownerType === ownerType &&
+          item.ownerId === ownerId &&
+          (part === undefined || (item.part ?? null) === part),
+      );
     }
 
     // The server wraps every answer as `{ success, data }`. Read raw, the list
     // was the envelope, and the photographs panel failed on every real page.
     const response = await api.get<Attachment[] | { data: Attachment[] }>('/attachments', {
-      params: { ownerType, ownerId },
+      params: { ownerType, ownerId, ...(part === undefined ? {} : { part: part ?? '' }) },
     });
     return unwrapApiResponse(response.data);
   },
 
   upload: async (
     file: File,
-    target: { ownerType: AttachmentOwner; ownerId: string; kind?: AttachmentKind },
+    target: { ownerType: AttachmentOwner; ownerId: string; kind?: AttachmentKind; part?: string | null },
     caption?: string,
   ): Promise<Attachment> => {
     if (isDemoMode()) {
@@ -121,6 +132,7 @@ export const attachmentService = {
         ownerType: target.ownerType,
         ownerId: target.ownerId,
         kind: target.kind ?? 'evidence',
+        part: target.part ?? null,
         fileName: file.name,
         mimeType: file.type,
         sizeBytes: file.size,
@@ -138,6 +150,7 @@ export const attachmentService = {
     form.append('ownerType', target.ownerType);
     form.append('ownerId', target.ownerId);
     if (target.kind) form.append('kind', target.kind);
+    if (target.part) form.append('part', target.part);
     if (caption) form.append('caption', caption);
 
     const response = await api.post<Attachment | { data: Attachment }>('/attachments', form);

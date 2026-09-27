@@ -225,10 +225,11 @@ could be built honestly.
 - A tag closed by its finished cleanup task now waits in the holding area
   under "cleared, nothing recorded about what happened", with the same two
   decisions as a held item, so the register can count it.
-- Attach photographs to a single audit answer. A walk can carry a picture now,
-  but it belongs to the whole run: a checklist of twelve questions with one
-  failing item cannot say which one the photograph is of. The attachment's
-  owner is the run, so this needs a second identifier on the row.
+- Photographs belong to a single audit answer when they need to: an
+  attachment carries a `part` (the question's id), and after a check the zone
+  page asks for a photograph of each question it fell short on as well as of
+  the check as a whole. The audit history still shows a run's photographs
+  together, without saying which question each is of.
 
 ## Next Frontend Work
 

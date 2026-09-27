@@ -21,6 +21,11 @@ interface PhotoEvidenceProps {
   kinds?: AttachmentKind[];
   /** Names the group for assistive technology when several appear on a page. */
   label?: string;
+  /**
+   * The part of the record the photographs are of - a checklist question.
+   * `null` for the record as a whole; left out, every photograph it has.
+   */
+  part?: string | null;
 }
 
 /**
@@ -35,6 +40,7 @@ const PhotoEvidence: React.FC<PhotoEvidenceProps> = ({
   ownerId,
   kinds = ['before', 'after'],
   label,
+  part,
 }) => {
   const { t } = useTranslation();
   const [items, setItems] = useState<Attachment[]>([]);
@@ -48,12 +54,12 @@ const PhotoEvidence: React.FC<PhotoEvidenceProps> = ({
 
   const load = useCallback(async () => {
     try {
-      setItems(await attachmentService.list(ownerType, ownerId));
+      setItems(await attachmentService.list(ownerType, ownerId, part));
       setError(null);
     } catch (loadError) {
       setError(apiErrorMessage(loadError, t));
     }
-  }, [ownerType, ownerId, t]);
+  }, [ownerType, ownerId, part, t]);
 
   useEffect(() => {
     void load();
@@ -141,7 +147,7 @@ const PhotoEvidence: React.FC<PhotoEvidenceProps> = ({
     setError(null);
 
     try {
-      await attachmentService.upload(file, { ownerType, ownerId, kind });
+      await attachmentService.upload(file, { ownerType, ownerId, kind, part });
       await load();
     } catch (uploadError) {
       setError(apiErrorMessage(uploadError, t));

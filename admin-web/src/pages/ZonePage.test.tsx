@@ -26,8 +26,8 @@ vi.mock('../services/fiveSLayout.service', () => ({
   component itself is stood in for here and tested where it lives.
 */
 vi.mock('../components/common/PhotoEvidence', () => ({
-  default: ({ ownerType, ownerId }: { ownerType: string; ownerId: string }) => (
-    <div data-testid="photo-evidence">{`${ownerType}:${ownerId}`}</div>
+  default: ({ ownerType, ownerId, part }: { ownerType: string; ownerId: string; part?: string | null }) => (
+    <div data-testid="photo-evidence">{`${ownerType}:${ownerId}${part ? `:${part}` : ''}`}</div>
   ),
 }));
 
@@ -284,6 +284,24 @@ describe('the page a zone label opens', () => {
       'textContent',
       'audit_run:run-1',
     );
+  });
+
+  it('asks for a photograph of each question the check fell short on', async () => {
+    renderZone();
+    await screen.findByText('A03 · Storage');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Walk the checklist' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'No' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Record the check' }));
+
+    // One for the failed question, one for the check as a whole.
+    await waitFor(() =>
+      expect(screen.getAllByTestId('photo-evidence').map((panel) => panel.textContent)).toEqual([
+        'audit_run:run-1:q1',
+        'audit_run:run-1',
+      ]),
+    );
+    expect(screen.getByText('Is the aisle clear?')).toBeTruthy();
   });
 
   it('does not offer a photograph to somebody who may not upload one', async () => {

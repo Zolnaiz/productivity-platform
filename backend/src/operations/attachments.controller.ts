@@ -19,7 +19,7 @@ import { Body } from '@nestjs/common';
 import type { Response } from 'express';
 import { AttachmentsService, UploadedAttachment } from './attachments.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
-import { MAX_ATTACHMENT_BYTES, parseAttachmentTarget } from './attachment-storage';
+import { MAX_ATTACHMENT_BYTES, parseAttachmentPart, parseAttachmentTarget } from './attachment-storage';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { RequirePermission } from '../shared/decorators/permissions.decorator';
 import { PermissionsGuard } from '../shared/guards/permissions.guard';
@@ -45,7 +45,10 @@ export class AttachmentsController {
     @Body() body: Record<string, unknown>,
     @Request() request: { user?: { id?: string; organizationId?: string } },
   ) {
-    const target = parseAttachmentTarget(body.ownerType, body.ownerId, body.kind);
+    const target = {
+      ...parseAttachmentTarget(body.ownerType, body.ownerId, body.kind),
+      part: parseAttachmentPart(body.part),
+    };
     const caption = typeof body.caption === 'string' ? body.caption : undefined;
 
     return this.attachments.upload(file, target, caption, request.user ?? {});
@@ -57,10 +60,14 @@ export class AttachmentsController {
     @Query('ownerType') ownerType: string,
     @Query('ownerId') ownerId: string,
     @Request() request: { user?: { id?: string; organizationId?: string } },
+    // Absent: every file of the record. Empty: the record as a whole only.
+    // A value: the files of that part.
+    @Query('part') part?: string,
   ) {
     const target = parseAttachmentTarget(ownerType, ownerId, undefined);
+    const only = part === undefined ? undefined : (parseAttachmentPart(part) ?? null);
 
-    return this.attachments.findForOwner(target.ownerType, target.ownerId, request.user ?? {});
+    return this.attachments.findForOwner(target.ownerType, target.ownerId, request.user ?? {}, only);
   }
 
   /**

@@ -78,6 +78,8 @@ const ZonePage: React.FC = () => {
    * belong to — and the person is still standing in the area.
    */
   const [recordedRunId, setRecordedRunId] = useState('');
+  /** What the check just recorded fell short on, each with its own photographs. */
+  const [shortfalls, setShortfalls] = useState<Array<{ id: string; text: string }>>([]);
   /**
    * The department answering for this area.
    *
@@ -198,7 +200,10 @@ const ZonePage: React.FC = () => {
    * what it wrote onto the zone — so this page and the floor plan agree
    * without either of them recomputing anything.
    */
-  const auditRecorded = (run: { id: string; score: number; createdAt?: string }) => {
+  const auditRecorded = (
+    run: { id: string; score: number; createdAt?: string },
+    fellShort: Array<{ id: string; text: string }> = [],
+  ) => {
     if (!plan || !zone) return;
 
     const lastAuditAt = (run.createdAt || new Date().toISOString()).slice(0, 10);
@@ -214,6 +219,7 @@ const ZonePage: React.FC = () => {
     setAuditing(false);
     setAuditMessage(t('zone.auditRecorded', { score: Number(run.score) || 0 }));
     setRecordedRunId(run.id);
+    setShortfalls(fellShort);
   };
 
   if (loading) {
@@ -444,12 +450,32 @@ const ZonePage: React.FC = () => {
 
         {recordedRunId && hasPermission('attachments:create') && (
           <div className="mt-3">
+            {/* A photograph of the question that failed, rather than of the
+                run: of twelve answers, the one a picture has to explain. */}
+            {shortfalls.length > 0 && (
+              <div className="mb-4 space-y-3">
+                <p className="text-sm text-gray-600 dark:text-gray-300">{t('zone.shortfallPhotoPrompt')}</p>
+                {shortfalls.map((question) => (
+                  <div key={question.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                    <p className="mb-2 text-sm font-medium text-gray-900 dark:text-white">{question.text}</p>
+                    <PhotoEvidence
+                      ownerType="audit_run"
+                      ownerId={recordedRunId}
+                      kinds={['evidence']}
+                      label={question.text}
+                      part={question.id}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
             <p className="mb-2 text-sm text-gray-600 dark:text-gray-300">{t('zone.auditPhotoPrompt')}</p>
             <PhotoEvidence
               ownerType="audit_run"
               ownerId={recordedRunId}
               kinds={['evidence']}
               label={t('zone.auditPhotoPrompt')}
+              part={null}
             />
           </div>
         )}

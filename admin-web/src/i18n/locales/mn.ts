@@ -886,6 +886,7 @@ const mn: Translations<typeof en> = {
   },
   zone: {
     auditPhotoPrompt: 'Харсан зүйлээ зургаар нэмнэ үү.',
+    shortfallPhotoPrompt: 'Шаардлага хангаагүй хэсгүүд - тус бүрийн зураг юуг өөрчлөхийг харуулна.',
     startAudit: 'Хяналтын хуудсаар шалгах',
     auditLoading: 'Хяналтын хуудсыг ачаалж байна...',
     auditNoTemplate: '5S хяналтын хуудас хараахан үүсгээгүй байна.',

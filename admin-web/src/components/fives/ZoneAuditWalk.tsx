@@ -11,7 +11,11 @@ interface ZoneAuditWalkProps {
   zone: FiveSZone;
   /** The signed-in person's role, which decides the layers they may record. */
   role?: string;
-  onRecorded: (run: AuditRun) => void;
+  /**
+   * The recorded run, and the questions it fell short on - what a photograph
+   * most needs to show.
+   */
+  onRecorded: (run: AuditRun, shortfalls: Array<{ id: string; text: string }>) => void;
   onClose: () => void;
 }
 
@@ -114,7 +118,16 @@ const ZoneAuditWalk: React.FC<ZoneAuditWalkProps> = ({ plan, zone, role, onRecor
         answers: answersForRun(template, answers),
       });
 
-      onRecorded(run);
+      onRecorded(
+        run,
+        template.questions
+          .filter((question) =>
+            question.type === 'score'
+              ? Number(answers[question.id] || 0) < (question.maxScore || 5)
+              : question.type === 'yes_no' && answers[question.id] !== 'yes',
+          )
+          .map((question) => ({ id: question.id, text: question.text })),
+      );
     } catch {
       // The same rule as the red tag: somebody who believes they have recorded
       // a check and has not is worse off than somebody who knows.

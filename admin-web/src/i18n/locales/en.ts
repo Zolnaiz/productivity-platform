@@ -898,6 +898,7 @@ const en = {
   },
   zone: {
     auditPhotoPrompt: 'Add a photograph of what you saw.',
+    shortfallPhotoPrompt: 'Where it fell short - a photograph of each shows what has to change.',
     startAudit: 'Walk the checklist',
     auditLoading: 'Loading the checklist...',
     auditNoTemplate: 'No 5S checklist has been set up yet.',

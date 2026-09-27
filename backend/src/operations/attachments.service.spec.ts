@@ -19,7 +19,12 @@ const createService = async () => {
     }),
     // Every condition given has to hold; one not given is not a condition.
     find: jest.fn(async ({ where }) =>
-      rows.filter((row) => Object.entries(where).every(([key, value]) => row[key] === value)),
+      rows.filter((row) =>
+        Object.entries(where).every(([key, value]: [string, any]) =>
+          // TypeORM's IsNull(): a column with nothing in it.
+          value?.type === 'isNull' ? row[key] == null : row[key] === value,
+        ),
+      ),
     ),
     findOne: jest.fn(async ({ where }) =>
       rows.find((row) => row.id === where.id && row.organizationId === where.organizationId) ?? null,
@@ -186,5 +191,29 @@ describe('checking the store', () => {
     const report = await service.checkStore(otherTenant);
 
     expect(report).toMatchObject({ checked: 0, missing: [] });
+  });
+});
+
+/**
+ * A checklist of twelve questions with one failing item has to be able to say
+ * which one a photograph is of.
+ */
+describe('a file of one part of its record', () => {
+  const run = { ownerType: AttachmentOwner.AUDIT_RUN, ownerId: 'run-1', kind: AttachmentKind.EVIDENCE };
+  const put = (service: AttachmentsService, part?: string) =>
+    service.upload({ originalname: 'p.jpg', buffer: jpeg(), size: 68 }, { ...run, part }, undefined, user);
+
+  it('keeps the part it was uploaded for, and lists by it', async () => {
+    const { service } = await createService();
+    await put(service);
+    await put(service, 'q-labels');
+    await put(service, 'q-floor');
+
+    expect((await service.findForOwner(run.ownerType, run.ownerId, user)).length).toBe(3);
+    expect((await service.findForOwner(run.ownerType, run.ownerId, user, 'q-labels')).map((row) => row.part)).toEqual([
+      'q-labels',
+    ]);
+    // The run as a whole: the files that belong to no one question.
+    expect((await service.findForOwner(run.ownerType, run.ownerId, user, null)).map((row) => row.part)).toEqual([null]);
   });
 });
