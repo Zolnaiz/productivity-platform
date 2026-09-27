@@ -50,6 +50,24 @@ export interface HeldItem {
  * An item with no `holdUntil` — held before these dates existed — sorts as due
  * now rather than never, so it is chased rather than forgotten.
  */
+/**
+ * Tags whose cleanup task was finished with nobody saying what became of the
+ * item.
+ *
+ * Finishing the task closes the tag - the work happened - but whether the
+ * item was scrapped or put back is a decision, and the task does not know it.
+ * Left unasked, the register counts neither, and the disposal rate a 5S
+ * programme reports on is made of the tags somebody happened to go back to.
+ */
+export const unrecordedClosures = (zones: FiveSZone[]) =>
+  zones
+    .flatMap((zone) =>
+      (zone.redTags || [])
+        .filter((redTag) => Boolean(redTag.closedAt) && (redTag.status === 'open' || redTag.status === 'review'))
+        .map((redTag) => ({ zone, redTag })),
+    )
+    .sort((a, b) => String(a.redTag.closedAt).localeCompare(String(b.redTag.closedAt)));
+
 export const heldItems = (zones: FiveSZone[], today = formatLocalDate()): HeldItem[] =>
   zones
     .flatMap((zone) => (zone.redTags || []).filter(isHeld).map((redTag) => ({ zone, redTag })))

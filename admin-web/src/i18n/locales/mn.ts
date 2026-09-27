@@ -754,6 +754,10 @@ const mn: Translations<typeof en> = {
     overdueCount: '{{count}} шийдвэр хүлээж байна',
     returnItem: 'Талбай руу нь буцаах',
     disposeItem: 'Устгах',
+    unrecordedTitle_one: '{{count}} зүйл цэвэрлэгдсэн, юу болсон нь бүртгэгдээгүй',
+    unrecordedTitle_other: '{{count}} зүйл цэвэрлэгдсэн, юу болсон нь бүртгэгдээгүй',
+    unrecordedHint: 'Цэвэрлэх ажил нь дууссан. Зүйл бүрийг буцаасан эсвэл устгасныг тэмдэглэвэл бүртгэлд тоологдоно.',
+    clearedOn: 'Цэвэрлэсэн: {{date}}',
   },
   zoneHistory: {
     plan: 'Зургийн огноо',

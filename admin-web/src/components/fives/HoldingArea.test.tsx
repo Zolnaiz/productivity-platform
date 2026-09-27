@@ -130,3 +130,26 @@ describe('HoldingArea', () => {
     expect(onSelectZone).toHaveBeenCalledWith('zone-1');
   });
 });
+
+/**
+ * Finishing a tag's cleanup task closes it without saying what became of the
+ * item. Those wait here for the decision, or the register counts neither.
+ */
+describe('tags cleared without a recorded decision', () => {
+  it('asks what happened to an item whose cleanup task was finished', async () => {
+    const { onDecide } = renderArea([zone([tag({ closedAt: '2026-09-20T03:00:00.000Z' })])]);
+
+    expect(screen.getByText('1 cleared, nothing recorded about what happened')).toBeTruthy();
+    expect(screen.getByText('Cleared 2026-09-20')).toBeTruthy();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dispose of it' }));
+
+    expect(onDecide).toHaveBeenCalledWith('zone-1', 'red-tag-1', 'disposed');
+  });
+
+  it('leaves out a tag whose end is already recorded', () => {
+    renderArea([zone([tag({ closedAt: '2026-09-20', status: 'returned' })])]);
+
+    expect(screen.queryByText(/nothing recorded about what happened/)).toBeNull();
+  });
+});

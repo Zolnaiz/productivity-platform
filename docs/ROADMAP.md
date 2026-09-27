@@ -222,9 +222,9 @@ could be built honestly.
   finishing it moves the record to management review. The register is read
   again when its tab comes back into view, so a page left open does not write
   the old status back; two people editing the same row at once still race.
-- Record the disposition when a tag is closed. `closedAt` is set automatically;
-  whether the item was disposed of or returned still has to be filed by hand,
-  and nothing prompts for it.
+- A tag closed by its finished cleanup task now waits in the holding area
+  under "cleared, nothing recorded about what happened", with the same two
+  decisions as a held item, so the register can count it.
 - Attach photographs to a single audit answer. A walk can carry a picture now,
   but it belongs to the whole run: a checklist of twelve questions with one
   failing item cannot say which one the photograph is of. The attachment's

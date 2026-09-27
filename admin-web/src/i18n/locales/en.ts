@@ -759,6 +759,10 @@ const en = {
     overdueCount: '{{count}} awaiting a decision',
     returnItem: 'Return to the area',
     disposeItem: 'Dispose of it',
+    unrecordedTitle_one: '{{count}} cleared, nothing recorded about what happened',
+    unrecordedTitle_other: '{{count}} cleared, nothing recorded about what happened',
+    unrecordedHint: 'Their cleanup task was finished. Say whether each item was put back or disposed of, so the register counts it.',
+    clearedOn: 'Cleared {{date}}',
   },
   zoneHistory: {
     plan: 'Plan of',
