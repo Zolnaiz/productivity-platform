@@ -268,7 +268,7 @@ const ResponsesPage: React.FC = () => {
 
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
               <div className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                Current score
+                {t("responses.currentScore")}
               </div>
               <div className="mt-1 text-2xl font-semibold text-blue-700 dark:text-blue-300">
                 {draftScore}%
@@ -340,7 +340,7 @@ const ResponsesPage: React.FC = () => {
             </div>
 
             <Button fullWidth disabled={!selectedTemplate || loading} type="submit">
-              Submit response
+              {t("responses.submitResponse")}
             </Button>
           </form>
         </Card>

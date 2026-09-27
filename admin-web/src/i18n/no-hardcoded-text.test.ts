@@ -43,4 +43,51 @@ describe('text in the screens', () => {
 
     expect({ writtenInTheSource: offenders }).toEqual({ writtenInTheSource: [] });
   });
+
+  /*
+    English is harder to tell from code than Cyrillic, so this looks where a
+    screen's words go: text standing between tags, on its own line after one
+    or inline as `>Due {date}<`. The 5S editor had two dozen such labels -
+    "Owner", "Disposition", "No areas match the current filters." - that read
+    in English on a Mongolian page and that the test above could not see.
+  */
+  it('has no English written straight into a screen’s markup', () => {
+    // The product's name reads the same in both languages.
+    const names = new Set(['Productivity Platform']);
+
+    const offenders = sources(root)
+      .filter((path) => path.endsWith('.tsx'))
+      .flatMap((path) => {
+        const lines = readFileSync(path, 'utf-8').split(/\r?\n/);
+        const found: string[] = [];
+        let inComment = false;
+
+        lines.forEach((line, index) => {
+          const text = line.trim();
+          if (inComment) {
+            if (text.includes('*/')) inComment = false;
+            return;
+          }
+          if (text.startsWith('{/*') || text.startsWith('/*')) {
+            inComment = !text.includes('*/');
+            return;
+          }
+          if (isComment(line)) return;
+
+          const before = lines.slice(0, index).reverse().find((previous) => previous.trim()) ?? '';
+          const standsAlone =
+            before.trim().endsWith('>') &&
+            !/[;=]/.test(text) &&
+            /^[A-Z][A-Za-z0-9 ,'’().:%&!?/-]*[a-z][A-Za-z0-9 ,'’().:%&!?/-]*$/.test(text);
+          const inline = />([A-Z][a-z]+(?: [a-zA-Z]+)+[.!?]?)</.exec(line)?.[1] ?? (/>[A-Z][a-z]+ \{/.test(line) ? text : '');
+          const words = standsAlone ? text : inline;
+
+          if (words && !names.has(words)) found.push(`${relative(root, path).replace(/\\/g, '/')}:${index + 1}`);
+        });
+
+        return found;
+      });
+
+    expect({ writtenInTheMarkup: offenders }).toEqual({ writtenInTheMarkup: [] });
+  });
 });

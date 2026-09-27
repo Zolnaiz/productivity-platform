@@ -3119,7 +3119,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             {t('fiveS.ui.clear')}
           </Button>
           <label className="block text-sm text-gray-600 dark:text-gray-400">
-            Blueprint opacity
+            {t('fiveS.inspector.blueprintOpacity')}
             <input
               className="mt-2 w-full accent-blue-500"
               min={0.15}
@@ -3250,7 +3250,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
 
         <div className="grid gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700 md:grid-cols-[1fr_1fr_auto]">
           <label className="block text-sm text-gray-600 dark:text-gray-400">
-            Area status
+            {t('fiveS.inspector.areaStatus')}
             <select className={fieldClass} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as ZoneStatusFilter)}>
               {visibleZoneStatusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -3260,7 +3260,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             </select>
           </label>
           <label className="block text-sm text-gray-600 dark:text-gray-400">
-            Owner
+            {t('fiveS.inspector.owner')}
             <select className={fieldClass} value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)}>
               <option value="all">{t('fiveS.ui.allOwners')}</option>
               <option value="unassigned">{t('fiveS.ui.unassigned')}</option>
@@ -3346,7 +3346,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   <div className="text-sm text-gray-800 dark:text-gray-100">{item.nextAction}</div>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                     <span>{t(`fiveS.stage.${stageKeys[item.zone.stage]}`)}</span>
-                    <span>Due {item.dueDate}</span>
+                    <span>{t('fiveS.inspector.due', { date: item.dueDate })}</span>
                     <span className={item.priority === 'high' ? 'font-semibold text-red-600' : 'font-semibold text-amber-600'}>
                       {item.priority}
                     </span>
@@ -3383,7 +3383,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           </div>
           {rolloutQueue.length > 6 && (
             <div className="border-t border-gray-200 px-4 py-2 text-xs text-gray-500 dark:border-gray-700">
-              Showing first 6 actions. Narrow the filters or export the register to review the full queue.
+              {t('fiveS.inspector.firstActions')}
             </div>
           )}
         </div>
@@ -4913,7 +4913,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 )}
 
                 <label className="block text-sm text-gray-600 dark:text-gray-400">
-                  Zone name
+                  {t('fiveS.inspector.zoneName')}
                   <input
                     className={fieldClass}
                     value={selectedZone.name}
@@ -4922,7 +4922,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 </label>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block text-sm text-gray-600 dark:text-gray-400">
-                    Code
+                    {t('fiveS.inspector.code')}
                     <input
                       className={fieldClass}
                       value={selectedZone.code}
@@ -4930,7 +4930,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     />
                   </label>
                   <div className="block text-sm text-gray-600 dark:text-gray-400">
-                    Color
+                    {t('fiveS.inspector.color')}
                     <div className="mt-1 grid grid-cols-4 gap-2">
                       {zoneColorPresets.map((preset) => (
                         <button
@@ -5077,7 +5077,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   </label>
                   {showAuditControls && (
                     <label className="block text-sm text-gray-600 dark:text-gray-400">
-                      Audit cycle
+                      {t('fiveS.inspector.auditCycle')}
                       <select
                         className={fieldClass}
                         value={selectedZone.auditFrequency}
@@ -5145,7 +5145,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       </div>
                     </div>
                     <label className="block text-sm text-gray-600 dark:text-gray-400">
-                      Last audit date
+                      {t('fiveS.inspector.lastAuditDate')}
                       <input
                         className={fieldClass}
                         type="date"
@@ -5157,7 +5157,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 )}
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block text-sm text-gray-600 dark:text-gray-400">
-                    Open red tags
+                    {t('fiveS.inspector.openRedTags')}
                     <input
                       className={fieldClass}
                       type="number"
@@ -5166,7 +5166,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     />
                   </label>
                   <label className="block text-sm text-gray-600 dark:text-gray-400">
-                    Last cleaned
+                    {t('fiveS.inspector.lastCleaned')}
                     <input
                       className={fieldClass}
                       type="date"
@@ -5202,7 +5202,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                           </button>
                         </div>
                         <label className="block text-xs text-gray-600 dark:text-gray-400">
-                          Item
+                          {t('fiveS.inspector.item')}
                           <input
                             className={fieldClass}
                             value={redTag.title}
@@ -5211,7 +5211,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                         </label>
                         <div className="mt-2 grid gap-2 sm:grid-cols-2">
                           <label className="block text-xs text-gray-600 dark:text-gray-400">
-                            Status
+                            {t('fiveS.inspector.status')}
                             <select
                               className={fieldClass}
                               value={redTag.status}
@@ -5227,7 +5227,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                             </select>
                           </label>
                           <label className="block text-xs text-gray-600 dark:text-gray-400">
-                            Due date
+                            {t('fiveS.inspector.dueDate')}
                             <input
                               className={fieldClass}
                               type="date"
@@ -5237,7 +5237,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                           </label>
                         </div>
                         <label className="mt-2 block text-xs text-gray-600 dark:text-gray-400">
-                          Disposition
+                          {t('fiveS.inspector.disposition')}
                           <input
                             className={fieldClass}
                             value={redTag.disposition}
@@ -5255,18 +5255,18 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                             label={t('photos.evidenceLabel')}
                           />
                         </div>
-                        {redTag.closedAt && <div className="mt-2 text-xs text-gray-500">Closed {redTag.closedAt}</div>}
+                        {redTag.closedAt && <div className="mt-2 text-xs text-gray-500">{t('fiveS.inspector.closed', { date: redTag.closedAt })}</div>}
                       </div>
                     ))}
                     {!selectedZone.redTags?.length && (
                       <div className="rounded-md border border-dashed border-gray-300 px-3 py-4 text-sm text-gray-500 dark:border-gray-700">
-                        No detailed red-tag items yet.
+                        {t('fiveS.inspector.noRedTagItems')}
                       </div>
                     )}
                   </div>
                 </div>
                 <label className="block text-sm text-gray-600 dark:text-gray-400">
-                  What is stored here
+                  {t('fiveS.inspector.contents')}
                   <textarea
                     className={`${fieldClass} min-h-[72px]`}
                     value={selectedZone.contents}
@@ -5328,7 +5328,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   />
                 </label>
                 <label className="block text-sm text-gray-600 dark:text-gray-400">
-                  Label note
+                  {t('fiveS.inspector.labelNote')}
                   <input
                     className={fieldClass}
                     value={selectedZone.labelText}
@@ -5377,7 +5377,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 </div>
 
                 <label className="block text-sm text-gray-600 dark:text-gray-400">
-                  Label
+                  {t('fiveS.inspector.label')}
                   <input
                     className={fieldClass}
                     value={selectedObject.label}
@@ -5483,7 +5483,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             ) : (
               <div className="flex min-h-[240px] flex-col items-center justify-center text-center text-sm text-gray-500">
                 <MousePointer2 className="mb-3 h-8 w-8 text-gray-400" />
-                Select or add a zone.
+                {t('fiveS.inspector.selectZone')}
               </div>
             )}
           </div>
@@ -5607,7 +5607,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 {!redTagRegister.length && (
                   <tr>
                     <td className="px-4 py-6 text-sm text-gray-500" colSpan={6}>
-                      No detailed red-tag items yet.
+                      {t('fiveS.inspector.noRedTagItems')}
                     </td>
                   </tr>
                 )}
@@ -5616,7 +5616,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           </div>
           {redTagRegister.length > 8 && (
             <div className="border-t border-gray-200 px-4 py-2 text-xs text-gray-500 dark:border-gray-700">
-              Showing first 8 red-tag items. Export the register to review the full list.
+              {t('fiveS.inspector.firstRedTags')}
             </div>
           )}
         </div>
@@ -5841,7 +5841,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 {!filteredZones.length && (
                   <tr>
                     <td className="px-4 py-6 text-sm text-gray-500" colSpan={showAuditControls ? 8 : 6}>
-                      No areas match the current filters.
+                      {t('fiveS.inspector.noMatchingAreas')}
                     </td>
                   </tr>
                 )}

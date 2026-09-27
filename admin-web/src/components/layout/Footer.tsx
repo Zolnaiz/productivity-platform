@@ -1,34 +1,21 @@
 import React from 'react';
 
+/**
+ * The product's name and the year.
+ *
+ * It carried links to privacy, terms, help and contact pages that do not
+ * exist - four ways off every page to nowhere - and a version and date typed
+ * in by hand in June that nothing kept current. They come back when there is
+ * something for them to point at.
+ */
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
     <footer className="border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
       <div className="px-6 py-4">
-        <div className="flex flex-col items-center justify-between gap-3 md:flex-row">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            © {currentYear} Productivity Platform. All rights reserved.
-          </p>
-
-          <div className="flex flex-wrap justify-center gap-4">
-            <a className="text-sm text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400" href="/privacy">
-              Privacy
-            </a>
-            <a className="text-sm text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400" href="/terms">
-              Terms
-            </a>
-            <a className="text-sm text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400" href="/help">
-              Help
-            </a>
-            <a className="text-sm text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400" href="/contact">
-              Contact
-            </a>
-          </div>
-        </div>
-
-        <p className="mt-3 text-center text-xs text-gray-500 md:text-left">
-          Version v1.0.0 | Last updated: 2026-06-12
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400 md:text-left">
+          © {currentYear} Productivity Platform
         </p>
       </div>
     </footer>
