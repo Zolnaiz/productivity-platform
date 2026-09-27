@@ -8,6 +8,7 @@ import { Department } from './entities/department.entity';
 import { User } from '../users/entities/user.entity';
 import { assigneeForTier } from './tier-assignee';
 import { TaskSource } from './entities/task.entity';
+import { todayIn } from './task-completion';
 import { OperationsService } from './operations.service';
 import { HeldRedTag, holdTaskSourceId, isHoldExpired, SchedulableZone } from './audit-schedule';
 import {
@@ -87,7 +88,7 @@ export class AuditSchedulerService {
       return;
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIn();
     const layouts = await this.layouts.find();
     let due = 0;
     let expired = 0;

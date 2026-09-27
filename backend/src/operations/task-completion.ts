@@ -28,6 +28,15 @@ export const organizationTimeZone = () => process.env.APP_TIME_ZONE || 'Asia/Ula
 export const dayIn = (timeZone: string, moment: Date) =>
   new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(moment);
 
+/**
+ * Today, on the organization's calendar.
+ *
+ * What the server fills in when a client says nothing: a work log's day, a
+ * clock entry's, the day an area was cleaned. Taken in UTC, anything done in
+ * Ulaanbaatar before eight in the morning was filed under yesterday.
+ */
+export const todayIn = (timeZone = organizationTimeZone(), moment = new Date()) => dayIn(timeZone, moment);
+
 const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
 
 /**

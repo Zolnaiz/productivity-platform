@@ -1,3 +1,4 @@
+import { todayIn } from './task-completion';
 import { Logger } from '@nestjs/common';
 import { AuditSchedulerService } from './audit-scheduler.service';
 import { TaskSource } from './entities/task.entity';
@@ -80,7 +81,7 @@ describe('the daily audit scheduler', () => {
   });
 
   it('runs the layers on their own clocks', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIn();
     // Checked by the operator today; the supervisor and manager are still owed.
     const { service, operations } = createService([
       {
@@ -95,7 +96,7 @@ describe('the daily audit scheduler', () => {
   });
 
   it('leaves a zone alone when every layer is up to date', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIn();
     const { service, operations } = createService([
       {
         organizationId: 'org-1',
@@ -216,7 +217,7 @@ describe('chasing expired red-tag holds', () => {
 
   afterEach(() => jest.restoreAllMocks());
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIn();
   const heldZone = (redTags: Array<Record<string, unknown>>) => ({
     ...zone({ lastAuditAt: today, auditFrequency: 'monthly' }),
     redTags,

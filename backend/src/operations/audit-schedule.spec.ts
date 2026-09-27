@@ -1,3 +1,4 @@
+import { todayIn } from './task-completion';
 import {
   auditDueDate,
   auditTaskSourceId,
@@ -19,8 +20,14 @@ describe('toCalendarDay', () => {
   it('reads both shapes the field arrives in', () => {
     // Seeded plans hold a plain date; the server writes a timestamp.
     expect(toCalendarDay('2026-09-01')).toBe('2026-09-01');
-    expect(toCalendarDay('2026-09-01T16:02:07.081Z')).toBe('2026-09-01');
-    expect(toCalendarDay(new Date('2026-09-01T16:02:07.081Z'))).toBe('2026-09-01');
+    expect(toCalendarDay('2026-09-01T03:02:07.081Z')).toBe('2026-09-01');
+    expect(toCalendarDay(new Date('2026-09-01T03:02:07.081Z'))).toBe('2026-09-01');
+  });
+
+  it('reads a moment on the organization’s calendar, not UTC’s', () => {
+    // 16:02 UTC is two minutes past midnight in Ulaanbaatar: the next day.
+    expect(toCalendarDay('2026-09-01T16:02:07.081Z')).toBe(todayIn(undefined, new Date('2026-09-01T16:02:07.081Z')));
+    expect(toCalendarDay('2026-09-01T16:02:07.081Z')).toBe('2026-09-02');
   });
 });
 

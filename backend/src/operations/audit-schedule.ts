@@ -12,6 +12,8 @@
  * happens, while the other only decides what is drawn.
  */
 
+import { todayIn } from './task-completion';
+
 export type AuditFrequency = 'daily' | 'weekly' | 'monthly';
 
 export const auditFrequencyDays: Record<AuditFrequency, number> = {
@@ -20,9 +22,20 @@ export const auditFrequencyDays: Record<AuditFrequency, number> = {
   monthly: 30,
 };
 
-/** A calendar day as YYYY-MM-DD, from a date or an ISO timestamp. */
-export const toCalendarDay = (value: string | Date): string =>
-  value instanceof Date ? value.toISOString().slice(0, 10) : value.slice(0, 10);
+/**
+ * A calendar day as YYYY-MM-DD, from a date or an ISO timestamp.
+ *
+ * A moment is read on the organization's calendar: an audit recorded at seven
+ * in the morning in Ulaanbaatar was the previous day in UTC, and its next one
+ * fell due a day early. A bare date is already a day and is left alone.
+ */
+export const toCalendarDay = (value: string | Date): string => {
+  if (value instanceof Date) return todayIn(undefined, value);
+  if (value.length <= 10) return value;
+
+  const moment = new Date(value);
+  return Number.isNaN(moment.getTime()) ? value.slice(0, 10) : todayIn(undefined, moment);
+};
 
 export interface SchedulableZone {
   id?: string;

@@ -1,3 +1,4 @@
+import { todayIn } from './task-completion';
 import { UnauthorizedException } from '@nestjs/common';
 import { OperationsService } from './operations.service';
 
@@ -828,7 +829,7 @@ describe('OperationsService organization scoping', () => {
 
       const result = await service.markZoneCleaned('l1', 'z1', { id: 'u3', organizationId: 'org-1' });
 
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayIn();
       expect(result).toEqual({ zoneId: 'z1', lastCleanedAt: today });
       expect(repositories.fiveSLayouts.save.mock.calls[0][0].zones[0].lastCleanedAt).toBe(today);
     });

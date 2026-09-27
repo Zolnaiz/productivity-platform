@@ -70,7 +70,8 @@ describe('tierDueDate', () => {
   });
 
   it('accepts the timestamp the server writes', () => {
-    const audited = zone({ '2': { lastAuditAt: '2026-09-01T16:02:07.081Z' } });
+    // Eleven in the morning in Ulaanbaatar, so the same day on either calendar.
+    const audited = zone({ '2': { lastAuditAt: '2026-09-01T03:02:07.081Z' } });
 
     expect(tierDueDate(audited, tier())).toBe('2026-09-08');
   });

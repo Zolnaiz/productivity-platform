@@ -23,7 +23,7 @@ import { projectProgressPercent, sumRecordedHours } from './monthly-people';
 import { buildMonthlyReport, MonthRecords, OrganizationRecords, selectMonthRecords } from './monthly-report';
 import { NotificationsService } from './notifications.service';
 import { noteAuditBefore } from '../audit/audit-context';
-import { dayIn, organizationTimeZone, stampCompletion, withoutCompletionDate } from './task-completion';
+import { dayIn, organizationTimeZone, stampCompletion, todayIn, withoutCompletionDate } from './task-completion';
 
 type CurrentUser = {
   id?: string;
@@ -527,14 +527,14 @@ export class OperationsService {
       ...payload,
       organizationId: this.resolveOrganizationId(user, payload.organizationId),
       userId: user?.id,
-      logDate: payload.logDate || new Date().toISOString().slice(0, 10),
+      logDate: payload.logDate || todayIn(),
     });
     return this.workLogs.save(log);
   }
 
   async createDailyWorkLog(payload: Partial<WorkLog>, user: CurrentUser) {
     const organizationId = this.resolveOrganizationId(user, payload.organizationId);
-    const logDate = payload.logDate || new Date().toISOString().slice(0, 10);
+    const logDate = payload.logDate || todayIn();
 
     return this.workLogs.manager.transaction(async (manager) => {
       const workLogs = manager.getRepository(WorkLog);
@@ -576,7 +576,7 @@ export class OperationsService {
       ...payload,
       organizationId: this.resolveOrganizationId(user, payload.organizationId),
       userId: user?.id,
-      workDate: payload.workDate || new Date().toISOString().slice(0, 10),
+      workDate: payload.workDate || todayIn(),
     });
     return this.timeEntries.save(entry);
   }
@@ -596,7 +596,7 @@ export class OperationsService {
       ...payload,
       organizationId: this.resolveOrganizationId(user, payload.organizationId),
       userId: user?.id || payload.userId,
-      date: payload.date || new Date().toISOString().slice(0, 10),
+      date: payload.date || todayIn(),
       completed: payload.completed ?? false,
     });
     return this.dailyGoals.save(goal);
@@ -732,7 +732,7 @@ export class OperationsService {
       throw apiError(ErrorCode.ResourceNotFound, 'zone');
     }
 
-    const lastCleanedAt = new Date().toISOString().slice(0, 10);
+    const lastCleanedAt = todayIn();
 
     layout.zones = (layout.zones ?? []).map((zone) =>
       zone.id === zoneId ? { ...zone, lastCleanedAt } : zone,
@@ -882,7 +882,7 @@ export class OperationsService {
    * would be an odd way to protect it.
    */
   private async keepLayoutVersion(layout: FiveSLayout, user: CurrentUser, label?: string) {
-    const takenOn = new Date().toISOString().slice(0, 10);
+    const takenOn = todayIn();
 
     try {
       const already = await this.layoutVersions.findOne({
@@ -1125,13 +1125,13 @@ export class OperationsService {
         titleKey: 'raised.auditFollowUp',
         titleParams: { place },
         description: [
-          `The audit on ${(run.createdAt ?? new Date()).toISOString().slice(0, 10)} scored ${score}%.`,
+          `The audit on ${todayIn(undefined, run.createdAt ?? new Date())} scored ${score}%.`,
           `The standard for this area is ${PASSING_SCORE}%.`,
           'Bring the area back to its standard; the next audit verifies it.',
         ].join('\n'),
         descriptionKey: 'raised.auditFollowUpBody',
         descriptionParams: {
-          date: (run.createdAt ?? new Date()).toISOString().slice(0, 10),
+          date: todayIn(undefined, run.createdAt ?? new Date()),
           score,
           standard: PASSING_SCORE,
         },
@@ -1270,7 +1270,7 @@ export class OperationsService {
     const expense = this.expenses.create({
       ...payload,
       organizationId: this.resolveOrganizationId(user, payload.organizationId),
-      expenseDate: payload.expenseDate || new Date().toISOString().slice(0, 10),
+      expenseDate: payload.expenseDate || todayIn(),
     });
     return this.expenses.save(expense);
   }
