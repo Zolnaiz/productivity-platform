@@ -166,6 +166,26 @@ class FiveSZoneDto {
   @IsOptional()
   @IsString()
   lastCleanedAt?: string;
+
+  /*
+    Written onto a zone by the server when an audit is recorded - the first
+    score, and each layer's clock - and sent back by the editor with the rest
+    of the zone. Refused as unknown, they made every save of an audited plan
+    fail with a 400, so the floor plan could not be changed at all once an
+    area had been checked. What they say is the server's to keep: the save
+    merges them rather than taking the editor's copy.
+  */
+  @IsOptional()
+  @IsNumber()
+  baselineScore?: number;
+
+  @IsOptional()
+  @IsString()
+  baselineAt?: string;
+
+  @IsOptional()
+  @IsObject()
+  tierAudits?: Record<string, unknown>;
 }
 
 export const FLOOR_PLAN_OBJECT_TYPES = [
@@ -569,6 +589,14 @@ export class CreateFiveSLayoutDto extends OrganizationScopedDto {
 export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
   @IsString()
   name: string;
+
+  /**
+   * When the plan being saved was read. What the floor wrote since - a red tag
+   * raised from a phone, above all - is kept rather than saved over.
+   */
+  @IsOptional()
+  @IsDateString()
+  baseUpdatedAt?: string;
 
   @IsString()
   site: string;

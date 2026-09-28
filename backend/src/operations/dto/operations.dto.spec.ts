@@ -79,6 +79,49 @@ describe('Operations DTO validation', () => {
     expect(errors.some((error) => error.property === 'date')).toBe(true);
   });
 
+  it('takes back an audited zone as the server wrote it', async () => {
+    // Recording an audit writes the first score and each layer's clock onto
+    // the zone. The editor sends the zone back whole, and with these refused
+    // as unknown, no audited plan could be saved at all.
+    const dto = plainToInstance(UpsertFiveSLayoutDto, {
+      name: 'Office map',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      backgroundImage: '',
+      backgroundOpacity: 0.5,
+      showGrid: true,
+      baseUpdatedAt: '2026-09-28T01:40:00.000Z',
+      zones: [
+        {
+          id: 'zone-1',
+          code: 'A01',
+          name: 'Reception',
+          color: '#38bdf8',
+          x: 10,
+          y: 20,
+          width: 100,
+          height: 80,
+          contents: '',
+          standard: '',
+          labelText: '',
+          stage: 'sort',
+          auditFrequency: 'weekly',
+          lastAuditScore: 80,
+          lastAuditAt: '2026-09-28T01:00:00.000Z',
+          baselineScore: 40,
+          baselineAt: '2026-09-20T01:00:00.000Z',
+          tierAudits: { '1': { lastAuditAt: '2026-09-28T01:00:00.000Z', lastAuditScore: 80 } },
+        },
+      ],
+      objects: [],
+    });
+
+    // The application's own validation settings, which is where it failed.
+    const errors = await validate(dto, { whitelist: true, forbidNonWhitelisted: true });
+
+    expect(errors).toEqual([]);
+  });
+
   it('validates nested 5S layout zones and floorplan objects', async () => {
     const dto = plainToInstance(UpsertFiveSLayoutDto, {
       name: 'Office map',
