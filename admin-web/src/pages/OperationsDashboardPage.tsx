@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import Card from '../components/common/Card';
 import KpiCard from '../components/widgets/KpiCard';
 import MyDayCard from '../components/widgets/MyDayCard';
+import QuickActions from '../components/widgets/QuickActions';
+import { runsOthersWork } from '../components/layout/navigation';
+import { useAuth } from '../contexts/AuthContext';
 import { actionText } from '../components/common/actionText';
 import { actionService } from '../services/action.service';
 import { operationsService } from '../services/operations.service';
@@ -17,8 +20,18 @@ const projectStatusKey = (status: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join('')}`;
 
+/** Morning, afternoon or evening, by the clock of whoever is reading. */
+const greetingKey = (hour: number) => (hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening');
+
 const OperationsDashboardPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
+  // The organization's totals answer a manager's question. Somebody on the
+  // floor opens this page to see their own day, and the figures only push it
+  // down the screen.
+  const manager = runsOthersWork(user?.roles || []);
+  const now = new Date();
+  const firstName = (user?.name || '').split(' ')[0];
   const [summary, setSummary] = useState<OperationsSummary | null>(null);
   const [actions, setActions] = useState<ActionItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,9 +69,24 @@ const OperationsDashboardPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('dashboard.title')}</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('dashboard.subtitle')}</p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          {firstName
+            ? t(`dashboard.greeting.${greetingKey(now.getHours())}`, { name: firstName })
+            : t('dashboard.title')}
+        </h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          {/* Worded here rather than by the browser, which has no Mongolian
+              month or day names and printed the date in English. */}
+          {t('dashboard.date', {
+            weekday: t(`dashboard.weekday.${now.getDay()}`),
+            year: now.getFullYear(),
+            month: i18n.language === 'mn' ? now.getMonth() + 1 : now.toLocaleDateString('en-GB', { month: 'long' }),
+            day: now.getDate(),
+          })}
+        </p>
       </div>
+
+      <QuickActions />
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
@@ -74,7 +102,8 @@ const OperationsDashboardPage: React.FC = () => {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      {manager && (
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5" data-testid="organization-figures">
         <KpiCard title={t('dashboard.projects')} value={summary?.totals.projects || 0} description={t('dashboard.trackedProjects')} />
         <KpiCard title={t('dashboard.tasks')} value={summary?.totals.tasks || 0} description={t('dashboard.totalWorkItems')} />
         <KpiCard
@@ -91,6 +120,7 @@ const OperationsDashboardPage: React.FC = () => {
           description={t('dashboard.auditRunsCount', { count: summary?.totals.auditRuns || 0 })}
         />
       </div>
+      )}
 
       <Card
         title={`${t('dashboard.actionCenter')} (${actions.length})`}
@@ -120,6 +150,7 @@ const OperationsDashboardPage: React.FC = () => {
         </div>
       </Card>
 
+      {manager && (
       <div className="grid gap-6 lg:grid-cols-3">
         <Card title={t('dashboard.recentProjects')}>
           <div className="space-y-3">
@@ -181,6 +212,7 @@ const OperationsDashboardPage: React.FC = () => {
           </div>
         </Card>
       </div>
+      )}
     </div>
   );
 };

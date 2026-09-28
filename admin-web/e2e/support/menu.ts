@@ -17,6 +17,10 @@ export const everyMenuPage = async (page: Page): Promise<string[]> => {
   const pages = new Set(sections);
   for (const section of sections) {
     await page.goto(section);
+    // The menu is drawn once the signed-in person has loaded; on a real
+    // server that is after the page itself.
+    await menu.getByRole('link').first().waitFor();
+    await page.waitForLoadState('networkidle');
     const tabs = page.getByTestId('section-tabs');
     if (await tabs.count()) {
       for (const tab of await tabs.getByRole('link').evaluateAll(hrefs)) pages.add(tab);

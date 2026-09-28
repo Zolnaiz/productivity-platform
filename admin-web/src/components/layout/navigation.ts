@@ -29,6 +29,9 @@ export interface NavSection {
 const adminRoles = ['admin', 'super_admin'];
 // Whoever runs other people's work.
 const managerRoles = ['manager', 'admin', 'organization_admin', 'super_admin'];
+
+/** Whether this person runs other people's work, and so reads the organization's figures. */
+export const runsOthersWork = (userRoles: readonly string[]) => managerRoles.some((role) => userRoles.includes(role));
 const ownerRoles = ['super_admin'];
 
 export const sections: NavSection[] = [
