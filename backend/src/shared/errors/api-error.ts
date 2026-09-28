@@ -5,6 +5,8 @@ import {
   HttpException,
   InternalServerErrorException,
   NotFoundException,
+  ServiceUnavailableException,
+  BadGatewayException,
   UnauthorizedException,
 } from '@nestjs/common';
 
@@ -40,6 +42,8 @@ export const ErrorCode = {
   MetricsDisabled: 'METRICS_DISABLED',
   ReportMonthNotEnded: 'REPORT_MONTH_NOT_ENDED',
   RegisterChanged: 'REGISTER_CHANGED',
+  AiNotConfigured: 'AI_NOT_CONFIGURED',
+  AiFailed: 'AI_FAILED',
   InternalError: 'INTERNAL_ERROR',
 } as const;
 
@@ -137,6 +141,14 @@ const definitions: Record<ErrorCode, ErrorDefinition> = {
   [ErrorCode.RegisterChanged]: {
     exception: ConflictException,
     message: 'The register was changed by somebody else since it was read',
+  },
+  [ErrorCode.AiNotConfigured]: {
+    exception: ServiceUnavailableException,
+    message: 'AI drafting is not set up on this server',
+  },
+  [ErrorCode.AiFailed]: {
+    exception: BadGatewayException,
+    message: 'The AI service could not write a draft',
   },
   [ErrorCode.InternalError]: {
     exception: InternalServerErrorException,

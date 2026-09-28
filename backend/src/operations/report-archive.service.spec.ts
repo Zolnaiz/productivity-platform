@@ -238,7 +238,7 @@ describe('the report routes', () => {
       reopenMonth: jest.fn(),
       listClosed: jest.fn(),
     };
-    const controller = new ReportsController(archive as never);
+    const controller = new ReportsController(archive as never, {} as never);
     const req = { user: manager };
 
     controller.monthlyReport(req, '2026-06');
