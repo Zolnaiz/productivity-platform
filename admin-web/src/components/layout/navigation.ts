@@ -51,7 +51,10 @@ export const sections: NavSection[] = [
     labelKey: 'nav.section.team',
     icon: Activity,
     roles: managerRoles,
-    pages: [{ path: '/progress', labelKey: 'nav.progressBoard' }],
+    pages: [
+      { path: '/huddle', labelKey: 'nav.huddle' },
+      { path: '/progress', labelKey: 'nav.progressBoard' },
+    ],
   },
   {
     id: 'work',

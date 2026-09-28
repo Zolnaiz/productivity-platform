@@ -33,6 +33,8 @@ describe('translations', () => {
       'ideas.byWhen',
       // Two dates and a dash.
       'weekly.range',
+      // The method's name, written the same way in Mongolian.
+      'huddle.fiveS',
     ];
 
     const untranslated = flatten(en)
