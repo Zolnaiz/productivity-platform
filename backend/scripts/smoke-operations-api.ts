@@ -349,10 +349,14 @@ async function main() {
         (status) => status === 200);
     }
 
+    // Walked against a real area, so the server writes its first score and
+    // layer clock onto the zone - which the plan save below must take back.
+    const walked = unwrapData((await request('/five-s-layouts', token)).body);
+    const zoneId = Array.isArray(walked) ? walked[0]?.zones?.[0]?.id : undefined;
     const templates = unwrapData((await request('/audit-templates', token)).body);
     if (Array.isArray(templates) && templates[0]?.id) {
       await write('write: an audit run', '/audit-runs', 'POST',
-        { templateId: templates[0].id, location: 'Smoke area', score: 90, answers: [] },
+        { templateId: templates[0].id, location: 'Smoke area', score: 90, answers: [], ...(zoneId ? { zoneId, tier: 1 } : {}) },
         (status) => status === 201);
     }
 
@@ -360,6 +364,28 @@ async function main() {
     if (Array.isArray(layouts) && layouts[0]?.id) {
       await write('write: keep a version of the floor plan', `/five-s-layouts/${layouts[0].id}/versions`, 'POST',
         { label: 'Smoke' }, (status) => status === 200 || status === 201);
+
+      // The plan sent back exactly as it was read, as the editor sends it.
+      // Whatever the server writes onto a zone - an audit's layer clocks, a
+      // first score - has to be accepted back; when it was not, no audited
+      // plan could be saved and nothing said so.
+      const plan = layouts[0];
+      await write('write: save the floor plan as it was read', `/five-s-layouts/${plan.id}`, 'PATCH', {
+        name: plan.name,
+        site: plan.site,
+        floor: plan.floor ?? '',
+        scale: plan.scale,
+        backgroundImage: plan.backgroundImage ?? '',
+        backgroundOpacity: plan.backgroundOpacity,
+        showGrid: plan.showGrid,
+        zones: plan.zones,
+        objects: plan.objects,
+        corners: plan.corners ?? [],
+        walls: plan.walls ?? [],
+        openings: plan.openings ?? [],
+        roomLabels: plan.roomLabels ?? [],
+        baseUpdatedAt: plan.updatedAt,
+      }, (status) => status === 200);
     }
 
     await write('write: mark the inbox read', '/notifications/read-all', 'PATCH', {}, (status) => status === 200);
