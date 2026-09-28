@@ -115,4 +115,22 @@ describe('a register somebody else saved meanwhile', () => {
     // The second save is made against the version the first one produced.
     expect(mocks.saveState.mock.calls.map((call) => call[1])).toEqual(['v1', 'v2']);
   });
+
+  it('adds nothing until the register has arrived', async () => {
+    // A row added to the empty page was replaced by the register as it
+    // loaded, and was gone.
+    let arrive: (value: unknown) => void = () => undefined;
+    mocks.getRegister.mockReturnValue(new Promise((resolve) => (arrive = resolve)));
+    render(
+      <MemoryRouter>
+        <FiveSGuidelineRegisters />
+      </MemoryRouter>,
+    );
+
+    const addRow = screen.getAllByRole('button', { name: 'Add row' })[0] as HTMLButtonElement;
+    expect(addRow.disabled).toBe(true);
+
+    arrive({ content, records: records([]), version: 'v1' });
+    await waitFor(() => expect(addRow.disabled).toBe(false));
+  });
 });

@@ -121,6 +121,12 @@ const FiveSGuidelineRegisters: React.FC = () => {
   const versionRef = useRef<string | undefined>(undefined);
   const pendingRef = useRef<Array<(current: FiveSGuidelineState) => FiveSGuidelineState>>([]);
   const savesRef = useRef<Promise<void>>(Promise.resolve());
+  /*
+    Nothing is added before the register has arrived: a row added to the
+    empty page and saved was then replaced by the register as it loaded, and
+    the row was gone.
+  */
+  const [loaded, setLoaded] = useState(false);
   const [content, setContent] = useState<FiveSGuidelineContent>(emptyContent);
   const [actionMessage, setActionMessage] = useState('');
   const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(null);
@@ -150,6 +156,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
         stateRef.current = register.records;
         versionRef.current = register.version;
         setState(register.records);
+        setLoaded(true);
       });
 
       if (!canReadTasks) return;
@@ -497,7 +504,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
             <Button variant="outline" size="sm" icon={Download} onClick={exportImprovements} type="button">
               CSV
             </Button>
-            <Button size="sm" icon={Plus} onClick={addImprovement} type="button">
+            <Button size="sm" icon={Plus} onClick={addImprovement} type="button" disabled={!loaded}>
               {t('fiveSRegisters.addRow')}
             </Button>
           </>
@@ -609,7 +616,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
             <Button variant="outline" size="sm" icon={Download} onClick={exportImplementationCards} type="button">
               CSV
             </Button>
-            <Button size="sm" icon={Tag} onClick={addImplementationCard} type="button">
+            <Button size="sm" icon={Tag} onClick={addImplementationCard} type="button" disabled={!loaded}>
               {t('fiveSRegisters.addCard')}
             </Button>
           </>
