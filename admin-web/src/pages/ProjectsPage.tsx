@@ -86,11 +86,14 @@ const ProjectsPage: React.FC = () => {
     if (!draft.name.trim()) return;
     setError(null);
 
+    const localId = `local-${Date.now()}`;
     const optimistic: Project = {
-      id: `local-${Date.now()}`,
+      id: localId,
       name: draft.name,
       description: draft.description,
-      dueDate: draft.dueDate,
+      // No date is no date. An empty string was sent as one, the server
+      // refused it, and every project without a due date failed to save.
+      dueDate: draft.dueDate || undefined,
       priority: draft.priority,
       status: 'planned',
       progress: 0,
@@ -101,8 +104,13 @@ const ProjectsPage: React.FC = () => {
     setCreateOpen(false);
 
     try {
-      await operationsService.createProject(optimistic);
+      const saved = await operationsService.createProject(optimistic);
+      // The server's copy replaces the placeholder: kept under its local id,
+      // the next change to the card was sent to a project that did not exist.
+      if (saved) setProjects((current) => current.map((item) => (item.id === localId ? saved : item)));
     } catch {
+      // Not left looking saved.
+      setProjects((current) => current.filter((item) => item.id !== localId));
       setError(t('projects.saveFailed'));
     }
   };

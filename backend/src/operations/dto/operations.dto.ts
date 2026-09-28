@@ -1,5 +1,5 @@
 import { PartialType } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -25,6 +25,14 @@ import { ExpenseCategory, ExpenseStatus } from '../entities/expense.entity';
 import { ProjectStatus } from '../entities/project.entity';
 import { TaskSource, TaskStatus } from '../entities/task.entity';
 import { UserRole } from '../../shared/constants';
+
+/**
+ * An optional date left empty is no date.
+ *
+ * A form's empty date field arrives as "", which is not an ISO date, so a
+ * project created without a due date was refused outright.
+ */
+const EmptyIsAbsent = () => Transform(({ value }) => (value === '' ? undefined : value));
 
 class ChecklistQuestionDto {
   @IsString()
@@ -295,10 +303,12 @@ export class CreateProjectDto extends OrganizationScopedDto {
   @Max(100)
   progress?: number;
 
+  @EmptyIsAbsent()
   @IsOptional()
   @IsDateString()
   startDate?: string;
 
+  @EmptyIsAbsent()
   @IsOptional()
   @IsDateString()
   dueDate?: string;
@@ -349,6 +359,7 @@ export class CreateTaskDto extends OrganizationScopedDto {
   @IsString()
   priority?: string;
 
+  @EmptyIsAbsent()
   @IsOptional()
   @IsDateString()
   dueDate?: string;
@@ -375,6 +386,7 @@ export class CreateWorkLogDto extends OrganizationScopedDto {
   @IsUUID()
   taskId?: string;
 
+  @EmptyIsAbsent()
   @IsOptional()
   @IsDateString()
   logDate?: string;
@@ -405,14 +417,17 @@ export class CreateTimeEntryDto extends OrganizationScopedDto {
   @IsUUID()
   taskId?: string;
 
+  @EmptyIsAbsent()
   @IsOptional()
   @IsDateString()
   workDate?: string;
 
+  @EmptyIsAbsent()
   @IsOptional()
   @IsDateString()
   startedAt?: string;
 
+  @EmptyIsAbsent()
   @IsOptional()
   @IsDateString()
   endedAt?: string;
@@ -435,6 +450,7 @@ export class CreateDailyGoalDto extends OrganizationScopedDto {
   @IsString()
   title: string;
 
+  @EmptyIsAbsent()
   @IsOptional()
   @IsDateString()
   date?: string;
@@ -622,6 +638,7 @@ export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
    * When the plan being saved was read. What the floor wrote since - a red tag
    * raised from a phone, above all - is kept rather than saved over.
    */
+  @EmptyIsAbsent()
   @IsOptional()
   @IsDateString()
   baseUpdatedAt?: string;
@@ -753,6 +770,7 @@ export class SaveFiveSGuidelineRecordsDto extends OrganizationScopedDto {
    * it. A save made against an older register is refused rather than
    * written over somebody else's. Absent: saved unconditionally, as before.
    */
+  @EmptyIsAbsent()
   @IsOptional()
   @IsDateString()
   baseUpdatedAt?: string;
@@ -941,6 +959,7 @@ export class CreateAssessmentResponseDto extends OrganizationScopedDto {
   @Type(() => ChecklistAnswerDto)
   answers?: ChecklistAnswerDto[];
 
+  @EmptyIsAbsent()
   @IsOptional()
   @IsDateString()
   submittedAt?: string;
@@ -968,6 +987,7 @@ export class CreateExpenseDto extends OrganizationScopedDto {
   @IsEnum(ExpenseStatus)
   status?: ExpenseStatus;
 
+  @EmptyIsAbsent()
   @IsOptional()
   @IsDateString()
   expenseDate?: string;

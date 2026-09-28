@@ -21,6 +21,17 @@ describe('Operations DTO validation', () => {
     expect(errors.some((error) => error.property === 'name')).toBe(true);
   });
 
+  it('reads an empty due date as no due date', async () => {
+    // A form's empty date field arrives as "", and a project created without
+    // a due date used to be refused for it.
+    const dto = plainToInstance(CreateProjectDto, { name: 'Racking', dueDate: '' });
+
+    const errors = await validate(dto);
+
+    expect(errors).toEqual([]);
+    expect(dto.dueDate).toBeUndefined();
+  });
+
   it('rejects project progress outside 0-100', async () => {
     const dto = plainToInstance(CreateProjectDto, {
       name: 'Invalid progress project',
