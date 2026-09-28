@@ -114,8 +114,9 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-That suite runs in demo mode. The saves themselves - a zone renamed, an audit
-layer renamed, each read back after a reload - are checked against the real
+That suite runs in demo mode. The saves themselves - a zone and an audit layer
+renamed, a 5S register row typed in, a workspace setting, a task added and
+deleted, each read back after a reload - are checked against the real
 server by `e2e/live-api.spec.ts`, which runs only when asked. Point it at the
 web app on `localhost` rather than `127.0.0.1` if the API's `CORS_ORIGINS`
 lists only `localhost`:
