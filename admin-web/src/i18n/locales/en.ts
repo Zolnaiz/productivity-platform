@@ -767,6 +767,7 @@ const en = {
   zoneHistory: {
     plan: 'Plan of',
     evidence: 'Photographs from the last check',
+    shortfallEvidence: 'Fell short: {{question}}',
     title: 'Audit history',
     latest: 'Latest',
     baseline: 'Baseline',

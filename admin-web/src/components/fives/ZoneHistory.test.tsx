@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ZoneHistory from './ZoneHistory';
 import { FiveSZone } from '../../types/fiveS.types';
 
-const serviceMocks = vi.hoisted(() => ({ getAuditRuns: vi.fn() }));
+const serviceMocks = vi.hoisted(() => ({ getAuditRuns: vi.fn(), getAuditTemplates: vi.fn() }));
 
 vi.mock('../../services/operations.service', () => ({
   operationsService: serviceMocks,
@@ -15,8 +15,8 @@ vi.mock('../../services/operations.service', () => ({
   for here and tested where it lives.
 */
 vi.mock('../common/PhotoEvidence', () => ({
-  default: ({ ownerType, ownerId }: { ownerType: string; ownerId: string }) => (
-    <div data-testid="photo-evidence">{`${ownerType}:${ownerId}`}</div>
+  default: ({ ownerType, ownerId, part }: { ownerType: string; ownerId: string; part?: string | null }) => (
+    <div data-testid="photo-evidence">{`${ownerType}:${ownerId}${part ? `:${part}` : ''}`}</div>
   ),
 }));
 
@@ -52,6 +52,37 @@ const run = (id: string, score: number, createdAt: string) => ({
 describe('ZoneHistory', () => {
   beforeEach(() => {
     serviceMocks.getAuditRuns.mockReset().mockResolvedValue([]);
+    serviceMocks.getAuditTemplates.mockReset().mockResolvedValue([]);
+  });
+
+  it('shows each photograph beside the question the check fell short on', async () => {
+    serviceMocks.getAuditRuns.mockResolvedValue([
+      {
+        ...run('run-9', 60, '2026-09-20T03:00:00.000Z'),
+        answers: [
+          { questionId: 'q-aisle', value: false },
+          { questionId: 'q-labels', value: true },
+        ],
+      },
+    ]);
+    serviceMocks.getAuditTemplates.mockResolvedValue([
+      {
+        id: 't-1',
+        title: 'Daily',
+        questions: [
+          { id: 'q-aisle', text: 'Is the aisle clear?', type: 'yes_no' },
+          { id: 'q-labels', text: 'Are the shelves labelled?', type: 'yes_no' },
+        ],
+      },
+    ]);
+    render(<ZoneHistory zone={zone({ lastAuditScore: 60 })} />);
+
+    expect(await screen.findByText('Fell short: Is the aisle clear?')).toBeTruthy();
+    expect(screen.queryByText('Fell short: Are the shelves labelled?')).toBeNull();
+    expect(screen.getAllByTestId('photo-evidence').map((panel) => panel.textContent)).toEqual([
+      'audit_run:run-9',
+      'audit_run:run-9:q-aisle',
+    ]);
   });
 
   it('asks only for this zone history', async () => {

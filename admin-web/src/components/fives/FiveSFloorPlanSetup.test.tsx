@@ -49,6 +49,7 @@ vi.mock('../../services/operations.service', () => ({
   operationsService: {
     createTask: serviceMocks.createTask,
     getAuditRuns: serviceMocks.getAuditRuns,
+    getAuditTemplates: async () => [],
   },
 }));
 

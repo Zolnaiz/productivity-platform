@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { auditBandFor, auditBands } from '../charts/palette';
 import { apiErrorMessage } from '../../i18n/apiError';
 import { operationsService } from '../../services/operations.service';
-import { AuditRun } from '../../types/operations.types';
+import { AuditRun, AuditTemplate } from '../../types/operations.types';
 import { FiveSZone } from '../../types/fiveS.types';
 import PhotoEvidence from '../common/PhotoEvidence';
 
@@ -28,6 +28,8 @@ const formatDate = (value?: string) => (value ? value.slice(0, 10) : '-');
 const ZoneHistory: React.FC<ZoneHistoryProps> = ({ zone }) => {
   const { t } = useTranslation();
   const [runs, setRuns] = useState<AuditRun[]>([]);
+  /** The checklists, for the words of the questions a photograph is of. */
+  const [templates, setTemplates] = useState<AuditTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +56,37 @@ const ZoneHistory: React.FC<ZoneHistoryProps> = ({ zone }) => {
       active = false;
     };
   }, [zone.id, t]);
+
+  useEffect(() => {
+    let active = true;
+
+    operationsService
+      .getAuditTemplates()
+      .then((items) => {
+        if (active) setTemplates(items);
+      })
+      .catch(() => {
+        // Without them the run's photographs still show, just not by question.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /*
+    The questions the latest check fell short on, each with its own
+    photographs: of twelve answers, the one a picture has to explain.
+  */
+  const latestRun = runs[0];
+  const questions = templates.find((template) => template.id === latestRun?.templateId)?.questions ?? [];
+  const shortfalls = questions.filter((question) => {
+    const answer = latestRun?.answers?.find((item) => item.questionId === question.id)?.value;
+
+    return question.type === 'score'
+      ? Number(answer ?? 0) < (question.maxScore || 5)
+      : question.type === 'yes_no' && answer !== true;
+  });
 
   const openTags = (zone.redTags || []).filter(
     (redTag) => !redTag.closedAt && (redTag.status === 'open' || redTag.status === 'review'),
@@ -172,7 +205,24 @@ const ZoneHistory: React.FC<ZoneHistoryProps> = ({ zone }) => {
             ownerId={runs[0].id}
             kinds={['evidence']}
             label={t('zoneHistory.evidence')}
+            // Once the questions are known, the ones below take their own
+            // photographs and this panel keeps the check as a whole.
+            part={shortfalls.length ? null : undefined}
           />
+          {shortfalls.map((question) => (
+            <div key={question.id} className="mt-3">
+              <div className="mb-1 text-xs text-gray-600 dark:text-gray-300">
+                {t('zoneHistory.shortfallEvidence', { question: question.text })}
+              </div>
+              <PhotoEvidence
+                ownerType="audit_run"
+                ownerId={runs[0].id}
+                kinds={['evidence']}
+                label={question.text}
+                part={question.id}
+              />
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -762,6 +762,7 @@ const mn: Translations<typeof en> = {
   zoneHistory: {
     plan: 'Зургийн огноо',
     evidence: 'Сүүлийн шалгалтын зураг',
+    shortfallEvidence: 'Шаардлага хангаагүй: {{question}}',
     title: 'Аудитын түүх',
     latest: 'Сүүлийн',
     baseline: 'Суурь',

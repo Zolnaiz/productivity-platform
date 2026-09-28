@@ -229,8 +229,8 @@ could be built honestly.
 - Photographs belong to a single audit answer when they need to: an
   attachment carries a `part` (the question's id), and after a check the zone
   page asks for a photograph of each question it fell short on as well as of
-  the check as a whole. The audit history still shows a run's photographs
-  together, without saying which question each is of.
+  the check as a whole; the phone asks the same after a walk, and the audit
+  history shows the latest check's photographs beside the question each is of.
 
 ## Next Frontend Work
 
