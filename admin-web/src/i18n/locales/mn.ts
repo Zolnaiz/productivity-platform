@@ -980,6 +980,8 @@ const mn: Translations<typeof en> = {
       '{{date}}-ны аудитын оноо {{score}}%.\nЭнэ бүсийн стандарт {{standard}}%.\nБүсийг стандартад нь эргүүлж оруулна уу; дараагийн аудит үүнийг шалгана.',
   },
   zone: {
+    standardPhotoAlt: 'Талбай байх ёстой байдал',
+    standardPhotoCaption: 'Байх ёстой байдал - талбайг үүнтэй харьцуулна уу.',
     auditPhotoPrompt: 'Харсан зүйлээ зургаар нэмнэ үү.',
     shortfallPhotoPrompt: 'Шаардлага хангаагүй хэсгүүд - тус бүрийн зураг юуг өөрчлөхийг харуулна.',
     startAudit: 'Хяналтын хуудсаар шалгах',
@@ -1374,6 +1376,7 @@ const mn: Translations<typeof en> = {
       more: 'Бусад',
       labelsCsv: 'Талбайн шошго (CSV)',
       launchChecklist: '5S эхлүүлэх шалгах хуудас',
+      standardText: '5S стандарт',
       averageScore: 'Дундаж оноо {{score}}',
       openOfTotal: '{{total}}-аас {{open}} нээлттэй',
       areaRegister: '5S талбайн бүртгэл',

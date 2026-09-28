@@ -992,6 +992,8 @@ const en = {
       'The audit on {{date}} scored {{score}}%.\nThe standard for this area is {{standard}}%.\nBring the area back to its standard; the next audit verifies it.',
   },
   zone: {
+    standardPhotoAlt: 'The area as it should look',
+    standardPhotoCaption: 'As it should look - compare the area with this.',
     auditPhotoPrompt: 'Add a photograph of what you saw.',
     shortfallPhotoPrompt: 'Where it fell short - a photograph of each shows what has to change.',
     startAudit: 'Walk the checklist',
@@ -1391,6 +1393,7 @@ const en = {
       more: 'More',
       labelsCsv: 'Area labels (CSV)',
       launchChecklist: '5S launch checklist',
+      standardText: '5S standard',
       averageScore: 'Average score {{score}}',
       openOfTotal: '{{open}} open of {{total}}',
       areaRegister: '5S area register',

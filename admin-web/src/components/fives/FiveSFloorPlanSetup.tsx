@@ -5414,7 +5414,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   />
                 </div>
                 <label className="block text-sm text-gray-600 dark:text-gray-400">
-                  5S standard
+                  {t('fiveS.ui.standardText')}
                   <textarea
                     className={`${fieldClass} min-h-[72px]`}
                     value={selectedZone.standard}

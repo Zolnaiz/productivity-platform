@@ -16,6 +16,7 @@ import { getAuditDueDate, isAuditDue } from '../components/fives/auditSchedule';
 import { getRedTagCount, isOpenRedTag, stageKeys } from '../components/fives/floorPlanRules';
 import ZoneAuditWalk from '../components/fives/ZoneAuditWalk';
 import PhotoEvidence from '../components/common/PhotoEvidence';
+import StandardPhoto from '../components/fives/StandardPhoto';
 import { peopleService } from '../services/people.service';
 import { Department } from '../types/people.types';
 import { useAuth } from '../contexts/AuthContext';
@@ -297,6 +298,7 @@ const ZonePage: React.FC = () => {
         <p className="mt-2 whitespace-pre-line text-sm text-gray-700 dark:text-gray-300">
           {zone.standard?.trim() || t('zone.noStandard')}
         </p>
+        <StandardPhoto zoneId={zone.id} className="mt-3" />
       </section>
 
       <section className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">

@@ -5,6 +5,7 @@ import { AuditRun, AuditTemplate } from '../../types/operations.types';
 import { FiveSLayoutPlan, FiveSZone } from '../../types/fiveS.types';
 import { AuditAnswers, answersForRun, scoreAnswers } from './auditAnswers';
 import { tierForRole, tiersForRole } from './tierRules';
+import StandardPhoto from './StandardPhoto';
 
 interface ZoneAuditWalkProps {
   plan: FiveSLayoutPlan;
@@ -164,6 +165,8 @@ const ZoneAuditWalk: React.FC<ZoneAuditWalkProps> = ({ plan, zone, role, onRecor
 
   return (
     <form className="mt-3 space-y-4" onSubmit={record}>
+      {/* What the area should look like, at the top of the checklist it is judged by. */}
+      <StandardPhoto zoneId={zone.id} />
       {templates.length > 1 && (
         <label className="block text-sm">
           <span className="text-gray-500">{t('zone.auditChecklist')}</span>
