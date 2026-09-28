@@ -309,6 +309,7 @@ const en = {
       'Department performance will appear after departments and users are configured.',
   },
   expenses: {
+    saveFailed: 'The expense was not saved. Check it and try again.',
     title: 'Expenses',
     subtitle: 'Track project expenses, approval status, and budget impact for monthly reporting.',
     newExpense: 'New expense',

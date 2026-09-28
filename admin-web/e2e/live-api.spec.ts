@@ -144,3 +144,92 @@ test('a task added on the board is there after a reload, and gone once deleted',
   await page.reload();
   await expect(page.getByText(title)).toHaveCount(0);
 });
+
+/** Deletes a record the test made, through the API it was made on. */
+const removeThrough = (page: Page, path: string) =>
+  page.evaluate(
+    async ({ api, path }) =>
+      (
+        await fetch(`${api}${path}`, {
+          method: 'DELETE',
+          headers: { authorization: `Bearer ${localStorage.getItem('token')}` },
+        })
+      ).status,
+    { api: process.env.E2E_API_URL || 'http://localhost:3000/api', path },
+  );
+
+test('a project added is still there after a reload', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/projects');
+
+  const name = `Live check project ${Date.now()}`;
+  await page.getByRole('button', { name: 'New project' }).click();
+  await page.getByLabel('Project name').fill(name);
+  const created = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/projects') && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Add project' }).click();
+  const response = await created;
+  expect(response.status()).toBe(201);
+  const { data } = await response.json();
+
+  await page.reload();
+  await expect(page.getByText(name)).toBeVisible();
+
+  expect(await removeThrough(page, `/projects/${data.id}`)).toBe(200);
+});
+
+test('a department added is still there after a reload', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/departments');
+
+  const name = `Live check department ${Date.now()}`;
+  await page.getByRole('button', { name: 'New department' }).click();
+  await page.getByLabel('Department name').fill(name);
+  const created = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/departments') && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Add department' }).click();
+  const response = await created;
+  expect(response.status()).toBe(201);
+  const { data } = await response.json();
+
+  await page.reload();
+  await expect(page.getByText(name)).toBeVisible();
+
+  expect(await removeThrough(page, `/departments/${data.id}`)).toBe(200);
+});
+
+test('a day written up is still there after a reload', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/work-logs');
+
+  const summary = `Live check write-up ${Date.now()}`;
+  await page.getByLabel('What did you finish?').fill(summary);
+  await page.getByLabel('Hours').fill('1.5');
+  const created = page.waitForResponse(
+    (response) => /\/work-logs(\/daily)?$/.test(new URL(response.url()).pathname) && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Add log' }).click();
+  expect((await created).status()).toBe(201);
+
+  await page.reload();
+  await expect(page.getByText(summary)).toBeVisible();
+});
+
+test('an expense submitted is still there after a reload', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/expenses');
+
+  const title = `Live check expense ${Date.now()}`;
+  await page.getByLabel('Expense title').fill(title);
+  await page.getByLabel('Amount').fill('12500');
+  const created = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/expenses') && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Submit', exact: true }).click();
+  expect((await created).status()).toBe(201);
+
+  await page.reload();
+  await expect(page.getByText(title)).toBeVisible();
+});

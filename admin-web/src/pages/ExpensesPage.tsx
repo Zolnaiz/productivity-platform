@@ -7,10 +7,13 @@ import EmptyState from '../components/common/EmptyState';
 import Input from '../components/common/Input';
 import Select from '../components/common/Select';
 import Table from '../components/common/Table';
+import { useAuth } from '../contexts/AuthContext';
 import { financeService } from '../services/finance.service';
+import { peopleService } from '../services/people.service';
 import { operationsService } from '../services/operations.service';
 import { ExpenseItem } from '../types/finance.types';
 import { Project } from '../types/operations.types';
+import { memberName, TeamUser } from '../types/people.types';
 import { localDay } from '../utils/localDay';
 
 const formatMnt = (value: number) =>
@@ -29,7 +32,10 @@ const statusClasses = {
 
 const ExpensesPage: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
+  const [members, setMembers] = useState<TeamUser[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState({
@@ -60,19 +66,45 @@ const ExpensesPage: React.FC = () => {
     .reduce((sum, expense) => sum + expense.amount, 0);
   const totalAll = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
+  // The people, to put a name to who submitted each expense. Only those who
+  // may read the staff list get it; everybody else sees their own name.
+  useEffect(() => {
+    peopleService
+      .getMembers()
+      .then(setMembers)
+      .catch(() => undefined);
+  }, []);
+
+  const submitterName = (id?: string) => {
+    if (!id) return '';
+    if (id === user?.id) return user.name;
+    const member = members.find((item) => item.id === id);
+    if (member) return memberName(member);
+    // An id with nobody to put to it says nothing; a name (the demo's) does.
+    return /^[0-9a-f-]{36}$/i.test(id) ? '' : id;
+  };
+
   const createExpense = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!draft.title.trim()) return;
-    const expense = await financeService.createExpense({
-      title: draft.title,
-      projectId: draft.projectId,
-      amount: Number(draft.amount || 0),
-      category: draft.category,
-      expenseDate: draft.expenseDate,
-      submittedBy: 'Demo Owner',
-      status: 'submitted',
-      note: draft.note,
-    });
+    setError(null);
+
+    let expense: ExpenseItem;
+    try {
+      // The server records who submitted it; an empty project is no project.
+      expense = await financeService.createExpense({
+        title: draft.title,
+        projectId: draft.projectId || undefined,
+        amount: Number(draft.amount || 0),
+        category: draft.category,
+        expenseDate: draft.expenseDate,
+        status: 'submitted',
+        note: draft.note,
+      });
+    } catch {
+      setError(t('expenses.saveFailed'));
+      return;
+    }
     setExpenses((current) => [expense, ...current]);
     setDraft({
       title: '',
@@ -116,6 +148,11 @@ const ExpensesPage: React.FC = () => {
       </div>
 
       <Card title={t('expenses.newExpense')}>
+        {error && (
+          <p role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400">
+            {error}
+          </p>
+        )}
         <form onSubmit={createExpense} className="grid items-end gap-3 lg:grid-cols-6">
           <Input
             className="lg:col-span-2"
@@ -149,7 +186,9 @@ const ExpensesPage: React.FC = () => {
           <Input
             label={t('expenses.amount')}
             min="0"
-            step="1000"
+            // Any amount: with a step of 1000 the browser refused 12 500 as
+            // invalid and quietly would not submit the form at all.
+            step="any"
             type="number"
             value={draft.amount}
             onChange={(event) => setDraft((current) => ({ ...current, amount: event.target.value }))}
@@ -183,7 +222,7 @@ const ExpensesPage: React.FC = () => {
                 <>
                   <div className="font-medium text-gray-900 dark:text-white">{expense.title}</div>
                   <div className="text-xs text-gray-500">
-                    {expense.expenseDate} - {expense.submittedBy}
+                    {[expense.expenseDate, submitterName(expense.submittedBy)].filter(Boolean).join(' - ')}
                   </div>
                 </>
               ),

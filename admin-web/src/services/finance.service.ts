@@ -60,12 +60,13 @@ const fallback = async <T>(request: () => Promise<T>, demoData: T): Promise<T> =
 
 export const financeService = {
   getExpenses: () => fallback<ExpenseItem[]>(() => get('/expenses'), readExpenses()),
-  createExpense: (data: Omit<ExpenseItem, 'id'>) => {
+  /** The server records who submitted it; the demo has one person to name. */
+  createExpense: (data: Omit<ExpenseItem, 'id' | 'submittedBy'>) => {
     if (!isDemoMode()) {
       return post<ExpenseItem>('/expenses', data);
     }
 
-    const item: ExpenseItem = { ...data, id: localId('local-expense') };
+    const item: ExpenseItem = { ...data, submittedBy: 'Demo Owner', id: localId('local-expense') };
     writeExpenses([item, ...readExpenses()]);
     return Promise.resolve(item);
   },

@@ -551,6 +551,22 @@ describe('OperationsService organization scoping', () => {
       expect((repositories.tasks as any).softRemove).toHaveBeenCalledWith(expect.objectContaining({ id: 't1' }));
     });
 
+    it('records the person signed in as whoever submitted an expense', async () => {
+      // The web sent "Demo Owner" for everybody, and the monthly report finds
+      // a person's own expenses by this id.
+      const { service, repositories } = createService();
+      repositories.expenses.create.mockImplementation((value: any) => value);
+      repositories.expenses.save.mockImplementation(async (value: any) => value);
+
+      const saved = await service.createExpense({ title: 'Gloves', amount: 1000, submittedBy: 'Demo Owner' } as never, {
+        id: 'u7',
+        role: 'user',
+        organizationId: 'org-1',
+      });
+
+      expect(saved).toMatchObject({ submittedBy: 'u7', organizationId: 'org-1' });
+    });
+
     it('can take work off somebody', async () => {
       const { service, repositories } = createService();
       repositories.tasks.findOne.mockResolvedValue({ id: 't1', organizationId: 'org-1', status: 'todo', assigneeId: 'u1' });

@@ -1291,6 +1291,12 @@ export class OperationsService {
   createExpense(payload: Partial<ExpenseItem>, user: CurrentUser) {
     const expense = this.expenses.create({
       ...payload,
+      /*
+        Who submitted it is whoever is signed in. The web sent the words
+        "Demo Owner" for everybody, and the monthly report finds a person's
+        own expenses by this id - so nobody's were ever theirs.
+      */
+      submittedBy: user?.id ?? payload.submittedBy,
       organizationId: this.resolveOrganizationId(user, payload.organizationId),
       expenseDate: payload.expenseDate || todayIn(),
     });
