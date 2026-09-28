@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/auth_provider.dart';
 import '../providers/inbox_provider.dart';
+import '../providers/task_provider.dart';
 import '../utils/phase_one_strings.dart';
 import 'five_s_screen.dart';
 import 'inbox_screen.dart';
@@ -17,8 +19,33 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// A phone opened again is usually a new part of the day: the morning's
+  /// reminder has arrived, or a manager has given out work. The screens
+  /// loaded once, when the app started, and showed yesterday's until it was
+  /// closed and opened again.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    context.read<InboxProvider>().load();
+    context
+        .read<TaskProvider>()
+        .load(assigneeId: context.read<AuthProvider>().user?.id);
+  }
 
   @override
   Widget build(BuildContext context) {
