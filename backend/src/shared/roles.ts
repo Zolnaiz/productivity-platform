@@ -64,6 +64,9 @@ const viewer = [
   // that cannot name the department responsible for the area is a worse
   // answer than one that can.
   'departments:read',
+  // Who is who: the names on tasks, reports and areas. Not the staff list,
+  // which carries contact details and is a manager's.
+  'users:directory',
   // The 5S standard an organization works to, and the registers kept against
   // it. Read by everybody, because a standard nobody can read is not one.
   'guidelines:read',

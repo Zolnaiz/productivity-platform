@@ -44,6 +44,21 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  /**
+   * Who is who in the organization: names, positions and departments.
+   *
+   * Everybody may read it. An operator's task board, their report and the 5S
+   * page all name people, and without `users:read` each of them asked for the
+   * staff list, was refused, and showed ids. No email, phone or anything a
+   * colleague's name does not already say.
+   */
+  @Get('directory')
+  @RequirePermission('users:directory')
+  @ApiOperation({ summary: 'The names of the people in the organization' })
+  directory(@Request() req) {
+    return this.usersService.directory(req.user.organizationId);
+  }
+
   @Get()
   @RequirePermission('users:read')
   @ApiOperation({ summary: 'List the members of the organization' })

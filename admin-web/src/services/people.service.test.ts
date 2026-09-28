@@ -27,6 +27,19 @@ describe('peopleService', () => {
   });
 
   describe('against the API', () => {
+    it('names people from the directory for somebody refused the staff list', async () => {
+      // An operator's board and report asked for the staff list, were refused,
+      // and showed ids.
+      get.mockImplementation(async (path: string) => {
+        if (path === '/users/directory') return [{ id: 'u1', firstName: 'Bat', lastName: 'Erdene', role: 'user', isActive: true }];
+        throw { response: { status: 403, data: { errorCode: 'ACCESS_DENIED' } } };
+      });
+
+      const members = await (await load()).getMembers();
+
+      expect(members).toEqual([{ id: 'u1', firstName: 'Bat', lastName: 'Erdene', role: 'user', isActive: true, email: '' }]);
+    });
+
     it('gathers every page of members, not only the first twenty', async () => {
       // The headcount stopped at twenty, and the reports could not name
       // anybody past the twentieth.

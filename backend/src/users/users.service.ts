@@ -45,6 +45,25 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
+  async directory(organizationId?: string) {
+    if (!organizationId) return [];
+
+    const people = await this.usersRepository.find({
+      where: { organizationId, isActive: true },
+      order: { firstName: 'ASC', lastName: 'ASC' },
+    });
+
+    return people.map((person) => ({
+      id: person.id,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      position: person.position,
+      departmentId: person.departmentId,
+      role: person.role,
+      isActive: person.isActive,
+    }));
+  }
+
   async findAll(
     params: PaginationParams,
     organizationId?: string,

@@ -172,6 +172,25 @@ const fallback = async <T>(request: () => Promise<T>, demoData: T): Promise<T> =
   }
 };
 
+const membersInFlight = new Map<string, Promise<TeamUser[]>>();
+
+/** The sign-in the staff list was refused to, so it is not asked for again. */
+const refusedKey = 'staff-list-refused-for';
+const refusedFor = () => {
+  try {
+    return sessionStorage.getItem(refusedKey);
+  } catch {
+    return null;
+  }
+};
+const rememberRefusal = (token: string | null) => {
+  try {
+    if (token) sessionStorage.setItem(refusedKey, token);
+  } catch {
+    // Asked again next time; no harm beyond the round trip.
+  }
+};
+
 export const peopleService = {
   /**
    * The members of the caller's organization.
@@ -194,7 +213,47 @@ export const peopleService = {
    * and the plan could not name anybody past the twentieth. A caller that
    * asks for a particular page still gets just that page.
    */
-  getMembers: async (query: MemberQuery = {}) => {
+  /**
+   * Everybody in the organization, for putting names to ids.
+   *
+   * The staff list is a manager's; anybody else is refused it and gets the
+   * directory instead - names, positions and departments, no contact details
+   * - rather than a screen of ids.
+   */
+  getMembers: (query: MemberQuery = {}): Promise<TeamUser[]> => {
+    // Two parts of one screen asking at once share the one request, so a
+    // refused staff list is refused once rather than once each.
+    const key = JSON.stringify(query);
+    const pending = membersInFlight.get(key);
+    if (pending) return pending;
+
+    const request = peopleService.readMembers(query).finally(() => membersInFlight.delete(key));
+    membersInFlight.set(key, request);
+    return request;
+  },
+
+  readMembers: async (query: MemberQuery = {}): Promise<TeamUser[]> => {
+    const readDirectory = async () => {
+      const people = await get<Array<Omit<TeamUser, 'email'>>>('/users/directory');
+      return people.map((person) => ({ ...person, email: '' }));
+    };
+
+    // Refused once for this sign-in, asked no more: every screen that names
+    // people would otherwise be refused again first.
+    const token = localStorage.getItem('token');
+    if (token && refusedFor() === token) return readDirectory();
+
+    try {
+      return await peopleService.getStaffList(query);
+    } catch (error) {
+      if ((error as { response?: { status?: number } })?.response?.status !== 403) throw error;
+
+      rememberRefusal(token);
+      return readDirectory();
+    }
+  },
+
+  getStaffList: async (query: MemberQuery = {}) => {
     if (query.page) return (await peopleService.listMembers(query)).data;
 
     const limit = 100;

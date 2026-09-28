@@ -18,6 +18,7 @@ describe('UsersService', () => {
     findOne: jest.Mock;
     save: jest.Mock;
     createQueryBuilder: jest.Mock;
+    find: jest.Mock;
   };
   let query: Record<string, jest.Mock>;
   let service: UsersService;
@@ -34,6 +35,7 @@ describe('UsersService', () => {
       getMany: jest.fn(async () => []),
     };
     repository = {
+      find: jest.fn(),
       findOne: jest.fn(),
       save: jest.fn(),
       createQueryBuilder: jest.fn(() => query),
@@ -215,6 +217,23 @@ describe('UsersService', () => {
   });
 
   describe('listing members', () => {
+    it('gives the directory names and places, and no contact details', async () => {
+      repository.find.mockResolvedValue([
+        { id: 'u1', firstName: 'Bat', lastName: 'Erdene', email: 'bat@example.com', phone: '9900', password: 'hash', position: 'Operator', role: 'user', isActive: true, departmentId: 'd1' },
+      ]);
+
+      const people = await service.directory('org-1');
+
+      expect(repository.find).toHaveBeenCalledWith(expect.objectContaining({ where: { organizationId: 'org-1', isActive: true } }));
+      expect(people).toEqual([
+        { id: 'u1', firstName: 'Bat', lastName: 'Erdene', position: 'Operator', departmentId: 'd1', role: 'user', isActive: true },
+      ]);
+    });
+
+    it('gives nobody outside an organization a directory', async () => {
+      expect(await service.directory(undefined)).toEqual([]);
+    });
+
     it('searches case-insensitively and pages within bounds', async () => {
       await service.findAll({ page: 2, limit: 5, search: 'bat' }, 'org-1', UserRole.ORGANIZATION_ADMIN);
 
