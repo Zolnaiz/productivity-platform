@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Activity, Bell, BarChart3, Briefcase, Map as MapIcon, Settings, Sun, Users } from 'lucide-react';
+import { Activity, Bell, BarChart3, Briefcase, Lightbulb, Map as MapIcon, Settings, Sun, Users } from 'lucide-react';
 
 /**
  * Where everything is.
@@ -75,6 +75,12 @@ export const sections: NavSection[] = [
       { path: '/assessments', labelKey: 'nav.assessments' },
       { path: '/responses', labelKey: 'nav.responses' },
     ],
+  },
+  {
+    id: 'ideas',
+    labelKey: 'nav.section.ideas',
+    icon: Lightbulb,
+    pages: [{ path: '/ideas', labelKey: 'nav.section.ideas' }],
   },
   {
     id: 'notifications',

@@ -29,6 +29,8 @@ describe('translations', () => {
       'actions.assessmentMeta',
       // The keys printed on a keyboard, the same on a Mongolian one.
       'search.shortcut',
+      // A name and a date, with nothing between them to translate.
+      'ideas.byWhen',
     ];
 
     const untranslated = flatten(en)

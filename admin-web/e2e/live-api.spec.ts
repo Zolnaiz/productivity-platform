@@ -369,3 +369,29 @@ test('a red tag raised on a zone page is still there after a reload', async ({ p
   );
   expect(status).toBe(200);
 });
+
+test('an idea put in and taken up is still taken up after a reload, with its task', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/ideas');
+
+  const title = `Live check idea ${Date.now()}`;
+  await page.getByLabel('The idea').fill(title);
+  const created = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/ideas') && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Send the idea' }).click();
+  expect((await created).status()).toBe(201);
+
+  const card = page.getByTestId('idea').filter({ hasText: title });
+  await card.getByRole('button', { name: 'Take it up' }).click();
+  const reviewed = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/review') && response.request().method() === 'PATCH',
+  );
+  await card.getByRole('button', { name: 'Take it up and give out the work' }).click();
+  expect((await reviewed).status()).toBe(200);
+
+  await page.reload();
+  const again = page.getByTestId('idea').filter({ hasText: title });
+  await expect(again.getByText('Taken up', { exact: true })).toBeVisible();
+  await expect(again.getByRole('link', { name: 'See the task' })).toBeVisible();
+});

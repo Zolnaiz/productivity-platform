@@ -15,7 +15,7 @@ export interface Project {
 }
 
 /** What produced a task that was not typed by hand. */
-export type TaskSource = 'five_s_red_tag' | 'audit_run' | 'five_s_improvement';
+export type TaskSource = 'five_s_red_tag' | 'audit_run' | 'five_s_improvement' | 'idea';
 
 /**
  * What the server raised, as a key and its parts.

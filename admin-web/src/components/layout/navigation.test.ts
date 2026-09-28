@@ -4,16 +4,17 @@ import { describe, expect, it } from 'vitest';
 import { currentPage, sections, visibleSections } from './navigation';
 
 describe('the menu', () => {
-  it('is short for everybody: five places for staff, six for a manager, eight for an admin', () => {
+  it('is short for everybody: six places for staff, seven for a manager, nine for an admin', () => {
     expect(visibleSections(['user']).map((section) => section.id)).toEqual([
       'today',
       'work',
       'quality',
+      'ideas',
       'notifications',
       'reports',
     ]);
-    expect(visibleSections(['manager'])).toHaveLength(6);
-    expect(visibleSections(['admin'])).toHaveLength(8);
+    expect(visibleSections(['manager'])).toHaveLength(7);
+    expect(visibleSections(['admin'])).toHaveLength(9);
   });
 
   it('keeps the owner-only audit log from an admin who is not the owner', () => {

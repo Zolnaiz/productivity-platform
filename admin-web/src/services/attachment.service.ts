@@ -5,7 +5,8 @@ export type AttachmentOwner =
   | 'five_s_zone'
   | 'audit_run'
   | 'five_s_improvement'
-  | 'work_log';
+  | 'work_log'
+  | 'idea';
 
 export type AttachmentKind = 'before' | 'after' | 'evidence' | 'standard';
 
