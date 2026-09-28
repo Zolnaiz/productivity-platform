@@ -6,6 +6,11 @@ const organizationId = process.env.SEED_ORGANIZATION_ID || '11111111-1111-4111-8
 const ownerId = process.env.SEED_OWNER_ID || '22222222-2222-4222-8222-000000000001';
 const ownerEmail = process.env.SEED_OWNER_EMAIL || 'owner@example.com';
 const ownerPassword = process.env.SEED_OWNER_PASSWORD || 'Password123';
+// Somebody on the floor, to see the application as an operator does: their
+// own tasks and write-ups, the 5S walk, and none of a manager's screens.
+const operatorId = process.env.SEED_OPERATOR_ID || '22222222-2222-4222-8222-000000000002';
+const operatorEmail = process.env.SEED_OPERATOR_EMAIL || 'operator@example.com';
+const operatorPassword = process.env.SEED_OPERATOR_PASSWORD || ownerPassword;
 
 const projectOne = '11111111-1111-4111-8111-111111111111';
 const projectTwo = '22222222-2222-4222-8222-222222222222';
@@ -93,6 +98,22 @@ async function seed() {
         updated_at = now()
     `,
     [ownerId, ownerEmail, ownerPasswordHash, organizationId],
+  );
+
+  await dataSource.query(
+    `
+      INSERT INTO users (
+        id, "firstName", "lastName", email, password, role, position, phone, is_active, organization_id, email_verified
+      ) VALUES ($1, 'Demo', 'Operator', $2, $3, 'user', 'Operator', '99000001', true, $4, true)
+      ON CONFLICT (email) DO UPDATE SET
+        password = EXCLUDED.password,
+        role = EXCLUDED.role,
+        is_active = true,
+        organization_id = EXCLUDED.organization_id,
+        email_verified = true,
+        updated_at = now()
+    `,
+    [operatorId, operatorEmail, await bcrypt.hash(operatorPassword, 10), organizationId],
   );
 
   await dataSource.query(
@@ -411,7 +432,7 @@ async function seed() {
   );
 
   await dataSource.destroy();
-  console.log(`Seeded operations demo data for organization "${organizationId}" and user "${ownerEmail}".`);
+  console.log(`Seeded operations demo data for organization "${organizationId}", owner "${ownerEmail}" and operator "${operatorEmail}".`);
 }
 
 seed().catch(async (error) => {

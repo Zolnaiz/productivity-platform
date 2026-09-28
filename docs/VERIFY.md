@@ -129,4 +129,7 @@ $env:E2E_LIVE_API = 'true'; $env:E2E_BASE_URL = 'http://localhost:3001'
 npx playwright test e2e/live-api.spec.ts
 ```
 
-CI runs it in the live-API job against a fresh, seeded PostgreSQL.
+`e2e/operator.spec.ts` signs in as the seed's operator (a `user`) and opens
+every page in that menu, failing on any error or bare id shown where a name
+belongs. CI runs both in the live-API job against a fresh, seeded
+PostgreSQL.
