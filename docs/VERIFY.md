@@ -113,3 +113,17 @@ cd admin-web
 npx playwright install chromium
 npm run test:e2e
 ```
+
+That suite runs in demo mode. The saves themselves - a zone renamed, an audit
+layer renamed, each read back after a reload - are checked against the real
+server by `e2e/live-api.spec.ts`, which runs only when asked. Point it at the
+web app on `localhost` rather than `127.0.0.1` if the API's `CORS_ORIGINS`
+lists only `localhost`:
+
+```powershell
+cd admin-web
+$env:E2E_LIVE_API = 'true'; $env:E2E_BASE_URL = 'http://localhost:3001'
+npx playwright test e2e/live-api.spec.ts
+```
+
+CI runs it in the live-API job against a fresh, seeded PostgreSQL.

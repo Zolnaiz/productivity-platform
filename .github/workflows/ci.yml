@@ -230,6 +230,17 @@ jobs:
           SMOKE_WRITES: 'true'
         run: npm run smoke:api
 
+      # The web's saves read back from the real server: a save that never
+      # leaves the browser, or that the API refuses, looks fine in demo mode.
+      - name: Browser against the real server
+        working-directory: admin-web
+        env:
+          E2E_LIVE_API: 'true'
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test e2e/live-api.spec.ts
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
