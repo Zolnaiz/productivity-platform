@@ -32,7 +32,7 @@ const BadgesPage: React.FC = () => {
                 </div>
                 <span
                   className={`w-fit rounded-full px-2 py-0.5 text-xs ${
-                    badge.earned ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
+                    badge.earned ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
                   }`}
                 >
                   {badge.earned ? t('badges.earned') : t('badges.locked')}

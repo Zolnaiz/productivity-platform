@@ -126,7 +126,11 @@ const HorizontalBarChart: React.FC<HorizontalBarChartProps> = ({
                   color: theme.ink.primary,
                   fontSize: 12,
                 }}
-                labelStyle={{ color: theme.ink.muted }}
+                // Tooltip words wear text ink: the muted step is for axis
+                // ticks and read at 3.4:1 here, and the value otherwise took
+                // the bar's colour.
+                labelStyle={{ color: theme.ink.secondary }}
+                itemStyle={{ color: theme.ink.primary }}
                 formatter={(value: number) => [`${value}${unit}`, '']}
               />
               {/*

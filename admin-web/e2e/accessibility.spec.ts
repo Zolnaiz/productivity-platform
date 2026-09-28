@@ -14,33 +14,29 @@ import { expect, test } from '@playwright/test';
  * Demo mode, like the smoke suite: no server, the fixtures fill the pages.
  */
 
-const pages = [
-  '/dashboard',
-  '/tasks',
-  '/progress',
-  '/plan',
-  '/projects',
-  '/work-logs',
-  '/fives',
-  '/reports',
-  '/notifications',
-  '/settings',
-  '/users',
-  '/departments',
-  '/expenses',
-  '/goals',
-  '/questionnaires',
-  '/responses',
-  '/audit-templates',
-];
+/** Every page the demo owner's menu links to, read from the menu itself so a page added to it is checked without anybody remembering to list it. */
+const menuPages = async (page: import('@playwright/test').Page) => {
+  await page.getByRole('navigation').getByRole('link').first().waitFor();
+  const links = await page
+    .getByRole('navigation')
+    .getByRole('link')
+    .evaluateAll((anchors) => [
+      ...new Set(anchors.map((a) => a.getAttribute('href') ?? '').filter((href) => href.startsWith('/'))),
+    ]);
+  // The half-year and annual report opens from the monthly one, not the menu.
+  return [...links, '/reports/period'];
+};
 
 for (const theme of ['light', 'dark'] as const) {
   test(`every page reads to a screen reader and at AA contrast in the ${theme} theme`, async ({ page }) => {
-    test.setTimeout(180_000);
+    test.setTimeout(300_000);
     await page.addInitScript((chosen) => localStorage.setItem('theme', chosen), theme);
     await page.goto('/login');
     await page.getByTestId('demo-sign-in').click();
     await expect(page).toHaveURL(/\/dashboard$/);
+
+    const pages = await menuPages(page);
+    expect(pages.length).toBeGreaterThan(15);
 
     const problems: string[] = [];
     for (const path of pages) {
