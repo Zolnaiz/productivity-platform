@@ -123,7 +123,7 @@ test('a task added on the board is there after a reload, and gone once deleted',
 
   const title = `Live check task ${Date.now()}`;
   await page.getByRole('button', { name: 'New task' }).first().click();
-  await page.getByLabel('Task title').fill(title);
+  await page.getByRole('dialog').getByLabel('Task title').fill(title);
   const created = page.waitForResponse(
     (response) => new URL(response.url()).pathname.endsWith('/tasks') && response.request().method() === 'POST',
   );
@@ -137,6 +137,7 @@ test('a task added on the board is there after a reload, and gone once deleted',
   const deleted = page.waitForResponse(
     (response) => new URL(response.url()).pathname.includes('/tasks/') && response.request().method() === 'DELETE',
   );
+  await page.getByRole('button', { name: title, exact: true }).click();
   await page.getByRole('button', { name: `Delete ${title}` }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
   expect((await deleted).status()).toBe(200);

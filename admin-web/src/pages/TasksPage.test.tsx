@@ -18,10 +18,11 @@ const mocks = vi.hoisted(() => ({
   deleteTask: vi.fn(),
   getMembers: vi.fn(),
   permissions: ['tasks:create', 'tasks:update'] as string[],
+  user: undefined as { id: string } | undefined,
 }));
 
 vi.mock('../contexts/AuthContext', () => ({
-  useAuth: () => ({ hasPermission: (permission: string) => mocks.permissions.includes(permission) }),
+  useAuth: () => ({ hasPermission: (permission: string) => mocks.permissions.includes(permission), user: mocks.user }),
 }));
 
 vi.mock('../services/operations.service', () => ({
@@ -38,6 +39,9 @@ vi.mock('../services/people.service', () => ({
   peopleService: { getMembers: mocks.getMembers },
 }));
 
+/** Opens a task's details, where its status, owner and delete are. */
+const openDetails = async (title: string) => fireEvent.click(await screen.findByRole('button', { name: title }));
+
 const members = [
   { id: 'u1', firstName: 'Bat', lastName: 'Erdene', isActive: true },
   { id: 'u2', firstName: 'Saran', lastName: 'Tuya', isActive: true },
@@ -47,6 +51,8 @@ describe('giving work to somebody', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.permissions = ['tasks:create', 'tasks:update'];
+    mocks.user = undefined;
+    localStorage.clear();
     mocks.getTasks.mockResolvedValue([
       { id: 't1', title: 'Label the racking', status: 'todo', priority: 'high', assigneeId: 'u1', projectId: 'p1' },
       { id: 't2', title: 'Sweep the dock', status: 'todo', priority: 'low' },
@@ -81,6 +87,7 @@ describe('giving work to somebody', () => {
 
     await waitFor(() => expect(mocks.createTask).toHaveBeenCalledWith(expect.objectContaining({ assigneeId: 'u2' })));
 
+    await openDetails('Audit the paint store');
     fireEvent.change(await screen.findByLabelText('Status for Audit the paint store'), { target: { value: 'in_progress' } });
     await waitFor(() => expect(mocks.updateTask).toHaveBeenCalledWith('server-id', { status: 'in_progress' }));
   });
@@ -88,6 +95,7 @@ describe('giving work to somebody', () => {
   it('hands a task to somebody else, and takes it off them', async () => {
     mocks.updateTask.mockResolvedValue(undefined);
     renderPage();
+    await openDetails('Label the racking');
     const who = await screen.findByLabelText('Who Label the racking is for');
 
     fireEvent.change(who, { target: { value: 'u2' } });
@@ -114,6 +122,8 @@ describe('giving work to somebody', () => {
     await screen.findAllByTestId('task-card');
 
     expect(screen.queryByRole('button', { name: 'New task' })).toBeNull();
+    expect(screen.queryByTestId('quick-add')).toBeNull();
+    await openDetails('Label the racking');
     expect(screen.queryByLabelText('Who Label the racking is for')).toBeNull();
     // Moving one's own work along stays.
     expect(screen.getByLabelText('Status for Label the racking')).toBeTruthy();
@@ -158,6 +168,7 @@ describe('taking back a task', () => {
     mocks.deleteTask.mockResolvedValue({ id: 't1', deleted: true });
     renderPage();
 
+    await openDetails('Label the racking twice');
     fireEvent.click(await screen.findByRole('button', { name: 'Delete Label the racking twice' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
 
@@ -170,6 +181,7 @@ describe('taking back a task', () => {
     mocks.deleteTask.mockRejectedValue(new Error('offline'));
     renderPage();
 
+    await openDetails('Label the racking twice');
     fireEvent.click(await screen.findByRole('button', { name: 'Delete Label the racking twice' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
 
@@ -181,7 +193,106 @@ describe('taking back a task', () => {
     mocks.permissions = ['tasks:update'];
     renderPage();
 
-    await screen.findByText('Label the racking twice');
+    await openDetails('Label the racking twice');
+    expect(screen.getByTestId('task-details')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Delete Label the racking twice' })).toBeNull();
+  });
+});
+
+describe('working the board', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.permissions = ['tasks:create', 'tasks:update'];
+    mocks.user = undefined;
+    localStorage.clear();
+    mocks.getTasks.mockResolvedValue([
+      { id: 't1', title: 'Label the racking', status: 'todo', priority: 'high', assigneeId: 'u1', dueDate: '2026-12-01' },
+      { id: 't2', title: 'Sweep the dock', status: 'todo', priority: 'low', dueDate: '2020-01-01' },
+      { id: 't3', title: 'Paint the lines', status: 'done', priority: 'low' },
+    ]);
+    mocks.getProjects.mockResolvedValue([]);
+    mocks.getMembers.mockResolvedValue(members);
+  });
+
+  it('adds a task from its title and Enter', async () => {
+    mocks.createTask.mockResolvedValue({ id: 'server-id', title: 'Fix the door', status: 'todo', priority: 'medium' });
+    renderPage();
+    await screen.findAllByTestId('task-card');
+
+    fireEvent.change(screen.getByLabelText('New task title'), { target: { value: 'Fix the door' } });
+    fireEvent.submit(screen.getByTestId('quick-add'));
+
+    await waitFor(() =>
+      expect(mocks.createTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Fix the door', status: 'todo' })),
+    );
+    expect((screen.getByLabelText('New task title') as HTMLInputElement).value).toBe('');
+  });
+
+  it('gives quick-added work to the person the board is narrowed to', async () => {
+    mocks.createTask.mockResolvedValue({ id: 'server-id', title: 'Fix the door', status: 'todo', priority: 'medium' });
+    renderPage();
+    await waitFor(() => expect(screen.getAllByRole('option', { name: 'Saran Tuya' }).length).toBeGreaterThan(0));
+
+    fireEvent.change(screen.getByLabelText('Show work for'), { target: { value: 'u2' } });
+    fireEvent.change(screen.getByLabelText('New task title'), { target: { value: 'Fix the door' } });
+    fireEvent.submit(screen.getByTestId('quick-add'));
+
+    await waitFor(() => expect(mocks.createTask).toHaveBeenCalledWith(expect.objectContaining({ assigneeId: 'u2' })));
+  });
+
+  it('moves a card to the column it is dropped on', async () => {
+    mocks.updateTask.mockResolvedValue(undefined);
+    renderPage();
+    const [card] = await screen.findAllByTestId('task-card');
+
+    const carried = new Map<string, string>();
+    const dataTransfer = {
+      setData: (type: string, value: string) => carried.set(type, value),
+      getData: (type: string) => carried.get(type) ?? '',
+      effectAllowed: 'move',
+    };
+    fireEvent.dragStart(card, { dataTransfer });
+    fireEvent.dragOver(screen.getByTestId('column-in_progress'), { dataTransfer });
+    fireEvent.drop(screen.getByTestId('column-in_progress'), { dataTransfer });
+
+    await waitFor(() => expect(mocks.updateTask).toHaveBeenCalledWith('t1', { status: 'in_progress' }));
+    expect(within(screen.getByTestId('column-in_progress')).getByText('Label the racking')).toBeTruthy();
+  });
+
+  it('reads as a list, late work first and finished work last, and ticks work off', async () => {
+    mocks.updateTask.mockResolvedValue(undefined);
+    renderPage();
+    await screen.findAllByTestId('task-card');
+
+    fireEvent.click(screen.getByRole('radio', { name: 'List' }));
+
+    const rows = within(screen.getByTestId('task-list')).getAllByRole('row').slice(1);
+    expect(rows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Sweep the dock'),
+      expect.stringContaining('Label the racking'),
+      expect.stringContaining('Paint the lines'),
+    ]);
+    expect(rows[0].textContent).toContain('Late');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sweep the dock done' }));
+    await waitFor(() => expect(mocks.updateTask).toHaveBeenCalledWith('t2', { status: 'done' }));
+  });
+
+  it('remembers the list for next time', async () => {
+    renderPage();
+    await screen.findAllByTestId('task-card');
+    fireEvent.click(screen.getByRole('radio', { name: 'List' }));
+
+    expect(localStorage.getItem('tasks-view')).toBe('list');
+  });
+
+  it('opens on the person’s own work when they are given work rather than giving it', async () => {
+    mocks.permissions = ['tasks:update'];
+    mocks.user = { id: 'u1' };
+    renderPage();
+
+    const cards = await screen.findAllByTestId('task-card');
+    expect(cards).toHaveLength(1);
+    expect(cards[0].textContent).toContain('Label the racking');
   });
 });
