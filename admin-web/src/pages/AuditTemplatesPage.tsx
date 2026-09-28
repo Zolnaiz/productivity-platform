@@ -366,7 +366,11 @@ const AuditTemplatesPage: React.FC = () => {
                   <div className="font-medium text-gray-900 dark:text-white">{template.title}</div>
                   <p className="mt-1 text-xs text-gray-500">{template.description}</p>
                   <div className="mt-2 text-sm text-gray-500">
-                    {template.category.replace('_', ' ')} - {template.industry || 'General'} - {template.questions.length} questions
+                    {t('auditTemplates.meta', {
+                      category: template.category.replace('_', ' '),
+                      industry: template.industry || t('auditTemplates.general'),
+                      count: template.questions.length,
+                    })}
                   </div>
                 </button>
               ))}
@@ -387,7 +391,7 @@ const AuditTemplatesPage: React.FC = () => {
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <div className="font-medium text-gray-900 dark:text-white">
-                          {template?.title || 'Audit run'}
+                          {template?.title || t('auditTemplates.auditRun')}
                         </div>
                         <div className="text-sm text-gray-500">
                           {run.location || t('auditTemplates.noZone')}

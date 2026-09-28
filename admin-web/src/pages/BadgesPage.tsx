@@ -35,7 +35,7 @@ const BadgesPage: React.FC = () => {
                     badge.earned ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
                   }`}
                 >
-                  {badge.earned ? 'Earned' : 'Locked'}
+                  {badge.earned ? t('badges.earned') : t('badges.locked')}
                 </span>
               </div>
             </Card>

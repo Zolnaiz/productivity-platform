@@ -228,14 +228,15 @@ const shapeIcons: Partial<Record<FloorPlanObjectType, React.ComponentType<{ clas
 };
 
 
+/** What each preset colour marks; worded on the page as `fiveS.colorPreset.<key>`. */
 const zoneColorPresets = [
-  { label: 'Front', value: '#38bdf8' },
-  { label: 'Work', value: '#22c55e' },
-  { label: 'Storage', value: '#f59e0b' },
-  { label: 'Meeting', value: '#a855f7' },
-  { label: 'Break', value: '#ef4444' },
-  { label: 'Shared', value: '#14b8a6' },
-  { label: 'Support', value: '#64748b' },
+  { key: 'front', value: '#38bdf8' },
+  { key: 'work', value: '#22c55e' },
+  { key: 'storage', value: '#f59e0b' },
+  { key: 'meeting', value: '#a855f7' },
+  { key: 'break', value: '#ef4444' },
+  { key: 'shared', value: '#14b8a6' },
+  { key: 'support', value: '#64748b' },
 ];
 
 /**
@@ -702,33 +703,33 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const launchSteps = useMemo(() => {
     const zones = plan?.zones ?? [];
     const missingNames = (predicate: (zone: FiveSZone) => boolean) => {
-      if (!zones.length) return 'No zones';
+      if (!zones.length) return t('fiveS.launch.noZones');
       const missing = zones.filter(predicate).map((zone) => zone.code);
-      if (!missing.length) return 'Complete';
+      if (!missing.length) return t('fiveS.launch.complete');
       return `${missing.slice(0, 4).join(', ')}${missing.length > 4 ? ` +${missing.length - 4}` : ''}`;
     };
 
     const steps = [
       {
-        title: '1. Map areas',
+        title: t('fiveS.launch.mapAreas'),
         complete: readiness.zones > 0,
-        progress: `${readiness.zones} zones`,
-        detail: readiness.zones > 0 ? 'Complete' : 'No zones',
+        progress: t('fiveS.launch.zoneCount', { count: readiness.zones }),
+        detail: readiness.zones > 0 ? t('fiveS.launch.complete') : t('fiveS.launch.noZones'),
       },
       {
-        title: '2. Assign owners',
+        title: t('fiveS.launch.assignOwners'),
         complete: readiness.withOwner === readiness.zones && readiness.zones > 0,
         progress: `${readiness.withOwner}/${readiness.zones}`,
         detail: missingNames((zone) => !zone.ownerName),
       },
       {
-        title: '3. List contents',
+        title: t('fiveS.launch.listContents'),
         complete: readiness.withContents === readiness.zones && readiness.zones > 0,
         progress: `${readiness.withContents}/${readiness.zones}`,
         detail: missingNames((zone) => !zone.contents.trim()),
       },
       {
-        title: '4. Set standards',
+        title: t('fiveS.launch.setStandards'),
         complete: readiness.withStandard === readiness.zones && readiness.zones > 0,
         progress: `${readiness.withStandard}/${readiness.zones}`,
         detail: missingNames((zone) => !zone.standard.trim()),
@@ -739,14 +740,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       ? [
           ...steps,
           {
-            title: '5. First audit',
+            title: t('fiveS.launch.firstAudit'),
             complete: readiness.withAuditScore === readiness.zones && readiness.zones > 0,
             progress: `${readiness.withAuditScore}/${readiness.zones}`,
             detail: missingNames((zone) => zone.lastAuditScore === undefined),
           },
         ]
       : steps;
-  }, [plan, readiness, showAuditControls]);
+  }, [plan, readiness, showAuditControls, t]);
 
   const zonesNeedingLaunchTasks = useMemo(
     () => (plan?.zones ?? []).filter((zone) => getZoneActionItems(zone, showAuditControls).length > 0),
@@ -3602,7 +3603,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   {zoneColorPresets.map((preset) => (
                     <div key={preset.value} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
                       <span className="h-3 w-3 flex-none rounded-full" style={{ backgroundColor: preset.value }} />
-                      {preset.label}
+                      {t(`fiveS.colorPreset.${preset.key}`)}
                     </div>
                   ))}
                 </div>
@@ -4971,7 +4972,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                           }`}
                           style={{ backgroundColor: `${preset.value}22` }}
                         >
-                          {preset.label}
+                          {t(`fiveS.colorPreset.${preset.key}`)}
                         </button>
                       ))}
                     </div>
@@ -5617,7 +5618,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                     </td>
                     <td className="px-4 py-3 text-gray-800 dark:text-gray-100">{redTag.title}</td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                      {redTag.ownerName || zone.ownerName || 'Unassigned'}
+                      {redTag.ownerName || zone.ownerName || t('fiveS.ui.unassigned')}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -5857,7 +5858,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       )}
                       {showAuditControls && (
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                          {getAuditDueDate(zone) || 'Now'}
+                          {getAuditDueDate(zone) || t('fiveS.task.now')}
                         </td>
                       )}
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{getRedTagCount(zone)}</td>

@@ -235,47 +235,41 @@ const MonthlyReportPage: React.FC = () => {
 
   const executiveSummary = report
     ? summaryLines.map((line) => `${line.label}: ${line.text}`).join('\n')
-    : 'Monthly productivity report is loading.';
+    : t('common.loading');
 
   const exportCsv = () => {
     if (!report) return;
+    // In the language of whoever exports it, like the page it comes from.
+    const c = (key: string, options?: Record<string, unknown>) => t(`reportCsv.${key}`, options);
 
     const rows = [
-      ['Metric', 'Value'],
-      ['Period', report.period],
+      [c('metric'), c('value')],
+      [c('period'), report.period],
       // A copy that does not say whether it can still change is one nobody
       // can compare with another.
-      ['Status', report.closed ? `Closed ${report.closed.at}` : 'Open'],
-      ['Projects', report.totals.projects],
-      ['Tasks', report.totals.tasks],
-      ['Completed tasks', report.totals.completedTasks],
-      ['Task completion rate', `${report.kpis.completionRate}%`],
-      ['Daily goals', report.totals.dailyGoals],
-      ['Completed daily goals', report.totals.completedDailyGoals],
-      ['Daily goal completion rate', `${report.kpis.dailyGoalCompletionRate}%`],
-      ['Tracked hours', report.totals.totalHours],
-      ['Work logs', report.totals.workLogs],
-      ['Audit runs', report.totals.auditRuns],
-      ['Assessment responses', report.totals.assessmentResponses],
-      ['Average assessment score', `${report.kpis.averageAssessmentScore}%`],
-      ['Approved expenses', report.totals.approvedExpenseTotal],
-      ['Pending expenses', report.totals.pendingExpenseTotal],
-      ['Improvement actions needed', improvementActions],
-      ['Average project progress', `${report.kpis.averageProjectProgress}%`],
+      [c('status'), report.closed ? c('closedOn', { date: String(report.closed.at).slice(0, 10) }) : c('open')],
+      [c('projects'), report.totals.projects],
+      [c('tasks'), report.totals.tasks],
+      [c('completedTasks'), report.totals.completedTasks],
+      [c('taskCompletionRate'), `${report.kpis.completionRate}%`],
+      [c('dailyGoals'), report.totals.dailyGoals],
+      [c('completedDailyGoals'), report.totals.completedDailyGoals],
+      [c('dailyGoalCompletionRate'), `${report.kpis.dailyGoalCompletionRate}%`],
+      [c('trackedHours'), report.totals.totalHours],
+      [c('workLogs'), report.totals.workLogs],
+      [c('auditRuns'), report.totals.auditRuns],
+      [c('assessmentResponses'), report.totals.assessmentResponses],
+      [c('averageAssessmentScore'), `${report.kpis.averageAssessmentScore}%`],
+      [c('approvedExpenses'), report.totals.approvedExpenseTotal],
+      [c('pendingExpenses'), report.totals.pendingExpenseTotal],
+      [c('improvementActions'), improvementActions],
+      [c('averageProjectProgress'), `${report.kpis.averageProjectProgress}%`],
       [],
       // The per-person rows go in the same file: a monthly report that has to
       // be read on screen and re-typed to be shared is not a report.
-      [
-        'Person',
-        'Tasks done',
-        'Tasks assigned',
-        'Hours',
-        'Work logs',
-        'Daily goals done',
-        'Daily goals',
-        'Audits',
-        'Assessments',
-      ],
+      ['person', 'tasksDone', 'tasksAssigned', 'hours', 'workLogs', 'dailyGoalsDone', 'dailyGoals', 'audits', 'assessments'].map(
+        (key) => c(key),
+      ),
       ...peopleRows.map((row) => [
         row.name,
         row.month?.completedTasks ?? 0,
@@ -291,19 +285,11 @@ const MonthlyReportPage: React.FC = () => {
       // And the same month along the other axis. A department outlasts the
       // people in it, so this is the half of the report that can be compared
       // with last year's.
-      [
-        'Department',
-        'People',
-        'Tasks done',
-        'Hours',
-        'Audits',
-        '5S areas',
-        'Average 5S score',
-        'Open red tags',
-        'Audits due',
-      ],
+      ['department', 'people', 'tasksDone', 'hours', 'audits', 'fiveSAreas', 'averageFiveSScore', 'openRedTags', 'auditsDue'].map(
+        (key) => c(key),
+      ),
       ...departmentRows.map((row) => [
-        row.departmentId ? row.name : 'Unassigned',
+        row.departmentId ? row.name : c('unassigned'),
         row.people,
         row.completedTasks,
         row.hours.toFixed(1),
@@ -316,9 +302,9 @@ const MonthlyReportPage: React.FC = () => {
       [],
       // And by building, which is the axis a plant with more than one of them
       // is actually run along.
-      ['Site', 'Floors', '5S areas', 'Average 5S score', 'Open red tags', 'Audits due'],
+      ['site', 'floors', 'fiveSAreas', 'averageFiveSScore', 'openRedTags', 'auditsDue'].map((key) => c(key)),
       ...siteRows.map((row) => [
-        row.site || 'No site named',
+        row.site || c('noSite'),
         row.floors,
         row.zones,
         row.averageAuditScore === undefined ? '' : `${row.averageAuditScore}%`,
@@ -719,7 +705,7 @@ const MonthlyReportPage: React.FC = () => {
                         goal.completed ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'
                       }`}
                     >
-                      {goal.completed ? 'Done' : 'Open'}
+                      {goal.completed ? t('reportCsv.done') : t('reportCsv.open')}
                     </span>
                   </div>
                 </div>

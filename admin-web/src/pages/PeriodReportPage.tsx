@@ -82,23 +82,25 @@ const PeriodReportPage: React.FC = () => {
 
   const exportCsv = () => {
     if (!report) return;
+    // In the language of whoever exports it, like the page it comes from.
+    const c = (key: string, options?: Record<string, unknown>) => t(`reportCsv.${key}`, options);
 
     const rows: Array<Array<string | number>> = [
-      ['Period', `${report.from} to ${report.to}`],
-      ['Closed months', `${report.closedMonths} of ${report.months.length}`],
-      ['Tasks done', report.totals.completedTasks],
-      ['Completion rate', `${report.kpis.completionRate}%`],
-      ['Tracked hours', report.totals.totalHours],
-      ['Work logs', report.totals.workLogs],
-      ['Audit runs', report.totals.auditRuns],
-      ['Average assessment score', `${report.kpis.averageAssessmentScore}%`],
-      ['Daily goal completion rate', `${report.kpis.dailyGoalCompletionRate}%`],
-      ['Approved expenses', report.totals.approvedExpenseTotal],
+      [c('period'), c('range', { from: report.from, to: report.to })],
+      [c('closedMonths'), c('closedOfTotal', { closed: report.closedMonths, total: report.months.length })],
+      [c('tasksDone'), report.totals.completedTasks],
+      [c('completionRate'), `${report.kpis.completionRate}%`],
+      [c('trackedHours'), report.totals.totalHours],
+      [c('workLogs'), report.totals.workLogs],
+      [c('auditRuns'), report.totals.auditRuns],
+      [c('averageAssessmentScore'), `${report.kpis.averageAssessmentScore}%`],
+      [c('dailyGoalCompletionRate'), `${report.kpis.dailyGoalCompletionRate}%`],
+      [c('approvedExpenses'), report.totals.approvedExpenseTotal],
       [],
-      ['Month', 'Status', 'Tasks done', 'Completion rate', 'Hours', 'Work logs', 'Audits'],
+      ['month', 'status', 'tasksDone', 'completionRate', 'hours', 'workLogs', 'audits'].map((key) => c(key)),
       ...report.months.map((month) => [
         month.period,
-        month.closed ? 'Closed' : 'Open',
+        month.closed ? c('closed') : c('open'),
         month.totals.completedTasks,
         `${month.kpis.completionRate}%`,
         month.totals.totalHours,
@@ -106,7 +108,7 @@ const PeriodReportPage: React.FC = () => {
         month.totals.auditRuns,
       ]),
       [],
-      ['Person', 'Tasks done', 'Tasks assigned', 'Hours', 'Work logs', 'Audits', 'Assessments'],
+      ['person', 'tasksDone', 'tasksAssigned', 'hours', 'workLogs', 'audits', 'assessments'].map((key) => c(key)),
       ...report.people.map((person) => [
         nameOf(person.userId),
         person.completedTasks,

@@ -113,9 +113,9 @@ const ResponsesPage: React.FC = () => {
 
     const response = await assessmentService.createResponse({
       templateId: selectedTemplate.id,
-      respondent: respondent.trim() || "Employee User",
+      respondent: respondent.trim() || t("responses.anonymousRespondent"),
       department:
-        department.trim() || selectedTemplate.industry || "Operations",
+        department.trim() || selectedTemplate.industry || t("responses.noDepartment"),
       status: "submitted",
       score: draftScore,
       submittedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
@@ -366,7 +366,7 @@ const ResponsesPage: React.FC = () => {
               {
                 key: "template",
                 header: t("responses.template"),
-                render: (response) => templateById[response.templateId]?.title || "Unknown template",
+                render: (response) => templateById[response.templateId]?.title || t("responses.unknownTemplate"),
               },
               { key: "department", header: t("responses.department") },
               {

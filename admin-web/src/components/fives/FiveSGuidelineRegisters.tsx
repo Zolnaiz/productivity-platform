@@ -49,13 +49,6 @@ const reasons: FiveSImplementationReason[] = ['defective', 'unused', 'excess', '
 
 const implementationStatuses: FiveSImplementationStatus[] = ['identified', 'review', 'approved', 'removed', 'returned'];
 
-/** English for the CSV, which has no reader to ask, like every export here. */
-const reasonInEnglish: Record<FiveSImplementationReason, string> = {
-  defective: 'Defective',
-  unused: 'Unused for a long time',
-  excess: 'Excess',
-  unnecessary: 'Unnecessary',
-};
 
 /*
   The standard this page is read against — the cadence, the labelling rules,
@@ -386,18 +379,10 @@ const FiveSGuidelineRegisters: React.FC = () => {
   const exportImprovements = () => {
     downloadCsv(
       '5s-improvement-register.csv',
-      [
-        'Area / Responsible',
-        'Date',
-        'When',
-        'Duration',
-        'Symptom / loss',
-        'Root cause',
-        'Team decision',
-        'Action plan',
-        'Management decision',
-        'Status',
-      ],
+      // The page's own column names: an export is read by whoever made it.
+      ['areaOwner', 'date', 'when', 'duration', 'symptomLoss', 'rootCause', 'teamDecision', 'actionPlan', 'management', 'status'].map(
+        (key) => t(`fiveSRegisters.${key}`),
+      ),
       state.improvements.map((item) => [
         `${item.area} / ${item.responsible}`,
         item.recordDate,
@@ -408,7 +393,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
         item.teamDecision,
         item.actionPlan,
         item.managementDecision,
-        item.status,
+        t(`fiveSRegisters.improvementStatus.${item.status}`),
       ]),
     );
     setActionMessage(t('fiveSRegisters.improvementsExported'));
@@ -417,18 +402,23 @@ const FiveSGuidelineRegisters: React.FC = () => {
   const exportImplementationCards = () => {
     downloadCsv(
       '5s-implementation-cards.csv',
-      ['Tag', 'No.', 'Quantity', 'Item', 'Reason', 'Department', 'Date', 'Owner', 'Decision', 'Status'],
+      [
+        t('fiveSRegisters.tag'),
+        t('fiveSRegisters.numberPlaceholder'),
+        t('fiveSRegisters.quantityPlaceholder'),
+        ...['item', 'reason', 'department', 'date', 'owner', 'decision', 'status'].map((key) => t(`fiveSRegisters.${key}`)),
+      ],
       state.implementationCards.map((item) => [
         item.tagType,
         item.itemNumber,
         item.quantity,
         item.itemName,
-        reasonInEnglish[item.reason],
+        t(`fiveSRegisters.reasons.${item.reason}`),
         item.department,
         item.date,
         item.owner,
         item.decision,
-        item.status,
+        t(`fiveSRegisters.cardStatus.${item.status}`),
       ]),
     );
     setActionMessage(t('fiveSRegisters.cardsExported'));
@@ -437,7 +427,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
   const exportAssessment = () => {
     downloadCsv(
       '5s-organization-baseline-assessment.csv',
-      ['Category', 'Criterion', 'Score', 'Note'],
+      ['category', 'criterion', 'score', 'note'].map((key) => t(`fiveSRegisters.${key}`)),
       content.assessmentCriteria.map((criterion) => {
         const score = scoreById.get(criterion.id);
         return [criterion.category, criterion.criterion, score?.score ?? 0, score?.note ?? ''];
@@ -449,10 +439,10 @@ const FiveSGuidelineRegisters: React.FC = () => {
   const exportChecklist = () => {
     downloadCsv(
       '5s-public-area-checklist.csv',
-      ['Group', 'Checklist item', 'Done', 'Note'],
+      [t('fiveSRegisters.checklistGroup'), t('fiveSRegisters.checklistItem'), t('fiveSRegisters.checklistDone'), t('fiveSRegisters.note')],
       checklistItems.map((item) => {
         const progress = checklistById.get(item.id);
-        return [item.group, item.item, progress?.done ? 'yes' : 'no', progress?.note ?? ''];
+        return [item.group, item.item, progress?.done ? t('common.yes') : t('common.no'), progress?.note ?? ''];
       }),
     );
     setActionMessage(t('fiveSRegisters.checklistExported'));

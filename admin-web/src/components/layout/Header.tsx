@@ -128,7 +128,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         ...auditTemplates.map((template) => ({
           id: `audit-template-${template.id}`,
           title: template.title,
-          subtitle: `${template.industry || 'General'} - ${template.category.replace('_', ' ')}`,
+          subtitle: `${template.industry || t('auditTemplates.general')} - ${template.category.replace('_', ' ')}`,
           path: '/fives',
           type: t('search.typeAuditTemplate'),
         })),
@@ -250,7 +250,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         <ThemeToggle />
         <div className="hidden text-right sm:block">
           <div className="text-sm font-medium text-gray-900 dark:text-white">
-            {user?.name || 'Admin user'}
+            {user?.name || user?.email}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">
             {user?.roles?.join(', ') || 'owner'}
