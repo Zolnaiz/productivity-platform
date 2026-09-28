@@ -14,6 +14,7 @@ import { Department, TeamUser, memberName } from '../types/people.types';
 import { FiveSLayoutPlan } from '../types/fiveS.types';
 import { localDay, localMonth } from '../utils/localDay';
 import { scrollArea } from '../components/common/scrollArea';
+import MonthSummaryCard from '../components/reports/MonthSummaryCard';
 
 const formatMnt = (value: number) =>
   new Intl.NumberFormat('mn-MN', {
@@ -438,6 +439,8 @@ const MonthlyReportPage: React.FC = () => {
 
       {report && (
         <>
+          <MonthSummaryCard month={selectedMonth} canWrite={may('reports:close')} />
+
           <Card title={t('monthlyReport.executiveSummary')} subtitle={t('monthlyReport.reportingPeriod', { period: report.period })}>
             <dl className="divide-y divide-gray-200 dark:divide-gray-700">
               {summaryLines.map((line) => (
