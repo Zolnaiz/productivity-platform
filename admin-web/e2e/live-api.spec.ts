@@ -273,3 +273,20 @@ test('a month closed stays closed after a reload, and reopens', async ({ page })
   await page.getByRole('button', { name: 'Reopen month' }).click();
   await expect(page.getByRole('button', { name: 'Close month' })).toBeVisible();
 });
+
+test('a questionnaire template built is still there after a reload', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/questionnaires');
+
+  const title = `Live check checklist ${Date.now()}`;
+  await page.getByLabel('Template title').fill(title);
+  await page.getByLabel('Question 1', { exact: true }).fill('Is the aisle clear?');
+  const created = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/assessment-templates') && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Create template' }).click();
+  expect((await created).status()).toBe(201);
+
+  await page.reload();
+  await expect(page.getByText(title)).toBeVisible();
+});
