@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/five_s_model.dart';
 import '../services/api_service.dart';
+import '../services/outbox.dart';
 
 /// The 5S walk on the phone: the areas to check and the checklists to check
 /// them against.
@@ -10,8 +11,15 @@ import '../services/api_service.dart';
 /// phone, not at a desk. Until this, the check could be walked only in a
 /// browser, so it was walked from memory afterwards or not at all.
 class FiveSProvider extends ChangeNotifier {
-  FiveSProvider(this._api);
+  FiveSProvider(this._api, {this.outbox});
   final ApiService _api;
+
+  /// Where a change goes when the phone is offline. Without one, an
+  /// offline change fails as any other would.
+  final Outbox? outbox;
+
+  /// Whether the last change was kept on the phone rather than sent.
+  bool lastKept = false;
 
   List<FiveSPlan> plans = [];
   List<AuditTemplate> templates = [];
@@ -106,21 +114,31 @@ class FiveSProvider extends ChangeNotifier {
   /// Tags something in an area. Returns whether it was saved.
   Future<bool> addRedTag(FiveSPlan plan, FiveSZone zone,
       {required String title, String disposition = ''}) async {
-    return _write(() => _api.addRedTag(plan.id, zone.id, {
-          'title': title,
-          if (disposition.isNotEmpty) 'disposition': disposition,
-        }));
+    final body = {
+      'title': title,
+      if (disposition.isNotEmpty) 'disposition': disposition,
+    };
+    return _write(() => _api.addRedTag(plan.id, zone.id, body),
+        kind: 'redTag',
+        path: '/five-s-layouts/${plan.id}/zones/${zone.id}/red-tags',
+        data: body);
   }
 
   /// Records that an area was cleaned today. Returns whether it was saved.
   Future<bool> markCleaned(FiveSPlan plan, FiveSZone zone) =>
-      _write(() => _api.markZoneCleaned(plan.id, zone.id));
+      _write(() => _api.markZoneCleaned(plan.id, zone.id),
+          kind: 'cleaned',
+          path: '/five-s-layouts/${plan.id}/zones/${zone.id}/cleaned');
 
   /// Sends one change, then reads the plans again rather than guess at what
   /// the server made of it.
-  Future<bool> _write(Future<Object?> Function() send) async {
+  Future<bool> _write(Future<Object?> Function() send,
+      {required String kind,
+      required String path,
+      Map<String, dynamic>? data}) async {
     saving = true;
     error = null;
+    lastKept = false;
     notifyListeners();
     try {
       await send();
@@ -128,6 +146,11 @@ class FiveSProvider extends ChangeNotifier {
       await load();
       return true;
     } catch (e) {
+      if (outbox != null && neverSent(e)) {
+        await outbox!.keep(method: 'POST', path: path, kind: kind, data: data);
+        lastKept = true;
+        return true;
+      }
       error = e;
       return false;
     } finally {
@@ -148,23 +171,33 @@ class FiveSProvider extends ChangeNotifier {
     final score = scoreAnswers(template, answers);
     saving = true;
     error = null;
+    lastKept = false;
     notifyListeners();
+    final body = {
+      'templateId': template.id,
+      'zoneId': zone.id,
+      if (tier != null) 'tier': tier.tier,
+      'location': zone.location,
+      'score': score,
+      'status': 'submitted',
+      'answers': answersForRun(template, answers),
+    };
     try {
-      final run = await _api.createAuditRun({
-        'templateId': template.id,
-        'zoneId': zone.id,
-        if (tier != null) 'tier': tier.tier,
-        'location': zone.location,
-        'score': score,
-        'status': 'submitted',
-        'answers': answersForRun(template, answers),
-      });
+      final run = await _api.createAuditRun(body);
       // The area's score has moved on the server; read it back rather than
       // guess at how the server rounds and stores it.
       saving = false;
       await load();
       return (score: score, runId: run['id'] as String? ?? '');
     } catch (e) {
+      // Walked where there is no signal: kept, and sent once there is. No run
+      // id yet, so no photographs of the shortfalls until then.
+      if (outbox != null && neverSent(e)) {
+        await outbox!
+            .keep(method: 'POST', path: '/audit-runs', kind: 'audit', data: body);
+        lastKept = true;
+        return (score: score, runId: '');
+      }
       error = e;
       return null;
     } finally {

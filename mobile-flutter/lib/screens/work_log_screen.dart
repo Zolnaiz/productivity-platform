@@ -66,7 +66,9 @@ class _WorkLogScreenState extends State<WorkLogScreen> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(saved ? strings.text('logSaved') : strings.error(logs.error!)),
+      content: Text(saved
+          ? strings.text(logs.lastKept ? 'keptNow' : 'logSaved')
+          : strings.error(logs.error!)),
     ));
     // What somebody typed survives a failed save, so they can send it again.
     if (saved) {

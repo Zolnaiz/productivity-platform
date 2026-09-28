@@ -99,6 +99,15 @@ class PhaseOneStrings {
   String auditSaved(int score) =>
       mn ? 'Шалгалт бүртгэгдлээ: $score%' : 'Check recorded: $score%';
 
+  /// Said when a change could not leave the phone and was kept to send later.
+  String keptOnPhone(int count) => mn
+      ? 'Утсанд $count зүйл хадгалагдсан. Сүлжээ ормогц илгээнэ.'
+      : '$count kept on this phone, sent when the network is back.';
+
+  String keptRefused(int count) => mn
+      ? 'Хадгалсан $count зүйлийг сервер хүлээж авсангүй.'
+      : 'The server did not take $count kept change${count == 1 ? '' : 's'}.';
+
   String taskTitle(
       {required String title,
       String? key,
@@ -199,6 +208,8 @@ const _en = {
   'nothingLogged': 'Nothing written up for today yet.',
   'noTasks': 'No tasks assigned to you.',
   'retry': 'Try again',
+  'sendNow': 'Send now',
+  'keptNow': 'No network. Kept on this phone to send later.',
   'signIn': 'Sign in',
   'logout': 'Sign out',
   'email': 'Email',
@@ -283,6 +294,8 @@ const _mn = {
   'nothingLogged': 'Өнөөдрийн бүртгэл одоогоор алга.',
   'noTasks': 'Танд оноосон ажил алга.',
   'retry': 'Дахин оролдох',
+  'sendNow': 'Одоо илгээх',
+  'keptNow': 'Сүлжээ алга. Утсанд хадгаллаа, дараа нь илгээнэ.',
   'signIn': 'Нэвтрэх',
   'logout': 'Гарах',
   'email': 'И-мэйл',

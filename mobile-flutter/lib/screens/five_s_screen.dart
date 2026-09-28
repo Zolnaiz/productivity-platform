@@ -185,7 +185,9 @@ class _FiveSZoneScreenState extends State<FiveSZoneScreen> {
       _title.clear();
       _disposition.clear();
       messenger
-          .showSnackBar(SnackBar(content: Text(strings.text('redTagSaved'))));
+          .showSnackBar(SnackBar(
+              content: Text(strings
+                  .text(fiveS.lastKept ? 'keptNow' : 'redTagSaved'))));
     } else if (fiveS.error != null) {
       messenger
           .showSnackBar(SnackBar(content: Text(strings.error(fiveS.error!))));
@@ -196,7 +198,11 @@ class _FiveSZoneScreenState extends State<FiveSZoneScreen> {
     final strings = PhaseOneStrings(Localizations.localeOf(context));
     final fiveS = context.read<FiveSProvider>();
     final messenger = ScaffoldMessenger.of(context);
-    if (!await fiveS.markCleaned(plan, zone) && fiveS.error != null) {
+    final done = await fiveS.markCleaned(plan, zone);
+    if (done && fiveS.lastKept) {
+      messenger.showSnackBar(SnackBar(content: Text(strings.text('keptNow'))));
+    }
+    if (!done && fiveS.error != null) {
       messenger
           .showSnackBar(SnackBar(content: Text(strings.error(fiveS.error!))));
     }
@@ -417,7 +423,10 @@ class _FiveSWalkScreenState extends State<FiveSWalkScreen> {
         zone: widget.zone, template: template, answers: _answers, tier: _tier);
     if (recorded != null) {
       messenger.showSnackBar(
-          SnackBar(content: Text(strings.auditSaved(recorded.score))));
+          SnackBar(
+              content: Text(fiveS.lastKept
+                  ? strings.text('keptNow')
+                  : strings.auditSaved(recorded.score))));
       final shortfalls = shortfallsOf(template, _answers);
       if (shortfalls.isEmpty || recorded.runId.isEmpty) {
         navigator.pop();

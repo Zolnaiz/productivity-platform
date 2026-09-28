@@ -78,11 +78,13 @@ class ApiService {
     // Add request interceptor
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        // Check internet connection
-        final connectivityResult = _instanceOverride
-            ? ConnectivityResult.wifi
+        // Check internet connection. The plugin answers with every network
+        // the phone is on; compared with a single value, as it was, the
+        // check never matched and an offline request went out to fail.
+        final connections = _instanceOverride
+            ? const [ConnectivityResult.wifi]
             : await _connectivity.checkConnectivity();
-        if (connectivityResult == ConnectivityResult.none) {
+        if (connections.every((result) => result == ConnectivityResult.none)) {
           return handler.reject(DioException(
             requestOptions: options,
             error: 'No internet connection',
@@ -442,6 +444,13 @@ class ApiService {
     final response =
         await _dio.post('/five-s-layouts/$planId/zones/$zoneId/cleaned');
     return (response.data as Map).cast<String, dynamic>();
+  }
+
+  /// Sends a change kept on the phone while it was offline, as it was made.
+  Future<dynamic> send(String method, String path, Map<String, dynamic>? data) async {
+    final response =
+        await _dio.request(path, data: data, options: Options(method: method));
+    return response.data;
   }
 
   /// Records a walked checklist. The server moves the area's score and raises

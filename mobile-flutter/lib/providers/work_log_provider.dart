@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/work_log_model.dart';
 import '../services/api_service.dart';
+import '../services/outbox.dart';
 
 /// Today's record of work, for the person holding the phone.
 ///
@@ -9,10 +10,14 @@ import '../services/api_service.dart';
 /// could only do at a desk — so it was written from memory on Friday, or not
 /// at all, and the monthly report counted whatever survived.
 class WorkLogProvider extends ChangeNotifier {
-  WorkLogProvider(this._api, {DateTime Function()? clock})
+  WorkLogProvider(this._api, {DateTime Function()? clock, this.outbox})
       : _clock = clock ?? DateTime.now;
 
   final ApiService _api;
+  final Outbox? outbox;
+
+  /// Whether the last entry was kept on the phone rather than sent.
+  bool lastKept = false;
   final DateTime Function() _clock;
 
   List<WorkLog> today = [];
@@ -61,22 +66,36 @@ class WorkLogProvider extends ChangeNotifier {
   }) async {
     saving = true;
     error = null;
+    lastKept = false;
     notifyListeners();
+    final entry = {
+      'summary': summary,
+      'hours': hours,
+      'logDate': day,
+      if (taskId != null) 'taskId': taskId,
+      if (blockers != null && blockers.isNotEmpty) 'blockers': blockers,
+      if (nextSteps != null && nextSteps.isNotEmpty) 'nextSteps': nextSteps,
+    };
     try {
-      final saved = await _api.createDailyWorkLog({
-        'summary': summary,
-        'hours': hours,
-        'logDate': day,
-        if (taskId != null) 'taskId': taskId,
-        if (blockers != null && blockers.isNotEmpty) 'blockers': blockers,
-        if (nextSteps != null && nextSteps.isNotEmpty) 'nextSteps': nextSteps,
-      });
+      final saved = await _api.createDailyWorkLog(entry);
       final raw = saved['workLog'];
       final log = WorkLog.fromJson(
           raw is Map ? raw.cast<String, dynamic>() : saved);
       today = [log, ...today];
       return true;
     } catch (e) {
+      if (outbox != null && neverSent(e)) {
+        await outbox!.keep(
+            method: 'POST', path: '/work-logs/daily', kind: 'workLog', data: entry);
+        // On today's list at once, so the hours add up; the server's copy
+        // replaces it when the list is read again.
+        today = [
+          WorkLog.fromJson({'id': 'kept-${outbox!.pending.length}', ...entry}),
+          ...today
+        ];
+        lastKept = true;
+        return true;
+      }
       error = e;
       return false;
     } finally {

@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 
 import '../models/task_model.dart';
 import '../services/api_service.dart';
+import '../services/outbox.dart';
 
 class TaskProvider extends ChangeNotifier {
-  TaskProvider(this._api);
+  TaskProvider(this._api, {this.outbox});
   final ApiService _api;
+  final Outbox? outbox;
   List<Task> tasks = [];
   bool loading = false;
   Object? error;
@@ -55,8 +57,18 @@ class TaskProvider extends ChangeNotifier {
       ];
       error = null;
     } catch (e) {
-      tasks = before;
-      error = e;
+      if (outbox != null && neverSent(e)) {
+        // Moved on screen and kept: it goes to the server with the network.
+        await outbox!.keep(
+            method: 'PATCH',
+            path: '/tasks/${task.id}',
+            kind: 'task',
+            data: {'status': status});
+        error = null;
+      } else {
+        tasks = before;
+        error = e;
+      }
     }
     notifyListeners();
   }
