@@ -77,7 +77,8 @@ test('an audit layer renamed on the plan is still renamed after a reload', async
 
 test('a 5S register row typed in is still there after a reload', async ({ page }) => {
   await signIn(page);
-  await page.goto('/fives');
+  // The registers have a tab of their own, named in the address.
+  await page.goto('/fives?view=registers');
 
   const marker = `Live check ${Date.now()}`;
   await page.getByRole('button', { name: 'Add row' }).first().click();

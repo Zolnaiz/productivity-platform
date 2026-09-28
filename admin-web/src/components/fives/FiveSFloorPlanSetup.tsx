@@ -35,6 +35,7 @@ import {
   Table,
   Trash2,
   Undo2,
+  MoreHorizontal,
   Upload,
   UserCheck,
 } from 'lucide-react';
@@ -341,12 +342,22 @@ const fieldClass =
 
 
 interface FiveSFloorPlanSetupProps {
+  /**
+   * Which part of the editor to show. The page had all of it at once -
+   * eight and a half screens, 124 buttons - so it is split into tabs: the
+   * map, and the areas with who owns them and what is open. One editor stays
+   * mounted across them, so undo and unsaved edits survive a change of tab.
+   */
+  section?: FiveSSection;
   onAuditZoneSelect?: (location: string) => void;
   refreshKey?: number;
   showAuditControls?: boolean;
 }
 
+export type FiveSSection = 'all' | 'map' | 'areas' | 'none';
+
 const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
+  section = 'all',
   onAuditZoneSelect,
   refreshKey = 0,
   showAuditControls = false,
@@ -429,6 +440,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const backgroundInputRef = useRef<HTMLInputElement | null>(null);
   const saveTimerRef = useRef<number | null>(null);
   const pendingPlanRef = useRef<FiveSLayoutPlan | null>(null);
+  const sectionRef = useRef<FiveSSection>(section);
+  const show = (part: Exclude<FiveSSection, 'all' | 'none'>) => section === 'all' || section === part;
   const shortcutHandlerRef = useRef<((event: KeyboardEvent) => void) | null>(null);
 
   useEffect(() => {
@@ -2257,10 +2270,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   // never be handled by a closure from a stale render.
   useLayoutEffect(() => {
     shortcutHandlerRef.current = handleShortcutKey;
+    sectionRef.current = section;
   });
 
   useEffect(() => {
-    const listener = (event: KeyboardEvent) => shortcutHandlerRef.current?.(event);
+    const listener = (event: KeyboardEvent) => {
+      if (sectionRef.current !== 'all' && sectionRef.current !== 'map') return;
+      shortcutHandlerRef.current?.(event);
+    };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
   }, []);
@@ -2994,46 +3011,64 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       })}
       actions={
         <>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={Undo2}
-            onClick={undo}
-            disabled={!history.length}
-            title={t('fiveS.ui.undoTitle')}
-            type="button"
-          >
-            {t('fiveS.ui.undo')}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={Redo2}
-            onClick={redo}
-            disabled={!future.length}
-            title={t('fiveS.ui.redoTitle')}
-            type="button"
-          >
-            {t('fiveS.ui.redo')}
-          </Button>
-          <Button variant="outline" size="sm" icon={Download} onClick={downloadZoneLabels} type="button">
-            CSV
-          </Button>
-          <Button variant="outline" size="sm" icon={Download} onClick={downloadFloorPlanSvg} type="button">
-            {t('fiveS.ui.mapSvg')}
-          </Button>
-          <Button variant="outline" size="sm" icon={Download} onClick={downloadPlanJson} type="button">
-            {t('fiveS.ui.backup')}
-          </Button>
-          <Button variant="outline" size="sm" icon={Upload} onClick={() => importInputRef.current?.click()} type="button">
-            {t('fiveS.ui.import')}
-          </Button>
+          {/* Drawing tools where the drawing is; the areas tab only exports and prints. */}
+          {show('map') && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={Undo2}
+                onClick={undo}
+                disabled={!history.length}
+                title={t('fiveS.ui.undoTitle')}
+                type="button"
+              >
+                {t('fiveS.ui.undo')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={Redo2}
+                onClick={redo}
+                disabled={!future.length}
+                title={t('fiveS.ui.redoTitle')}
+                type="button"
+              >
+                {t('fiveS.ui.redo')}
+              </Button>
+            </>
+          )}
           <Button variant="outline" size="sm" icon={Printer} onClick={printZoneLabels} type="button">
             {t('fiveS.ui.print')}
           </Button>
-          <Button variant="outline" size="sm" icon={RotateCcw} onClick={resetPlan} type="button">
-            {t('fiveS.ui.reset')}
-          </Button>
+          {/*
+            What is done once a month or once ever - a drawing exported, a
+            backup, a restore, starting again - behind one button, as office
+            tools keep theirs, so the everyday ones are the ones in sight.
+          */}
+          <details className="relative" data-testid="fives-more">
+            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800 [&::-webkit-details-marker]:hidden">
+              <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+              {t('fiveS.ui.more')}
+            </summary>
+            <div className="absolute right-0 z-30 mt-2 flex w-56 flex-col gap-1 rounded-lg border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+              <Button variant="ghost" size="sm" icon={Download} onClick={downloadZoneLabels} type="button">
+                {t('fiveS.ui.labelsCsv')}
+              </Button>
+              <Button variant="ghost" size="sm" icon={Download} onClick={downloadFloorPlanSvg} type="button">
+                {t('fiveS.ui.mapSvg')}
+              </Button>
+              <Button variant="ghost" size="sm" icon={Download} onClick={downloadPlanJson} type="button">
+                {t('fiveS.ui.backup')}
+              </Button>
+              <Button variant="ghost" size="sm" icon={Upload} onClick={() => importInputRef.current?.click()} type="button">
+                {t('fiveS.ui.import')}
+              </Button>
+              <Button variant="ghost" size="sm" icon={RotateCcw} onClick={resetPlan} type="button">
+                {t('fiveS.ui.reset')}
+              </Button>
+            </div>
+          </details>
         </>
       }
     >
@@ -3054,6 +3089,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           </div>
         )}
 
+        {show('map') && (
         <div className="grid gap-3 md:grid-cols-3">
           {/*
             Which floor is on the canvas. A building has a plan per floor, and
@@ -3153,7 +3189,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             </span>
           </label>
         </div>
+        )}
 
+        {show('map') && (
         <div className="grid gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700 md:grid-cols-[auto_auto_minmax(180px,1fr)_auto]">
           <Button variant="outline" icon={Upload} onClick={() => backgroundInputRef.current?.click()} type="button">
             {t('fiveS.ui.blueprint')}
@@ -3188,8 +3226,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             {t('fiveS.ui.colourByScore')}
           </label>
         </div>
+        )}
 
-        {colorMode === 'condition' && (
+        {show('map') && colorMode === 'condition' && (
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:text-gray-300">
             {(
               [
@@ -3211,6 +3250,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           </div>
         )}
 
+        {show('areas') && (
         <div className={`grid gap-4 md:grid-cols-3 ${showAuditControls ? 'xl:grid-cols-7' : 'xl:grid-cols-5'}`}>
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
             <div className="text-xs text-gray-500">{t('fiveS.ui.zones')}</div>
@@ -3248,12 +3288,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             </>
           )}
         </div>
+        )}
 
+        {show('areas') && (
         <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
               <ListChecks className="h-4 w-4" />
-              5S launch checklist
+              {t('fiveS.ui.launchChecklist')}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <span className="text-xs font-medium text-gray-500">{t('fiveS.ui.setupReady', { rate: readiness.rate })}</span>
@@ -3290,7 +3332,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             ))}
           </div>
         </div>
+        )}
 
+        {(show('map') || show('areas')) && (
         <div className="grid gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700 md:grid-cols-[1fr_1fr_auto]">
           <label className="block text-sm text-gray-600 dark:text-gray-400">
             {t('fiveS.inspector.areaStatus')}
@@ -3323,7 +3367,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             {t('fiveS.ui.showingAreas', { shown: filteredZones.length, total: plan.zones.length })}
           </div>
         </div>
+        )}
 
+        {show('areas') && (
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
@@ -3430,8 +3476,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             </div>
           )}
         </div>
+        )}
 
-        {showAuditControls && (
+        {show('areas') && showAuditControls && (
           <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
               <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
@@ -3539,6 +3586,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           </div>
         )}
 
+        {show('map') && (
         <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)_320px]">
           <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
             <div className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
@@ -5534,7 +5582,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             )}
           </div>
         </div>
+        )}
 
+        {show('areas') && (
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
@@ -5557,7 +5607,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   <div className="font-medium text-gray-900 dark:text-white">{owner.name}</div>
                   {showAuditControls ? (
                     <div className="text-xs text-gray-500">
-                      Avg score {owner.scoreCount ? `${Math.round(owner.scoreTotal / owner.scoreCount)}%` : '-'}
+                      {t('fiveS.ui.averageScore', {
+                        score: owner.scoreCount ? `${Math.round(owner.scoreTotal / owner.scoreCount)}%` : '-',
+                      })}
                     </div>
                   ) : (
                     <div className="text-xs text-gray-500">{t('fiveS.ui.responsibleOwnership')}</div>
@@ -5581,7 +5633,9 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             ))}
           </div>
         </div>
+        )}
 
+        {show('areas') && (
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
@@ -5590,7 +5644,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <span className="text-xs text-gray-500">
-                {openRedTagItems.length} open / {redTagRegister.length} total
+                {t('fiveS.ui.openOfTotal', { open: openRedTagItems.length, total: redTagRegister.length })}
               </span>
               <Button
                 variant="outline"
@@ -5666,6 +5720,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             </div>
           )}
         </div>
+        )}
 
         {/*
           The spaghetti diagrams, and what they cost in metres.
@@ -5675,7 +5730,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           different problem from eighty made of sixteen short ones — and only
           the first is worth a trolley.
         */}
-        {Boolean((plan.routes ?? []).length) && (
+        {show('map') && Boolean((plan.routes ?? []).length) && (
           <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
               <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -5739,7 +5794,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           manager walks and talks in — "how is goods-in doing" — and it could
           not be asked at all until the plan had rooms to ask it of.
         */}
-        {Boolean(rooms.length) && (
+        {show('map') && Boolean(rooms.length) && (
           <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
               <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
@@ -5822,11 +5877,12 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
           </div>
         )}
 
+        {show('areas') && (
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
               <ListChecks className="h-4 w-4" />
-              5S area register
+              {t('fiveS.ui.areaRegister')}
             </div>
             <span className="text-xs text-gray-500">
               {t('fiveS.ui.areasOfTotal', { shown: filteredZones.length, total: plan.zones.length })}
@@ -5895,6 +5951,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             </table>
           </div>
         </div>
+        )}
       </div>
     </Card>
   );

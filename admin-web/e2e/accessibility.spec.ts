@@ -24,7 +24,8 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByTestId('demo-sign-in').click();
     await expect(page).toHaveURL(/\/dashboard$/);
 
-    const pages = await everyMenuPage(page);
+    // The 5S page's other tabs are on the same address.
+    const pages = [...(await everyMenuPage(page)), '/fives?view=areas', '/fives?view=registers'];
     expect(pages.length).toBeGreaterThan(15);
 
     const problems: string[] = [];

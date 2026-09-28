@@ -31,7 +31,8 @@ for (const email of accounts) {
     await page.locator('input[type="password"]').press('Enter');
     await expect(page).toHaveURL(/\/dashboard$/);
 
-    const pages = await everyMenuPage(page);
+    // The 5S page's other tabs are on the same address.
+    const pages = [...(await everyMenuPage(page)), '/fives?view=areas', '/fives?view=registers'];
 
     const problems: string[] = [];
     for (const path of pages) {
