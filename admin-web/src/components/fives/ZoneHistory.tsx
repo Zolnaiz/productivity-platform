@@ -7,6 +7,7 @@ import { AuditRun, AuditTemplate } from '../../types/operations.types';
 import { FiveSZone } from '../../types/fiveS.types';
 import PhotoEvidence from '../common/PhotoEvidence';
 import { scrollArea } from '../common/scrollArea';
+import { fellShort } from './auditAnswers';
 
 interface ZoneHistoryProps {
   zone: FiveSZone;
@@ -81,13 +82,9 @@ const ZoneHistory: React.FC<ZoneHistoryProps> = ({ zone }) => {
   */
   const latestRun = runs[0];
   const questions = templates.find((template) => template.id === latestRun?.templateId)?.questions ?? [];
-  const shortfalls = questions.filter((question) => {
-    const answer = latestRun?.answers?.find((item) => item.questionId === question.id)?.value;
-
-    return question.type === 'score'
-      ? Number(answer ?? 0) < (question.maxScore || 5)
-      : question.type === 'yes_no' && answer !== true;
-  });
+  const shortfalls = questions.filter((question) =>
+    fellShort(question, latestRun?.answers?.find((item) => item.questionId === question.id)?.value),
+  );
 
   const openTags = (zone.redTags || []).filter(
     (redTag) => !redTag.closedAt && (redTag.status === 'open' || redTag.status === 'review'),

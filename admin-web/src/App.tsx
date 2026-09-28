@@ -17,6 +17,7 @@ import WorkLogsPage from "./pages/WorkLogsPage";
 import FiveSSetupPage from "./pages/FiveSSetupPage";
 import IdeasPage from "./pages/IdeasPage";
 import HuddlePage from "./pages/HuddlePage";
+import AuditInsightsPage from "./pages/AuditInsightsPage";
 import WeeklyCheckinPage from "./pages/WeeklyCheckinPage";
 import AuditTemplatesPage from "./pages/AuditTemplatesPage";
 import MonthlyReportPage from "./pages/MonthlyReportPage";
@@ -177,6 +178,7 @@ function App() {
                 <Route path="ideas" element={<IdeasPage />} />
                 <Route path="weekly" element={<WeeklyCheckinPage />} />
                 <Route path="huddle" element={<HuddlePage />} />
+                <Route path="audit-insights" element={<AuditInsightsPage />} />
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="expenses" element={<ExpensesPage />} />
               </Route>

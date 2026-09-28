@@ -75,6 +75,7 @@ export const sections: NavSection[] = [
     icon: MapIcon,
     pages: [
       { path: '/fives', labelKey: 'nav.fiveS' },
+      { path: '/audit-insights', labelKey: 'nav.auditInsights' },
       { path: '/audit-templates', labelKey: 'nav.auditTemplates' },
       { path: '/assessments', labelKey: 'nav.assessments' },
       { path: '/responses', labelKey: 'nav.responses' },

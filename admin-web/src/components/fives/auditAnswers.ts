@@ -49,6 +49,20 @@ export const scoreAnswers = (
 };
 
 /**
+ * Whether a stored answer fell short of the question: a score below its
+ * maximum, or anything but a yes. Text answers are evidence and never fall
+ * short. One rule, so the zone's history and the Pareto of failures count
+ * the same answers.
+ */
+export const fellShort = (
+  question: Pick<AuditTemplate['questions'][number], 'type' | 'maxScore'>,
+  value: string | number | boolean | undefined,
+) =>
+  question.type === 'score'
+    ? Number(value ?? 0) < (question.maxScore || DEFAULT_MAX_SCORE)
+    : question.type === 'yes_no' && value !== true;
+
+/**
  * The answers as the run stores them: numbers for scores, booleans for yes/no,
  * the words themselves for text.
  *

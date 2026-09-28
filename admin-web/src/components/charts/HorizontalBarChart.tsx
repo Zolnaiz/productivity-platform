@@ -157,6 +157,7 @@ const HorizontalBarChart: React.FC<HorizontalBarChartProps> = ({
 
       <div className={showTable ? '' : 'sr-only'}>
         <Table
+          focusable={showTable}
           rows={data}
           rowKey={(row) => row.label}
           columns={[

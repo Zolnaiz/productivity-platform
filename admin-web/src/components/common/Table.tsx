@@ -18,11 +18,17 @@ interface TableProps<T> {
   /** Shown in place of the body when there are no rows. */
   empty?: React.ReactNode;
   onRowClick?: (item: T) => void;
+  /**
+   * Whether the table scrolls sideways in a focusable area. Off for a table
+   * kept only for screen readers under a chart: it is not scrolled, and a
+   * keyboard stop nobody can see is a trap.
+   */
+  focusable?: boolean;
 }
 
 const isBlank = (value: unknown) => value === null || value === undefined || value === '';
 
-function Table<T>({ columns, rows, rowKey, empty, onRowClick }: TableProps<T>) {
+function Table<T>({ columns, rows, rowKey, empty, onRowClick, focusable = true }: TableProps<T>) {
   if (!rows.length && empty) return <>{empty}</>;
 
   const renderCell = (item: T, column: Column<T>) => {
@@ -34,7 +40,7 @@ function Table<T>({ columns, rows, rowKey, empty, onRowClick }: TableProps<T>) {
   };
 
   return (
-    <div className={scrollArea} tabIndex={0}>
+    <div className={focusable ? scrollArea : undefined} tabIndex={focusable ? 0 : undefined}>
       <table className="w-full text-left text-sm">
         <thead className="border-b text-gray-500 dark:border-gray-700">
           <tr>
