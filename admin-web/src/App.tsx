@@ -20,6 +20,7 @@ import HuddlePage from "./pages/HuddlePage";
 import AuditInsightsPage from "./pages/AuditInsightsPage";
 import SetupPage from "./pages/SetupPage";
 import HistoryPage from "./pages/HistoryPage";
+import GembaPage from "./pages/GembaPage";
 import WeeklyCheckinPage from "./pages/WeeklyCheckinPage";
 import AuditTemplatesPage from "./pages/AuditTemplatesPage";
 import MonthlyReportPage from "./pages/MonthlyReportPage";
@@ -45,6 +46,8 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import ExpensesPage from "./pages/ExpensesPage";
 
 const adminRoles = ["admin", "super_admin"];
+// Whoever runs other people's work.
+const managerRoles = ["manager", "admin", "organization_admin", "super_admin"];
 
 function App() {
   return (
@@ -182,6 +185,14 @@ function App() {
                 <Route path="huddle" element={<HuddlePage />} />
                 <Route path="audit-insights" element={<AuditInsightsPage />} />
                 <Route path="history" element={<HistoryPage />} />
+                <Route
+                  path="gemba"
+                  element={
+                    <ProtectedRoute roles={managerRoles}>
+                      <GembaPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="setup"
                   element={

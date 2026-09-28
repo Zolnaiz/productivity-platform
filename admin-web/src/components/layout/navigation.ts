@@ -54,6 +54,7 @@ export const sections: NavSection[] = [
     pages: [
       { path: '/huddle', labelKey: 'nav.huddle' },
       { path: '/progress', labelKey: 'nav.progressBoard' },
+      { path: '/gemba', labelKey: 'nav.gemba' },
     ],
   },
   {

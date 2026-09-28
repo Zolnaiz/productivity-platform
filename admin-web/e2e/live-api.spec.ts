@@ -412,3 +412,23 @@ test('a week written up is still there after a reload, and in the team’s week'
   await expect(page.getByLabel('In the way')).toHaveValue(problem);
   await expect(page.getByTestId('team-problems')).toContainText(problem);
 });
+
+test('a gemba walk recorded is there after a reload, with its follow-up on the task board', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/gemba');
+
+  const followUp = `Live check follow-up ${Date.now()}`;
+  await page.getByLabel('What I saw').fill('Live check observation');
+  await page.getByLabel('Follow-up 1', { exact: true }).fill(followUp);
+  const recorded = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/gemba') && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Record the walk' }).click();
+  expect((await recorded).status()).toBe(201);
+
+  await page.reload();
+  await expect(page.getByTestId('gemba-walks')).toContainText(followUp);
+
+  await page.goto('/tasks');
+  await expect(page.getByText(followUp)).toBeVisible();
+});
