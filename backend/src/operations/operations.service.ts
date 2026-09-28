@@ -18,6 +18,7 @@ import { FiveSGuideline } from './entities/five-s-guideline.entity';
 import { FiveSLayoutVersion } from './entities/five-s-layout-version.entity';
 import { User } from '../users/entities/user.entity';
 import { defaultGuidelineContent } from './five-s-guideline-content';
+import { mergeFloorFacts } from './layout-merge';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { projectProgressPercent, sumRecordedHours } from './monthly-people';
 import { buildMonthlyReport, MonthRecords, OrganizationRecords, selectMonthRecords } from './monthly-report';
@@ -823,7 +824,7 @@ export class OperationsService {
     return this.fiveSLayouts.save(defaultLayout);
   }
 
-  async upsertFiveSLayout(payload: Partial<FiveSLayout>, user: CurrentUser, id?: string) {
+  async upsertFiveSLayout(payload: Partial<FiveSLayout>, user: CurrentUser, id?: string, baseUpdatedAt?: string) {
     const organizationId = this.resolveOrganizationId(user, payload.organizationId);
     const where = organizationId ? { organizationId } : {};
     const existing = await this.fiveSLayouts.findOne({ where: id ? { ...where, id } : where });
@@ -868,7 +869,11 @@ export class OperationsService {
         plan looked like when the day's audits were walked.
       */
       await this.keepLayoutVersion(existing, user);
-      Object.assign(existing, layoutPayload);
+      Object.assign(existing, {
+        ...layoutPayload,
+        // What the floor wrote while the editor had the plan open stays.
+        zones: mergeFloorFacts(existing.zones ?? [], layoutPayload.zones, baseUpdatedAt ? new Date(baseUpdatedAt) : undefined),
+      });
 
       return this.fiveSLayouts.save(existing);
     }

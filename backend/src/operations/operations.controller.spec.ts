@@ -84,7 +84,7 @@ describe('OperationsController payload normalization', () => {
     controller.updateFiveSLayout(payload, req);
 
     expect(service.findFiveSLayout).toHaveBeenCalledWith(req.user, undefined);
-    expect(service.upsertFiveSLayout).toHaveBeenCalledWith(payload, req.user);
+    expect(service.upsertFiveSLayout).toHaveBeenCalledWith(payload, req.user, undefined, undefined);
   });
 
   it('converts assessment response submittedAt strings before create', () => {

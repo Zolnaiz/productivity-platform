@@ -299,6 +299,30 @@ describe('fiveSLayoutService demo storage', () => {
     );
   });
 
+  it('tells the server when its copy was read, not when it was last edited', async () => {
+    // The editor restamps `updatedAt` on every change; sent as the base, it
+    // would claim to have seen a red tag raised from a phone a minute ago.
+    localStorage.setItem('token', 'real-token');
+    apiMocks.patch.mockResolvedValue({ id: 'client-layout', zones: [], objects: [], updatedAt: '2026-09-28T02:10:00.000Z' });
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    await fiveSLayoutService.savePlan({
+      id: 'client-layout',
+      name: 'Plan',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      backgroundImage: '',
+      backgroundOpacity: 0.5,
+      showGrid: true,
+      zones: [],
+      objects: [],
+      updatedAt: '2026-09-28T02:09:00.000Z',
+      readAt: '2026-09-28T02:00:00.000Z',
+    });
+
+    expect(apiMocks.patch.mock.calls[0][1]).toMatchObject({ baseUpdatedAt: '2026-09-28T02:00:00.000Z' });
+  });
+
   it('sends the walls, the openings and the scale', async () => {
     // These were left out of the payload for as long as walls existed, so a
     // plan drawn against a real backend was complete on screen and empty again

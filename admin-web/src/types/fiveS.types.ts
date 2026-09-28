@@ -271,6 +271,12 @@ export interface FiveSLayoutPlan {
   objects: FloorPlanObject[];
   createdAt?: string;
   updatedAt: string;
+  /**
+   * When this copy was read from the server. Not `updatedAt`, which the editor
+   * restamps on every change: this stays what the server said, so a save can
+   * tell the server which of the floor's writes it has never seen.
+   */
+  readAt?: string;
 }
 
 export type FiveSImprovementStatus = 'open' | 'in_progress' | 'management_review' | 'closed';

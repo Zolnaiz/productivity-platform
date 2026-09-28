@@ -371,6 +371,9 @@ const withoutServerFields = (plan: FiveSLayoutPlan) => {
     openings: plan.openings ?? [],
     roomLabels: plan.roomLabels ?? [],
     ...(plan.metresPerUnit ? { metresPerUnit: plan.metresPerUnit } : {}),
+    // When this copy of the plan was read, so what the floor wrote since - a
+    // red tag raised from a phone - is kept rather than saved over.
+    ...(plan.readAt && !Number.isNaN(Date.parse(plan.readAt)) ? { baseUpdatedAt: plan.readAt } : {}),
   };
 
   return payload;
@@ -397,6 +400,7 @@ const normalizeZoneRedTags = (zone: FiveSZone) => {
 
 const normalizePlan = (plan: FiveSLayoutPlan): FiveSLayoutPlan => ({
   ...plan,
+  readAt: plan.readAt ?? plan.updatedAt,
   backgroundImage: plan.backgroundImage || '',
   backgroundOpacity: plan.backgroundOpacity ?? 0.55,
   showGrid: plan.showGrid ?? true,

@@ -172,7 +172,7 @@ export class OperationsController {
   @Patch('five-s-layouts/:id')
   @RequirePermission('zones:update')
   updateFiveSLayoutById(@Param('id') id: string, @Body() body: UpsertFiveSLayoutDto, @Request() req) {
-    return this.operationsService.upsertFiveSLayout(body, req.user, id);
+    return this.operationsService.upsertFiveSLayout(body, req.user, id, body.baseUpdatedAt);
   }
 
   /*
@@ -247,7 +247,7 @@ export class OperationsController {
   @Patch('five-s-layout')
   @RequirePermission('zones:update')
   updateFiveSLayout(@Body() body: UpsertFiveSLayoutDto, @Request() req) {
-    return this.operationsService.upsertFiveSLayout(body, req.user);
+    return this.operationsService.upsertFiveSLayout(body, req.user, undefined, body.baseUpdatedAt);
   }
 
   @Get('audit-templates')
