@@ -914,6 +914,9 @@ const mn: Translations<typeof en> = {
     emptyDescription: 'Огноотой ажил, аудит энд цагийн хэлхээ болж харагдана.',
   },
   raised: {
+    ideaApproved: 'Таны санааг хэрэгжүүлэхээр шийдлээ: {{title}}',
+    ideaDeclined: 'Таны санааг одоохондоо хэрэгжүүлэхгүй: {{title}}',
+    ideaDone: 'Таны санаа хэрэгжлээ: {{title}}',
     tierAuditDue: '{{layer}}-ын 5S аудитын хугацаа болсон: {{place}}',
     redTagDecision: 'Улаан шошготой зүйлд шийдвэр гаргах хугацаа болсон: {{item}}',
     auditFollowUp: '5S залруулах ажил: {{place}}',

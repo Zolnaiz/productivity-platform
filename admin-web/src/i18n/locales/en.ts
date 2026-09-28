@@ -926,6 +926,9 @@ const en = {
     to ask, so it words the key instead.
   */
   raised: {
+    ideaApproved: 'Your idea was taken up: {{title}}',
+    ideaDeclined: 'Your idea was not taken up: {{title}}',
+    ideaDone: 'Your idea is in place: {{title}}',
     tierAuditDue: '{{layer}} 5S audit due: {{place}}',
     redTagDecision: 'Red-tag decision due: {{item}}',
     auditFollowUp: '5S follow-up: {{place}}',

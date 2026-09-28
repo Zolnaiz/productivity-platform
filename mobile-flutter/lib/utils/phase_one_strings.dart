@@ -123,6 +123,9 @@ class PhaseOneStrings {
 }
 
 const _raisedMn = {
+  'raised.ideaApproved': 'Таны санааг хэрэгжүүлэхээр шийдлээ: {{title}}',
+  'raised.ideaDeclined': 'Таны санааг одоохондоо хэрэгжүүлэхгүй: {{title}}',
+  'raised.ideaDone': 'Таны санаа хэрэгжлээ: {{title}}',
   'raised.tierAuditDue': '{{layer}}-ын 5S аудитын хугацаа болсон: {{place}}',
   'raised.redTagDecision':
       'Улаан шошготой зүйлд шийдвэр гаргах хугацаа болсон: {{item}}',
@@ -147,6 +150,9 @@ const _raisedMn = {
       '{{date}}-ны аудитын оноо {{score}}%.\nЭнэ бүсийн стандарт {{standard}}%.\nБүсийг стандартад нь эргүүлж оруулна уу; дараагийн аудит үүнийг шалгана.',
 };
 const _raisedEn = {
+  'raised.ideaApproved': 'Your idea was taken up: {{title}}',
+  'raised.ideaDeclined': 'Your idea was not taken up: {{title}}',
+  'raised.ideaDone': 'Your idea is in place: {{title}}',
   'raised.tierAuditDue': '{{layer}} 5S audit due: {{place}}',
   'raised.redTagDecision': 'Red-tag decision due: {{item}}',
   'raised.auditFollowUp': '5S follow-up: {{place}}',

@@ -15,6 +15,7 @@ export enum TaskSource {
   RED_TAG = 'five_s_red_tag',
   AUDIT_RUN = 'audit_run',
   IMPROVEMENT = 'five_s_improvement',
+  IDEA = 'idea',
 }
 
 export enum TaskStatus {

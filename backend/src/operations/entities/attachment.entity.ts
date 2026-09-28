@@ -15,6 +15,7 @@ export enum AttachmentOwner {
   AUDIT_RUN = 'audit_run',
   IMPROVEMENT = 'five_s_improvement',
   WORK_LOG = 'work_log',
+  IDEA = 'idea',
 }
 
 /**

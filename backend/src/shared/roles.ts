@@ -72,6 +72,8 @@ const viewer = [
   'guidelines:read',
   'attachments:read',
   'reports:read',
+  // What others have suggested, and what became of it.
+  'ideas:read',
 ];
 
 const user = [
@@ -100,6 +102,8 @@ const user = [
   // Filling in the improvement register and the red-tag cards is the same
   // kind of act as raising a tag: whoever found the thing writes it down.
   'guidelines:update',
+  // Anybody doing the work may say how it could be better.
+  'ideas:create',
 ];
 
 const manager = [
@@ -121,6 +125,8 @@ const manager = [
   // Signing off a month that has ended. It freezes the report as it stands,
   // which is a line manager's call about their own month.
   'reports:close',
+  // Deciding what to do with an idea, and giving out the work it calls for.
+  'ideas:review',
 ];
 
 const admin = [
