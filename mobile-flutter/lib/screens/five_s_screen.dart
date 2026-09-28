@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../models/five_s_model.dart';
+import '../models/work_log_model.dart' show localDay;
 import '../providers/auth_provider.dart';
 import '../providers/five_s_provider.dart';
 import '../utils/phase_one_strings.dart';
@@ -114,7 +115,13 @@ Future<({List<int> bytes, String name})?> takePhoto() async {
   final photo = await ImagePicker()
       .pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 80);
   if (photo == null) return null;
-  return (bytes: await photo.readAsBytes(), name: photo.name);
+  // The camera's own name reads "scaled_543dcb74-...jpg" in every list the
+  // photograph appears in; the moment it was taken says something.
+  final now = DateTime.now();
+  String two(int value) => value.toString().padLeft(2, '0');
+  final name = 'photo-${localDay(now)}-${two(now.hour)}${two(now.minute)}'
+      '${two(now.second)}.jpg';
+  return (bytes: await photo.readAsBytes(), name: name);
 }
 
 class FiveSZoneScreen extends StatefulWidget {
