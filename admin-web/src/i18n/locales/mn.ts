@@ -74,6 +74,7 @@ const mn: Translations<typeof en> = {
     search: 'Ажил, төсөл, аудит, тайлан хайх...',
     closeDialog: 'Цонх хаах',
     closeMenu: 'Цэс хаах',
+    menu: 'Цэс',
     errorTitle: 'Алдаа гарлаа',
     errorBody: 'Програмд гэнэтийн алдаа гарлаа. Дахин оролдох эсвэл хяналтын самбар руу буцна уу.',
     tryAgain: 'Дахин оролдох',

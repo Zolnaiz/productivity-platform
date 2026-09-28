@@ -344,3 +344,19 @@ test('the progress board, the plan and the half-year all open on real figures', 
   await expect(page.getByTestId('period-month-row').first()).toBeVisible();
   await expect(page.getByTestId('period-close-status')).toBeVisible();
 });
+
+test('on a phone, the menu gets out of the way of the page chosen from it', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await signIn(page);
+
+  const drawer = page.getByRole('dialog');
+  await page.getByRole('banner').getByRole('button').first().click();
+  await expect(drawer).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(drawer).toBeHidden();
+
+  await page.getByRole('banner').getByRole('button').first().click();
+  await drawer.locator('a[href="/tasks"]').click();
+  await expect(page).toHaveURL(/\/tasks$/);
+  await expect(drawer).toBeHidden();
+});

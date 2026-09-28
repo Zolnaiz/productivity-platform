@@ -116,7 +116,9 @@ npm run test:e2e
 
 `e2e/accessibility.spec.ts`, part of that run, opens every page in the menu in
 the light and the dark theme and fails on anything axe finds against WCAG 2 A
-and AA: text under 4.5:1, a field with no name a screen reader can say.
+and AA: text under 4.5:1, a field with no name a screen reader can say. It
+also checks the sign-in and a zone's page, checklist and red-tag form at phone
+width.
 
 That suite runs in demo mode. The saves themselves - a zone and an audit layer
 renamed, a 5S register row typed in, a workspace setting, a task added and

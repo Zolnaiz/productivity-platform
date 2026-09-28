@@ -63,6 +63,7 @@ const en = {
     search: 'Search tasks, projects, audits, reports...',
     closeDialog: 'Close dialog',
     closeMenu: 'Close menu',
+    menu: 'Menu',
     errorTitle: 'Something went wrong',
     errorBody: 'The application hit an unexpected error. Try again, or go back to the dashboard.',
     tryAgain: 'Try again',

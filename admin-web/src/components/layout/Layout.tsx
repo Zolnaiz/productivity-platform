@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -8,6 +8,32 @@ import Footer from './Footer';
 const Layout: React.FC = () => {
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { pathname } = useLocation();
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  // A page chosen from the menu is the page the person wants to see. On a
+  // phone the drawer stayed over it until it was closed by hand.
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  // Open, the drawer takes the keyboard: focus moves into it, Escape closes
+  // it, and focus goes back to the button that opened it.
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+
+    const opener = document.activeElement as HTMLElement | null;
+    drawerRef.current?.querySelector<HTMLElement>('button, a[href]')?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSidebarOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape);
+      opener?.focus?.();
+    };
+  }, [sidebarOpen]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -24,6 +50,10 @@ const Layout: React.FC = () => {
         />
         <div className="fixed inset-0 flex">
           <div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('common.menu')}
             className="relative flex w-full max-w-xs flex-1 flex-col bg-white dark:bg-gray-800 pt-5 pb-4"
             onClick={(e) => e.stopPropagation()}
           >

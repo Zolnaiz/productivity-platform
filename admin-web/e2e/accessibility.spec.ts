@@ -57,3 +57,50 @@ for (const theme of ['light', 'dark'] as const) {
     expect(problems).toEqual([]);
   });
 }
+
+/*
+  The screens a phone opens on the floor: the sign-in, and the area page a
+  zone's QR label leads to, with its checklist and its red-tag form open.
+*/
+for (const theme of ['light', 'dark'] as const) {
+  test(`the sign-in and a zone's page read the same on a phone in the ${theme} theme`, async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.addInitScript((chosen) => localStorage.setItem('theme', chosen), theme);
+
+    const problems: string[] = [];
+    const check = async (where: string) => {
+      const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+      for (const violation of violations) {
+        for (const node of violation.nodes) problems.push(`${where} ${violation.id}: ${node.html.slice(0, 120)}`);
+      }
+    };
+
+    await page.goto('/login');
+    await check('sign-in');
+
+    await page.getByTestId('demo-sign-in').click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.goto('/fives');
+    await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
+    const target = await page.evaluate(() => {
+      const [plan] = JSON.parse(localStorage.getItem('productivity-demo-5s-layouts') || '[]');
+      return { planId: plan.id as string, zoneId: plan.zones?.[0]?.id as string };
+    });
+
+    await page.goto(`/zone/${target.planId}/${target.zoneId}`);
+    await expect(page.locator('h1')).toBeVisible();
+    await check('zone');
+
+    await page.getByTestId('zone-audit').click();
+    await expect(page.getByTestId('zone-audit-submit')).toBeVisible();
+    await check('zone checklist');
+
+    await page.goto(`/zone/${target.planId}/${target.zoneId}`);
+    await page.getByTestId('zone-red-tag').click();
+    await expect(page.locator('form')).toBeVisible();
+    await check('zone red tag');
+
+    expect(problems).toEqual([]);
+  });
+}
