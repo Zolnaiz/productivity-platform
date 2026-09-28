@@ -249,6 +249,24 @@ at once are all in; section 3 describes them.
 
 ## Recently Completed Hardening
 
+- Saves checked against the real server. A browser suite
+  (`e2e/live-api.spec.ts`, run in CI's live-API job) changes things, reloads
+  and reads them back; it and the API smoke test found that no audited plan
+  could be saved (the DTO refused the server's own zone fields, and a zone's
+  department, a tag's pin and hold), that audit layers and routes were never
+  sent, that a project without a due date and an expense of 12 500 could not
+  be saved, that expenses were all "Demo Owner"'s, and that development
+  quietly kept refused saves in demo storage. A contract test now holds the
+  plan DTO to the web's types, and twelve silent save handlers say when a
+  save fails.
+- Two people can edit the same 5S register, and the plan editor keeps what
+  the floor wrote meanwhile (a phone's red tag, a cleaning, an audit).
+- Dates and months on the organization's calendar on the server and the
+  local one in the browser, where UTC filed the early shift under yesterday.
+- Mobile: the 5S walk, an area's screen (tags, photographs from the camera,
+  "cleaned today") and photographs of what a walk fell short on.
+- Email in the reader's own language, or the organization's; the web's
+  reports and registers export in the reader's language.
 - Monthly reports close - on the organization's chosen day, in its time zone -
   and are then read from the stored month, so they no longer change; half-year
   and annual reports add up the closed months.
