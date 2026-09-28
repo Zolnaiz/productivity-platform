@@ -35,6 +35,9 @@ const WeeklyCheckinPage: React.FC = () => {
   const [mine, setMine] = useState(empty);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // The week whose saved copy has arrived. Until it has, the form waits: typing
+  // into it first had the late answer overwrite what was typed.
+  const [loadedWeek, setLoadedWeek] = useState<string | null>(null);
   const [tasks, setTasks] = useState<WorkTask[]>([]);
   const [team, setTeam] = useState<WeeklyCheckin[]>([]);
   const [members, setMembers] = useState<TeamUser[]>([]);
@@ -45,6 +48,7 @@ const WeeklyCheckinPage: React.FC = () => {
   useEffect(() => {
     let active = true;
     setSavedAt(null);
+    setLoadedWeek(null);
     checkinService
       .getMine(week)
       .then((checkin) => {
@@ -52,7 +56,8 @@ const WeeklyCheckinPage: React.FC = () => {
         setMine(checkin ? { progress: checkin.progress, plans: checkin.plans, problems: checkin.problems } : empty);
         setSavedAt(checkin?.updatedAt ?? null);
       })
-      .catch(() => active && setMine(empty));
+      .catch(() => active && setMine(empty))
+      .finally(() => active && setLoadedWeek(week));
     if (canSeeTeam) {
       checkinService
         .getTeam(week)
@@ -157,6 +162,7 @@ const WeeklyCheckinPage: React.FC = () => {
                 label={field.label}
                 placeholder={field.hint}
                 rows={field.key === 'problems' ? 2 : 3}
+                disabled={loadedWeek !== week}
                 value={mine[field.key]}
                 onChange={(event) => setMine((current) => ({ ...current, [field.key]: event.target.value }))}
               />
@@ -172,7 +178,7 @@ const WeeklyCheckinPage: React.FC = () => {
               )}
             </div>
           ))}
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" disabled={saving || loadedWeek !== week}>
             {t('weekly.save')}
           </Button>
         </form>
