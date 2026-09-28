@@ -17,7 +17,7 @@ import { summarisePeople } from '../components/reports/monthlyPeople';
 import { completionAfter, completionMonth, doneByEndOf, plannedMonth } from '../components/reports/taskCompletion';
 import { combineMonths, monthsBetween } from '../components/reports/periodReport';
 import { localDay } from '../components/progress/progressBoard';
-import { daysFromToday } from '../utils/localDay';
+import { daysFromToday, localMonth } from '../utils/localDay';
 
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
 type DemoKey = 'projects' | 'tasks' | 'workLogs' | 'timeEntries' | 'auditTemplates' | 'auditRuns' | 'goals';
@@ -609,7 +609,7 @@ const fallback = async <T>(request: () => Promise<ApiEnvelope<T>>, demoData: T):
   }
 };
 
-const currentMonth = () => new Date().toISOString().slice(0, 7);
+const currentMonth = () => localMonth();
 
 const inMonth = (value: string | undefined, month: string) => Boolean(value && value.slice(0, 7) === month);
 

@@ -19,6 +19,7 @@ import PhotoEvidence from '../components/common/PhotoEvidence';
 import { peopleService } from '../services/people.service';
 import { Department } from '../types/people.types';
 import { useAuth } from '../contexts/AuthContext';
+import { localDay } from '../utils/localDay';
 
 /**
  * One area, for somebody standing in front of its label.
@@ -206,7 +207,7 @@ const ZonePage: React.FC = () => {
   ) => {
     if (!plan || !zone) return;
 
-    const lastAuditAt = (run.createdAt || new Date().toISOString()).slice(0, 10);
+    const lastAuditAt = localDay(run.createdAt ? new Date(run.createdAt) : new Date());
 
     setPlan({
       ...plan,

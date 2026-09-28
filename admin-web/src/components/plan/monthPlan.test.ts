@@ -73,7 +73,9 @@ describe('a month’s plan', () => {
   });
 
   it('opens on next month, across the turn of a year', () => {
-    expect(nextMonth(new Date('2026-12-15T00:00:00Z'))).toBe('2027-01');
+    expect(nextMonth(new Date(2026, 11, 15))).toBe('2027-01');
+    // The first of the month, early: still this month locally, whatever UTC says.
+    expect(nextMonth(new Date(2026, 9, 1, 7, 30))).toBe('2026-11');
   });
 });
 

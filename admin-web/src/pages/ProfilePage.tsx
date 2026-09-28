@@ -13,8 +13,9 @@ import { productivityService } from '../services/productivity.service';
 import { AssessmentResponse } from '../types/assessment.types';
 import { AuditRun, TimeEntry, WorkLog, WorkTask } from '../types/operations.types';
 import { Badge, DailyGoal, FocusSession } from '../types/productivity.types';
+import { localMonth } from '../utils/localDay';
 
-const thisMonth = () => new Date().toISOString().slice(0, 7);
+const thisMonth = () => localMonth();
 const inMonth = (value: string | undefined, month: string) => Boolean(value && value.slice(0, 7) === month);
 
 const initialsOf = (name: string) =>

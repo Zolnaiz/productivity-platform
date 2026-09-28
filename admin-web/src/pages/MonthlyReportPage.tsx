@@ -12,7 +12,7 @@ import { OperationsMonthlyReport } from '../types/operations.types';
 import { apiErrorMessage } from '../i18n/apiError';
 import { Department, TeamUser, memberName } from '../types/people.types';
 import { FiveSLayoutPlan } from '../types/fiveS.types';
-import { localDay } from '../utils/localDay';
+import { localDay, localMonth } from '../utils/localDay';
 
 const formatMnt = (value: number) =>
   new Intl.NumberFormat('mn-MN', {
@@ -21,7 +21,7 @@ const formatMnt = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value);
 
-const currentMonth = () => new Date().toISOString().slice(0, 7);
+const currentMonth = () => localMonth();
 
 /**
  * The month named in the address, so a link from the half-year report or the

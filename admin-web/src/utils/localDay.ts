@@ -11,6 +11,13 @@ export const localDay = (moment: Date = new Date()): string => {
   return `${moment.getFullYear()}-${two(moment.getMonth() + 1)}-${two(moment.getDate())}`;
 };
 
+/**
+ * The calendar month, YYYY-MM, as the person at the screen counts it. In UTC,
+ * the first of the month before eight in the morning in Ulaanbaatar was still
+ * last month.
+ */
+export const localMonth = (moment: Date = new Date()): string => localDay(moment).slice(0, 7);
+
 /** The local day `days` from today; negative for the past. */
 export const daysFromToday = (days: number, from: Date = new Date()): string => {
   const moment = new Date(from);

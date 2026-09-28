@@ -12,6 +12,7 @@
 
 import { WorkTask } from '../../types/operations.types';
 import { completionMonth, doneByEndOf, plannedMonth } from '../reports/taskCompletion';
+import { localMonth } from '../../utils/localDay';
 
 export interface PersonPlan {
   userId: string;
@@ -35,11 +36,7 @@ export interface MonthPlan {
 }
 
 /** YYYY-MM of the month after `today`'s. */
-export const nextMonth = (today: Date) => {
-  const first = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1));
-
-  return first.toISOString().slice(0, 7);
-};
+export const nextMonth = (today: Date) => localMonth(new Date(today.getFullYear(), today.getMonth() + 1, 1));
 
 const byDue = (a: WorkTask, b: WorkTask) => String(a.dueDate ?? '').localeCompare(String(b.dueDate ?? ''));
 
