@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -448,6 +450,7 @@ class FiveSWalkScreen extends StatefulWidget {
 
 class _FiveSWalkScreenState extends State<FiveSWalkScreen> {
   final AuditAnswers _answers = {};
+  late final Future<Uint8List?> _standard;
   List<AuditTier> _layers = [];
   AuditTier? _tier;
   String? _templateId;
@@ -456,6 +459,7 @@ class _FiveSWalkScreenState extends State<FiveSWalkScreen> {
   void initState() {
     super.initState();
     final role = context.read<AuthProvider>().user?.role;
+    _standard = context.read<FiveSProvider>().standardPhoto(widget.zone);
     _layers = tiersForRole(widget.plan.auditTiers, role);
     _tier = tierForRole(widget.plan.auditTiers, role);
     final templates = context.read<FiveSProvider>().templates;
@@ -515,6 +519,32 @@ class _FiveSWalkScreenState extends State<FiveSWalkScreen> {
               padding: const EdgeInsets.all(24),
               child: Text(strings.text('noChecklist')))
           : ListView(padding: const EdgeInsets.all(16), children: [
+              // What the area should look like, at the top of the checklist
+              // it is judged by (Fabrico shows it there for this reason).
+              FutureBuilder<Uint8List?>(
+                future: _standard,
+                builder: (context, snapshot) {
+                  final bytes = snapshot.data;
+                  if (bytes == null || bytes.isEmpty) return const SizedBox.shrink();
+                  return Padding(
+                    key: const Key('standard-photo'),
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.memory(bytes,
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            semanticLabel: strings.text('standardPhoto')),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(strings.text('standardPhotoCaption'),
+                          style: Theme.of(context).textTheme.bodySmall),
+                    ]),
+                  );
+                },
+              ),
               if (_layers.length > 1) ...[
                 DropdownButtonFormField<int>(
                   key: const Key('audit-layer'),

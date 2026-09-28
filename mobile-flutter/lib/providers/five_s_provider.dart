@@ -206,6 +206,21 @@ class FiveSProvider extends ChangeNotifier {
     }
   }
 
+  /// The photograph of how an area should look, when one was taken: the
+  /// newest, if there are several. Null when there is none, or it could not
+  /// be fetched - the checklist stands without it.
+  Future<Uint8List?> standardPhoto(FiveSZone zone) async {
+    try {
+      final standards = (await _api.getAttachments('five_s_zone', zone.id))
+          .where((item) => item['kind'] == 'standard')
+          .toList();
+      if (standards.isEmpty) return null;
+      return await _api.getAttachmentBytes(standards.last['id'] as String);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// How many photographs each question of a run has, by the question's id.
   final Map<String, int> shortfallPhotoCounts = {};
 

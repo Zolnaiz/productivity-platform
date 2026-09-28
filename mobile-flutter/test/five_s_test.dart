@@ -438,4 +438,40 @@ void main() {
     // behind the one that said the check was recorded.
     expect(fiveS.shortfallPhotoCounts['q1'], 1);
   });
+
+  testWidgets('shows how the area should look at the top of its checklist', (tester) async {
+    // A one-pixel PNG: enough for the picture to be drawn.
+    const png = [
+      137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196,
+      137, 0, 0, 0, 13, 73, 68, 65, 84, 120, 156, 99, 248, 255, 255, 63, 0, 5, 254, 2, 254, 167, 53, 129, 132, 0, 0, 0,
+      0, 73, 69, 78, 68, 174, 66, 96, 130
+    ];
+    final (api, _, _) = await makeApi((request) {
+      if (request.path == '/five-s-layouts') return jsonReply(envelope([_plan]));
+      if (request.path == '/audit-templates') return jsonReply(envelope([_template]));
+      if (request.path == '/attachments' && request.queryParameters['ownerType'] == 'five_s_zone') {
+        return jsonReply(envelope([
+          {'id': 'old', 'kind': 'standard'},
+          {'id': 'std', 'kind': 'standard'},
+          {'id': 'b1', 'kind': 'before'},
+        ]));
+      }
+      if (request.path == '/attachments/std/file') {
+        return ResponseBody.fromBytes(png, 200, headers: {
+          Headers.contentTypeHeader: ['image/png']
+        });
+      }
+      return jsonReply(envelope([]));
+    });
+    await _pump(tester, api);
+
+    await tester.tap(find.text('A1 - Tool wall'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('zone-walk')));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('standard-photo')), findsOneWidget);
+    expect(find.text('As it should look - compare the area with this.'), findsOneWidget);
+  });
 }

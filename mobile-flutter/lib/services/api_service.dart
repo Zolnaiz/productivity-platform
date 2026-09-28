@@ -446,6 +446,13 @@ class ApiService {
     return (response.data as Map).cast<String, dynamic>();
   }
 
+  /// A file's bytes - a photograph to show on the phone.
+  Future<Uint8List> getAttachmentBytes(String id) async {
+    final response = await _dio.get<List<int>>('/attachments/$id/file',
+        options: Options(responseType: ResponseType.bytes));
+    return Uint8List.fromList(response.data ?? const []);
+  }
+
   /// The organization's idea box, newest first.
   Future<List<Map<String, dynamic>>> getIdeas() async {
     final response = await _dio.get('/ideas');
