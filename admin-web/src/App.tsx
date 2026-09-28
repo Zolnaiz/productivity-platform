@@ -19,6 +19,7 @@ import IdeasPage from "./pages/IdeasPage";
 import HuddlePage from "./pages/HuddlePage";
 import AuditInsightsPage from "./pages/AuditInsightsPage";
 import SetupPage from "./pages/SetupPage";
+import HistoryPage from "./pages/HistoryPage";
 import WeeklyCheckinPage from "./pages/WeeklyCheckinPage";
 import AuditTemplatesPage from "./pages/AuditTemplatesPage";
 import MonthlyReportPage from "./pages/MonthlyReportPage";
@@ -180,6 +181,7 @@ function App() {
                 <Route path="weekly" element={<WeeklyCheckinPage />} />
                 <Route path="huddle" element={<HuddlePage />} />
                 <Route path="audit-insights" element={<AuditInsightsPage />} />
+                <Route path="history" element={<HistoryPage />} />
                 <Route
                   path="setup"
                   element={

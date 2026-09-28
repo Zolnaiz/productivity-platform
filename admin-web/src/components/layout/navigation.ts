@@ -100,6 +100,7 @@ export const sections: NavSection[] = [
     pages: [
       { path: '/reports', labelKey: 'nav.monthlyReport' },
       { path: '/reports/period', labelKey: 'nav.periodReports' },
+      { path: '/history', labelKey: 'nav.history' },
       { path: '/analytics', labelKey: 'nav.analytics' },
       { path: '/expenses', labelKey: 'nav.expenses' },
     ],
