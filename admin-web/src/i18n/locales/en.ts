@@ -146,6 +146,7 @@ const en = {
     title: 'Tasks / Kanban',
     subtitle: 'Track upcoming, new, in-progress, review and finished work in one flow.',
     newTask: 'New task',
+    details: 'Details',
     addTask: 'Add task',
     taskTitle: 'Task title',
     dueDate: 'Due date',

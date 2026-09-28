@@ -23,6 +23,22 @@ export interface RaisedText {
  * never heard of — a server one version ahead — falls back to the sentence it
  * came with rather than printing the key itself at somebody.
  */
+/**
+ * What a raised piece of work says underneath its title, in the reader's
+ * language - "The audit on 2026-09-27 scored 40%" - worded the same way as
+ * the title, and falling back to the stored text the same way.
+ */
+export const raisedDescription = (
+  item: { description?: string; descriptionKey?: string; descriptionParams?: Record<string, string | number> },
+  t: TFunction,
+): string => {
+  if (!item.descriptionKey) return item.description ?? '';
+
+  const worded = t(item.descriptionKey, { ...(item.descriptionParams ?? {}), defaultValue: '' });
+
+  return worded || item.description || '';
+};
+
 export const raisedTitle = (item: RaisedText, t: TFunction): string => {
   if (!item.titleKey) return item.title;
 

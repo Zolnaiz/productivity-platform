@@ -34,6 +34,9 @@ export interface WorkTask extends RaisedTitle {
   organizationId?: string;
   title: string;
   description?: string;
+  /** The description as a key and its parts, for work the server raised. */
+  descriptionKey?: string;
+  descriptionParams?: Record<string, string | number>;
   projectId?: string;
   assigneeId?: string;
   reporterId?: string;

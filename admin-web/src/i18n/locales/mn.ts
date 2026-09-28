@@ -146,6 +146,7 @@ const mn: Translations<typeof en> = {
     title: 'Ажил / Канбан',
     subtitle: 'Ирээдүйд хийх, шинээр гарсан, хийж байгаа, review, дууссан ажлуудыг нэг урсгалаар хянана.',
     newTask: 'Шинэ ажил',
+    details: 'Дэлгэрэнгүй',
     addTask: 'Ажил нэмэх',
     taskTitle: 'Ажлын нэр',
     dueDate: 'Дуусах огноо',

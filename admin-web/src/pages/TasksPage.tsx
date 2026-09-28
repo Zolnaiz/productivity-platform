@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { raisedTitle } from '../components/common/raisedText';
+import { raisedDescription, raisedTitle } from '../components/common/raisedText';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
@@ -349,6 +349,14 @@ const TasksPage: React.FC = () => {
                       </div>
                     )}
                     {project && <div className="mt-1 truncate text-xs text-blue-700 dark:text-blue-300">{project}</div>}
+                    {/* What the work is about - an audit's score, a tag's area -
+                        folded away so the board stays a board. */}
+                    {raisedDescription(task, t) && (
+                      <details className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+                        <summary className="cursor-pointer text-gray-500 dark:text-gray-400">{t('tasks.details')}</summary>
+                        <p className="mt-1 whitespace-pre-line">{raisedDescription(task, t)}</p>
+                      </details>
+                    )}
                     <div className="mt-2 text-xs">
                       {owner ? (
                         <span className="text-gray-700 dark:text-gray-300">{owner}</span>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { raisedTitle, RaisedText } from './raisedText';
+import { raisedDescription, raisedTitle, RaisedText } from './raisedText';
 
 /** A translator that behaves the way i18next does for these calls. */
 const translator = (phrases: Record<string, string>) =>
@@ -13,6 +13,7 @@ const translator = (phrases: Record<string, string>) =>
 
 const t = translator({
   'raised.tierAuditDue': '{{layer}} 5S аудит хийх хугацаа: {{place}}',
+  'raised.auditFollowUpBody': '{{date}}-ны аудитын оноо {{score}}%.',
 });
 
 const raised = (over: Partial<RaisedText> = {}): RaisedText => ({
@@ -46,5 +47,29 @@ describe('what a raised piece of work says to the person reading it', () => {
     expect(raisedTitle({ title: 'Something', titleKey: 'raised.tierAuditDue' }, t)).toBe(
       ' 5S аудит хийх хугацаа: ',
     );
+  });
+});
+
+describe('what a raised piece of work says underneath its title', () => {
+  it('words the description the server raised it with', () => {
+    expect(
+      raisedDescription(
+        {
+          description: 'The audit on 2026-09-27 scored 40%.',
+          descriptionKey: 'raised.auditFollowUpBody',
+          descriptionParams: { date: '2026-09-27', score: 40 },
+        },
+        t,
+      ),
+    ).toBe('2026-09-27-ны аудитын оноо 40%.');
+  });
+
+  it('shows typed words as they are, and nothing as nothing', () => {
+    expect(raisedDescription({ description: 'Bring the ladder' }, t)).toBe('Bring the ladder');
+    expect(raisedDescription({}, t)).toBe('');
+  });
+
+  it('falls back to the stored text for a key it has never heard of', () => {
+    expect(raisedDescription({ description: 'Stored', descriptionKey: 'raised.somethingNewer' }, t)).toBe('Stored');
   });
 });
