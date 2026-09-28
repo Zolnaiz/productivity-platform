@@ -1109,6 +1109,7 @@ const en = {
     },
     ui: {
       msgAreaAdded: '{{area}} area added.',
+      msgPlanNotSaved: 'The last change to the plan was not saved. It will be sent again with your next change; check the connection.',
       newRedTagTitle: 'New red-tag item',
       newRedTagDisposition: 'Decide disposition',
       msgAreasCopied: '{{count}} area(s) copied.',

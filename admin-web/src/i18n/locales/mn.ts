@@ -1095,6 +1095,7 @@ const mn: Translations<typeof en> = {
     },
     ui: {
       msgAreaAdded: '{{area}} талбай нэмэгдлээ.',
+      msgPlanNotSaved: 'Зургийн сүүлийн өөрчлөлт хадгалагдсангүй. Дараагийн өөрчлөлттэй хамт дахин илгээнэ; холболтоо шалгана уу.',
       newRedTagTitle: 'Шинэ улаан шошготой зүйл',
       newRedTagDisposition: 'Шийдвэр гаргах',
       msgAreasCopied: '{{count}} талбай хуулагдлаа.',

@@ -766,16 +766,26 @@ export const fiveSLayoutService = {
       () => readPlan(id),
     ),
 
-  savePlan: (plan: FiveSLayoutPlan) =>
-    fallback<FiveSLayoutPlan>(
-      async () =>
-        // By id when the plan has one, so a building with several floors saves
-        // the floor being edited rather than whichever comes back first.
-        plan.id && !plan.id.startsWith('default-')
-          ? patch<FiveSLayoutPlan>(`/five-s-layouts/${plan.id}`, withoutServerFields(plan))
-          : patch<FiveSLayoutPlan>('/five-s-layout', withoutServerFields(plan)),
-      () => savePlan(plan),
-    ).then(normalizePlan),
+  /**
+   * Saves the plan being edited.
+   *
+   * Against a real server a failed save is thrown, never quietly kept in this
+   * browser instead: the editor has to say so, or somebody draws for an hour
+   * into a plan nobody else will ever see. It did exactly that while every
+   * save of an audited plan was being refused.
+   */
+  savePlan: async (plan: FiveSLayoutPlan) => {
+    if (!hasRealAccessToken()) return savePlan(plan);
+
+    // By id when the plan has one, so a building with several floors saves
+    // the floor being edited rather than whichever comes back first.
+    const saved =
+      plan.id && !plan.id.startsWith('default-')
+        ? await patch<FiveSLayoutPlan>(`/five-s-layouts/${plan.id}`, withoutServerFields(plan))
+        : await patch<FiveSLayoutPlan>('/five-s-layout', withoutServerFields(plan));
+
+    return normalizePlan(unwrap(saved));
+  },
   resetPlan: async () => {
     writeDemoPlans(defaultPlans().map((plan) => ({ ...plan, updatedAt: now() })));
     const plan = readPlan();

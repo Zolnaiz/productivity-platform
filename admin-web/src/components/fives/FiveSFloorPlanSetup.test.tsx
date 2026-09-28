@@ -186,6 +186,20 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     expect(task.description).not.toContain('[object Object]');
   });
 
+  it('says so when a change to the plan was not saved', async () => {
+    // Every save of an audited plan was once refused, and the editor showed
+    // nothing: an hour of drawing that nobody else would ever see.
+    serviceMocks.savePlan.mockRejectedValue(new Error('400'));
+    renderEditor();
+    expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+
+    expect(
+      (await screen.findByRole('alert', {}, { timeout: 4000 })).textContent,
+    ).toContain('The last change to the plan was not saved');
+  });
+
   it('jumps the selected zone by one grid step with shift and an arrow key', async () => {
     renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();

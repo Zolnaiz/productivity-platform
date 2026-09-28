@@ -410,6 +410,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const [ownerFilter, setOwnerFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState('');
+  /** The last save of the plan was refused or never arrived. */
+  const [saveFailed, setSaveFailed] = useState(false);
   const [drag, setDrag] = useState<
     | { kind: 'zone'; zoneId: string; offsetX: number; offsetY: number }
     | { kind: 'object'; objectId: string; offsetX: number; offsetY: number }
@@ -921,7 +923,17 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     const pending = pendingPlanRef.current;
     pendingPlanRef.current = null;
 
-    if (pending) void fiveSLayoutService.savePlan(pending);
+    if (!pending) return;
+
+    fiveSLayoutService.savePlan(pending).then(
+      () => setSaveFailed(false),
+      () => {
+        // Said, and kept to be sent again with the next change - unless a
+        // newer one is already waiting, which carries this one with it.
+        setSaveFailed(true);
+        if (!pendingPlanRef.current) pendingPlanRef.current = pending;
+      },
+    );
   };
 
   const cancelPlanSave = () => {
@@ -3005,6 +3017,14 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       <input ref={importInputRef} className="hidden" type="file" accept="application/json,.json" onChange={importPlanJson} />
       <input ref={backgroundInputRef} className="hidden" type="file" accept="image/*" onChange={importBackgroundImage} />
       <div className="space-y-5">
+        {saveFailed && (
+          <div
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"
+          >
+            {t('fiveS.ui.msgPlanNotSaved')}
+          </div>
+        )}
         {actionMessage && (
           <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300">
             {actionMessage}
