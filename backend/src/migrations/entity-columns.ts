@@ -47,6 +47,7 @@ export const liveTables = [
   'five_s_layout_versions',
   'monthly_report_closes',
   'ideas',
+  'weekly_checkins',
 ];
 
 /** Declared by `BaseEntity` rather than by the entity, so they are counted separately below. */

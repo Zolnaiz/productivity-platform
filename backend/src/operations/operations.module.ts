@@ -13,6 +13,9 @@ import { AssessmentResponse } from './entities/assessment-response.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { Idea } from './entities/idea.entity';
+import { WeeklyCheckin } from './entities/weekly-checkin.entity';
+import { CheckinsController } from './checkins.controller';
+import { CheckinsService } from './checkins.service';
 import { IdeasController } from './ideas.controller';
 import { IdeasService } from './ideas.service';
 import { FiveSLayout } from './entities/five-s-layout.entity';
@@ -59,6 +62,7 @@ import { NotificationsService } from './notifications.service';
       ExpenseItem,
       DailyGoal,
       Idea,
+      WeeklyCheckin,
       FiveSLayout,
       Department,
       FiveSGuideline,
@@ -72,10 +76,11 @@ import { NotificationsService } from './notifications.service';
       Notification,
     ]),
   ],
-  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController, IdeasController],
+  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController, IdeasController, CheckinsController],
   providers: [
     OperationsService,
     IdeasService,
+    CheckinsService,
     AttachmentsService,
     /*
       Where attachment bytes live, decided once at startup from the

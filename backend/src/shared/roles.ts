@@ -104,6 +104,8 @@ const user = [
   'guidelines:update',
   // Anybody doing the work may say how it could be better.
   'ideas:create',
+  // One's own week: what got done, what is next, what is in the way.
+  'checkins:write',
 ];
 
 const manager = [
@@ -127,6 +129,8 @@ const manager = [
   'reports:close',
   // Deciding what to do with an idea, and giving out the work it calls for.
   'ideas:review',
+  // The team's weeks, problems first: what a line manager most needs to hear.
+  'checkins:team',
 ];
 
 const admin = [

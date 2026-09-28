@@ -269,6 +269,8 @@ async function main() {
     '/notifications',
     '/notifications/unread-count',
     '/ideas',
+    `/checkins?week=${new Date().toISOString().slice(0, 10)}`,
+    `/checkins/mine?week=${new Date().toISOString().slice(0, 10)}`,
     '/operations/monthly-report',
     '/operations/monthly-closes',
     `/operations/period-report?from=${new Date().getUTCFullYear()}-01&to=${new Date().getUTCFullYear()}-06`,
@@ -342,6 +344,10 @@ async function main() {
       (status) => status === 201);
     await write('write: an expense', '/expenses', 'POST', { title: 'Smoke expense', amount: 1000, expenseDate: today },
       (status) => status === 201);
+
+    await write('write: a weekly check-in', '/checkins/mine', 'PUT',
+      { week: today, progress: 'Smoke progress', plans: 'Smoke plans', problems: 'Smoke problems' },
+      (status, data) => status === 200 && data?.problems === 'Smoke problems');
 
     // An idea put in and taken up raises the work it calls for.
     const idea = await write('write: an idea', '/ideas', 'POST', { title: `Smoke idea ${Date.now()}`, area: 'Smoke area' },
