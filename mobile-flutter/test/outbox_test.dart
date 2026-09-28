@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:productivity_mobile/models/five_s_model.dart';
 import 'package:productivity_mobile/providers/auth_provider.dart';
 import 'package:productivity_mobile/providers/five_s_provider.dart';
+import 'package:productivity_mobile/providers/idea_provider.dart';
 import 'package:productivity_mobile/providers/inbox_provider.dart';
 import 'package:productivity_mobile/providers/task_provider.dart';
 import 'package:productivity_mobile/providers/work_log_provider.dart';
@@ -143,6 +144,7 @@ void main() {
         ChangeNotifierProvider.value(value: TaskProvider(api, outbox: outbox)),
         ChangeNotifierProvider.value(value: WorkLogProvider(api, outbox: outbox)),
         ChangeNotifierProvider.value(value: InboxProvider(api)),
+        ChangeNotifierProvider.value(value: IdeaProvider(api)),
         ChangeNotifierProvider.value(value: FiveSProvider(api, outbox: outbox)),
       ],
       child: const MaterialApp(

@@ -13,6 +13,7 @@ import 'providers/task_provider.dart';
 import 'providers/work_log_provider.dart';
 import 'providers/five_s_provider.dart';
 import 'providers/inbox_provider.dart';
+import 'providers/idea_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'utils/phase_one_strings.dart';
 // Services
@@ -67,6 +68,8 @@ class ProductivityApp extends StatelessWidget {
         ChangeNotifierProvider(
             create: (_) => WorkLogProvider(ApiService(), outbox: outbox)),
         ChangeNotifierProvider(create: (_) => InboxProvider(ApiService())),
+        ChangeNotifierProvider(
+            create: (_) => IdeaProvider(ApiService(), outbox: outbox)),
         ChangeNotifierProvider(
             create: (_) => FiveSProvider(ApiService(), outbox: outbox)),
       ],

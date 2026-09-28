@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:productivity_mobile/providers/auth_provider.dart';
 import 'package:productivity_mobile/providers/five_s_provider.dart';
+import 'package:productivity_mobile/providers/idea_provider.dart';
 import 'package:productivity_mobile/providers/inbox_provider.dart';
 import 'package:productivity_mobile/providers/task_provider.dart';
 import 'package:productivity_mobile/providers/work_log_provider.dart';
@@ -32,6 +33,7 @@ void main() {
         ChangeNotifierProvider.value(value: TaskProvider(api)),
         ChangeNotifierProvider.value(value: WorkLogProvider(api)),
         ChangeNotifierProvider.value(value: inbox),
+        ChangeNotifierProvider.value(value: IdeaProvider(api)),
         ChangeNotifierProvider.value(value: FiveSProvider(api)),
       ],
       child: const MaterialApp(

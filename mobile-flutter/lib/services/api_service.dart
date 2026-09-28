@@ -446,6 +446,21 @@ class ApiService {
     return (response.data as Map).cast<String, dynamic>();
   }
 
+  /// The organization's idea box, newest first.
+  Future<List<Map<String, dynamic>>> getIdeas() async {
+    final response = await _dio.get('/ideas');
+    return (response.data as List)
+        .cast<Map>()
+        .map((item) => item.cast<String, dynamic>())
+        .toList();
+  }
+
+  /// Puts an idea in the box.
+  Future<Map<String, dynamic>> createIdea(Map<String, dynamic> idea) async {
+    final response = await _dio.post('/ideas', data: idea);
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
   /// Sends a change kept on the phone while it was offline, as it was made.
   Future<dynamic> send(String method, String path, Map<String, dynamic>? data) async {
     final response =

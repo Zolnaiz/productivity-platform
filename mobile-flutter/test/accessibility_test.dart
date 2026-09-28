@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:productivity_mobile/providers/auth_provider.dart';
 import 'package:productivity_mobile/providers/five_s_provider.dart';
+import 'package:productivity_mobile/providers/idea_provider.dart';
 import 'package:productivity_mobile/providers/inbox_provider.dart';
 import 'package:productivity_mobile/providers/task_provider.dart';
 import 'package:productivity_mobile/providers/work_log_provider.dart';
@@ -87,6 +88,7 @@ Future<void> _pumpHome(WidgetTester tester, ThemeData theme, {double textScale =
       ChangeNotifierProvider.value(value: tasks),
       ChangeNotifierProvider.value(value: WorkLogProvider(api)),
       ChangeNotifierProvider.value(value: inbox),
+      ChangeNotifierProvider.value(value: IdeaProvider(api)),
       ChangeNotifierProvider.value(value: fiveS),
     ],
     child: MaterialApp(
@@ -133,7 +135,7 @@ void main() {
       await _pumpHome(tester, theme());
       await expectAccessible(tester);
 
-      for (final icon in [Icons.edit_note, Icons.fact_check_outlined, Icons.notifications_outlined]) {
+      for (final icon in [Icons.edit_note, Icons.fact_check_outlined, Icons.lightbulb_outline, Icons.notifications_outlined]) {
         await tester.tap(find.byIcon(icon));
         await tester.pumpAndSettle();
         await expectAccessible(tester);
@@ -160,7 +162,7 @@ void main() {
     await _pumpHome(tester, buildLightTheme(), textScale: maxTextScale);
     await expectAccessible(tester);
 
-    for (final icon in [Icons.edit_note, Icons.fact_check_outlined, Icons.notifications_outlined]) {
+    for (final icon in [Icons.edit_note, Icons.fact_check_outlined, Icons.lightbulb_outline, Icons.notifications_outlined]) {
       await tester.tap(find.byIcon(icon));
       await tester.pumpAndSettle();
       await expectAccessible(tester);

@@ -84,6 +84,9 @@ class _FiveSScreenState extends State<FiveSScreen> {
       // Where the thumb is: the person is standing at the label.
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('scan-label'),
+        // Each tab keeps its own button alive; a shared default tag breaks
+        // the page transition when an area is opened.
+        heroTag: 'scan-label',
         onPressed: _scan,
         icon: const Icon(Icons.qr_code_scanner),
         label: Text(strings.text('scanLabel')),

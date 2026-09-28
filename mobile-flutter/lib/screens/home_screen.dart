@@ -7,6 +7,7 @@ import '../providers/task_provider.dart';
 import '../services/outbox.dart';
 import '../utils/phase_one_strings.dart';
 import 'five_s_screen.dart';
+import 'ideas_screen.dart';
 import 'inbox_screen.dart';
 import 'tasks_screen.dart';
 import 'work_log_screen.dart';
@@ -118,6 +119,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 TasksScreen(),
                 WorkLogScreen(),
                 FiveSScreen(),
+                IdeasScreen(),
                 InboxScreen()
               ]),
         ),
@@ -133,6 +135,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           NavigationDestination(
               icon: const Icon(Icons.fact_check_outlined),
               label: strings.text('fiveS')),
+          NavigationDestination(
+              icon: const Icon(Icons.lightbulb_outline),
+              label: strings.text('ideas')),
           NavigationDestination(
             icon: Badge(
               isLabelVisible: context.watch<InboxProvider>().unread > 0,
