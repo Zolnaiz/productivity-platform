@@ -200,6 +200,40 @@ describe('FiveSFloorPlanSetup canvas interactions', () => {
     ).toContain('The last change to the plan was not saved');
   });
 
+  it('exports the area register in the reader’s words, next action included', async () => {
+    // It was English whatever the page said, and its next action was the
+    // rules module's own English label.
+    const blobs: Blob[] = [];
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = ((blob: Blob) => {
+      blobs.push(blob);
+      return 'blob:csv';
+    }) as typeof URL.createObjectURL;
+    URL.revokeObjectURL = () => undefined;
+
+    try {
+      renderEditor();
+      expect(await screen.findByText('Selected zone')).toBeTruthy();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Export register' }));
+
+      // jsdom's Blob has no text(); a FileReader reads it.
+      const csv = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.readAsText(blobs[0]);
+      });
+      expect(csv.split(/\r?\n/)[0]).toContain('"Code","Area","Owner","Stage"');
+      expect(csv).toContain('"2 Set"');
+      expect(csv).toContain('Advance to 3 Shine');
+      expect(csv).not.toContain('Maintain current standard');
+    } finally {
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
+  });
+
   it('jumps the selected zone by one grid step with shift and an arrow key', async () => {
     renderEditor();
     expect(await screen.findByText('Selected zone')).toBeTruthy();

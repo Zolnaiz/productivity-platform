@@ -68,7 +68,6 @@ import {
   redTagStatusKey,
   redTagStatusOptions,
   stageKeys,
-  stageLabels,
   stageOrder,
   withSyncedRedTags,
   zoneStatusOptions,
@@ -843,7 +842,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
         coverage.get(id) ||
         {
           id,
-          name: zone.ownerName || 'Unassigned',
+          name: zone.ownerName || t('fiveS.ui.unassigned'),
           zones: 0,
           redTags: 0,
           auditDue: 0,
@@ -862,7 +861,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     });
 
     return Array.from(coverage.values()).sort((a, b) => b.auditDue - a.auditDue || b.redTags - a.redTags || a.name.localeCompare(b.name));
-  }, [plan]);
+  }, [plan, t]);
 
   const rolloutQueue = useMemo(
     () =>
@@ -2607,37 +2606,41 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
     setActionMessage(t('fiveS.ui.msgLabelsCsv'));
   };
 
+  /*
+    The registers exported from here are read by whoever exported them - a
+    supervisor's spreadsheet, a board on the wall - so their words are that
+    person's, like everything else on the page. They were English whatever the
+    page said, with the next action in the rules module's own English.
+  */
+  const csvHeader = (key: string) => t(`fiveS.csv.${key}`);
+  const ownerOf = (zone: FiveSZone) => zone.ownerName || t('fiveS.ui.unassigned');
+  const stageOf = (zone: FiveSZone) => t(`fiveS.stage.${stageKeys[zone.stage]}`);
+
   const downloadAreaRegisterCsv = () => {
     if (!plan) return;
 
-    const headers = showAuditControls
-      ? ['Code', 'Area', 'Owner', 'Stage', 'Score', 'Last audit', 'Audit due', 'Red tags', 'Last cleaned', 'Next action']
-      : ['Code', 'Area', 'Owner', 'Stage', 'Red tags', 'Last cleaned', 'Next action'];
+    const headers = (
+      showAuditControls
+        ? ['code', 'area', 'owner', 'stage', 'score', 'lastAudit', 'auditDue', 'redTags', 'lastCleaned', 'nextAction']
+        : ['code', 'area', 'owner', 'stage', 'redTags', 'lastCleaned', 'nextAction']
+    ).map(csvHeader);
     const rows = filteredZones.map((zone) => {
-      const gaps = getZoneActionItems(zone, showAuditControls);
+      const next = nextActionText(getZoneActionItems(zone, showAuditControls));
 
-      const setupRow = [
-        zone.code,
-        zone.name,
-        zone.ownerName || 'Unassigned',
-        stageLabels[zone.stage],
-        getRedTagCount(zone),
-        zone.lastCleanedAt || '',
-        gaps.length ? gaps[0].label : 'Maintain current standard',
-      ];
+      const setupRow = [zone.code, zone.name, ownerOf(zone), stageOf(zone), getRedTagCount(zone), zone.lastCleanedAt || '', next];
 
       return showAuditControls
         ? [
             zone.code,
             zone.name,
-            zone.ownerName || 'Unassigned',
-            stageLabels[zone.stage],
+            ownerOf(zone),
+            stageOf(zone),
             zone.lastAuditScore === undefined ? '' : `${zone.lastAuditScore}%`,
-            zone.lastAuditAt || '',
-            getAuditDueDate(zone) || 'Now',
+            zone.lastAuditAt ? zone.lastAuditAt.slice(0, 10) : '',
+            getAuditDueDate(zone) || t('fiveS.task.now'),
             getRedTagCount(zone),
             zone.lastCleanedAt || '',
-            gaps.length ? gaps[0].label : 'Maintain current standard',
+            next,
           ]
         : setupRow;
     });
@@ -2655,19 +2658,19 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const downloadRolloutQueueCsv = () => {
     if (!plan) return;
 
-    const headers = ['Code', 'Area', 'Owner', 'Stage', 'Priority', 'Due date', 'Next action', 'Open actions'];
+    const headers = ['code', 'area', 'owner', 'stage', 'priority', 'dueDate', 'nextAction', 'openActions'].map(csvHeader);
     const rows = rolloutQueue.map((item) => {
       const gaps = getZoneActionItems(item.zone, showAuditControls);
 
       return [
         item.zone.code,
         item.zone.name,
-        item.zone.ownerName || 'Unassigned',
-        stageLabels[item.zone.stage],
-        item.priority,
+        ownerOf(item.zone),
+        stageOf(item.zone),
+        t(`actions.priority.${item.priority}`),
         item.dueDate,
         item.nextAction,
-        gaps.map((gap) => gap.label).join('; '),
+        gaps.map(actionText).join('; '),
       ];
     });
     const csv = [headers, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\n');
@@ -2684,16 +2687,18 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const downloadRedTagRegisterCsv = () => {
     if (!plan) return;
 
-    const headers = ['Code', 'Area', 'Owner', 'Item', 'Status', 'Due date', 'Created', 'Closed', 'Disposition'];
+    const headers = ['code', 'area', 'owner', 'item', 'status', 'dueDate', 'created', 'closed', 'disposition'].map(
+      csvHeader,
+    );
     const rows = redTagRegister.map(({ zone, redTag }) => [
       zone.code,
       zone.name,
-      redTag.ownerName || zone.ownerName || 'Unassigned',
+      redTag.ownerName || ownerOf(zone),
       redTag.title,
-      redTag.status,
+      t(`fiveS.redTagStatus.${redTagStatusKey(redTag.status)}`),
       redTag.dueDate || '',
-      redTag.createdAt || '',
-      redTag.closedAt || '',
+      redTag.createdAt ? redTag.createdAt.slice(0, 10) : '',
+      redTag.closedAt ? redTag.closedAt.slice(0, 10) : '',
       redTag.disposition,
     ]);
     const csv = [headers, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\n');
@@ -2710,16 +2715,18 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const downloadAuditWalkCsv = () => {
     if (!plan) return;
 
-    const headers = ['Route', 'Code', 'Area', 'Owner', 'Frequency', 'Last audit', 'Next audit', 'Status', 'Score', 'Red tags'];
+    const headers = ['route', 'code', 'area', 'owner', 'frequency', 'lastAudit', 'nextAudit', 'status', 'score', 'redTags'].map(
+      csvHeader,
+    );
     const rows = auditWalkItems.map((item, index) => [
       index + 1,
       item.zone.code,
       item.zone.name,
-      item.zone.ownerName || 'Unassigned',
-      item.zone.auditFrequency,
-      item.zone.lastAuditAt || '',
+      ownerOf(item.zone),
+      t(`auditTiers.frequency.${item.zone.auditFrequency}`),
+      item.zone.lastAuditAt ? item.zone.lastAuditAt.slice(0, 10) : '',
       item.timing.dueDate,
-      item.timing.label,
+      t(`fiveS.walk.${item.timing.status}`, { days: Math.abs(item.timing.daysUntil) }),
       item.zone.lastAuditScore === undefined ? '' : `${item.zone.lastAuditScore}%`,
       getRedTagCount(item.zone),
     ]);
@@ -4610,7 +4617,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       {zone.name}
                     </text>
                     <text x={zone.x + 52} y={zone.y + 50} className="fill-gray-600 text-[12px] dark:fill-gray-400">
-                      {zone.ownerName || 'No owner'}
+                      {zone.ownerName || t('fiveS.inspector.noOwner')}
                     </text>
                     {/*
                       The size, on the area itself. A floor plan whose parts
@@ -5161,7 +5168,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                         {selectedZone.lastAuditScore === undefined ? '-' : `${selectedZone.lastAuditScore}%`}
                       </div>
                       <div className="mt-1 text-xs text-gray-500">
-                        Next audit: {getAuditDueDate(selectedZone) || 'Due now'}
+                        {t('fiveS.inspector.nextAudit', { date: getAuditDueDate(selectedZone) || t('fiveS.inspector.dueNow') })}
                       </div>
                     </div>
                     <label className="block text-sm text-gray-600 dark:text-gray-400">
@@ -5210,7 +5217,10 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       <div key={redTag.id} className="rounded-md border border-gray-200 p-3 dark:border-gray-700">
                         <div className="mb-2 flex items-start justify-between gap-2">
                           <div className="text-xs text-gray-500">
-                            {redTag.ownerName || selectedZone.ownerName || 'Unassigned'} / Created {redTag.createdAt || '-'}
+                            {t('fiveS.inspector.tagRaised', {
+                              owner: redTag.ownerName || selectedZone.ownerName || t('fiveS.ui.unassigned'),
+                              date: redTag.createdAt ? redTag.createdAt.slice(0, 10) : '-',
+                            })}
                           </div>
                           <button
                             type="button"
