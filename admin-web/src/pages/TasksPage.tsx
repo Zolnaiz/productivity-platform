@@ -99,6 +99,13 @@ const TasksPage: React.FC = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [draft, setDraft] = useState(emptyDraft);
 
+  // "Add a task" from search or the home page lands with the cursor in the
+  // box a task is typed into.
+  const wantsNew = searchParams.get('new') === '1';
+  useEffect(() => {
+    if (wantsNew && canAssign) document.getElementById('quick-add-title')?.focus();
+  }, [wantsNew, canAssign]);
+
   // New work opened from a project is filed under it.
   useEffect(() => {
     setDraft((current) => ({ ...current, projectId: projectFilter }));

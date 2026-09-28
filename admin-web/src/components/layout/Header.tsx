@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -59,6 +59,18 @@ const pageEntries: Array<{ key: string; subtitleKey?: string; path: string; role
   { key: 'notes', subtitleKey: 'notes.subtitle', path: '/notes' },
 ];
 
+/**
+ * What people come to do, offered in search before anything is typed - the
+ * command palette of Linear and Slack, where the same box that finds a page
+ * also starts the work.
+ */
+const actionEntries = [
+  { key: 'addTask', path: '/tasks?new=1' },
+  { key: 'writeUp', path: '/work-logs' },
+  { key: 'checkArea', path: '/fives' },
+  { key: 'readNews', path: '/notifications' },
+] as const;
+
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -78,8 +90,40 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         })),
     [t, userRoles],
   );
+  const actionItems = useMemo<SearchItem[]>(
+    () =>
+      actionEntries.map((item) => ({
+        id: `action-${item.key}`,
+        title: t(`quickActions.${item.key}`),
+        subtitle: '',
+        path: item.path,
+        type: t('search.typeAction'),
+      })),
+    [t],
+  );
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Ctrl+K (Cmd+K on a Mac) or "/" from anywhere puts the cursor in search,
+  // as in Linear, Slack and GitHub. "/" only outside a field being typed in.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const typing =
+        event.target instanceof HTMLElement &&
+        (event.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName));
+      if ((event.key === 'k' || event.key === 'K') && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        inputRef.current?.focus();
+      } else if (event.key === '/' && !typing) {
+        event.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
   const [items, setItems] = useState<SearchItem[]>(visiblePageItems);
 
   useEffect(() => {
@@ -158,18 +202,22 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return visiblePageItems.slice(0, 6);
+    if (!normalized) return [...actionItems, ...visiblePageItems.slice(0, 4)];
 
-    return items
+    return [...actionItems, ...items]
       .filter((item) =>
         `${item.title} ${item.subtitle} ${item.type}`.toLowerCase().includes(normalized),
       )
       .slice(0, 8);
-  }, [items, query, visiblePageItems]);
+  }, [actionItems, items, query, visiblePageItems]);
+
+  // A new query starts at its first result.
+  useEffect(() => setActiveIndex(0), [query]);
 
   const goTo = (item: SearchItem) => {
     setQuery('');
     setFocused(false);
+    inputRef.current?.blur();
     navigate(item.path);
   };
 
@@ -192,31 +240,62 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         <div className="relative w-full max-w-xl">
           <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           <input
-            className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-3 text-sm dark:border-gray-700 dark:bg-gray-800"
+            ref={inputRef}
+            className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-16 text-sm dark:border-gray-700 dark:bg-gray-800"
             placeholder={t('common.search')}
+            aria-label={t('search.label')}
             type="search"
+            role="combobox"
+            aria-expanded={focused}
+            aria-controls="search-results"
+            aria-autocomplete="list"
+            aria-activedescendant={focused && results[activeIndex] ? `search-${results[activeIndex].id}` : undefined}
             value={query}
             onBlur={() => window.setTimeout(() => setFocused(false), 150)}
             onChange={(event) => setQuery(event.target.value)}
             onFocus={() => setFocused(true)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && results[0]) {
-                goTo(results[0]);
+              if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                setActiveIndex((index) => Math.min(index + 1, results.length - 1));
+              }
+              if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                setActiveIndex((index) => Math.max(index - 1, 0));
+              }
+              if (event.key === 'Enter' && results[activeIndex]) {
+                goTo(results[activeIndex]);
               }
               if (event.key === 'Escape') {
                 setFocused(false);
+                inputRef.current?.blur();
               }
             }}
           />
+          <kbd className="pointer-events-none absolute right-2 top-1.5 hidden rounded border border-gray-300 bg-white px-1.5 py-0.5 font-sans text-[11px] text-gray-600 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-400 sm:block">
+            {t('search.shortcut')}
+          </kbd>
           {focused && (
-            <div className="absolute left-0 right-0 top-11 z-50 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+            <div
+              id="search-results"
+              role="listbox"
+              aria-label={t('search.label')}
+              className="absolute left-0 right-0 top-11 z-50 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900"
+            >
               {results.length ? (
-                results.map((item) => (
+                results.map((item, index) => (
                   <button
                     key={item.id}
-                    className="flex w-full items-start gap-3 border-b border-gray-100 px-4 py-3 text-left last:border-b-0 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
+                    id={`search-${item.id}`}
+                    role="option"
+                    aria-selected={index === activeIndex}
+                    tabIndex={-1}
+                    className={`flex w-full items-start gap-3 border-b border-gray-100 px-4 py-3 text-left last:border-b-0 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800 ${
+                      index === activeIndex ? 'bg-gray-100 dark:bg-gray-800' : ''
+                    }`}
                     type="button"
                     onMouseDown={(event) => event.preventDefault()}
+                    onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => goTo(item)}
                   >
                     <span className="mt-0.5 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
@@ -253,7 +332,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             {user?.name || user?.email}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            {user?.roles?.join(', ') || 'owner'}
+            {user?.roles?.[0] ? t(`users.roles.${user.roles[0]}`) : ''}
           </div>
         </div>
         <button

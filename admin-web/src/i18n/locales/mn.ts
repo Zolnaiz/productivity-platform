@@ -56,6 +56,9 @@ const mn: Translations<typeof en> = {
     system: 'Системийг дагах',
   },
   search: {
+    shortcut: 'Ctrl K',
+    typeAction: 'Үйлдэл',
+    label: 'Хайлт ба үйлдэл',
     typePage: 'Хуудас',
     typeProject: 'Төсөл',
     typeTask: 'Ажил',

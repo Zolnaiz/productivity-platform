@@ -74,6 +74,9 @@ const en = {
     no: 'No',
   },
   search: {
+    shortcut: 'Ctrl K',
+    typeAction: 'Action',
+    label: 'Search and actions',
     typePage: 'Page',
     typeProject: 'Project',
     typeTask: 'Task',

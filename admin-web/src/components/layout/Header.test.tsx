@@ -61,7 +61,7 @@ describe('Header search role visibility', () => {
   it('does not expose admin pages in search for non-admin users', async () => {
     renderHeader();
 
-    await userEvent.type(screen.getByRole('searchbox'), 'Admin');
+    await userEvent.type(screen.getByRole('combobox'), 'Admin');
 
     await waitFor(() => expect(screen.getByText('Nothing matches that.')).toBeTruthy());
     expect(screen.queryByText('Workspace control centre')).toBeNull();
@@ -74,7 +74,7 @@ describe('Header search role visibility', () => {
     };
     renderHeader();
 
-    await userEvent.type(screen.getByRole('searchbox'), 'Admin');
+    await userEvent.type(screen.getByRole('combobox'), 'Admin');
 
     await waitFor(() => expect(screen.getByText('Workspace control centre')).toBeTruthy());
   });
@@ -89,9 +89,36 @@ describe('Header search in Mongolian', () => {
     authState.user = { name: 'Employee User', roles: ['employee'] };
     renderHeader();
 
-    await userEvent.type(screen.getByRole('searchbox'), 'Хагас жил');
+    await userEvent.type(screen.getByRole('combobox'), 'Хагас жил');
 
     await waitFor(() => expect(screen.getByText('Хагас жил, жилийн тайлан')).toBeTruthy());
     await i18n.changeLanguage('en');
+  });
+});
+
+describe('search as a command palette', () => {
+  beforeEach(() => {
+    authState.user = { name: 'Employee User', roles: ['employee'] };
+  });
+
+  it('is reached with Ctrl+K from anywhere on the page', async () => {
+    renderHeader();
+
+    await userEvent.keyboard('{Control>}k{/Control}');
+
+    expect(document.activeElement).toBe(screen.getByRole('combobox'));
+  });
+
+  it('offers the everyday actions before anything is typed, and moves through them with the arrows', async () => {
+    renderHeader();
+    await userEvent.click(screen.getByRole('combobox'));
+
+    const options = screen.getAllByRole('option');
+    expect(options[0].textContent).toContain('Add a task');
+    expect(options[0].getAttribute('aria-selected')).toBe('true');
+
+    await userEvent.keyboard('{ArrowDown}');
+    expect(screen.getAllByRole('option')[1].getAttribute('aria-selected')).toBe('true');
+    expect(screen.getAllByRole('option')[1].textContent).toContain('Write up my day');
   });
 });

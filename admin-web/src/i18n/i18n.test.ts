@@ -27,6 +27,8 @@ describe('translations', () => {
       // Only its parts and the separators between them; there is no word in
       // it to translate.
       'actions.assessmentMeta',
+      // The keys printed on a keyboard, the same on a Mongolian one.
+      'search.shortcut',
     ];
 
     const untranslated = flatten(en)

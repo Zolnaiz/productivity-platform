@@ -12,7 +12,7 @@ import { Bell, ClipboardCheck, NotebookPen, Plus } from 'lucide-react';
  */
 const actions = [
   { key: 'writeUp', to: '/work-logs', icon: NotebookPen },
-  { key: 'addTask', to: '/tasks', icon: Plus },
+  { key: 'addTask', to: '/tasks?new=1', icon: Plus },
   { key: 'checkArea', to: '/fives', icon: ClipboardCheck },
   { key: 'readNews', to: '/notifications', icon: Bell },
 ] as const;
