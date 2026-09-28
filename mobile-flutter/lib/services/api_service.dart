@@ -453,6 +453,20 @@ class ApiService {
     return Uint8List.fromList(response.data ?? const []);
   }
 
+  /// My check-in for the week a day falls in, or null when none is written.
+  Future<Map<String, dynamic>?> getMyCheckin(String week) async {
+    final response =
+        await _dio.get('/checkins/mine', queryParameters: {'week': week});
+    final data = response.data;
+    return data is Map ? data.cast<String, dynamic>() : null;
+  }
+
+  /// Writes or updates my week.
+  Future<Map<String, dynamic>> saveMyCheckin(Map<String, dynamic> checkin) async {
+    final response = await _dio.put('/checkins/mine', data: checkin);
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
   /// The organization's idea box, newest first.
   Future<List<Map<String, dynamic>>> getIdeas() async {
     final response = await _dio.get('/ideas');

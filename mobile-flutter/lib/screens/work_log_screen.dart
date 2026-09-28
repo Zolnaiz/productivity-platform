@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/work_log_provider.dart';
 import '../utils/phase_one_strings.dart';
+import 'weekly_checkin_screen.dart';
 
 /// Writing up the day, from the phone in somebody's pocket.
 ///
@@ -89,7 +90,16 @@ class _WorkLogScreenState extends State<WorkLogScreen> {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings.text('today'))),
+      appBar: AppBar(title: Text(strings.text('today')), actions: [
+        // The week sits beside the day it is written from. An icon with its
+        // name as the tooltip: a worded button overflowed the bar at large text.
+        IconButton(
+          key: const Key('open-week'),
+          tooltip: strings.text('myWeek'),
+          onPressed: () => openWeeklyCheckin(context),
+          icon: const Icon(Icons.view_week_outlined),
+        ),
+      ]),
       body: Consumer<WorkLogProvider>(builder: (context, logs, _) {
         return RefreshIndicator(
           onRefresh: _load,

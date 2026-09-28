@@ -96,6 +96,9 @@ class PhaseOneStrings {
 
   String scoreSoFar(int score) => mn ? 'Оноо: $score%' : 'Score: $score%';
 
+  String weekOf(String monday) =>
+      mn ? '$monday-нд эхэлсэн долоо хоног' : 'Week starting $monday';
+
   String auditSaved(int score) =>
       mn ? 'Шалгалт бүртгэгдлээ: $score%' : 'Check recorded: $score%';
 
@@ -215,6 +218,12 @@ const _en = {
   'noTasks': 'No tasks assigned to you.',
   'retry': 'Try again',
   'sendNow': 'Send now',
+  'myWeek': 'My week',
+  'weekProgress': 'Done this week',
+  'weekPlans': 'Next week',
+  'weekProblems': 'In the way',
+  'weekSave': 'Save my week',
+  'weekSaved': 'Your week is saved.',
   'standardPhoto': 'The area as it should look',
   'standardPhotoCaption': 'As it should look - compare the area with this.',
   'ideas': 'Ideas',
@@ -325,6 +334,12 @@ const _mn = {
   'noTasks': 'Танд оноосон ажил алга.',
   'retry': 'Дахин оролдох',
   'sendNow': 'Одоо илгээх',
+  'myWeek': 'Миний долоо хоног',
+  'weekProgress': 'Энэ долоо хоногт хийсэн',
+  'weekPlans': 'Дараа долоо хоногт',
+  'weekProblems': 'Саад болж буй',
+  'weekSave': 'Долоо хоногоо хадгалах',
+  'weekSaved': 'Таны долоо хоног хадгалагдлаа.',
   'standardPhoto': 'Талбай байх ёстой байдал',
   'standardPhotoCaption': 'Байх ёстой байдал - талбайг үүнтэй харьцуулна уу.',
   'ideas': 'Санаа',
