@@ -268,6 +268,7 @@ async function main() {
     '/expenses',
     '/notifications',
     '/notifications/unread-count',
+    '/ideas',
     '/operations/monthly-report',
     '/operations/monthly-closes',
     `/operations/period-report?from=${new Date().getUTCFullYear()}-01&to=${new Date().getUTCFullYear()}-06`,
@@ -341,6 +342,14 @@ async function main() {
       (status) => status === 201);
     await write('write: an expense', '/expenses', 'POST', { title: 'Smoke expense', amount: 1000, expenseDate: today },
       (status) => status === 201);
+
+    // An idea put in and taken up raises the work it calls for.
+    const idea = await write('write: an idea', '/ideas', 'POST', { title: `Smoke idea ${Date.now()}`, area: 'Smoke area' },
+      (status, data) => status === 201 && data?.status === 'submitted');
+    if (idea?.id) {
+      await write('write: an idea taken up becomes a task', `/ideas/${idea.id}/review`, 'PATCH',
+        { status: 'approved', note: 'Smoke' }, (status, data) => status === 200 && typeof data?.taskId === 'string');
+    }
 
     const department = await write('write: a department', '/departments', 'POST', { name: `Smoke ${Date.now()}` },
       (status, data) => status === 201 && typeof data?.id === 'string');
