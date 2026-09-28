@@ -319,3 +319,51 @@ test('an invitation sent is open after a reload, and revoked', async ({ page }) 
   await page.reload();
   await expect(page.getByText(address)).toHaveCount(0);
 });
+
+test('a red tag raised on a zone page is still there after a reload', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/dashboard');
+
+  // The first zone of the first plan, as a QR code on its label would open it.
+  const { planId, zoneId } = await page.evaluate(async (api) => {
+    const res = await fetch(`${api}/five-s-layouts`, {
+      headers: { authorization: `Bearer ${localStorage.getItem('token')}` },
+    });
+    const plan = (await res.json()).data[0];
+    return { planId: plan.id as string, zoneId: plan.zones[0].id as string };
+  }, process.env.E2E_API_URL || 'http://localhost:3000/api');
+  await page.goto(`/zone/${planId}/${zoneId}`);
+
+  const title = `Live check tag ${Date.now()}`;
+  await page.getByRole('button', { name: 'Red-tag something here' }).click();
+  await page.getByLabel('What is it?').fill(title);
+  const raised = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/red-tags') && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Raise the tag' }).click();
+  expect((await raised).status()).toBe(201);
+
+  await page.reload();
+  await expect(page.getByText(title)).toBeVisible();
+
+  // Taken off the plan again, with the plan's own save.
+  const status = await page.evaluate(
+    async ({ api, planId, zoneId, title }) => {
+      const headers = { authorization: `Bearer ${localStorage.getItem('token')}`, 'content-type': 'application/json' };
+      const plan = (await (await fetch(`${api}/five-s-layouts`, { headers })).json()).data.find(
+        (item: { id: string }) => item.id === planId,
+      );
+      const zones = plan.zones.map((zone: { id: string; redTags?: Array<{ title: string }> }) =>
+        zone.id === zoneId ? { ...zone, redTags: (zone.redTags ?? []).filter((tag) => tag.title !== title) } : zone,
+      );
+      const res = await fetch(`${api}/five-s-layouts/${planId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ name: plan.name, site: plan.site, scale: plan.scale, zones, objects: plan.objects, baseUpdatedAt: plan.updatedAt }),
+      });
+      return res.status;
+    },
+    { api: process.env.E2E_API_URL || 'http://localhost:3000/api', planId, zoneId, title },
+  );
+  expect(status).toBe(200);
+});
