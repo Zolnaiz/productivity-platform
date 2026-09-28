@@ -83,6 +83,19 @@ export class OperationsController {
     return this.operationsService.removeProject(id, req.user);
   }
 
+  /**
+   * Taking back work raised by mistake.
+   *
+   * `tasks:delete` has been a manager's permission all along, with no route
+   * behind it: a task typed twice or raised against the wrong area stayed on
+   * the board for good. Soft, like a project: the row keeps what happened.
+   */
+  @Delete('tasks/:id')
+  @RequirePermission('tasks:delete')
+  removeTask(@Param('id') id: string, @Request() req) {
+    return this.operationsService.removeTask(id, req.user);
+  }
+
   @Get('tasks')
   @RequirePermission('tasks:read')
   findTasks(@Query('projectId') projectId: string | undefined, @Request() req) {

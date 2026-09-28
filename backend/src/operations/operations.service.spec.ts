@@ -538,6 +538,19 @@ describe('OperationsService organization scoping', () => {
       expect(repositories.guidelines.save).not.toHaveBeenCalled();
     });
 
+    it('takes back a task raised by mistake, within the organization only', async () => {
+      const { service, repositories } = createService();
+      (repositories.tasks as any).softRemove = jest.fn(async (value: unknown) => value);
+      repositories.tasks.findOne.mockResolvedValue({ id: 't1', organizationId: 'org-1', status: 'todo' });
+
+      await expect(service.removeTask('t1', { id: 'm1', role: 'manager', organizationId: 'org-1' })).resolves.toEqual({
+        id: 't1',
+        deleted: true,
+      });
+      expect(repositories.tasks.findOne).toHaveBeenCalledWith({ where: { id: 't1', organizationId: 'org-1' } });
+      expect((repositories.tasks as any).softRemove).toHaveBeenCalledWith(expect.objectContaining({ id: 't1' }));
+    });
+
     it('can take work off somebody', async () => {
       const { service, repositories } = createService();
       repositories.tasks.findOne.mockResolvedValue({ id: 't1', organizationId: 'org-1', status: 'todo', assigneeId: 'u1' });

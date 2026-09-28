@@ -74,3 +74,73 @@ test('an audit layer renamed on the plan is still renamed after a reload', async
   await page.getByLabel('Name of layer 1').fill(original);
   expect((await restored).status()).toBe(200);
 });
+
+test('a 5S register row typed in is still there after a reload', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/fives');
+
+  const marker = `Live check ${Date.now()}`;
+  await page.getByRole('button', { name: 'Add row' }).first().click();
+  const saved = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/five-s-guidelines') && response.request().method() === 'PATCH',
+  );
+  await page.getByPlaceholder('A01 - Reception').last().fill(marker);
+  expect((await saved).status()).toBe(200);
+
+  await page.reload();
+  const row = page.locator('tr', { has: page.locator(`input[value="${marker}"]`) });
+  await expect(row).toHaveCount(1);
+
+  // Taken out again, through the register's own confirmation.
+  await row.getByRole('button', { name: 'Delete improvement row' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+  await expect(page.locator(`input[value="${marker}"]`)).toHaveCount(0);
+});
+
+test('a workspace setting saved is still set after a reload', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/settings');
+
+  const closeDay = page.getByLabel('Month close day');
+  const original = await closeDay.inputValue();
+  const changed = original === '7' ? '8' : '7';
+
+  await closeDay.fill(changed);
+  await page.getByRole('button', { name: 'Save settings' }).click();
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByLabel('Month close day')).toHaveValue(changed);
+
+  await page.getByLabel('Month close day').fill(original);
+  await page.getByRole('button', { name: 'Save settings' }).click();
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible();
+});
+
+test('a task added on the board is there after a reload, and gone once deleted', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/tasks');
+
+  const title = `Live check task ${Date.now()}`;
+  await page.getByRole('button', { name: 'New task' }).first().click();
+  await page.getByLabel('Task title').fill(title);
+  const created = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/tasks') && response.request().method() === 'POST',
+  );
+  await page.getByRole('dialog').getByRole('button', { name: 'Add task' }).click();
+  expect((await created).status()).toBe(201);
+
+  await page.reload();
+  await expect(page.getByText(title)).toBeVisible();
+
+  // And taken back, as a manager takes back a task raised by mistake.
+  const deleted = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.includes('/tasks/') && response.request().method() === 'DELETE',
+  );
+  await page.getByRole('button', { name: `Delete ${title}` }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+  expect((await deleted).status()).toBe(200);
+
+  await page.reload();
+  await expect(page.getByText(title)).toHaveCount(0);
+});

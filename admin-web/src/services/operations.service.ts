@@ -841,6 +841,8 @@ export const operationsService = {
 
     return Promise.resolve(updated);
   },
+  deleteTask: (id: string) =>
+    isDemoMode() ? Promise.resolve(deleteDemo<WorkTask>('tasks', id)) : del<{ id: string; deleted: boolean }>(`/tasks/${id}`),
   getWorkLogs: () => fallback<WorkLog[]>(() => get('/work-logs'), readDemo<WorkLog>('workLogs')),
   createWorkLog: (data: Partial<WorkLog>) =>
     isDemoMode()

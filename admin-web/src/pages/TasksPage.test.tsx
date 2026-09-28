@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   getProjects: vi.fn(),
   createTask: vi.fn(),
   updateTask: vi.fn(),
+  deleteTask: vi.fn(),
   getMembers: vi.fn(),
   permissions: ['tasks:create', 'tasks:update'] as string[],
 }));
@@ -29,6 +30,7 @@ vi.mock('../services/operations.service', () => ({
     getProjects: mocks.getProjects,
     createTask: mocks.createTask,
     updateTask: mocks.updateTask,
+    deleteTask: mocks.deleteTask,
   },
 }));
 
@@ -139,5 +141,47 @@ describe('giving work to somebody', () => {
 
     await waitFor(() => expect(screen.getAllByTestId('task-card')).toHaveLength(2));
     expect(screen.queryByTestId('project-filter')).toBeNull();
+  });
+});
+
+/** A task raised by mistake can be taken back - by a manager, once asked. */
+describe('taking back a task', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getTasks.mockResolvedValue([{ id: 't1', title: 'Label the racking twice', status: 'todo', priority: 'low' }]);
+    mocks.getProjects.mockResolvedValue([]);
+    mocks.getMembers.mockResolvedValue([]);
+  });
+
+  it('asks, then takes it off the board and the server', async () => {
+    mocks.permissions = ['tasks:create', 'tasks:update', 'tasks:delete'];
+    mocks.deleteTask.mockResolvedValue({ id: 't1', deleted: true });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete Label the racking twice' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(mocks.deleteTask).toHaveBeenCalledWith('t1'));
+    expect(screen.queryByText('Label the racking twice')).toBeNull();
+  });
+
+  it('puts it back when the server keeps it', async () => {
+    mocks.permissions = ['tasks:delete'];
+    mocks.deleteTask.mockRejectedValue(new Error('offline'));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete Label the racking twice' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
+
+    expect(await screen.findByText('The task could not be deleted. Try again.')).toBeTruthy();
+    expect(screen.getByText('Label the racking twice')).toBeTruthy();
+  });
+
+  it('offers nothing to somebody who may not', async () => {
+    mocks.permissions = ['tasks:update'];
+    renderPage();
+
+    await screen.findByText('Label the racking twice');
+    expect(screen.queryByRole('button', { name: 'Delete Label the racking twice' })).toBeNull();
   });
 });

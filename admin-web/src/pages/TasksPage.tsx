@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { raisedDescription, raisedTitle } from '../components/common/raisedText';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import Input from '../components/common/Input';
 import Modal from '../components/common/Modal';
 import Select from '../components/common/Select';
@@ -53,6 +54,10 @@ const TasksPage: React.FC = () => {
   // Giving work out is a manager's act; the server refuses it to anybody else,
   // so the button and the choice of person are shown only where it would work.
   const canAssign = hasPermission('tasks:create');
+  // Taking back work raised by mistake - a task typed twice, raised against
+  // the wrong area - is a manager's call, as the server has it.
+  const canDelete = hasPermission('tasks:delete');
+  const [pendingDelete, setPendingDelete] = useState<WorkTask | null>(null);
   const [tasks, setTasks] = useState<WorkTask[]>([]);
   const [members, setMembers] = useState<TeamUser[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -183,6 +188,23 @@ const TasksPage: React.FC = () => {
     } catch {
       setTasks((current) => current.map((item) => (item.id === task.id ? task : item)));
       setError(t(failureKey));
+    }
+  };
+
+  const removeTask = async () => {
+    const task = pendingDelete;
+    setPendingDelete(null);
+    if (!task) return;
+
+    setError(null);
+    setTasks((current) => current.filter((item) => item.id !== task.id));
+
+    try {
+      await operationsService.deleteTask(task.id);
+    } catch {
+      // Back where it was: it was not taken off the server.
+      setTasks((current) => [task, ...current]);
+      setError(t('tasks.deleteFailed'));
     }
   };
 
@@ -414,6 +436,17 @@ const TasksPage: React.FC = () => {
                         </option>
                       ))}
                     </Select>
+                    {canDelete && (
+                      <button
+                        type="button"
+                        className="mt-2 inline-flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+                        aria-label={t('tasks.deleteFor', { title: raisedTitle(task, t) })}
+                        onClick={() => setPendingDelete(task)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        {t('common.delete')}
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -421,6 +454,17 @@ const TasksPage: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingDelete)}
+        title={t('tasks.deleteTitle')}
+        message={t('tasks.deleteMessage', { title: pendingDelete ? raisedTitle(pendingDelete, t) : '' })}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        onConfirm={removeTask}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 };

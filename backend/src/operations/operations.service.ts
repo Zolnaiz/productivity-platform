@@ -271,6 +271,12 @@ export class OperationsService {
     return { id, deleted: true };
   }
 
+  async removeTask(id: string, user: CurrentUser) {
+    const task = await this.findOneScoped(this.tasks, id, user, 'Task');
+    await this.tasks.softRemove(task);
+    return { id, deleted: true };
+  }
+
   findTasks(user: CurrentUser, projectId?: string) {
     return this.tasks.find({
       where: {
