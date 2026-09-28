@@ -111,6 +111,22 @@ describe('Operations DTO validation', () => {
           baselineScore: 40,
           baselineAt: '2026-09-20T01:00:00.000Z',
           tierAudits: { '1': { lastAuditAt: '2026-09-28T01:00:00.000Z', lastAuditScore: 80 } },
+          // And what the editor itself writes: the department answerable for
+          // the area, and a tag pinned where the item is, on hold.
+          departmentId: 'dept-1',
+          redTags: [
+            {
+              id: 'tag-1',
+              title: 'Pallet',
+              disposition: '',
+              status: 'review',
+              x: 40,
+              y: 60,
+              heldAt: '2026-09-28',
+              holdUntil: '2026-10-28',
+              createdAt: '2026-09-28T01:00:00.000Z',
+            },
+          ],
         },
       ],
       objects: [],

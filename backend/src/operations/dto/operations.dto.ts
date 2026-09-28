@@ -92,6 +92,28 @@ class FiveSRedTagDto {
   @IsOptional()
   @IsString()
   closedAt?: string;
+
+  /*
+    Where on the plan the tagged item is, and its time in the holding area.
+    The editor and the holding area write these, and the plan save refused
+    them as unknown - so a plan with one pinned or held tag could not be
+    saved at all.
+  */
+  @IsOptional()
+  @IsNumber()
+  x?: number;
+
+  @IsOptional()
+  @IsNumber()
+  y?: number;
+
+  @IsOptional()
+  @IsString()
+  heldAt?: string;
+
+  @IsOptional()
+  @IsString()
+  holdUntil?: string;
 }
 
 class FiveSZoneDto {
@@ -186,6 +208,12 @@ class FiveSZoneDto {
   @IsOptional()
   @IsObject()
   tierAudits?: Record<string, unknown>;
+
+  /** The department answerable for the area; set on the plan's zone panel. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  departmentId?: string;
 }
 
 export const FLOOR_PLAN_OBJECT_TYPES = [
