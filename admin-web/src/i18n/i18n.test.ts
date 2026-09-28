@@ -31,6 +31,8 @@ describe('translations', () => {
       'search.shortcut',
       // A name and a date, with nothing between them to translate.
       'ideas.byWhen',
+      // Two dates and a dash.
+      'weekly.range',
     ];
 
     const untranslated = flatten(en)

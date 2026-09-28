@@ -63,6 +63,7 @@ export const sections: NavSection[] = [
       { path: '/plan', labelKey: 'nav.monthPlan' },
       { path: '/calendar', labelKey: 'nav.calendar' },
       { path: '/work-logs', labelKey: 'nav.workLogs' },
+      { path: '/weekly', labelKey: 'nav.weekly' },
     ],
   },
   {

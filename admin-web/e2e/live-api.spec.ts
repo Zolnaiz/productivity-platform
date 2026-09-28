@@ -395,3 +395,20 @@ test('an idea put in and taken up is still taken up after a reload, with its tas
   await expect(again.getByText('Taken up', { exact: true })).toBeVisible();
   await expect(again.getByRole('link', { name: 'See the task' })).toBeVisible();
 });
+
+test('a week written up is still there after a reload, and in the team’s week', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/weekly');
+
+  const problem = `Live check problem ${Date.now()}`;
+  await page.getByLabel('In the way').fill(problem);
+  const saved = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/checkins/mine') && response.request().method() === 'PUT',
+  );
+  await page.getByRole('button', { name: 'Save my week' }).click();
+  expect((await saved).status()).toBe(200);
+
+  await page.reload();
+  await expect(page.getByLabel('In the way')).toHaveValue(problem);
+  await expect(page.getByTestId('team-problems')).toContainText(problem);
+});
