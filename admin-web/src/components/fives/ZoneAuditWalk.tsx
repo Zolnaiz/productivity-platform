@@ -210,8 +210,10 @@ const ZoneAuditWalk: React.FC<ZoneAuditWalkProps> = ({ plan, zone, role, onRecor
               {index + 1}. {question.text}
             </p>
 
+            {/* Each set of answers named by its question: a row of bare
+                numbers says nothing to somebody hearing it read out. */}
             {question.type === 'score' && (
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={question.text}>
                 {Array.from({ length: (question.maxScore || 5) + 1 }, (_, value) => value).map(
                   (value) => (
                     <button
@@ -233,7 +235,7 @@ const ZoneAuditWalk: React.FC<ZoneAuditWalkProps> = ({ plan, zone, role, onRecor
             )}
 
             {question.type === 'yes_no' && (
-              <div className="mt-2 flex gap-2">
+              <div className="mt-2 flex gap-2" role="group" aria-label={question.text}>
                 {(['yes', 'no'] as const).map((value) => (
                   <button
                     key={value}

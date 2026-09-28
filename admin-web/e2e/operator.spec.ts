@@ -54,3 +54,50 @@ test('an operator opens every page in their menu without an error or a bare id',
   expect(refused.filter((line) => line !== '403 GET /api/users')).toEqual([]);
   expect(refused.length).toBeLessThanOrEqual(1);
 });
+
+test('an operator writes up their day and walks an area’s checklist', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('app-language', 'en'));
+  await page.goto('/login');
+  await page.locator('input[type="email"]').fill(process.env.E2E_OPERATOR_EMAIL || 'operator@example.com');
+  await page.locator('input[type="password"]').fill(process.env.E2E_PASSWORD || 'Password123');
+  await page.locator('input[type="password"]').press('Enter');
+  await expect(page).toHaveURL(/\/dashboard$/);
+
+  // The day written up.
+  await page.goto('/work-logs');
+  const summary = `Operator write-up ${Date.now()}`;
+  await page.getByLabel('What did you finish?').fill(summary);
+  await page.getByLabel('Hours').fill('2');
+  const logged = page.waitForResponse(
+    (response) => /\/work-logs(\/daily)?$/.test(new URL(response.url()).pathname) && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Add log' }).click();
+  expect((await logged).status()).toBe(201);
+
+  // An area checked, from its page, as the QR code on its label opens it.
+  const { planId, zoneId } = await page.evaluate(async (api) => {
+    const res = await fetch(`${api}/five-s-layouts`, {
+      headers: { authorization: `Bearer ${localStorage.getItem('token')}` },
+    });
+    const plan = (await res.json()).data[0];
+    return { planId: plan.id as string, zoneId: plan.zones[0].id as string };
+  }, process.env.E2E_API_URL || 'http://localhost:3000/api');
+  await page.goto(`/zone/${planId}/${zoneId}`);
+  await page.getByTestId('zone-audit').click();
+  await expect(page.getByTestId('zone-audit-submit')).toBeVisible();
+  // Every score question at its best, every yes/no a yes, so the check
+  // raises no follow-up work.
+  for (const question of await page.getByRole('group').all()) {
+    const yes = question.getByRole('button', { name: 'Yes', exact: true });
+    const buttons = question.getByRole('button');
+    // A yes/no question gets its yes; a score question its highest mark.
+    await ((await yes.count()) ? yes : buttons.nth((await buttons.count()) - 1)).click();
+  }
+  const recorded = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/audit-runs') && response.request().method() === 'POST',
+  );
+  await page.getByTestId('zone-audit-submit').click();
+  const run = await recorded;
+  expect(run.status()).toBe(201);
+  expect(Number(run.request().postDataJSON().score)).toBe(100);
+});
