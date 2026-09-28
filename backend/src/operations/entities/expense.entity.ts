@@ -1,5 +1,6 @@
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
+import { numericColumn } from '../../shared/entities/numeric-column';
 
 export enum ExpenseCategory {
   TOOLS = 'tools',
@@ -37,7 +38,7 @@ export class ExpenseItem extends BaseEntity {
   })
   category: ExpenseCategory;
 
-  @Column({ type: 'numeric', precision: 14, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 14, scale: 2, default: 0, transformer: numericColumn })
   amount: number;
 
   @Column({

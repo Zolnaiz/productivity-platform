@@ -1,5 +1,6 @@
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
+import { numericColumn } from '../../shared/entities/numeric-column';
 
 @Entity('audit_runs')
 @Index(['organizationId'])
@@ -62,7 +63,7 @@ export class AuditRun extends BaseEntity {
     note?: string;
   }>;
 
-  @Column({ type: 'numeric', precision: 8, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 8, scale: 2, default: 0, transformer: numericColumn })
   score: number;
 
   @Column({ default: 'draft' })

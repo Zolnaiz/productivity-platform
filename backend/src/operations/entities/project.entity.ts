@@ -1,5 +1,6 @@
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
+import { numericColumn } from '../../shared/entities/numeric-column';
 
 export enum ProjectStatus {
   PLANNED = 'planned',
@@ -44,6 +45,6 @@ export class Project extends BaseEntity {
   @Column({ type: 'date', nullable: true, name: 'due_date' })
   dueDate?: string;
 
-  @Column({ type: 'numeric', precision: 14, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 14, scale: 2, default: 0, transformer: numericColumn })
   budget: number;
 }

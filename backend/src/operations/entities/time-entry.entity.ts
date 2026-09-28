@@ -1,5 +1,6 @@
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
+import { numericColumn } from '../../shared/entities/numeric-column';
 
 @Entity('time_entries')
 @Index(['organizationId'])
@@ -32,7 +33,7 @@ export class TimeEntry extends BaseEntity {
   @Column({ type: 'timestamptz', nullable: true, name: 'ended_at' })
   endedAt?: Date;
 
-  @Column({ type: 'numeric', precision: 8, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 8, scale: 2, default: 0, transformer: numericColumn })
   hours: number;
 
   @Column({ type: 'text', nullable: true })

@@ -1,5 +1,6 @@
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
+import { numericColumn } from '../../shared/entities/numeric-column';
 
 @Entity('work_logs')
 @Index(['organizationId'])
@@ -30,6 +31,6 @@ export class WorkLog extends BaseEntity {
   @Column({ type: 'text', nullable: true, name: 'next_steps' })
   nextSteps?: string;
 
-  @Column({ type: 'numeric', precision: 8, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 8, scale: 2, default: 0, transformer: numericColumn })
   hours: number;
 }

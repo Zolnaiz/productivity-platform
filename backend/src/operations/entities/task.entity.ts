@@ -1,5 +1,6 @@
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
+import { numericColumn } from '../../shared/entities/numeric-column';
 
 /**
  * What produced this task, when it was not created by hand.
@@ -96,10 +97,24 @@ export class WorkTask extends BaseEntity {
   @Column({ type: 'date', nullable: true, name: 'due_date' })
   dueDate?: string;
 
-  @Column({ type: 'numeric', precision: 8, scale: 2, default: 0, name: 'estimated_hours' })
+  @Column({
+    type: 'numeric',
+    precision: 8,
+    scale: 2,
+    default: 0,
+    name: 'estimated_hours',
+    transformer: numericColumn,
+  })
   estimatedHours: number;
 
-  @Column({ type: 'numeric', precision: 8, scale: 2, default: 0, name: 'actual_hours' })
+  @Column({
+    type: 'numeric',
+    precision: 8,
+    scale: 2,
+    default: 0,
+    name: 'actual_hours',
+    transformer: numericColumn,
+  })
   actualHours: number;
 
   /**
