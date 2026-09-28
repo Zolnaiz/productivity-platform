@@ -15,6 +15,9 @@ import { DailyGoal } from './entities/daily-goal.entity';
 import { Idea } from './entities/idea.entity';
 import { WeeklyCheckin } from './entities/weekly-checkin.entity';
 import { MonthlySummary } from './entities/monthly-summary.entity';
+import { GembaWalk } from './entities/gemba-walk.entity';
+import { GembaController } from './gemba.controller';
+import { GembaService } from './gemba.service';
 import { MonthlySummaryService } from './monthly-summary.service';
 import { CheckinsController } from './checkins.controller';
 import { CheckinsService } from './checkins.service';
@@ -66,6 +69,7 @@ import { NotificationsService } from './notifications.service';
       Idea,
       WeeklyCheckin,
       MonthlySummary,
+      GembaWalk,
       FiveSLayout,
       Department,
       FiveSGuideline,
@@ -79,12 +83,13 @@ import { NotificationsService } from './notifications.service';
       Notification,
     ]),
   ],
-  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController, IdeasController, CheckinsController],
+  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController, IdeasController, CheckinsController, GembaController],
   providers: [
     OperationsService,
     IdeasService,
     CheckinsService,
     MonthlySummaryService,
+    GembaService,
     AttachmentsService,
     /*
       Where attachment bytes live, decided once at startup from the

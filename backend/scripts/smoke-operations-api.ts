@@ -271,6 +271,8 @@ async function main() {
     '/ideas',
     `/checkins?week=${new Date().toISOString().slice(0, 10)}`,
     `/checkins/mine?week=${new Date().toISOString().slice(0, 10)}`,
+    `/gemba?week=${new Date().toISOString().slice(0, 10)}`,
+    `/operations/monthly-summary?month=${new Date().toISOString().slice(0, 7)}`,
     '/operations/monthly-report',
     '/operations/monthly-closes',
     `/operations/period-report?from=${new Date().getUTCFullYear()}-01&to=${new Date().getUTCFullYear()}-06`,
@@ -348,6 +350,13 @@ async function main() {
     await write('write: a weekly check-in', '/checkins/mine', 'PUT',
       { week: today, progress: 'Smoke progress', plans: 'Smoke plans', problems: 'Smoke problems' },
       (status, data) => status === 200 && data?.problems === 'Smoke problems');
+
+    await write('write: a gemba walk raises its follow-ups as tasks', '/gemba', 'POST',
+      { area: 'Smoke area', observations: 'Smoke observation', followUps: [{ title: `Smoke follow-up ${Date.now()}` }] },
+      (status, data) => status === 201 && typeof data?.followUps?.[0]?.taskId === 'string');
+    await write('write: a month summary written by hand and approved', '/operations/monthly-summary', 'PUT',
+      { month: today.slice(0, 7), text: 'Smoke summary', approve: true },
+      (status, data) => status === 200 && Boolean(data?.approvedAt));
 
     // An idea put in and taken up raises the work it calls for.
     const idea = await write('write: an idea', '/ideas', 'POST', { title: `Smoke idea ${Date.now()}`, area: 'Smoke area' },

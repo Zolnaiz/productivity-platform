@@ -16,6 +16,7 @@ export enum TaskSource {
   AUDIT_RUN = 'audit_run',
   IMPROVEMENT = 'five_s_improvement',
   IDEA = 'idea',
+  GEMBA = 'gemba_walk',
 }
 
 export enum TaskStatus {

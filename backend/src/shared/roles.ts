@@ -131,6 +131,8 @@ const manager = [
   'ideas:review',
   // The team's weeks, problems first: what a line manager most needs to hear.
   'checkins:team',
+  // Walking the floor, and the week's walks against the target.
+  'gemba:walk',
 ];
 
 const admin = [
