@@ -193,6 +193,7 @@ import {
   PlanPoint,
 } from '../../types/fiveS.types';
 import { TeamUser, memberName } from '../../types/people.types';
+import { useSaveFailure } from '../../hooks/useSaveFailure';
 
 
 
@@ -368,6 +369,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
    * is what a manager wants: one glance showing where to walk today.
    */
   const { t } = useTranslation();
+  const sayNotSaved = useSaveFailure();
   const [colorMode, setColorMode] = useState<'plan' | 'condition'>('plan');
   /** Which part of the plan the pane is showing. */
   const [view, setView] = useState<Viewport>(FULL_VIEW);
@@ -1297,11 +1299,17 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
   const addPlan = async () => {
     flushPlanSave();
 
-    const created = await fiveSLayoutService.createPlan({
-      name: t('fiveS.planNewName'),
-      site: plan?.site || t('fiveS.planNewSite'),
-      floor: '',
-    });
+    let created: FiveSLayoutPlan;
+    try {
+      created = await fiveSLayoutService.createPlan({
+        name: t('fiveS.planNewName'),
+        site: plan?.site || t('fiveS.planNewSite'),
+        floor: '',
+      });
+    } catch (error) {
+      sayNotSaved(error);
+      return;
+    }
 
     // A workspace that keeps a single plan — the demo does — hands back the
     // one it has. Appending it would put the same plan in the list twice and
@@ -1332,7 +1340,13 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
       return;
     }
 
-    const removed = await fiveSLayoutService.deletePlan(plan.id);
+    let removed: { deleted?: boolean };
+    try {
+      removed = await fiveSLayoutService.deletePlan(plan.id);
+    } catch (error) {
+      sayNotSaved(error);
+      return;
+    }
 
     if (!removed.deleted) {
       setActionMessage(t('fiveS.planRemoveFailed'));

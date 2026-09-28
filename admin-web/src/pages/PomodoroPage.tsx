@@ -8,9 +8,11 @@ import Input from '../components/common/Input';
 import { productivityService } from '../services/productivity.service';
 import { FocusSession } from '../types/productivity.types';
 import { localDay } from '../utils/localDay';
+import { useSaveFailure } from '../hooks/useSaveFailure';
 
 const PomodoroPage: React.FC = () => {
   const { t } = useTranslation();
+  const saveFailed = useSaveFailure();
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [draft, setDraft] = useState({ title: '', minutes: '25' });
 
@@ -21,11 +23,17 @@ const PomodoroPage: React.FC = () => {
   const createSession = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!draft.title.trim()) return;
-    const session = await productivityService.createFocusSession({
-      title: draft.title,
-      minutes: Number(draft.minutes || 25),
-      date: localDay(),
-    });
+    let session: Awaited<ReturnType<typeof productivityService.createFocusSession>>;
+    try {
+      session = await productivityService.createFocusSession({
+        title: draft.title,
+        minutes: Number(draft.minutes || 25),
+        date: localDay(),
+      });
+    } catch (error) {
+      saveFailed(error);
+      return;
+    }
     setSessions((current) => [session, ...current]);
     setDraft({ title: '', minutes: '25' });
   };

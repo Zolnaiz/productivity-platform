@@ -10,6 +10,7 @@ import { AuditRun, AuditTemplate } from '../types/operations.types';
 import { AuditTier, FiveSZone } from '../types/fiveS.types';
 import { readAuditTiers } from '../components/fives/tierRules';
 import { AuditAnswers, answersForRun, scoreAnswers } from '../components/fives/auditAnswers';
+import { useSaveFailure } from '../hooks/useSaveFailure';
 
 /**
  * The mark an area has to reach. 85 is the common 5S pass mark.
@@ -23,6 +24,7 @@ const PASSING_SCORE = 85;
 
 const AuditTemplatesPage: React.FC = () => {
   const { t } = useTranslation();
+  const saveFailed = useSaveFailure();
   const [templates, setTemplates] = useState<AuditTemplate[]>([]);
   const [runs, setRuns] = useState<AuditRun[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
@@ -156,7 +158,14 @@ const AuditTemplatesPage: React.FC = () => {
       phone repainted nothing and raised nothing, and the person walking it
       usually cannot create tasks at all.
     */
-    await operationsService.createAuditRun(auditRun);
+    try {
+      await operationsService.createAuditRun(auditRun);
+    } catch (error) {
+      // Not left in the list looking recorded.
+      setRuns((current) => current.filter((item) => item.id !== auditRun.id));
+      saveFailed(error);
+      return;
+    }
 
     setActionMessage(
       auditRun.score < PASSING_SCORE

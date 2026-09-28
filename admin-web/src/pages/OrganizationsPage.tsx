@@ -6,9 +6,11 @@ import Input from '../components/common/Input';
 import Select from '../components/common/Select';
 import { adminService } from '../services/admin.service';
 import { WorkspaceProfile } from '../types/admin.types';
+import { useSaveFailure } from '../hooks/useSaveFailure';
 
 const OrganizationsPage: React.FC = () => {
   const { t } = useTranslation();
+  const saveFailed = useSaveFailure();
   const [profile, setProfile] = useState<WorkspaceProfile | null>(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -25,9 +27,13 @@ const OrganizationsPage: React.FC = () => {
   const saveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!profile) return;
-    const updated = await adminService.updateWorkspaceProfile(profile);
-    setProfile(updated);
-    setSaved(true);
+    try {
+      const updated = await adminService.updateWorkspaceProfile(profile);
+      setProfile(updated);
+      setSaved(true);
+    } catch (error) {
+      saveFailed(error);
+    }
   };
 
   return (

@@ -64,6 +64,7 @@ const mn: Translations<typeof en> = {
     adminSubtitle: 'Ажлын орчны удирдлага',
   },
   common: {
+    notSaved: 'Хадгалагдсангүй',
     close: 'Хаах',
     cancel: 'Болих',
     save: 'Хадгалах',

@@ -10,9 +10,11 @@ import Textarea from '../components/common/Textarea';
 import { productivityService } from '../services/productivity.service';
 import { Note } from '../types/productivity.types';
 import { localDay } from '../utils/localDay';
+import { useSaveFailure } from '../hooks/useSaveFailure';
 
 const NotesPage: React.FC = () => {
   const { t } = useTranslation();
+  const saveFailed = useSaveFailure();
   const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState({ title: '', content: '', tag: 'work' });
   const [createOpen, setCreateOpen] = useState(false);
@@ -24,10 +26,16 @@ const NotesPage: React.FC = () => {
   const createNote = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!draft.title.trim() || !draft.content.trim()) return;
-    const note = await productivityService.createNote({
-      ...draft,
-      createdAt: localDay(),
-    });
+    let note: Awaited<ReturnType<typeof productivityService.createNote>>;
+    try {
+      note = await productivityService.createNote({
+        ...draft,
+        createdAt: localDay(),
+      });
+    } catch (error) {
+      saveFailed(error);
+      return;
+    }
     setNotes((current) => [note, ...current]);
     setDraft({ title: '', content: '', tag: 'work' });
     setCreateOpen(false);

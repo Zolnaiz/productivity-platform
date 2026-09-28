@@ -15,6 +15,7 @@ import { ExpenseItem } from '../types/finance.types';
 import { Project } from '../types/operations.types';
 import { memberName, TeamUser } from '../types/people.types';
 import { localDay } from '../utils/localDay';
+import { useSaveFailure } from '../hooks/useSaveFailure';
 
 const formatMnt = (value: number) =>
   new Intl.NumberFormat('mn-MN', {
@@ -32,6 +33,7 @@ const statusClasses = {
 
 const ExpensesPage: React.FC = () => {
   const { t } = useTranslation();
+  const saveFailed = useSaveFailure();
   const { user } = useAuth();
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [members, setMembers] = useState<TeamUser[]>([]);
@@ -117,8 +119,12 @@ const ExpensesPage: React.FC = () => {
   };
 
   const updateStatus = async (expense: ExpenseItem, status: ExpenseItem['status']) => {
-    const updated = await financeService.updateExpense(expense.id, { status });
-    setExpenses((current) => current.map((item) => (item.id === expense.id ? updated : item)));
+    try {
+      const updated = await financeService.updateExpense(expense.id, { status });
+      setExpenses((current) => current.map((item) => (item.id === expense.id ? updated : item)));
+    } catch (error) {
+      saveFailed(error);
+    }
   };
 
   return (

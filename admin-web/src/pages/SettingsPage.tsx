@@ -9,9 +9,11 @@ import AttachmentCheck from '../components/settings/AttachmentCheck';
 import { useAuth } from '../contexts/AuthContext';
 import { adminService } from '../services/admin.service';
 import { WorkspaceSettings } from '../types/admin.types';
+import { useSaveFailure } from '../hooks/useSaveFailure';
 
 const SettingsPage: React.FC = () => {
   const { t } = useTranslation();
+  const saveFailed = useSaveFailure();
   const { hasPermission } = useAuth();
   const [settings, setSettings] = useState<WorkspaceSettings | null>(null);
   const [saved, setSaved] = useState(false);
@@ -41,10 +43,14 @@ const SettingsPage: React.FC = () => {
 
   const saveSettings = async () => {
     if (!settings) return;
-    const updated = await adminService.updateWorkspaceSettings(settings);
-    setSettings(updated);
-    applyWorkspaceLanguage(updated.language);
-    setSaved(true);
+    try {
+      const updated = await adminService.updateWorkspaceSettings(settings);
+      setSettings(updated);
+      applyWorkspaceLanguage(updated.language);
+      setSaved(true);
+    } catch (error) {
+      saveFailed(error);
+    }
   };
 
   return (

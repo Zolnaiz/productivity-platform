@@ -14,6 +14,7 @@ import {
   AssessmentQuestion,
   AssessmentTemplate,
 } from "../types/assessment.types";
+import { useSaveFailure } from '../hooks/useSaveFailure';
 
 type DraftQuestion = AssessmentQuestion;
 
@@ -95,6 +96,7 @@ const emptyQuestion = (): DraftQuestion => ({
 
 const QuestionnairesPage: React.FC = () => {
   const { t } = useTranslation();
+  const saveFailed = useSaveFailure();
   const [templates, setTemplates] = useState<AssessmentTemplate[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -145,14 +147,20 @@ const QuestionnairesPage: React.FC = () => {
 
     if (!questions.length) return;
 
-    const template = await assessmentService.createTemplate({
-      title: draft.title,
-      description: draft.description,
-      type: draft.type,
-      industry: draft.industry,
-      status: "draft",
-      questions,
-    });
+    let template: AssessmentTemplate;
+    try {
+      template = await assessmentService.createTemplate({
+        title: draft.title,
+        description: draft.description,
+        type: draft.type,
+        industry: draft.industry,
+        status: "draft",
+        questions,
+      });
+    } catch (error) {
+      saveFailed(error);
+      return;
+    }
 
     setTemplates((current) => [template, ...current]);
     setDraft({

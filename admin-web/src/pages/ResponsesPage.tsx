@@ -14,6 +14,8 @@ import {
   AssessmentResponse,
   AssessmentTemplate,
 } from "../types/assessment.types";
+import { useSaveFailure } from '../hooks/useSaveFailure';
+import { daysFromToday, localDay } from '../utils/localDay';
 
 type AnswerDraft = Record<string, string>;
 
@@ -28,6 +30,7 @@ const statusClasses = {
 
 const ResponsesPage: React.FC = () => {
   const { t } = useTranslation();
+  const saveFailed = useSaveFailure();
   const [responses, setResponses] = useState<AssessmentResponse[]>([]);
   const [templates, setTemplates] = useState<AssessmentTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -111,14 +114,17 @@ const ResponsesPage: React.FC = () => {
     event.preventDefault();
     if (!selectedTemplate) return;
 
-    const response = await assessmentService.createResponse({
+    let response: AssessmentResponse;
+    try {
+      response = await assessmentService.createResponse({
       templateId: selectedTemplate.id,
       respondent: respondent.trim() || t("responses.anonymousRespondent"),
       department:
         department.trim() || selectedTemplate.industry || t("responses.noDepartment"),
       status: "submitted",
       score: draftScore,
-      submittedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
+      // The local time it was submitted; the UTC one was eight hours off.
+      submittedAt: `${localDay()} ${new Date().toTimeString().slice(0, 5)}`,
       answers: selectedTemplate.questions.map((question) => ({
         questionId: question.id,
         value:
@@ -128,7 +134,11 @@ const ResponsesPage: React.FC = () => {
               ? answers[question.id] === "yes"
               : answers[question.id] || "",
       })),
-    });
+      });
+    } catch (error) {
+      saveFailed(error);
+      return;
+    }
 
     setResponses((current) => [response, ...current]);
     setAnswers({});
@@ -139,26 +149,33 @@ const ResponsesPage: React.FC = () => {
     response: AssessmentResponse,
     status: AssessmentResponse["status"],
   ) => {
-    const updated = await assessmentService.reviewResponse(response.id, status);
-    setResponses((current) =>
-      current.map((item) => (item.id === response.id ? updated : item)),
-    );
+    try {
+      const updated = await assessmentService.reviewResponse(response.id, status);
+      setResponses((current) =>
+        current.map((item) => (item.id === response.id ? updated : item)),
+      );
+    } catch (error) {
+      saveFailed(error);
+    }
   };
 
   const createActionTask = async (response: AssessmentResponse) => {
     const template = templateById[response.templateId];
-    await operationsService.createTask({
+    try {
+      await operationsService.createTask({
       // Written in the language of whoever raises it, like a typed task.
       title: t("responses.improveTitle", { template: template?.title || t("responses.assessment") }),
       description: t("responses.improveDescription", { respondent: response.respondent, score: response.score }),
       status: "todo",
       priority: response.score < 75 ? "high" : "medium",
-      dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .slice(0, 10),
+      dueDate: daysFromToday(5),
       estimatedHours: 2,
       actualHours: 0,
-    });
+      });
+    } catch (error) {
+      saveFailed(error);
+      return;
+    }
     setMessage(t("responses.improvementTaskCreated"));
   };
 

@@ -53,6 +53,7 @@ const en = {
     system: 'Follow system',
   },
   common: {
+    notSaved: 'Not saved',
     close: 'Close',
     cancel: 'Cancel',
     save: 'Save',
