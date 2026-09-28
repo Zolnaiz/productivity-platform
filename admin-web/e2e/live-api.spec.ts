@@ -233,3 +233,43 @@ test('an expense submitted is still there after a reload', async ({ page }) => {
   await page.reload();
   await expect(page.getByText(title)).toBeVisible();
 });
+
+test('a daily goal added is still there after a reload', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/goals');
+
+  const title = `Live check goal ${Date.now()}`;
+  await page.getByLabel('Goal title').fill(title);
+  const created = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/daily-goals') && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Add goal' }).click();
+  expect((await created).status()).toBe(201);
+
+  await page.reload();
+  await expect(page.getByText(title)).toBeVisible();
+});
+
+test('a month closed stays closed after a reload, and reopens', async ({ page }) => {
+  await signIn(page);
+
+  const now = new Date();
+  const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const month = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}`;
+  await page.goto(`/reports?month=${month}`);
+
+  // Whichever way it stands, bring it to open first - once the report is in.
+  await expect(page.getByRole('button', { name: /^(Close|Reopen) month$/ })).toBeVisible();
+  const reopen = page.getByRole('button', { name: 'Reopen month' });
+  if (await reopen.isVisible()) await reopen.click();
+  await expect(page.getByRole('button', { name: 'Close month' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Close month' }).click();
+  await expect(page.getByText(/^Closed on /)).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText(/^Closed on /)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Reopen month' }).click();
+  await expect(page.getByRole('button', { name: 'Close month' })).toBeVisible();
+});
