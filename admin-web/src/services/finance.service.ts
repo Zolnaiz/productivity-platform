@@ -50,8 +50,8 @@ const fallback = async <T>(request: () => Promise<T>, demoData: T): Promise<T> =
   if (isDemoMode()) return demoData;
   try {
     return await request();
-  } catch {
-    if (!shouldUseDemoFallback()) {
+  } catch (error) {
+    if (!shouldUseDemoFallback(error)) {
       throw new Error('Backend request failed and demo fallback is disabled in production.');
     }
     return demoData;

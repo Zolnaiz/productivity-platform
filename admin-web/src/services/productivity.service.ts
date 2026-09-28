@@ -118,8 +118,8 @@ const fallback = async <T>(request: () => Promise<ApiEnvelope<T>>, demoData: T |
 
   try {
     return unwrap(await request());
-  } catch {
-    if (!shouldUseDemoFallback()) {
+  } catch (error) {
+    if (!shouldUseDemoFallback(error)) {
       throw new Error('Backend request failed and demo fallback is disabled in production.');
     }
     return resolveDemoData(demoData);

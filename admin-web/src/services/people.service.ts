@@ -164,7 +164,7 @@ const fallback = async <T>(request: () => Promise<T>, demoData: T): Promise<T> =
   try {
     return await request();
   } catch (error) {
-    if (!shouldUseDemoFallback()) {
+    if (!shouldUseDemoFallback(error)) {
       throw error;
     }
 
@@ -302,7 +302,7 @@ export const peopleService = {
     try {
       return await get<Department[]>('/departments');
     } catch (error) {
-      if (!shouldUseDemoFallback()) throw error;
+      if (!shouldUseDemoFallback(error)) throw error;
       return readDepartments();
     }
   },

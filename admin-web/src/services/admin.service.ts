@@ -112,7 +112,7 @@ const fetchFromApi = async <T>(path: string, demoData: T): Promise<T> => {
   try {
     return await get<T>(path);
   } catch (error) {
-    if (!shouldUseDemoFallback()) {
+    if (!shouldUseDemoFallback(error)) {
       throw error;
     }
 

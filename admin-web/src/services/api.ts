@@ -7,7 +7,17 @@ export const isDemoEnabled = () => import.meta.env.DEV || import.meta.env.VITE_E
 
 export const isDemoMode = () => isDemoEnabled() && localStorage.getItem('token') === 'demo-token';
 
-export const shouldUseDemoFallback = () => isDemoMode() || import.meta.env.DEV;
+/**
+ * Whether a failed request may be answered from the demo data instead.
+ *
+ * In the demo, always. In development, only when the server could not be
+ * reached at all - not when it answered: a 400 or a 403 from a real server is
+ * a real answer, and dressing it up as demo data hid a plan editor whose every
+ * save was being refused.
+ */
+export const shouldUseDemoFallback = (error?: unknown) =>
+  isDemoMode() ||
+  (import.meta.env.DEV && !(error as { response?: unknown } | undefined)?.response);
 
 export const clearStoredAuth = () => {
   localStorage.removeItem('token');

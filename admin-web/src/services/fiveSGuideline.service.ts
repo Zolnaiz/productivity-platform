@@ -191,7 +191,7 @@ export const fiveSGuidelineService = {
         version: register?.updatedAt,
       };
     } catch (error) {
-      if (!shouldUseDemoFallback()) throw error;
+      if (!shouldUseDemoFallback(error)) throw error;
 
       return { content: demoGuidelineContent, records: readState() };
     }
@@ -219,7 +219,7 @@ export const fiveSGuidelineService = {
 
       return { records: normalizeState(saved?.records ?? records), version: saved?.updatedAt };
     } catch (error) {
-      if (errorCodeOf(error) === 'REGISTER_CHANGED' || !shouldUseDemoFallback()) throw error;
+      if (errorCodeOf(error) === 'REGISTER_CHANGED' || !shouldUseDemoFallback(error)) throw error;
 
       // Kept locally rather than lost: somebody filling in an improvement
       // record has typed a paragraph, and a failed save that discards it is
