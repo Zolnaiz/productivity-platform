@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { everyMenuPage } from './support/menu';
 
 /**
  * The application as somebody on the floor sees it.
@@ -30,13 +31,7 @@ test('an operator opens every page in their menu without an error or a bare id',
   await page.locator('input[type="password"]').press('Enter');
   await expect(page).toHaveURL(/\/dashboard$/);
 
-  await page.getByRole('navigation').getByRole('link').first().waitFor();
-  const links = await page
-    .getByRole('navigation')
-    .getByRole('link')
-    .evaluateAll((anchors) => [
-      ...new Set(anchors.map((a) => a.getAttribute('href') ?? '').filter((href) => href.startsWith('/'))),
-    ]);
+  const links = await everyMenuPage(page);
   expect(links.length).toBeGreaterThan(5);
 
   const problems: string[] = [];

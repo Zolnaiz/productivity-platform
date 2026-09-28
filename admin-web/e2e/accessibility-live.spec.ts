@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import { everyMenuPage } from './support/menu';
 
 /**
  * The accessibility check again, on the real server's data, as an operator
@@ -30,13 +31,7 @@ for (const email of accounts) {
     await page.locator('input[type="password"]').press('Enter');
     await expect(page).toHaveURL(/\/dashboard$/);
 
-    await page.getByRole('navigation').getByRole('link').first().waitFor();
-    const pages = await page
-      .getByRole('navigation')
-      .getByRole('link')
-      .evaluateAll((anchors) => [
-        ...new Set(anchors.map((a) => a.getAttribute('href') ?? '').filter((href) => href.startsWith('/'))),
-      ]);
+    const pages = await everyMenuPage(page);
 
     const problems: string[] = [];
     for (const path of pages) {

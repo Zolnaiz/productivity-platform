@@ -91,7 +91,7 @@ function App() {
                 <Route path="tasks" element={<TasksPage />} />
                 <Route path="progress" element={<ProgressBoardPage />} />
                 <Route path="plan" element={<MonthPlanPage />} />
-                <Route path="kanban" element={<TasksPage />} />
+                <Route path="kanban" element={<Navigate to="/tasks" replace />} />
                 <Route path="calendar" element={<CalendarPage />} />
                 <Route path="work-logs" element={<WorkLogsPage />} />
                 <Route path="time" element={<WorkLogsPage />} />
@@ -109,7 +109,7 @@ function App() {
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="reports" element={<MonthlyReportPage />} />
                 <Route path="reports/period" element={<PeriodReportPage />} />
-                <Route path="export" element={<MonthlyReportPage />} />
+                <Route path="export" element={<Navigate to="/reports" replace />} />
                 <Route path="notes" element={<NotesPage />} />
                 <Route path="goals" element={<DailyGoalsPage />} />
                 <Route path="pomodoro" element={<PomodoroPage />} />

@@ -1,233 +1,10 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
-import {
-  BarChart3,
-  Bell,
-  Briefcase,
-  Building,
-  CalendarDays,
-  CheckSquare,
-  ChevronLeft,
-  ChevronRight,
-  ClipboardCheck,
-  Clock,
-  Columns3,
-  Download,
-  FileCheck2,
-  FileText,
-  Home,
-  Landmark,
-  LayoutDashboard,
-  LineChart,
-  Map as MapIcon,
-  Settings,
-  ShieldCheck,
-  StickyNote,
-  Target,
-  Trophy,
-  Users,
-  CalendarRange,
-  Activity,
-  ClipboardList,
-} from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import { notificationService } from "../../services/notification.service";
-
-interface MenuItem {
-  icon: React.ReactNode;
-  labelKey: string;
-  path: string;
-  group: "Work" | "Quality" | "People" | "Reports" | "Personal" | "Admin";
-  roles?: string[];
-}
-
-const adminRoles = ["admin", "super_admin"];
-// Whoever runs other people's work. An operator's own tasks are on the task
-// list; the board is about everybody's.
-const managerRoles = ["manager", "admin", "organization_admin", "super_admin"];
-const ownerRoles = ["super_admin"];
-
-const menuItems: MenuItem[] = [
-  {
-    icon: <Home className="h-5 w-5" />,
-    labelKey: "nav.dashboard",
-    path: "/dashboard",
-    group: "Work",
-  },
-  {
-    icon: <Activity className="h-5 w-5" />,
-    labelKey: "nav.progressBoard",
-    path: "/progress",
-    group: "Work",
-    roles: managerRoles,
-  },
-  {
-    icon: <ClipboardList className="h-5 w-5" />,
-    labelKey: "nav.monthPlan",
-    path: "/plan",
-    group: "Work",
-  },
-  {
-    icon: <Briefcase className="h-5 w-5" />,
-    labelKey: "nav.projects",
-    path: "/projects",
-    group: "Work",
-  },
-  {
-    icon: <CheckSquare className="h-5 w-5" />,
-    labelKey: "nav.tasks",
-    path: "/tasks",
-    group: "Work",
-  },
-  {
-    icon: <Columns3 className="h-5 w-5" />,
-    labelKey: "nav.kanban",
-    path: "/kanban",
-    group: "Work",
-  },
-  {
-    icon: <CalendarDays className="h-5 w-5" />,
-    labelKey: "nav.calendar",
-    path: "/calendar",
-    group: "Work",
-  },
-  {
-    icon: <Clock className="h-5 w-5" />,
-    labelKey: "nav.workLogs",
-    path: "/work-logs",
-    group: "Work",
-  },
-  {
-    icon: <MapIcon className="h-5 w-5" />,
-    labelKey: "nav.fiveS",
-    path: "/fives",
-    group: "Quality",
-  },
-  {
-    icon: <ClipboardCheck className="h-5 w-5" />,
-    labelKey: "nav.auditTemplates",
-    path: "/audit-templates",
-    group: "Quality",
-  },
-  {
-    icon: <FileText className="h-5 w-5" />,
-    labelKey: "nav.assessments",
-    path: "/assessments",
-    group: "Quality",
-  },
-  {
-    icon: <FileCheck2 className="h-5 w-5" />,
-    labelKey: "nav.responses",
-    path: "/responses",
-    group: "Quality",
-  },
-  {
-    icon: <Users className="h-5 w-5" />,
-    labelKey: "nav.users",
-    path: "/users",
-    group: "People",
-    roles: adminRoles,
-  },
-  {
-    icon: <Building className="h-5 w-5" />,
-    labelKey: "nav.departments",
-    path: "/departments",
-    group: "People",
-    roles: adminRoles,
-  },
-  {
-    icon: <BarChart3 className="h-5 w-5" />,
-    labelKey: "nav.reports",
-    path: "/reports",
-    group: "Reports",
-  },
-  {
-    icon: <CalendarRange className="h-5 w-5" />,
-    labelKey: "nav.periodReports",
-    path: "/reports/period",
-    group: "Reports",
-  },
-  {
-    icon: <LineChart className="h-5 w-5" />,
-    labelKey: "nav.analytics",
-    path: "/analytics",
-    group: "Reports",
-  },
-  {
-    icon: <Landmark className="h-5 w-5" />,
-    labelKey: "nav.expenses",
-    path: "/expenses",
-    group: "Reports",
-  },
-  {
-    icon: <Bell className="h-5 w-5" />,
-    labelKey: "nav.notifications",
-    path: "/notifications",
-    group: "Reports",
-  },
-  {
-    icon: <Download className="h-5 w-5" />,
-    labelKey: "nav.export",
-    path: "/export",
-    group: "Reports",
-  },
-  {
-    icon: <Target className="h-5 w-5" />,
-    labelKey: "nav.goals",
-    path: "/goals",
-    group: "Personal",
-  },
-  {
-    icon: <StickyNote className="h-5 w-5" />,
-    labelKey: "nav.notes",
-    path: "/notes",
-    group: "Personal",
-  },
-  {
-    icon: <Trophy className="h-5 w-5" />,
-    labelKey: "nav.badges",
-    path: "/badges",
-    group: "Personal",
-  },
-  {
-    icon: <LayoutDashboard className="h-5 w-5" />,
-    labelKey: "nav.adminHome",
-    path: "/admin",
-    group: "Admin",
-    roles: adminRoles,
-  },
-  {
-    icon: <Building className="h-5 w-5" />,
-    labelKey: "nav.organizations",
-    path: "/organizations",
-    group: "Admin",
-    roles: adminRoles,
-  },
-  {
-    icon: <ShieldCheck className="h-5 w-5" />,
-    labelKey: "nav.auditLog",
-    path: "/audit",
-    group: "Admin",
-    roles: ownerRoles,
-  },
-  {
-    icon: <Settings className="h-5 w-5" />,
-    labelKey: "nav.settings",
-    path: "/settings",
-    group: "Admin",
-    roles: adminRoles,
-  },
-];
-
-const groups: MenuItem["group"][] = [
-  "Work",
-  "Quality",
-  "People",
-  "Reports",
-  "Personal",
-  "Admin",
-];
+import { currentPage, visibleSections } from "./navigation";
 
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = React.useState(false);
@@ -255,15 +32,9 @@ const Sidebar: React.FC = () => {
   }, []);
   const { t } = useTranslation();
   const { user } = useAuth();
-  const userRoles = user?.roles || [];
-  const visibleItems = menuItems.filter(
-    (item) =>
-      !item.roles?.length ||
-      item.roles.some((role) => userRoles.includes(role as any)),
-  );
-  const visibleGroups = groups.filter((group) =>
-    visibleItems.some((item) => item.group === group),
-  );
+  const { pathname } = useLocation();
+  const sections = visibleSections(user?.roles || []);
+  const here = currentPage(pathname, sections)?.section.id;
 
   return (
     <aside
@@ -278,7 +49,7 @@ const Sidebar: React.FC = () => {
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? t("nav.expand") : t("nav.collapse")}
           className="rounded-lg p-2 hover:bg-gray-800"
         >
           {collapsed ? (
@@ -289,53 +60,36 @@ const Sidebar: React.FC = () => {
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-5">
-          {visibleGroups.map((group) => (
-            <div key={group}>
-              {!collapsed && (
-                <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  {t(`nav.group.${group.toLowerCase()}`)}
-                </div>
-              )}
-              <ul className="space-y-1">
-                {visibleItems
-                  .filter((item) => item.group === group)
-                  .map((item) => (
-                    <li key={item.path}>
-                      <NavLink
-                        to={item.path}
-                        // The monthly report would otherwise also light up
-                        // on the half-year page, which lives beneath it.
-                        end={item.path === "/reports"}
-                        className={({ isActive }) =>
-                          `flex items-center rounded-lg p-3 transition-colors ${
-                            isActive
-                              ? "bg-blue-600 text-white"
-                              : "text-gray-300 hover:bg-gray-800"
-                          } ${collapsed ? "justify-center" : "space-x-3"}`
-                        }
-                        title={collapsed ? t(item.labelKey) : undefined}
-                      >
-                        <span className="flex-shrink-0">{item.icon}</span>
-                        {!collapsed && (
-                          <span className="flex-1">{t(item.labelKey)}</span>
-                        )}
-                        {item.path === "/notifications" && unread > 0 && (
-                          <span
-                            className="ml-auto rounded-full bg-blue-500 px-2 py-0.5 text-xs font-semibold text-white"
-                            aria-label={t("nav.unread", { count: unread })}
-                          >
-                            {unread}
-                          </span>
-                        )}
-                      </NavLink>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+      <nav className="flex-1 overflow-y-auto p-4" aria-label={t("nav.main")}>
+        <ul className="space-y-1">
+          {sections.map((section) => {
+            const Icon = section.icon;
+            const active = section.id === here;
+            return (
+              <li key={section.id}>
+                <Link
+                  to={section.pages[0].path}
+                  aria-current={active ? "page" : undefined}
+                  className={`flex items-center rounded-lg p-3 transition-colors ${
+                    active ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-800"
+                  } ${collapsed ? "justify-center" : "space-x-3"}`}
+                  title={collapsed ? t(section.labelKey) : undefined}
+                >
+                  <Icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                  {!collapsed && <span className="flex-1">{t(section.labelKey)}</span>}
+                  {section.id === "notifications" && unread > 0 && (
+                    <span
+                      className="ml-auto rounded-full bg-blue-500 px-2 py-0.5 text-xs font-semibold text-white"
+                      aria-label={t("nav.unread", { count: unread })}
+                    >
+                      {unread}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
       {!collapsed && (

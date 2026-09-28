@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import { everyMenuPage } from './support/menu';
 
 /**
  * Every page in the menu, checked by axe against WCAG 2 A and AA, in both
@@ -14,18 +15,6 @@ import { expect, test } from '@playwright/test';
  * Demo mode, like the smoke suite: no server, the fixtures fill the pages.
  */
 
-/** Every page the demo owner's menu links to, read from the menu itself so a page added to it is checked without anybody remembering to list it. */
-const menuPages = async (page: import('@playwright/test').Page) => {
-  await page.getByRole('navigation').getByRole('link').first().waitFor();
-  const links = await page
-    .getByRole('navigation')
-    .getByRole('link')
-    .evaluateAll((anchors) => [
-      ...new Set(anchors.map((a) => a.getAttribute('href') ?? '').filter((href) => href.startsWith('/'))),
-    ]);
-  // The half-year and annual report opens from the monthly one, not the menu.
-  return [...links, '/reports/period'];
-};
 
 for (const theme of ['light', 'dark'] as const) {
   test(`every page reads to a screen reader and at AA contrast in the ${theme} theme`, async ({ page }) => {
@@ -35,7 +24,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByTestId('demo-sign-in').click();
     await expect(page).toHaveURL(/\/dashboard$/);
 
-    const pages = await menuPages(page);
+    const pages = await everyMenuPage(page);
     expect(pages.length).toBeGreaterThan(15);
 
     const problems: string[] = [];

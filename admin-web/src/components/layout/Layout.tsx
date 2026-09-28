@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
+import SectionTabs from './SectionTabs';
 
 const Layout: React.FC = () => {
   const { t } = useTranslation();
@@ -93,6 +94,7 @@ const Layout: React.FC = () => {
       <div className="lg:pl-64">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="py-6 px-4 sm:px-6 lg:px-8">
+          <SectionTabs />
           <Outlet />
         </main>
         <Footer />
