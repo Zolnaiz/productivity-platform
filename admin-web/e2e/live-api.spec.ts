@@ -290,3 +290,32 @@ test('a questionnaire template built is still there after a reload', async ({ pa
   await page.reload();
   await expect(page.getByText(title)).toBeVisible();
 });
+
+test('an invitation sent is open after a reload, and revoked', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/users');
+
+  const address = `live-check-${Date.now()}@example.com`;
+  await page.getByRole('button', { name: 'Invite somebody' }).click();
+  await page.getByRole('dialog').getByLabel('Email').fill(address);
+  const created = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/auth/invitations') && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Send invitation' }).click();
+  expect((await created).status()).toBe(201);
+
+  await page.reload();
+  const row = page.locator('li, tr', { hasText: address }).first();
+  await expect(row).toBeVisible();
+
+  const revoked = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.includes('/auth/invitations/') && response.request().method() === 'DELETE',
+  );
+  await row.getByRole('button', { name: 'Revoke' }).click();
+  const dialog = page.getByRole('dialog');
+  if (await dialog.isVisible().catch(() => false)) await dialog.getByRole('button', { name: 'Revoke' }).click();
+  expect((await revoked).status()).toBe(200);
+
+  await page.reload();
+  await expect(page.getByText(address)).toHaveCount(0);
+});
