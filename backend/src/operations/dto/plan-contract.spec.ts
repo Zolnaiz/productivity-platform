@@ -39,7 +39,20 @@ describe('the plan the editor saves', () => {
       redTags: [tag],
     };
 
-    const dto = plainToInstance(UpsertFiveSLayoutDto, { name: 'Plan', site: 'HQ', zones: [zone], objects: [] });
+    const every = (name: string) => Object.fromEntries(fieldsOf(name).map((field) => [field, undefined]));
+    const route = { ...every('PlanRoute'), points: [every('PlanPoint')] };
+    const dto = plainToInstance(UpsertFiveSLayoutDto, {
+      name: 'Plan',
+      site: 'HQ',
+      zones: [zone],
+      objects: [every('FloorPlanObject')],
+      corners: [every('PlanCorner')],
+      walls: [every('PlanWall')],
+      openings: [every('PlanOpening')],
+      roomLabels: [every('PlanRoomLabel')],
+      auditTiers: [every('AuditTier')],
+      routes: [route],
+    });
     const errors = await validate(dto, { whitelist: true, forbidNonWhitelisted: true });
 
     expect(unknownProperties(errors)).toEqual([]);
