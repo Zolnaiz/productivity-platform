@@ -217,7 +217,7 @@ const ResponsesPage: React.FC = () => {
         </Card>
         <Card>
           <div className="text-sm text-gray-500">{t("responses.submitted")}</div>
-          <div className="mt-2 text-2xl font-semibold text-green-600">
+          <div className="mt-2 text-2xl font-semibold text-green-700">
             {
               responses.filter((response) => response.status === "submitted")
                 .length
@@ -308,6 +308,7 @@ const ResponsesPage: React.FC = () => {
                         max={question.maxScore || 5}
                         min="0"
                         type="range"
+                        aria-label={question.text}
                         value={answers[question.id] || 0}
                         onChange={(event) =>
                           setAnswers((current) => ({
@@ -392,7 +393,7 @@ const ResponsesPage: React.FC = () => {
                 render: (response) => (
                   <span
                     className={
-                      response.score < 80 ? "font-semibold text-yellow-600" : "font-semibold text-green-600"
+                      response.score < 80 ? "font-semibold text-yellow-700" : "font-semibold text-green-700"
                     }
                   >
                     {response.score}%
@@ -424,7 +425,7 @@ const ResponsesPage: React.FC = () => {
                     )}
                     {response.score < 85 && (
                       <button
-                        className="text-xs font-medium text-green-600"
+                        className="text-xs font-medium text-green-700"
                         onClick={() => createActionTask(response)}
                         type="button"
                       >

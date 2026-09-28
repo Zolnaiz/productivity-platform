@@ -192,6 +192,10 @@ jobs:
       ENABLE_AUDIT_SCHEDULER: 'false'
       ENABLE_MONTH_CLOSE: 'false'
       ENABLE_DAILY_REMINDERS: 'false'
+      # One browser walking every page, after the smoke has saved one of
+      # everything, asks for more than the 120 a minute a real client gets;
+      # the suite then fails on 429s, not on anything it checks.
+      RATE_LIMIT_LIMIT: '5000'
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -522,30 +522,30 @@ const FiveSGuidelineRegisters: React.FC = () => {
                 <tr key={item.id}>
                   <td className="px-3 py-3 align-top">
                     <div className="space-y-2">
-                      <input className={fieldClass} value={item.area} placeholder={t('fiveSRegisters.areaPlaceholder')} onChange={(event) => updateImprovement(item.id, { area: event.target.value })} />
-                      <input className={fieldClass} value={item.responsible} placeholder={t('fiveSRegisters.ownerPlaceholder')} onChange={(event) => updateImprovement(item.id, { responsible: event.target.value })} />
+                      <input className={fieldClass} aria-label={t('fiveSRegisters.areaPlaceholder')} value={item.area} placeholder={t('fiveSRegisters.areaPlaceholder')} onChange={(event) => updateImprovement(item.id, { area: event.target.value })} />
+                      <input className={fieldClass} aria-label={t('fiveSRegisters.ownerPlaceholder')} value={item.responsible} placeholder={t('fiveSRegisters.ownerPlaceholder')} onChange={(event) => updateImprovement(item.id, { responsible: event.target.value })} />
                     </div>
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <input className={fieldClass} type="date" value={item.recordDate} onChange={(event) => updateImprovement(item.id, { recordDate: event.target.value })} />
+                    <input className={fieldClass} aria-label={t('fiveSRegisters.date')} type="date" value={item.recordDate} onChange={(event) => updateImprovement(item.id, { recordDate: event.target.value })} />
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <input className={fieldClass} value={item.whenObserved} onChange={(event) => updateImprovement(item.id, { whenObserved: event.target.value })} />
+                    <input className={fieldClass} aria-label={t('fiveSRegisters.when')} value={item.whenObserved} onChange={(event) => updateImprovement(item.id, { whenObserved: event.target.value })} />
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <input className={fieldClass} value={item.duration} onChange={(event) => updateImprovement(item.id, { duration: event.target.value })} />
+                    <input className={fieldClass} aria-label={t('fiveSRegisters.duration')} value={item.duration} onChange={(event) => updateImprovement(item.id, { duration: event.target.value })} />
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <textarea className={textareaClass} value={item.symptomLoss} onChange={(event) => updateImprovement(item.id, { symptomLoss: event.target.value })} />
+                    <textarea className={textareaClass} aria-label={t('fiveSRegisters.symptomLoss')} value={item.symptomLoss} onChange={(event) => updateImprovement(item.id, { symptomLoss: event.target.value })} />
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <textarea className={textareaClass} value={item.rootCause} onChange={(event) => updateImprovement(item.id, { rootCause: event.target.value })} />
+                    <textarea className={textareaClass} aria-label={t('fiveSRegisters.rootCause')} value={item.rootCause} onChange={(event) => updateImprovement(item.id, { rootCause: event.target.value })} />
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <textarea className={textareaClass} value={item.teamDecision} onChange={(event) => updateImprovement(item.id, { teamDecision: event.target.value })} />
+                    <textarea className={textareaClass} aria-label={t('fiveSRegisters.teamDecision')} value={item.teamDecision} onChange={(event) => updateImprovement(item.id, { teamDecision: event.target.value })} />
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <textarea className={textareaClass} value={item.actionPlan} onChange={(event) => updateImprovement(item.id, { actionPlan: event.target.value })} />
+                    <textarea className={textareaClass} aria-label={t('fiveSRegisters.actionPlan')} value={item.actionPlan} onChange={(event) => updateImprovement(item.id, { actionPlan: event.target.value })} />
                     {(() => {
                       const task = improvementTasks.get(item.id);
 
@@ -577,10 +577,10 @@ const FiveSGuidelineRegisters: React.FC = () => {
                     })()}
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <textarea className={textareaClass} value={item.managementDecision} onChange={(event) => updateImprovement(item.id, { managementDecision: event.target.value })} />
+                    <textarea className={textareaClass} aria-label={t('fiveSRegisters.management')} value={item.managementDecision} onChange={(event) => updateImprovement(item.id, { managementDecision: event.target.value })} />
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <select className={fieldClass} value={item.status} onChange={(event) => updateImprovement(item.id, { status: event.target.value as FiveSImprovementStatus })}>
+                    <select className={fieldClass} aria-label={t('fiveSRegisters.status')} value={item.status} onChange={(event) => updateImprovement(item.id, { status: event.target.value as FiveSImprovementStatus })}>
                       {improvementStatuses.map((value) => (
                         <option key={value} value={value}>
                           {t(`fiveSRegisters.improvementStatus.${value}`)}
@@ -632,7 +632,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
               {state.implementationCards.map((item) => (
                 <tr key={item.id}>
                   <td className="px-3 py-3 align-top">
-                    <select className={fieldClass} value={item.tagType} onChange={(event) => updateImplementationCard(item.id, { tagType: event.target.value as FiveSImplementationCard['tagType'] })}>
+                    <select className={fieldClass} aria-label={t('fiveSRegisters.tag')} value={item.tagType} onChange={(event) => updateImplementationCard(item.id, { tagType: event.target.value as FiveSImplementationCard['tagType'] })}>
                       <option value="1C">1C</option>
                       <option value="2C">2C</option>
                       <option value="3C">3C</option>
@@ -640,15 +640,15 @@ const FiveSGuidelineRegisters: React.FC = () => {
                   </td>
                   <td className="px-3 py-3 align-top">
                     <div className="space-y-2">
-                      <input className={fieldClass} value={item.itemNumber} placeholder={t('fiveSRegisters.numberPlaceholder')} onChange={(event) => updateImplementationCard(item.id, { itemNumber: event.target.value })} />
-                      <input className={fieldClass} value={item.quantity} placeholder={t('fiveSRegisters.quantityPlaceholder')} onChange={(event) => updateImplementationCard(item.id, { quantity: event.target.value })} />
+                      <input className={fieldClass} aria-label={t('fiveSRegisters.numberPlaceholder')} value={item.itemNumber} placeholder={t('fiveSRegisters.numberPlaceholder')} onChange={(event) => updateImplementationCard(item.id, { itemNumber: event.target.value })} />
+                      <input className={fieldClass} aria-label={t('fiveSRegisters.quantityPlaceholder')} value={item.quantity} placeholder={t('fiveSRegisters.quantityPlaceholder')} onChange={(event) => updateImplementationCard(item.id, { quantity: event.target.value })} />
                     </div>
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <input className={fieldClass} value={item.itemName} onChange={(event) => updateImplementationCard(item.id, { itemName: event.target.value })} />
+                    <input className={fieldClass} aria-label={t('fiveSRegisters.item')} value={item.itemName} onChange={(event) => updateImplementationCard(item.id, { itemName: event.target.value })} />
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <select className={fieldClass} value={item.reason} onChange={(event) => updateImplementationCard(item.id, { reason: event.target.value as FiveSImplementationReason })}>
+                    <select className={fieldClass} aria-label={t('fiveSRegisters.reason')} value={item.reason} onChange={(event) => updateImplementationCard(item.id, { reason: event.target.value as FiveSImplementationReason })}>
                       {reasons.map((value) => (
                         <option key={value} value={value}>
                           {t(`fiveSRegisters.reasons.${value}`)}
@@ -657,19 +657,19 @@ const FiveSGuidelineRegisters: React.FC = () => {
                     </select>
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <input className={fieldClass} value={item.department} onChange={(event) => updateImplementationCard(item.id, { department: event.target.value })} />
+                    <input className={fieldClass} aria-label={t('fiveSRegisters.department')} value={item.department} onChange={(event) => updateImplementationCard(item.id, { department: event.target.value })} />
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <input className={fieldClass} type="date" value={item.date} onChange={(event) => updateImplementationCard(item.id, { date: event.target.value })} />
+                    <input className={fieldClass} aria-label={t('fiveSRegisters.date')} type="date" value={item.date} onChange={(event) => updateImplementationCard(item.id, { date: event.target.value })} />
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <input className={fieldClass} value={item.owner} onChange={(event) => updateImplementationCard(item.id, { owner: event.target.value })} />
+                    <input className={fieldClass} aria-label={t('fiveSRegisters.owner')} value={item.owner} onChange={(event) => updateImplementationCard(item.id, { owner: event.target.value })} />
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <textarea className={textareaClass} value={item.decision} onChange={(event) => updateImplementationCard(item.id, { decision: event.target.value })} />
+                    <textarea className={textareaClass} aria-label={t('fiveSRegisters.decision')} value={item.decision} onChange={(event) => updateImplementationCard(item.id, { decision: event.target.value })} />
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <select className={fieldClass} value={item.status} onChange={(event) => updateImplementationCard(item.id, { status: event.target.value as FiveSImplementationStatus })}>
+                    <select className={fieldClass} aria-label={t('fiveSRegisters.status')} value={item.status} onChange={(event) => updateImplementationCard(item.id, { status: event.target.value as FiveSImplementationStatus })}>
                       {implementationStatuses.map((value) => (
                         <option key={value} value={value}>
                           {t(`fiveSRegisters.cardStatus.${value}`)}
@@ -730,7 +730,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
                     <td className="w-52 px-3 py-3 text-gray-600 dark:text-gray-300">{criterion.category}</td>
                     <td className="px-3 py-3 text-gray-800 dark:text-gray-100">{criterion.criterion}</td>
                     <td className="w-28 px-3 py-3">
-                      <select className={fieldClass} value={score?.score ?? 0} onChange={(event) => updateAssessmentScore(criterion.id, { score: Number(event.target.value) })}>
+                      <select className={fieldClass} aria-label={`${t('fiveSRegisters.score')}: ${criterion.criterion}`} value={score?.score ?? 0} onChange={(event) => updateAssessmentScore(criterion.id, { score: Number(event.target.value) })}>
                         {[0, 1, 2, 3, 4, 5].map((value) => (
                           <option key={value} value={value}>
                             {value}
@@ -739,7 +739,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
                       </select>
                     </td>
                     <td className="w-72 px-3 py-3">
-                      <input className={fieldClass} value={score?.note ?? ''} onChange={(event) => updateAssessmentScore(criterion.id, { note: event.target.value })} />
+                      <input className={fieldClass} aria-label={`${t('fiveSRegisters.note')}: ${criterion.criterion}`} value={score?.note ?? ''} onChange={(event) => updateAssessmentScore(criterion.id, { note: event.target.value })} />
                     </td>
                   </tr>
                 );
@@ -795,6 +795,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
                         className={fieldClass}
                         value={progress?.note ?? ''}
                         placeholder={t('fiveSRegisters.note')}
+                        aria-label={`${t('fiveSRegisters.note')}: ${item}`}
                         onChange={(event) => updateChecklistProgress(id, { note: event.target.value })}
                       />
                     </div>

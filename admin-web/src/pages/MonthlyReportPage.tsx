@@ -503,7 +503,7 @@ const MonthlyReportPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {peopleRows.map((row) => (
-                    <tr key={row.userId} className={row.month ? '' : 'text-gray-400 dark:text-gray-500'}>
+                    <tr key={row.userId} className={row.month ? '' : 'text-gray-500 dark:text-gray-400'}>
                       <td className="py-2 pr-4">{row.name}</td>
                       <td className="py-2 pr-4 tabular-nums">
                         {row.month
@@ -557,7 +557,7 @@ const MonthlyReportPage: React.FC = () => {
                     {departmentRows.map((row) => (
                       <tr
                         key={row.departmentId || 'unassigned'}
-                        className={row.departmentId ? '' : 'text-gray-400 dark:text-gray-500'}
+                        className={row.departmentId ? '' : 'text-gray-500 dark:text-gray-400'}
                       >
                         <td className="py-2 pr-4">
                           {row.departmentId ? row.name : t('monthlyReport.departmentUnassigned')}
@@ -581,7 +581,7 @@ const MonthlyReportPage: React.FC = () => {
                             : `${row.averageAuditScore}%`}
                         </td>
                         <td
-                          className={`py-2 pr-4 tabular-nums ${row.openRedTags ? 'text-amber-600 dark:text-amber-400' : ''}`}
+                          className={`py-2 pr-4 tabular-nums ${row.openRedTags ? 'text-amber-700 dark:text-amber-400' : ''}`}
                         >
                           {row.openRedTags}
                         </td>
@@ -616,7 +616,7 @@ const MonthlyReportPage: React.FC = () => {
                     {siteRows.map((row) => (
                       <tr
                         key={row.site || 'unnamed'}
-                        className={row.site ? '' : 'text-gray-400 dark:text-gray-500'}
+                        className={row.site ? '' : 'text-gray-500 dark:text-gray-400'}
                       >
                         <td className="py-2 pr-4">{row.site || t('monthlyReport.siteUnnamed')}</td>
                         <td className="py-2 pr-4 tabular-nums">{row.floors}</td>
@@ -627,7 +627,7 @@ const MonthlyReportPage: React.FC = () => {
                             : `${row.averageAuditScore}%`}
                         </td>
                         <td
-                          className={`py-2 pr-4 tabular-nums ${row.openRedTags ? 'text-amber-600 dark:text-amber-400' : ''}`}
+                          className={`py-2 pr-4 tabular-nums ${row.openRedTags ? 'text-amber-700 dark:text-amber-400' : ''}`}
                         >
                           {row.openRedTags}
                         </td>
@@ -651,7 +651,7 @@ const MonthlyReportPage: React.FC = () => {
                 {report.completedTasks.map((task) => (
                   <div key={task.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                     <div className="font-medium text-gray-900 dark:text-white">{task.title}</div>
-                    <div className="mt-1 text-sm text-gray-500">{task.actualHours || 0} actual hours</div>
+                    <div className="mt-1 text-sm text-gray-500">{t('monthlyReport.actualHours', { hours: task.actualHours || 0 })}</div>
                   </div>
                 ))}
               </div>
@@ -695,7 +695,7 @@ const MonthlyReportPage: React.FC = () => {
                 <div key={goal.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className={goal.completed ? 'font-medium text-gray-400 line-through' : 'font-medium text-gray-900 dark:text-white'}>
+                      <div className={goal.completed ? 'font-medium text-gray-500 line-through' : 'font-medium text-gray-900 dark:text-white'}>
                         {goal.title}
                       </div>
                       <div className="mt-1 text-sm text-gray-500">{goal.date}</div>
@@ -728,7 +728,7 @@ const MonthlyReportPage: React.FC = () => {
                   <div key={response.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-medium text-gray-900 dark:text-white">{response.respondent}</span>
-                      <span className={response.score < 85 ? 'text-yellow-600' : 'text-green-600'}>
+                      <span className={response.score < 85 ? 'text-yellow-700' : 'text-green-700'}>
                         {response.score}%
                       </span>
                     </div>
@@ -744,13 +744,13 @@ const MonthlyReportPage: React.FC = () => {
               <div className="space-y-3">
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                   <div className="text-sm text-gray-500">{t('monthlyReport.approved')}</div>
-                  <div className="mt-1 text-xl font-semibold text-green-600">
+                  <div className="mt-1 text-xl font-semibold text-green-700">
                     {formatMnt(report.totals.approvedExpenseTotal)}
                   </div>
                 </div>
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                   <div className="text-sm text-gray-500">{t('monthlyReport.pendingApproval')}</div>
-                  <div className="mt-1 text-xl font-semibold text-yellow-600">
+                  <div className="mt-1 text-xl font-semibold text-yellow-700">
                     {formatMnt(report.totals.pendingExpenseTotal)}
                   </div>
                 </div>
@@ -775,7 +775,7 @@ const MonthlyReportPage: React.FC = () => {
                 </div>
                 <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                   <div className="font-medium text-gray-900 dark:text-white">{t('monthlyReport.pendingApprovals')}</div>
-                  <div className="mt-1 text-2xl font-semibold text-yellow-600">{pendingExpenses.length}</div>
+                  <div className="mt-1 text-2xl font-semibold text-yellow-700">{pendingExpenses.length}</div>
                   <p className="mt-1 text-gray-500">Submitted expenses waiting for owner/admin decision.</p>
                 </div>
               </div>

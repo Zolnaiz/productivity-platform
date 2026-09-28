@@ -114,6 +114,10 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
+`e2e/accessibility.spec.ts`, part of that run, opens every page in the menu in
+the light and the dark theme and fails on anything axe finds against WCAG 2 A
+and AA: text under 4.5:1, a field with no name a screen reader can say.
+
 That suite runs in demo mode. The saves themselves - a zone and an audit layer
 renamed, a 5S register row typed in, a workspace setting, a task added and
 deleted, a project, a department, a day's write-up, an expense, a daily goal,
@@ -133,3 +137,8 @@ npx playwright test e2e/live-api.spec.ts
 every page in that menu, failing on any error or bare id shown where a name
 belongs. CI runs both in the live-API job against a fresh, seeded
 PostgreSQL.
+
+Together they ask the API for more than the 120 requests a minute one client
+is allowed, and fail on 429s rather than on anything they check. Start the API
+you run them against with a higher `RATE_LIMIT_LIMIT` (CI uses 5000); never
+raise it on a server people use.

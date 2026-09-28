@@ -294,7 +294,7 @@ const Sidebar: React.FC = () => {
           {visibleGroups.map((group) => (
             <div key={group}>
               {!collapsed && (
-                <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                   {t(`nav.group.${group.toLowerCase()}`)}
                 </div>
               )}

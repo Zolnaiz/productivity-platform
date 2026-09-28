@@ -107,7 +107,7 @@ const OrganizationsPage: React.FC = () => {
           />
           <div className="flex flex-col gap-3 md:col-span-2 sm:flex-row sm:items-center">
             <Button type="submit">{t('organizations.saveWorkspace')}</Button>
-            {saved && <span className="text-sm text-green-600">{t('organizations.saved')}</span>}
+            {saved && <span className="text-sm text-green-700">{t('organizations.saved')}</span>}
           </div>
         </form>
       </Card>

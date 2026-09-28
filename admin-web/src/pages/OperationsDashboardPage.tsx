@@ -108,7 +108,7 @@ const OperationsDashboardPage: React.FC = () => {
                 <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-900 dark:text-gray-300">
                   {actionText(item, t).type}
                 </span>
-                <span className={item.priority === 'high' ? 'text-xs font-semibold text-red-600' : 'text-xs font-semibold text-yellow-600'}>
+                <span className={item.priority === 'high' ? 'text-xs font-semibold text-red-600' : 'text-xs font-semibold text-yellow-700'}>
                   {actionText(item, t).priority}
                 </span>
               </div>

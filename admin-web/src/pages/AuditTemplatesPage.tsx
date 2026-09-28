@@ -277,6 +277,7 @@ const AuditTemplatesPage: React.FC = () => {
                       <input
                         className="w-full"
                         type="range"
+                        aria-label={question.text}
                         min="0"
                         max={question.maxScore || 5}
                         value={answers[question.id] || 0}
@@ -319,7 +320,7 @@ const AuditTemplatesPage: React.FC = () => {
             <Button disabled={!selectedTemplate || loading} type="submit">
               {t('auditTemplates.submitAudit')}
             </Button>
-            {actionMessage && <div className="text-sm text-green-600">{actionMessage}</div>}
+            {actionMessage && <div className="text-sm text-green-700">{actionMessage}</div>}
           </form>
         </Card>
 
@@ -373,8 +374,8 @@ const AuditTemplatesPage: React.FC = () => {
                   }}
                 >
                   <div className="font-medium text-gray-900 dark:text-white">{template.title}</div>
-                  <p className="mt-1 text-xs text-gray-500">{template.description}</p>
-                  <div className="mt-2 text-sm text-gray-500">
+                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">{template.description}</p>
+                  <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                     {t('auditTemplates.meta', {
                       category: template.category.replace('_', ' '),
                       industry: template.industry || t('auditTemplates.general'),

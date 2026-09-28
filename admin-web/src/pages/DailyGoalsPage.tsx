@@ -101,9 +101,9 @@ const DailyGoalsPage: React.FC = () => {
         onClick={() => toggleGoal(goal)}
         className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-3 text-left transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
       >
-        <Icon className={goal.completed ? 'h-5 w-5 text-green-600' : 'h-5 w-5 text-gray-400'} />
+        <Icon className={goal.completed ? 'h-5 w-5 text-green-700' : 'h-5 w-5 text-gray-400'} />
         <span className="min-w-0 flex-1">
-          <span className={goal.completed ? 'block text-sm text-gray-400 line-through' : 'block text-sm font-medium text-gray-900 dark:text-white'}>
+          <span className={goal.completed ? 'block text-sm text-gray-500 line-through' : 'block text-sm font-medium text-gray-900 dark:text-white'}>
             {goal.title}
           </span>
           <span className="mt-1 flex items-center gap-1 text-xs text-gray-500">

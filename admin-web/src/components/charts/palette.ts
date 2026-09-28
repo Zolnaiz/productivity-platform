@@ -55,6 +55,19 @@ export const auditBands = {
   none: '#8a8d91',
 } as const;
 
+/**
+ * The bands as text. The fills above were chosen to tell apart on the map, not
+ * to be read as type: `watch` is 2:1 on a white card and every band is under
+ * 3:1 on a dark one. A score or a due date written in its band's colour takes
+ * these instead - 4.5:1 or better on white and on gray-800.
+ */
+export const auditBandText: Record<AuditBand, string> = {
+  good: 'text-[#0d7f56] dark:text-green-400',
+  watch: 'text-amber-700 dark:text-amber-400',
+  poor: 'text-[#9e1f1a] dark:text-red-400',
+  none: 'text-gray-500 dark:text-gray-400',
+};
+
 export const AUDIT_PASSING_SCORE = 85;
 export const AUDIT_URGENT_SCORE = 70;
 

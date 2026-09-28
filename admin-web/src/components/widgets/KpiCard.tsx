@@ -31,7 +31,7 @@ const KpiCard: React.FC<KpiCardProps> = ({
 
   const trendClass =
     trendType === 'up'
-      ? 'text-green-600'
+      ? 'text-green-700'
       : trendType === 'down'
         ? 'text-red-600'
         : 'text-gray-500';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { auditBandFor, auditBands } from '../charts/palette';
+import { auditBandFor, auditBandText } from '../charts/palette';
 import { AuditTier, FiveSZone } from '../../types/fiveS.types';
 import { tierStatuses } from './tierRules';
 
@@ -47,8 +47,7 @@ const AuditTiers: React.FC<AuditTiersProps> = ({ zone, tiers }) => {
             <span className="flex items-center gap-2 text-xs">
               {status.lastAuditScore !== undefined && (
                 <span
-                  className="font-semibold tabular-nums"
-                  style={{ color: auditBands[auditBandFor(status.lastAuditScore)] }}
+                  className={`font-semibold tabular-nums ${auditBandText[auditBandFor(status.lastAuditScore)]}`}
                 >
                   {status.lastAuditScore}%
                 </span>
@@ -56,7 +55,7 @@ const AuditTiers: React.FC<AuditTiersProps> = ({ zone, tiers }) => {
 
               {/* Never checked and overdue are different situations, and the
                   difference is what a manager is looking for. */}
-              <span style={{ color: status.due ? auditBands.poor : undefined }}>
+              <span className={status.due ? auditBandText.poor : undefined}>
                 {status.neverChecked
                   ? t('auditTiers.neverChecked')
                   : status.daysUntilDue < 0

@@ -105,7 +105,7 @@ const SettingsPage: React.FC = () => {
           <Button onClick={saveSettings} type="button">
             {t('settings.saveSettings')}
           </Button>
-          {saved && <span className="text-sm text-green-600">{t('settings.saved')}</span>}
+          {saved && <span className="text-sm text-green-700">{t('settings.saved')}</span>}
         </div>
       </Card>
 

@@ -3255,7 +3255,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               5S launch checklist
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <span className="text-xs font-medium text-gray-500">{readiness.rate}% setup ready</span>
+              <span className="text-xs font-medium text-gray-500">{t('fiveS.ui.setupReady', { rate: readiness.rate })}</span>
               <Button variant="outline" size="sm" icon={AlertTriangle} onClick={createRedTagTasks} type="button">
                 {t('fiveS.ui.redTagTasks')}
               </Button>
@@ -3278,7 +3278,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 <div className="flex items-start justify-between gap-2">
                   <span className="font-medium text-gray-800 dark:text-gray-100">{step.title}</span>
                   <CheckCircle2
-                    className={`h-4 w-4 flex-none ${step.complete ? 'text-green-600' : 'text-gray-300 dark:text-gray-600'}`}
+                    className={`h-4 w-4 flex-none ${step.complete ? 'text-green-700' : 'text-gray-300 dark:text-gray-600'}`}
                   />
                 </div>
                 <div className="mt-2 text-lg font-semibold text-gray-900 dark:text-white">{step.progress}</div>
@@ -3319,7 +3319,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
             </Button>
           </div>
           <div className="text-xs text-gray-500 md:col-span-3">
-            Showing {filteredZones.length} of {plan.zones.length} mapped areas. Non-matching areas are dimmed on the floorplan.
+            {t('fiveS.ui.showingAreas', { shown: filteredZones.length, total: plan.zones.length })}
           </div>
         </div>
 
@@ -3389,8 +3389,8 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                     <span>{t(`fiveS.stage.${stageKeys[item.zone.stage]}`)}</span>
                     <span>{t('fiveS.inspector.due', { date: item.dueDate })}</span>
-                    <span className={item.priority === 'high' ? 'font-semibold text-red-600' : 'font-semibold text-amber-600'}>
-                      {item.priority}
+                    <span className={item.priority === 'high' ? 'font-semibold text-red-700' : 'font-semibold text-amber-700'}>
+                      {t(`actions.priority.${item.priority}`)}
                     </span>
                   </div>
                 </div>
@@ -3466,7 +3466,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 <div className="mt-1 text-xl font-semibold text-blue-700 dark:text-blue-300">{auditWalkSummary.dueToday}</div>
               </div>
               <div className="rounded-lg border border-amber-200 p-3 text-sm dark:border-amber-900/70">
-                <div className="text-xs text-amber-600 dark:text-amber-300">{t('fiveS.ui.next7Days')}</div>
+                <div className="text-xs text-amber-700 dark:text-amber-300">{t('fiveS.ui.next7Days')}</div>
                 <div className="mt-1 text-xl font-semibold text-amber-700 dark:text-amber-300">{auditWalkSummary.upcoming}</div>
               </div>
               <div className="rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700">
@@ -5152,7 +5152,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                         <div key={item.label} className="flex items-center justify-between gap-3">
                           <span className="text-gray-600 dark:text-gray-300">{item.label}</span>
                           <CheckCircle2
-                            className={`h-4 w-4 flex-none ${item.complete ? 'text-green-600' : 'text-gray-300 dark:text-gray-600'}`}
+                            className={`h-4 w-4 flex-none ${item.complete ? 'text-green-700' : 'text-gray-300 dark:text-gray-600'}`}
                           />
                         </div>
                       ))}
@@ -5540,7 +5540,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               <UserCheck className="h-4 w-4" />
               {t('fiveS.ui.ownerCoverage')}
             </div>
-            <span className="text-xs text-gray-500">{ownerCoverage.length} owner groups</span>
+            <span className="text-xs text-gray-500">{t('fiveS.ui.ownerGroups', { count: ownerCoverage.length })}</span>
           </div>
           <div className="grid gap-0 divide-y divide-gray-200 dark:divide-gray-700 md:grid-cols-2 md:divide-x md:divide-y-0">
             {ownerCoverage.map((owner) => (
@@ -5564,16 +5564,16 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 </div>
                 <div className="text-center text-xs text-gray-500">
                   <div className="text-base font-semibold text-gray-900 dark:text-white">{owner.zones}</div>
-                  zones
+                  {t('fiveS.ownerCard.zones', { count: owner.zones })}
                 </div>
-                <div className="text-center text-xs text-red-500">
+                <div className="text-center text-xs text-red-600">
                   <div className="text-base font-semibold">{owner.redTags}</div>
-                  tags
+                  {t('fiveS.ownerCard.tags', { count: owner.redTags })}
                 </div>
                 {showAuditControls && (
                   <div className="text-center text-xs text-blue-500">
                     <div className="text-base font-semibold">{owner.auditDue}</div>
-                    due
+                    {t('fiveS.ownerCard.due', { count: owner.auditDue })}
                   </div>
                 )}
               </button>
@@ -5778,7 +5778,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                       <td className="px-4 py-3 tabular-nums text-gray-600 dark:text-gray-300">
                         {summary.zones.length}
                         {summary.unowned > 0 && (
-                          <span className="ml-1 text-amber-600 dark:text-amber-400">
+                          <span className="ml-1 text-amber-700 dark:text-amber-400">
                             {t('fiveS.roomUnowned', { count: summary.unowned })}
                           </span>
                         )}
@@ -5828,7 +5828,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               5S area register
             </div>
             <span className="text-xs text-gray-500">
-              {filteredZones.length} of {plan.zones.length} mapped areas
+              {t('fiveS.ui.areasOfTotal', { shown: filteredZones.length, total: plan.zones.length })}
             </span>
           </div>
           <div className="overflow-x-auto">

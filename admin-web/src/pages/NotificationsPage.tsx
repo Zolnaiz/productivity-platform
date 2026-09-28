@@ -20,7 +20,7 @@ const typeStyles: Record<ActionItem['type'], string> = {
 
 const priorityStyles: Record<ActionItem['priority'], string> = {
   high: 'text-red-600',
-  medium: 'text-yellow-600',
+  medium: 'text-yellow-700',
   low: 'text-gray-500',
 };
 
@@ -179,7 +179,7 @@ const NotificationsPage: React.FC = () => {
         </Card>
         <Card>
           <div className="text-sm text-gray-500">{t('notifications.approvals')}</div>
-          <div className="mt-2 text-3xl font-semibold text-green-600">
+          <div className="mt-2 text-3xl font-semibold text-green-700">
             {items.filter((item) => item.type === 'expense').length}
           </div>
         </Card>

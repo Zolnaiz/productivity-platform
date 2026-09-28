@@ -320,7 +320,7 @@ As of 2026-09-26, on branch `codex/productivity-core-integrity`:
 - Backend: 800 tests passing; lint clean; the migration check applies all 34
   migrations to a real PostgreSQL (WebAssembly) and checks every mapped
   column, including the ones every entity inherits
-- Frontend: 959 tests passing, 13 browser checks passing, lint and build clean;
+- Frontend: 959 tests passing, 15 browser checks passing (every page checked by axe for WCAG 2 AA in both themes), lint and build clean;
   a test fails the build if Mongolian, or English markup text, is written straight into a screen
 - Mobile: `flutter analyze` clean, 80 tests passing; the integration test
   passes on an Android 35 emulator against a running backend (sign in, tasks,

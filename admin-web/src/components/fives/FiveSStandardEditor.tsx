@@ -219,7 +219,7 @@ const FiveSStandardEditor: React.FC<FiveSStandardEditorProps> = ({ content, onSa
       <section className="space-y-2">
         <label className="block text-xs font-medium uppercase tracking-wide text-gray-500">
           {t('fiveSStandard.criteria')}
-          <span className="ml-2 normal-case tracking-normal text-gray-400">
+          <span className="ml-2 normal-case tracking-normal text-gray-600 dark:text-gray-400">
             {t('fiveSStandard.criteriaFormat')}
           </span>
           <textarea
@@ -236,7 +236,7 @@ const FiveSStandardEditor: React.FC<FiveSStandardEditorProps> = ({ content, onSa
       <section className="space-y-2">
         <label className="block text-xs font-medium uppercase tracking-wide text-gray-500">
           {t('fiveSStandard.checklists')}
-          <span className="ml-2 normal-case tracking-normal text-gray-400">
+          <span className="ml-2 normal-case tracking-normal text-gray-600 dark:text-gray-400">
             {t('fiveSStandard.checklistsFormat')}
           </span>
           <textarea

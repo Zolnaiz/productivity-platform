@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { auditBandFor, auditBands } from '../charts/palette';
+import { auditBandFor, auditBandText } from '../charts/palette';
 import { apiErrorMessage } from '../../i18n/apiError';
 import { operationsService } from '../../services/operations.service';
 import { AuditRun, AuditTemplate } from '../../types/operations.types';
@@ -108,8 +108,7 @@ const ZoneHistory: React.FC<ZoneHistoryProps> = ({ zone }) => {
           <div>
             <div className="text-xs uppercase tracking-wide text-gray-500">{t('zoneHistory.latest')}</div>
             <div
-              className="text-2xl font-semibold tabular-nums"
-              style={{ color: auditBands[auditBandFor(latest)] }}
+              className={`text-2xl font-semibold tabular-nums ${auditBandText[auditBandFor(latest)]}`}
             >
               {latest}%
             </div>

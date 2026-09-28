@@ -625,6 +625,7 @@ const en = {
     departmentNoScore: 'Never audited',
     departmentUnassigned: 'No department',
     emptyCompletedTasks: 'No task was completed this month.',
+    actualHours: '{{hours}} actual hours',
     emptyWorkLogs: 'No work log was written this month.',
     emptyTimeEntries: 'No hours were recorded this month.',
     emptyGoals: 'No daily goal was set this month.',
@@ -1115,6 +1116,15 @@ const en = {
       complete: 'Complete',
       noZones: 'No zones',
     },
+    // Beside each owner's numbers in the coverage list.
+    ownerCard: {
+      zones_one: 'zone',
+      zones_other: 'zones',
+      tags_one: 'tag',
+      tags_other: 'tags',
+      due_one: 'due',
+      due_other: 'due',
+    },
     // Column names of the registers exported from this page.
     csv: {
       code: 'Code',
@@ -1296,6 +1306,11 @@ const en = {
       overdue: 'Overdue',
       owner: 'Owner',
       ownerCoverage: 'Owner coverage',
+      setupReady: '{{rate}}% setup ready',
+      showingAreas: 'Showing {{shown}} of {{total}} mapped areas. Areas outside the filters are dimmed on the floor plan.',
+      areasOfTotal: '{{shown}} of {{total}} mapped areas',
+      ownerGroups_one: '{{count}} owner group',
+      ownerGroups_other: '{{count}} owner groups',
       owners: 'Owners',
       print: 'Print',
       redTagRegister: 'Red-tag register',

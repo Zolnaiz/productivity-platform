@@ -141,11 +141,11 @@ const ExpensesPage: React.FC = () => {
         </Card>
         <Card>
           <div className="text-sm text-gray-500">{t('expenses.approved')}</div>
-          <div className="mt-2 text-xl font-semibold text-green-600">{formatMnt(totalApproved)}</div>
+          <div className="mt-2 text-xl font-semibold text-green-700">{formatMnt(totalApproved)}</div>
         </Card>
         <Card>
           <div className="text-sm text-gray-500">{t('expenses.waiting')}</div>
-          <div className="mt-2 text-xl font-semibold text-yellow-600">{formatMnt(totalSubmitted)}</div>
+          <div className="mt-2 text-xl font-semibold text-yellow-700">{formatMnt(totalSubmitted)}</div>
         </Card>
         <Card>
           <div className="text-sm text-gray-500">{t('expenses.records')}</div>
@@ -261,7 +261,7 @@ const ExpensesPage: React.FC = () => {
                 <div className="flex gap-2">
                   {expense.status !== 'approved' && (
                     <button
-                      className="text-xs font-medium text-green-600"
+                      className="text-xs font-medium text-green-700"
                       onClick={() => updateStatus(expense, 'approved')}
                       type="button"
                     >

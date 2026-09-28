@@ -45,7 +45,7 @@ const AuditLogPage: React.FC = () => {
         </Card>
         <Card>
           <div className="text-sm text-gray-500">{t('auditLog.warnings')}</div>
-          <div className="mt-2 text-2xl font-semibold text-yellow-600">
+          <div className="mt-2 text-2xl font-semibold text-yellow-700">
             {logs.filter((log) => log.severity === 'warning').length}
           </div>
         </Card>
@@ -145,7 +145,7 @@ const AuditLogPage: React.FC = () => {
                         <div key={field} className="text-xs">
                           <span className="text-gray-500">{field}</span>
                           {had !== null && (
-                            <span className="ml-1 text-gray-400 line-through">{had}</span>
+                            <span className="ml-1 text-gray-500 line-through">{had}</span>
                           )}
                           <span className="ml-1 text-gray-800 dark:text-gray-200">
                             {String(log.changes?.values?.[field] ?? '')}

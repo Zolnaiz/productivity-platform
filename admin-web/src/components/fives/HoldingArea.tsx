@@ -3,7 +3,7 @@ import { Archive } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Button from '../common/Button';
 import EmptyState from '../common/EmptyState';
-import { auditBands } from '../charts/palette';
+import { auditBands, auditBandText } from '../charts/palette';
 import { FiveSRedTag, FiveSZone } from '../../types/fiveS.types';
 import { heldItems, HOLD_PERIOD_DAYS, unrecordedClosures } from './holdingRules';
 
@@ -90,8 +90,7 @@ const HoldingArea: React.FC<HoldingAreaProps> = ({ zones, onDecide, onSelectZone
                 {/* The wait is the point, so it is stated in words rather than
                     left to a colour or a bare date. */}
                 <span
-                  className="whitespace-nowrap text-xs font-medium"
-                  style={{ color: isOverdue ? auditBands.poor : undefined }}
+                  className={`whitespace-nowrap text-xs font-medium ${isOverdue ? auditBandText.poor : ''}`}
                 >
                   {/* "Overdue by 0 days" is not a sentence anyone means. An
                       item whose hold has just run out is simply due now. */}

@@ -277,7 +277,7 @@ const QuestionnairesPage: React.FC = () => {
         </Card>
         <Card>
           <div className="text-sm text-gray-500">{t("assessments.published")}</div>
-          <div className="mt-2 text-2xl font-semibold text-green-600">
+          <div className="mt-2 text-2xl font-semibold text-green-700">
             {
               templates.filter((template) => template.status === "published")
                 .length
@@ -286,7 +286,7 @@ const QuestionnairesPage: React.FC = () => {
         </Card>
         <Card>
           <div className="text-sm text-gray-500">{t("assessments.draft")}</div>
-          <div className="mt-2 text-2xl font-semibold text-yellow-600">
+          <div className="mt-2 text-2xl font-semibold text-yellow-700">
             {templates.filter((template) => template.status === "draft").length}
           </div>
         </Card>
@@ -497,7 +497,7 @@ const QuestionnairesPage: React.FC = () => {
                 <div className="mt-4 flex flex-wrap gap-2">
                   {template.status !== "published" && (
                     <button
-                      className="text-sm font-medium text-green-600"
+                      className="text-sm font-medium text-green-700"
                       onClick={() =>
                         setPendingStatus({ template, status: "published" })
                       }
