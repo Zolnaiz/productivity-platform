@@ -5,6 +5,7 @@ import Card from '../components/common/Card';
 import KpiCard from '../components/widgets/KpiCard';
 import MyDayCard from '../components/widgets/MyDayCard';
 import QuickActions from '../components/widgets/QuickActions';
+import SetupChecklist from '../components/setup/SetupChecklist';
 import { runsOthersWork } from '../components/layout/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { actionText } from '../components/common/actionText';
@@ -87,6 +88,9 @@ const OperationsDashboardPage: React.FC = () => {
       </div>
 
       <QuickActions />
+
+      {/* Until the organization is set up, that is the first thing an administrator does. */}
+      {(user?.roles || []).some((role) => role === 'admin' || role === 'super_admin') && <SetupChecklist hideWhenDone />}
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">

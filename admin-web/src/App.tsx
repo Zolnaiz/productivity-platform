@@ -18,6 +18,7 @@ import FiveSSetupPage from "./pages/FiveSSetupPage";
 import IdeasPage from "./pages/IdeasPage";
 import HuddlePage from "./pages/HuddlePage";
 import AuditInsightsPage from "./pages/AuditInsightsPage";
+import SetupPage from "./pages/SetupPage";
 import WeeklyCheckinPage from "./pages/WeeklyCheckinPage";
 import AuditTemplatesPage from "./pages/AuditTemplatesPage";
 import MonthlyReportPage from "./pages/MonthlyReportPage";
@@ -179,6 +180,14 @@ function App() {
                 <Route path="weekly" element={<WeeklyCheckinPage />} />
                 <Route path="huddle" element={<HuddlePage />} />
                 <Route path="audit-insights" element={<AuditInsightsPage />} />
+                <Route
+                  path="setup"
+                  element={
+                    <ProtectedRoute roles={adminRoles}>
+                      <SetupPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="expenses" element={<ExpensesPage />} />
               </Route>

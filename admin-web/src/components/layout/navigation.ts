@@ -120,6 +120,7 @@ export const sections: NavSection[] = [
     icon: Settings,
     roles: adminRoles,
     pages: [
+      { path: '/setup', labelKey: 'nav.setup' },
       { path: '/settings', labelKey: 'nav.settings' },
       { path: '/organizations', labelKey: 'nav.organizations' },
       { path: '/admin', labelKey: 'nav.adminHome' },
