@@ -13,6 +13,7 @@ import { apiErrorMessage } from '../i18n/apiError';
 import { Department, TeamUser, memberName } from '../types/people.types';
 import { FiveSLayoutPlan } from '../types/fiveS.types';
 import { localDay, localMonth } from '../utils/localDay';
+import { scrollArea } from '../components/common/scrollArea';
 
 const formatMnt = (value: number) =>
   new Intl.NumberFormat('mn-MN', {
@@ -488,7 +489,7 @@ const MonthlyReportPage: React.FC = () => {
             paper; this is the conversation a manager actually has.
           */}
           <Card title={t('monthlyReport.peopleTitle')} subtitle={t('monthlyReport.peopleSubtitle')}>
-            <div className="overflow-x-auto">
+            <div className={scrollArea} tabIndex={0}>
               <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
                 <thead className="text-left text-xs font-medium uppercase text-gray-500">
                   <tr>
@@ -539,7 +540,7 @@ const MonthlyReportPage: React.FC = () => {
               title={t('monthlyReport.departmentsTitle')}
               subtitle={t('monthlyReport.departmentsSubtitle')}
             >
-              <div className="overflow-x-auto">
+              <div className={scrollArea} tabIndex={0}>
                 <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
                   <thead className="text-left text-xs font-medium uppercase text-gray-500">
                     <tr>
@@ -600,7 +601,7 @@ const MonthlyReportPage: React.FC = () => {
 
           {siteRows.length > 1 && (
             <Card title={t('monthlyReport.sitesTitle')} subtitle={t('monthlyReport.sitesSubtitle')}>
-              <div className="overflow-x-auto">
+              <div className={scrollArea} tabIndex={0}>
                 <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
                   <thead className="text-left text-xs font-medium uppercase text-gray-500">
                     <tr>

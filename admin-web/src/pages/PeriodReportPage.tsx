@@ -9,6 +9,7 @@ import { peopleService } from '../services/people.service';
 import { spanOf } from '../components/reports/periodReport';
 import { PeriodReport } from '../types/operations.types';
 import { TeamUser, memberName } from '../types/people.types';
+import { scrollArea } from '../components/common/scrollArea';
 
 type Span = 'h1' | 'h2' | 'year';
 
@@ -222,7 +223,7 @@ const PeriodReportPage: React.FC = () => {
           </div>
 
           <Card title={t('periodReport.monthsTitle')}>
-            <div className="overflow-x-auto">
+            <div className={scrollArea} tabIndex={0}>
               <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
                 <thead className="text-left text-xs font-medium uppercase text-gray-500">
                   <tr>
@@ -270,7 +271,7 @@ const PeriodReportPage: React.FC = () => {
           </Card>
 
           <Card title={t('periodReport.peopleTitle')}>
-            <div className="overflow-x-auto">
+            <div className={scrollArea} tabIndex={0}>
               <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
                 <thead className="text-left text-xs font-medium uppercase text-gray-500">
                   <tr>

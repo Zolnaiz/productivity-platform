@@ -1,4 +1,5 @@
 import React from 'react';
+import { scrollArea } from './scrollArea';
 
 export interface Column<T> {
   key: string;
@@ -33,13 +34,7 @@ function Table<T>({ columns, rows, rowKey, empty, onRowClick }: TableProps<T>) {
   };
 
   return (
-    // Focusable, so a table wider than the screen can be scrolled from the
-    // keyboard: without a stop of its own, the columns past the edge were
-    // out of reach for anybody not using a mouse.
-    <div
-      className="overflow-x-auto rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-      tabIndex={0}
-    >
+    <div className={scrollArea} tabIndex={0}>
       <table className="w-full text-left text-sm">
         <thead className="border-b text-gray-500 dark:border-gray-700">
           <tr>

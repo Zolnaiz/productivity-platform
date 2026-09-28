@@ -6,6 +6,7 @@ import { operationsService } from '../../services/operations.service';
 import { AuditRun, AuditTemplate } from '../../types/operations.types';
 import { FiveSZone } from '../../types/fiveS.types';
 import PhotoEvidence from '../common/PhotoEvidence';
+import { scrollArea } from '../common/scrollArea';
 
 interface ZoneHistoryProps {
   zone: FiveSZone;
@@ -150,7 +151,7 @@ const ZoneHistory: React.FC<ZoneHistoryProps> = ({ zone }) => {
       )}
 
       {!error && !loading && runs.length > 0 && (
-        <div className="overflow-x-auto">
+        <div className={scrollArea} tabIndex={0}>
           <table className="w-full text-left text-xs">
             <caption className="sr-only">{t('zoneHistory.tableCaption', { zone: zone.name })}</caption>
             <thead className="border-b text-gray-500 dark:border-gray-700">

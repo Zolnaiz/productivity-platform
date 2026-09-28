@@ -234,6 +234,9 @@ const PhotoEvidence: React.FC<PhotoEvidenceProps> = ({
                   inputs.current[kind] = element;
                 }}
                 className="sr-only"
+                // Named on its own: once a photo is taken its label goes, and
+                // the input would be read out as a bare "file".
+                aria-label={`${t('photos.add')}: ${t(`photos.${kind}`)}`}
                 type="file"
                 accept="image/*,application/pdf"
                 // Phones open the camera directly rather than a file browser.

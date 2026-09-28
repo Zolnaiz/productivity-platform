@@ -137,8 +137,10 @@ npx playwright test e2e/live-api.spec.ts
 
 `e2e/operator.spec.ts` signs in as the seed's operator (a `user`) and opens
 every page in that menu, failing on any error or bare id shown where a name
-belongs. CI runs both in the live-API job against a fresh, seeded
-PostgreSQL.
+belongs. `e2e/accessibility-live.spec.ts` runs the axe check over the
+operator's and the owner's menus on the real data, whose empty and
+half-filled pages the demo never shows. CI runs all three in the live-API job
+against a fresh, seeded PostgreSQL.
 
 Together they ask the API for more than the 120 requests a minute one client
 is allowed, and fail on 429s rather than on anything they check. Start the API

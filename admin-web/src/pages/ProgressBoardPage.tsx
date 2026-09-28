@@ -8,6 +8,7 @@ import { operationsService } from '../services/operations.service';
 import { peopleService } from '../services/people.service';
 import { buildProgressBoard, LateTask, ProgressBoard } from '../components/progress/progressBoard';
 import { TeamUser, memberName } from '../types/people.types';
+import { scrollArea } from '../components/common/scrollArea';
 
 /** How often the board asks again while somebody is looking at it. */
 export const REFRESH_MS = 60 * 1000;
@@ -309,7 +310,7 @@ const ProgressBoardPage: React.FC = () => {
           </Card>
 
           <Card title={t('progressBoard.peopleTitle')} subtitle={t('progressBoard.peopleSubtitle')}>
-            <div className="overflow-x-auto">
+            <div className={scrollArea} tabIndex={0}>
               <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
                 <thead className="text-left text-xs font-medium uppercase text-gray-500">
                   <tr>

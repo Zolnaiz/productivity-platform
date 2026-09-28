@@ -32,6 +32,7 @@ import {
   FiveSImprovementRecord,
   FiveSImprovementStatus,
 } from '../../types/fiveS.types';
+import { scrollArea } from '../common/scrollArea';
 
 const fieldClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900';
@@ -500,7 +501,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
           </>
         }
       >
-        <div className="overflow-x-auto">
+        <div className={scrollArea} tabIndex={0}>
           <table className="min-w-[1280px] divide-y divide-gray-200 text-sm dark:divide-gray-700">
             <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500 dark:bg-gray-800">
               <tr>
@@ -612,7 +613,7 @@ const FiveSGuidelineRegisters: React.FC = () => {
           </>
         }
       >
-        <div className="overflow-x-auto">
+        <div className={scrollArea} tabIndex={0}>
           <table className="min-w-[1040px] divide-y divide-gray-200 text-sm dark:divide-gray-700">
             <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500 dark:bg-gray-800">
               <tr>

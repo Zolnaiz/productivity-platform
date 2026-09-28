@@ -194,6 +194,7 @@ import {
 } from '../../types/fiveS.types';
 import { TeamUser, memberName } from '../../types/people.types';
 import { useSaveFailure } from '../../hooks/useSaveFailure';
+import { scrollArea } from '../common/scrollArea';
 
 
 
@@ -5603,7 +5604,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               </Button>
             </div>
           </div>
-          <div className="overflow-x-auto">
+          <div className={scrollArea} tabIndex={0}>
             <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
               <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500 dark:bg-gray-800">
                 <tr>
@@ -5749,7 +5750,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
                 {t('fiveS.roomRegisterCount', { count: rooms.length })}
               </span>
             </div>
-            <div className="overflow-x-auto">
+            <div className={scrollArea} tabIndex={0}>
               <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
                 <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500 dark:bg-gray-800">
                   <tr>
@@ -5831,7 +5832,7 @@ const FiveSFloorPlanSetup: React.FC<FiveSFloorPlanSetupProps> = ({
               {t('fiveS.ui.areasOfTotal', { shown: filteredZones.length, total: plan.zones.length })}
             </span>
           </div>
-          <div className="overflow-x-auto">
+          <div className={scrollArea} tabIndex={0}>
             <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
               <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500 dark:bg-gray-800">
                 <tr>

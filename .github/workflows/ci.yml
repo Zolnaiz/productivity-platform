@@ -243,7 +243,7 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
-          npx playwright test e2e/live-api.spec.ts e2e/operator.spec.ts
+          npx playwright test e2e/live-api.spec.ts e2e/operator.spec.ts e2e/accessibility-live.spec.ts
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
