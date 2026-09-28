@@ -193,9 +193,20 @@ export class OperationsService {
    * a register that could rewrite the standard it is kept against would let a
    * checklist tick quietly move the goalposts.
    */
-  async saveFiveSGuidelineRecords(records: Record<string, unknown>, user: CurrentUser) {
+  async saveFiveSGuidelineRecords(records: Record<string, unknown>, user: CurrentUser, baseUpdatedAt?: string) {
     const where = this.organizationWhere(user);
     const existing = await this.guidelines.findOne({ where });
+
+    // Two people typing into the same register used to end with the last save
+    // winning all of it. A save made against an older register is refused, so
+    // the client can put its change on top of the newer one instead.
+    if (
+      existing?.updatedAt &&
+      baseUpdatedAt &&
+      new Date(baseUpdatedAt).getTime() !== new Date(existing.updatedAt).getTime()
+    ) {
+      throw apiError(ErrorCode.RegisterChanged);
+    }
 
     if (existing) {
       existing.records = records ?? {};

@@ -83,10 +83,31 @@ describe('the registers a 5S programme keeps', () => {
 
     const saved = await (await load()).saveState(state({ improvements: [{ id: 'typed' }] }));
 
-    expect(saved.improvements).toEqual([{ id: 'typed' }]);
+    expect(saved.records.improvements).toEqual([{ id: 'typed' }]);
     expect(
       JSON.parse(localStorage.getItem('productivity-demo-5s-guideline-registers') ?? '{}').improvements,
     ).toEqual([{ id: 'typed' }]);
+  });
+
+  it('saves against the version it was given, and hands back the new one', async () => {
+    apiMocks.get.mockResolvedValue({ records: {}, updatedAt: '2026-09-28T02:00:00.000Z' });
+    apiMocks.patch.mockResolvedValue({ records: state(), updatedAt: '2026-09-28T02:00:05.000Z' });
+    const service = await load();
+
+    const { version } = await service.getRegister();
+    const saved = await service.saveState(state(), version);
+
+    expect(apiMocks.patch.mock.calls[0][1]).toMatchObject({ baseUpdatedAt: '2026-09-28T02:00:00.000Z' });
+    expect(saved.version).toBe('2026-09-28T02:00:05.000Z');
+  });
+
+  it('hands a save refused for being stale back to the page, not to local storage', async () => {
+    // The page knows what was changed and can put it on top of the newer
+    // register; a local copy would quietly keep the old one.
+    apiMocks.patch.mockRejectedValue({ response: { status: 409, data: { errorCode: 'REGISTER_CHANGED' } } });
+
+    await expect((await load()).saveState(state(), 'v1')).rejects.toBeTruthy();
+    expect(localStorage.getItem('productivity-demo-5s-guideline-registers')).toBeNull();
   });
 
   it('falls back to the local copy when the register cannot be read', async () => {

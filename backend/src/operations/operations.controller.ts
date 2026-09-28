@@ -305,7 +305,7 @@ export class OperationsController {
   @Patch('five-s-guidelines')
   @RequirePermission('guidelines:update')
   saveFiveSGuidelineRecords(@Body() body: SaveFiveSGuidelineRecordsDto, @Request() req) {
-    return this.operationsService.saveFiveSGuidelineRecords(body.records, req.user);
+    return this.operationsService.saveFiveSGuidelineRecords(body.records, req.user, body.baseUpdatedAt);
   }
 
   /**

@@ -39,6 +39,7 @@ export const ErrorCode = {
   FileTooLarge: 'FILE_TOO_LARGE',
   MetricsDisabled: 'METRICS_DISABLED',
   ReportMonthNotEnded: 'REPORT_MONTH_NOT_ENDED',
+  RegisterChanged: 'REGISTER_CHANGED',
   InternalError: 'INTERNAL_ERROR',
 } as const;
 
@@ -132,6 +133,10 @@ const definitions: Record<ErrorCode, ErrorDefinition> = {
   [ErrorCode.ReportMonthNotEnded]: {
     exception: ConflictException,
     message: 'A month can be closed only after it has ended',
+  },
+  [ErrorCode.RegisterChanged]: {
+    exception: ConflictException,
+    message: 'The register was changed by somebody else since it was read',
   },
   [ErrorCode.InternalError]: {
     exception: InternalServerErrorException,

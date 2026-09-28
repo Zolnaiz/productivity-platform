@@ -7,6 +7,7 @@ import {
 import { demoGuidelineContent } from './demoGuidelineContent';
 import { get, isDemoMode, patch, shouldUseDemoFallback } from './api';
 import { localDay } from '../utils/localDay';
+import { errorCodeOf } from '../i18n/apiError';
 
 const storageKey = 'productivity-demo-5s-guideline-registers';
 
@@ -65,6 +66,12 @@ const defaultState: FiveSGuidelineState = {
 export interface FiveSGuidelineRegister {
   content: FiveSGuidelineContent;
   records: FiveSGuidelineState;
+  /**
+   * When the register was last saved, as the server says. Sent back with a
+   * change, so a change made to an older register is refused rather than
+   * written over somebody else's.
+   */
+  version?: string;
 }
 
 /**
@@ -175,11 +182,13 @@ export const fiveSGuidelineService = {
       const register = await get<{
         content?: Partial<FiveSGuidelineContent>;
         records?: Partial<FiveSGuidelineState>;
+        updatedAt?: string;
       }>('/five-s-guidelines');
 
       return {
         content: normalizeContent(register?.content ?? null),
         records: normalizeState(register?.records ?? null),
+        version: register?.updatedAt,
       };
     } catch (error) {
       if (!shouldUseDemoFallback()) throw error;
@@ -188,24 +197,34 @@ export const fiveSGuidelineService = {
     }
   },
 
-  saveState: async (state: FiveSGuidelineState): Promise<FiveSGuidelineState> => {
-    if (isDemoMode()) return saveState(state);
+  /**
+   * Saves the records, against the version of the register they were made to.
+   *
+   * A save the server refuses because somebody else saved first is thrown to
+   * the caller, which knows what was changed and can put it on top of theirs.
+   */
+  saveState: async (
+    state: FiveSGuidelineState,
+    baseVersion?: string,
+  ): Promise<{ records: FiveSGuidelineState; version?: string }> => {
+    if (isDemoMode()) return { records: saveState(state) };
 
     const records = { ...state, updatedAt: now() };
 
     try {
-      const saved = await patch<{ records?: Partial<FiveSGuidelineState> }>('/five-s-guidelines', {
-        records,
-      });
+      const saved = await patch<{ records?: Partial<FiveSGuidelineState>; updatedAt?: string }>(
+        '/five-s-guidelines',
+        { records, ...(baseVersion ? { baseUpdatedAt: baseVersion } : {}) },
+      );
 
-      return normalizeState(saved?.records ?? records);
+      return { records: normalizeState(saved?.records ?? records), version: saved?.updatedAt };
     } catch (error) {
-      if (!shouldUseDemoFallback()) throw error;
+      if (errorCodeOf(error) === 'REGISTER_CHANGED' || !shouldUseDemoFallback()) throw error;
 
       // Kept locally rather than lost: somebody filling in an improvement
       // record has typed a paragraph, and a failed save that discards it is
       // the fastest way to teach them not to use the register.
-      return saveState(state);
+      return { records: saveState(state) };
     }
   },
 

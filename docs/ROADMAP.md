@@ -208,12 +208,10 @@ could be built honestly.
 
 What is left. Editable audit layers, layers assigned by role, a QR code per
 zone, several floors and sites, scale calibration, floor plan versions, work
-raised from improvement records, a decision asked for on cleared tags, and a
-photograph per failing question are all in; section 3 describes them.
+raised from improvement records, a decision asked for on cleared tags, a
+photograph per failing question, and registers that two people can fill in
+at once are all in; section 3 describes them.
 
-- Two people editing the same register row at once still race: the last
-  save wins the whole register. Row-level saves, or a version check that
-  refuses a stale save, would end it.
 - A zone's QR code opens its page in the phone's browser rather than the
   app. Opening the app instead needs Android App Links on the deployed
   domain, which waits for the deployment.

@@ -691,6 +691,15 @@ export class UpsertFiveSLayoutDto extends OrganizationScopedDto {
 export class SaveFiveSGuidelineRecordsDto extends OrganizationScopedDto {
   @IsObject()
   records: Record<string, unknown>;
+
+  /**
+   * When the register the change was made to was saved, as the client read
+   * it. A save made against an older register is refused rather than
+   * written over somebody else's. Absent: saved unconditionally, as before.
+   */
+  @IsOptional()
+  @IsDateString()
+  baseUpdatedAt?: string;
 }
 
 /**

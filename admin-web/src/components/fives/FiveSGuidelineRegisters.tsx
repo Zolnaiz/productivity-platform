@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookOpen,
   CalendarDays,
@@ -16,6 +16,7 @@ import Button from '../common/Button';
 import Card from '../common/Card';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { fiveSGuidelineService } from '../../services/fiveSGuideline.service';
+import { errorCodeOf } from '../../i18n/apiError';
 import { operationsService } from '../../services/operations.service';
 import { WorkTask } from '../../types/operations.types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -110,6 +111,16 @@ const FiveSGuidelineRegisters: React.FC = () => {
     finding in front of a reader as though it were theirs.
   */
   const [state, setState] = useState<FiveSGuidelineState>(emptyState);
+  /*
+    What saving needs and rendering does not: the records as they stand this
+    instant, the version of the register they were made to, the changes not
+    yet saved, and the saves in order - one at a time, so a save never races
+    the one before it.
+  */
+  const stateRef = useRef<FiveSGuidelineState>(emptyState);
+  const versionRef = useRef<string | undefined>(undefined);
+  const pendingRef = useRef<Array<(current: FiveSGuidelineState) => FiveSGuidelineState>>([]);
+  const savesRef = useRef<Promise<void>>(Promise.resolve());
   const [content, setContent] = useState<FiveSGuidelineContent>(emptyContent);
   const [actionMessage, setActionMessage] = useState('');
   const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(null);
@@ -133,8 +144,11 @@ const FiveSGuidelineRegisters: React.FC = () => {
 
     const refresh = () => {
       void fiveSGuidelineService.getRegister().then((register) => {
-        if (!active) return;
+        // Not over a change still on its way: the save brings it back.
+        if (!active || pendingRef.current.length) return;
         setContent(register.content);
+        stateRef.current = register.records;
+        versionRef.current = register.version;
         setState(register.records);
       });
 
@@ -199,19 +213,51 @@ const FiveSGuidelineRegisters: React.FC = () => {
    * keeps a local copy if it fails.
    */
   const updateState = (build: (current: FiveSGuidelineState) => FiveSGuidelineState) => {
-    setState((current) => {
-      const next = build(current);
+    const next = build(stateRef.current);
 
-      void fiveSGuidelineService.saveState(next);
+    stateRef.current = next;
+    pendingRef.current.push(build);
+    setState(next);
+    savesRef.current = savesRef.current.then(persist).catch(() => undefined);
+  };
 
-      return next;
-    });
+  /**
+   * Sends what has changed. When somebody else saved the register first, the
+   * changes made here are put on top of theirs - each is a change to one row,
+   * so re-applying it keeps both people's work - and sent again.
+   */
+  const persist = async () => {
+    if (!pendingRef.current.length) return;
+    const sending = pendingRef.current;
+    pendingRef.current = [];
+
+    try {
+      const saved = await fiveSGuidelineService.saveState(stateRef.current, versionRef.current);
+      versionRef.current = saved.version ?? versionRef.current;
+    } catch (error) {
+      if (errorCodeOf(error) !== 'REGISTER_CHANGED') throw error;
+
+      const fresh = await fiveSGuidelineService.getRegister();
+      const rebased = [...sending, ...pendingRef.current].reduce((records, build) => build(records), fresh.records);
+      pendingRef.current = [];
+      stateRef.current = rebased;
+      versionRef.current = fresh.version;
+      setContent(fresh.content);
+      setState(rebased);
+
+      const saved = await fiveSGuidelineService.saveState(rebased, versionRef.current);
+      versionRef.current = saved.version ?? versionRef.current;
+      setActionMessage(t('fiveSRegisters.mergedWithNewer'));
+    }
   };
 
   const addImprovement = () => {
+    // Made once, outside the change: a change may be applied again on top of
+    // somebody else's save, and must add the same row when it is.
+    const record = fiveSGuidelineService.createImprovementRecord();
     updateState((current) => ({
       ...current,
-      improvements: [...current.improvements, fiveSGuidelineService.createImprovementRecord()],
+      improvements: [...current.improvements, record],
     }));
     setActionMessage(t('fiveSRegisters.improvementAdded'));
   };
@@ -253,9 +299,10 @@ const FiveSGuidelineRegisters: React.FC = () => {
   };
 
   const addImplementationCard = () => {
+    const card = fiveSGuidelineService.createImplementationCard();
     updateState((current) => ({
       ...current,
-      implementationCards: [...current.implementationCards, fiveSGuidelineService.createImplementationCard()],
+      implementationCards: [...current.implementationCards, card],
     }));
     setActionMessage(t('fiveSRegisters.cardAdded'));
   };

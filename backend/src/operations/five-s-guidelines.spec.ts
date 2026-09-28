@@ -121,6 +121,37 @@ describe('the 5S register', () => {
     );
   });
 
+  it('refuses a save made against a register somebody else has saved since', async () => {
+    // Two people typing into the same register: the second save used to win
+    // all of it, the first person's rows included.
+    const { service, repositories } = createService();
+    repositories.guidelines.findOne.mockResolvedValue({
+      id: 'g1',
+      organizationId: 'org-1',
+      records: {},
+      updatedAt: new Date('2026-09-28T02:00:05.000Z'),
+    });
+
+    await expect(
+      service.saveFiveSGuidelineRecords({ improvements: [] }, user, '2026-09-28T02:00:00.000Z'),
+    ).rejects.toMatchObject({ response: expect.objectContaining({ errorCode: 'REGISTER_CHANGED' }) });
+    expect(repositories.guidelines.save).not.toHaveBeenCalled();
+  });
+
+  it('saves a change made against the register as it stands', async () => {
+    const { service, repositories } = createService();
+    repositories.guidelines.findOne.mockResolvedValue({
+      id: 'g1',
+      organizationId: 'org-1',
+      records: {},
+      updatedAt: new Date('2026-09-28T02:00:05.000Z'),
+    });
+
+    await service.saveFiveSGuidelineRecords({ improvements: [] }, user, '2026-09-28T02:00:05.000Z');
+
+    expect(repositories.guidelines.save).toHaveBeenCalled();
+  });
+
   it('starts a register for an organization filling one in for the first time', async () => {
     const { service, repositories } = createService();
 
