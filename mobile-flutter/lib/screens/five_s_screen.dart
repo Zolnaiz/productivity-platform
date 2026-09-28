@@ -7,11 +7,22 @@ import '../models/work_log_model.dart' show localDay;
 import '../providers/auth_provider.dart';
 import '../providers/five_s_provider.dart';
 import '../utils/phase_one_strings.dart';
+import 'scan_label_screen.dart';
+
+/// Reads a label and says which area it names, or null.
+typedef LabelScanner = Future<({String planId, String zoneId})?> Function(
+    BuildContext context);
+
+Future<({String planId, String zoneId})?> scanWithCamera(BuildContext context) =>
+    Navigator.of(context).push<({String planId, String zoneId})>(
+        MaterialPageRoute(builder: (_) => const ScanLabelScreen()));
 
 /// The areas on the organization's floor plans, each with how it scored last.
-/// Tapping one walks its checklist.
+/// Tapping one walks its checklist; scanning its label opens it too.
 class FiveSScreen extends StatefulWidget {
-  const FiveSScreen({super.key});
+  const FiveSScreen({super.key, this.scanLabel = scanWithCamera});
+
+  final LabelScanner scanLabel;
   @override
   State<FiveSScreen> createState() => _FiveSScreenState();
 }
@@ -31,11 +42,52 @@ class _FiveSScreenState extends State<FiveSScreen> {
     }
   }
 
+  /// Opens the area a scanned label names. A label for an area this phone
+  /// has not heard of yet - drawn on the plan since it loaded - is looked for
+  /// again once before it is called unknown.
+  Future<void> _scan() async {
+    final strings = PhaseOneStrings(Localizations.localeOf(context));
+    final fiveS = context.read<FiveSProvider>();
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final label = await widget.scanLabel(context);
+    if (label == null) return;
+
+    (FiveSPlan, FiveSZone)? find() {
+      for (final plan in fiveS.plans) {
+        if (plan.id != label.planId) continue;
+        for (final zone in plan.zones) {
+          if (zone.id == label.zoneId) return (plan, zone);
+        }
+      }
+      return null;
+    }
+
+    var found = find();
+    if (found == null) {
+      await fiveS.load();
+      found = find();
+    }
+    if (found == null) {
+      messenger.showSnackBar(SnackBar(content: Text(strings.text('labelUnknown'))));
+      return;
+    }
+    final (plan, zone) = found;
+    navigator.push(MaterialPageRoute(builder: (_) => FiveSZoneScreen(plan: plan, zone: zone)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = PhaseOneStrings(Localizations.localeOf(context));
     return Scaffold(
       appBar: AppBar(title: Text(strings.text('fiveS'))),
+      // Where the thumb is: the person is standing at the label.
+      floatingActionButton: FloatingActionButton.extended(
+        key: const Key('scan-label'),
+        onPressed: _scan,
+        icon: const Icon(Icons.qr_code_scanner),
+        label: Text(strings.text('scanLabel')),
+      ),
       body: Consumer<FiveSProvider>(builder: (context, fiveS, _) {
         if (fiveS.loading && fiveS.plans.isEmpty) {
           return const Center(child: CircularProgressIndicator());
