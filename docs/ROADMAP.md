@@ -206,31 +206,19 @@ could be built honestly.
 
 ## Next 5S Work
 
-- Let an organization edit its audit layers. The tiers are read from the layout
-  and default sensibly, but nothing in the interface changes them yet.
-- Assign a layered audit by role rather than to the zone owner. Needs the users
-  API.
-- A printable QR code per zone, so scanning the zone label on a phone opens
-  that zone's checklist. This is what turns the mobile app into a tool.
-- Multi-floor and multi-site. `site` is a single string; real organizations
-  have buildings and floors.
-- Scale calibration for an imported blueprint, so drawn zones carry real
-  dimensions.
-- Floor plan versions, so an old audit still makes sense against the map of its
-  time.
-- Improvement records raise work too: "Make it a task" turns the action plan
-  into a task tied to its record, the row shows that task's state, and
-  finishing it moves the record to management review. The register is read
-  again when its tab comes back into view, so a page left open does not write
-  the old status back; two people editing the same row at once still race.
-- A tag closed by its finished cleanup task now waits in the holding area
-  under "cleared, nothing recorded about what happened", with the same two
-  decisions as a held item, so the register can count it.
-- Photographs belong to a single audit answer when they need to: an
-  attachment carries a `part` (the question's id), and after a check the zone
-  page asks for a photograph of each question it fell short on as well as of
-  the check as a whole; the phone asks the same after a walk, and the audit
-  history shows the latest check's photographs beside the question each is of.
+What is left. Editable audit layers, layers assigned by role, a QR code per
+zone, several floors and sites, scale calibration, floor plan versions, work
+raised from improvement records, a decision asked for on cleared tags, and a
+photograph per failing question are all in; section 3 describes them.
+
+- Two people editing the same register row at once still race: the last
+  save wins the whole register. Row-level saves, or a version check that
+  refuses a stale save, would end it.
+- A zone's QR code opens its page in the phone's browser rather than the
+  app. Opening the app instead needs Android App Links on the deployed
+  domain, which waits for the deployment.
+- Zones inside real rooms: scoring and red tags read per square metre of the
+  room an area is in (see the floor plan item below).
 
 ## Next Frontend Work
 
@@ -254,10 +242,6 @@ could be built honestly.
   covers zones only — objects are still one at a time.
 
 - Add visual regression screenshots for the polished module pages.
-- Move the 5S guideline register content out of `FiveSGuidelineRegisters.tsx`.
-  Roughly a hundred Mongolian strings are hardcoded there. They are not UI copy
-  — they are one organization's 5S standard — so they belong in seeded
-  organization data, which also lets a second organization have its own.
 
 ## Next Mobile Work
 
