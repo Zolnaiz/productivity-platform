@@ -364,6 +364,16 @@ const withoutServerFields = (plan: FiveSLayoutPlan) => {
     backgroundImage: plan.backgroundImage || '',
     backgroundOpacity: plan.backgroundOpacity ?? 0.55,
     showGrid: plan.showGrid ?? true,
+    snapToGrid: plan.snapToGrid ?? true,
+    showDimensions: plan.showDimensions ?? false,
+    /*
+      The audit layers and the spaghetti diagrams. Both are edited on the plan
+      and neither was ever sent, so against a real server a layer renamed or a
+      route drawn was gone on the next reload. Left out when the plan has none
+      loaded, so an older copy cannot clear what is stored.
+    */
+    ...(plan.auditTiers ? { auditTiers: plan.auditTiers } : {}),
+    ...(plan.routes ? { routes: plan.routes } : {}),
     zones: plan.zones,
     objects: plan.objects,
     corners: plan.corners ?? [],

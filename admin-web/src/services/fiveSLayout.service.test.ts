@@ -299,6 +299,38 @@ describe('fiveSLayoutService demo storage', () => {
     );
   });
 
+  it('sends the audit layers, the routes and the drawing switches', async () => {
+    // Edited on the plan and never sent: against a real server a renamed
+    // layer or a drawn route was gone on the next reload.
+    localStorage.setItem('token', 'real-token');
+    apiMocks.patch.mockResolvedValue({ id: 'client-layout', zones: [], objects: [], updatedAt: '2026-09-28T02:10:00.000Z' });
+    const { fiveSLayoutService } = await import('./fiveSLayout.service');
+
+    await fiveSLayoutService.savePlan({
+      id: 'client-layout',
+      name: 'Plan',
+      site: 'HQ',
+      scale: '1 square = 1 meter',
+      backgroundImage: '',
+      backgroundOpacity: 0.5,
+      showGrid: true,
+      snapToGrid: false,
+      showDimensions: true,
+      zones: [],
+      objects: [],
+      auditTiers: [{ tier: 1, name: 'Operator', role: 'user', frequency: 'daily' }],
+      routes: [{ id: 'r1', name: 'Parts run', colour: '#ef4444', points: [] }],
+      updatedAt: '2026-09-28T02:09:00.000Z',
+    });
+
+    expect(apiMocks.patch.mock.calls[0][1]).toMatchObject({
+      snapToGrid: false,
+      showDimensions: true,
+      auditTiers: [{ tier: 1, name: 'Operator' }],
+      routes: [{ id: 'r1', name: 'Parts run' }],
+    });
+  });
+
   it('tells the server when its copy was read, not when it was last edited', async () => {
     // The editor restamps `updatedAt` on every change; sent as the base, it
     // would claim to have seen a red tag raised from a phone a minute ago.
