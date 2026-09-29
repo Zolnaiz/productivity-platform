@@ -58,8 +58,22 @@ columns=flexible,
 }
 
 \usepackage[autostyle=false]{csquotes}
-\usepackage[backend=bibtex,natbib=true,sorting=none,sortcites]{biblatex}
+\usepackage[backend=bibtex,natbib=true,sorting=none,sortcites,language=english]{biblatex}
 \addbibresource{references.bib}
+% biblatex монгол хэлгүй тул ном зүйн үгсийг монголоор тодорхойлно
+\DefineBibliographyStrings{english}{%
+  and = {ба},
+  andothers = {бусад},
+  urlseen = {хандсан},
+  url = {URL},
+  pages = {х.},
+  page = {х.},
+  edition = {хэвлэл},
+  editor = {ред.},
+  editors = {ред.},
+  in = {Номд:},
+}
+\DeclareLanguageMapping{mongolian}{english}
 
 \newcommand{\authorshipname}{Зохиогч эрхийн хамгаалал}
 \newcommand{\abbrevname}{Товчилсон үгс}
