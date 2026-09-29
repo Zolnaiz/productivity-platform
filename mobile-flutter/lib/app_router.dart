@@ -29,10 +29,12 @@ class AppRouter {
       refreshListenable: authProvider,
       redirect: (BuildContext context, GoRouterState state) {
         final location = state.uri.path;
-        final isLoading = authProvider?.isLoading ?? true;
+        // Only while the saved session is read back; signing in stays on its
+        // own screen so a refusal is said there.
+        final isRestoring = authProvider?.isRestoring ?? true;
         final isLoggedIn = authProvider?.isAuthenticated ?? false;
 
-        if (isLoading) {
+        if (isRestoring) {
           return location == '/' ? null : '/';
         }
 

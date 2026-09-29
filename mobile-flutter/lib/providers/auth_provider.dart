@@ -19,12 +19,19 @@ class AuthProvider with ChangeNotifier {
   User? _user;
   Organization? _organization;
   bool _isLoading = true;
+  bool _isRestoring = true;
   bool _isAuthenticated = false;
   String? _error;
 
   User? get user => _user;
   Organization? get organization => _organization;
   bool get isLoading => _isLoading;
+
+  /// Only the session being read back when the app starts. Signing in is
+  /// [isLoading] alone: the router used to send the sign-in screen to the
+  /// splash while it waited, so a wrong password came back to an empty form
+  /// with its message lost, and the app looked stuck.
+  bool get isRestoring => _isRestoring;
   bool get isAuthenticated => _isAuthenticated;
   String? get error => _error;
 
@@ -51,6 +58,7 @@ class AuthProvider with ChangeNotifier {
       }
     } finally {
       _isLoading = false;
+      _isRestoring = false;
       notifyListeners();
     }
   }
@@ -287,6 +295,7 @@ class AuthProvider with ChangeNotifier {
       }
 
       _isAuthenticated = value['isAuthenticated'] ?? false;
+      _isRestoring = false;
 
       final prefs = await _prefsFuture;
       await prefs.setString('user', json.encode(value['user']));

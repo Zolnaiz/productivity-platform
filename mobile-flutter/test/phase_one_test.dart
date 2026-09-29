@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:productivity_mobile/app_router.dart';
 import 'package:productivity_mobile/providers/auth_provider.dart';
 import 'package:productivity_mobile/providers/task_provider.dart';
 import 'package:productivity_mobile/screens/login_screen.dart';
@@ -42,6 +43,33 @@ void main() {
     await tester.tap(find.byType(FilledButton));
     await tester.pumpAndSettle();
     expect(find.text('Email or password is incorrect.'), findsOneWidget);
+  });
+
+  testWidgets('keeps the form and says why when the real router is in place',
+      (tester) async {
+    // The router sent the sign-in screen to the splash while it waited, so a
+    // wrong password came back to an empty form and the message was lost.
+    final (api, _, _) = await makeApi((_) => jsonReply({
+          'statusCode': 401,
+          'errorCode': 'AUTH_INVALID_CREDENTIALS',
+          'message': 'Invalid email or password'
+        }, status: 401));
+    final auth = AuthProvider(apiService: api);
+    await tester.pumpWidget(ChangeNotifierProvider.value(
+        value: auth,
+        child: MaterialApp.router(
+            locale: const Locale('en'),
+            supportedLocales: const [Locale('en'), Locale('mn')],
+            localizationsDelegates: testDelegates,
+            routerConfig: AppRouter.createRouter(auth))));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byType(TextFormField).at(0), 'worker@example.com');
+    await tester.enterText(find.byType(TextFormField).at(1), 'incorrect');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Email or password is incorrect.'), findsOneWidget);
+    expect(find.text('worker@example.com'), findsOneWidget);
   });
 
   testWidgets('explains a network failure in the selected language',
