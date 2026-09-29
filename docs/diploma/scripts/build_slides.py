@@ -17,7 +17,7 @@ from pptx.oxml.ns import qn
 from pptx.util import Cm, Emu, Pt
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FIG = os.path.join(HERE, 'fig')
+FIG = os.path.join(HERE, 'latex', 'Figures')
 
 NAVY = RGBColor(0x16, 0x20, 0x2C)
 NAVY2 = RGBColor(0x1E, 0x2B, 0x39)
@@ -663,7 +663,7 @@ trace = [('FR-01', 'Нэвтрэх, эрхийн хүрээ', 'UC-01', 'y', 'y')
          ('FR-16', 'Gemba явалт', 'UC-05', 'y', 'y'), ('FR-17', 'Сайжруулалтын санаа', 'UC-06', 'y', 'y'),
          ('FR-18', 'Сүлжээгүй горим', 'UC-02,05,07', 'p', 'y'), ('FR-19', 'Монгол, англи хэл', 'бүгд', 'y', 'y'),
          ('FR-20', 'Үйл ажиллагааны түүх', 'UC-04', 'y', 'y'), ('FR-21', 'Бүртгэл устгах хүсэлт', '–', 'y', 'y'),
-         ('FR-22', 'KPI самбар (K1–K6)', 'UC-04,08', 'p', 'n')]
+         ('FR-22', 'KPI самбар (K1–K6)', 'UC-04,08', 'p', 'p')]
 half_w = (CW - Cm(0.6)) / 2
 cols = [Cm(1.7), Cm(5.9), Cm(2.75), Cm(1.5), Cm(1.5)]
 cols.append(int(half_w) - sum(cols))
@@ -673,7 +673,7 @@ for k in range(2):
     table(s, M + int(k * (half_w + Cm(0.6))), Cm(3.6), cols, rows, size=11.5, row_h=Cm(0.94), bold_cols=(0,),
           align={2: PP_ALIGN.CENTER, 3: PP_ALIGN.CENTER, 4: PP_ALIGN.CENTER, 5: PP_ALIGN.CENTER})
 stats = [('Кодонд хэрэгжсэн', '20 бүрэн · 2 хэсэгчлэн', 'FR-18 (офлайн унших), FR-22 (KPI самбар)'),
-         ('Тестээр шалгасан', '20 бүрэн · 1 хэсэгчлэн · 1 үгүй', 'FR-14 хиймэл AI хариугаар, FR-22 дараа'),
+         ('Тестээр шалгасан', '20 бүрэн · 2 хэсэгчлэн', 'FR-14 хиймэл AI хариугаар; FR-22-оос K1, K3'),
          ('Туршилтаар хэмжсэн', 'III үзлэгт', 'Туршилтын ажиллагаа: 2 + 4 долоо хоног')]
 stat_w = (CW - Cm(1.0)) / 3
 for i, (head, value, note) in enumerate(stats):
@@ -695,7 +695,7 @@ w = W - M - x
 layers = [('Клиент', 'React 18 · Vite · Tailwind (вэб)\nFlutter (Android) · сүлжээгүй дараалал'),
           ('API', 'NestJS 11 · REST · JWT + дүрийн эрх\nCron: сануулга, аудит, сар хаах'),
           ('Өгөгдөл', 'PostgreSQL · TypeORM\n25 хүснэгт · 38 migration'),
-          ('Чанар', '830 + 1 017 + 116 автомат тест\nWCAG 2.1 AA · монгол / англи')]
+          ('Чанар', '927 + 1 033 + 125 автомат тест\nWCAG 2.1 AA · монгол / англи')]
 for i, (head, body) in enumerate(layers):
     y = Cm(3.75 + i * 3.45)
     rect(s, x, y, w, Cm(3.15), NAVY if i == 1 else CARD, radius=Cm(0.25))
@@ -836,10 +836,10 @@ status = [['Хэсэг', 'Код', 'Тест', 'Туршилт'],
           ['Ажил, төсөл, мэдэгдэл', 'y', 'y', 'n'], ['5S талбай, аудит, засах ажил', 'y', 'y', 'n'],
           ['Өдрийн ба долоо хоногийн тайлан', 'y', 'y', 'n'], ['Сарын тайлан, хаалт, архив', 'y', 'y', 'n'],
           ['Gemba, санаа, өглөөний хурал', 'y', 'y', 'n'], ['Сүлжээгүй горим (бичих)', 'p', 'y', 'n'],
-          ['KPI самбар (K1–K6)', 'p', 'n', 'n'], ['Хэрэглэгчийн судалгаа, SUS', 'n', 'n', 'n']]
+          ['KPI самбар (K1–K6)', 'p', 'p', 'n'], ['Хэрэглэгчийн судалгаа, SUS', 'n', 'n', 'n']]
 table(s, M, Cm(3.65), [Cm(9.4), Cm(2.8), Cm(2.8), Cm(2.8)], status, size=12.5, row_h=Cm(0.95),
       align={1: PP_ALIGN.CENTER, 2: PP_ALIGN.CENTER, 3: PP_ALIGN.CENTER})
-tiles = [('830', 'backend тест'), ('1 017', 'вэб тест'), ('116', 'гар утасны тест'), ('39', 'e2e (18 + 21 бодит)')]
+tiles = [('927', 'backend тест'), ('1 033', 'вэб тест'), ('125', 'гар утасны тест'), ('39', 'e2e (18 + 21 бодит)')]
 tile_w = (Cm(17.8) - Cm(0.9)) / 4
 for i, (num, name) in enumerate(tiles):
     x = M + int(i * (tile_w + Cm(0.3)))
@@ -849,7 +849,7 @@ for i, (num, name) in enumerate(tiles):
 text(s, M, Cm(15.7), Cm(17.8), Cm(1.8),
      [[('✓', {'font': SYMBOL, 'color': GREEN, 'bold': True}), (' бүрэн   ', {}),
        ('∼', {'font': SYMBOL, 'color': AMBER, 'bold': True}), (' хэсэгчлэн   ', {}),
-       ('–', {'color': GREY, 'bold': True}), (' хараахан үгүй.  Автомат тест бүгд амжилттай (2026.09.29).', {})]],
+       ('–', {'color': GREY, 'bold': True}), (' хараахан үгүй.  Автомат тест бүгд амжилттай (2026.09.30).', {})]],
      size=11, color=MUTED)
 x = Cm(20.6)
 w = W - M - x
