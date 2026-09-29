@@ -131,7 +131,7 @@ def architecture():
     ]
     for text, y in layers:
         box(ax, 4.35, y, 3.1, 0.72, text, GREY, '#9ca3af', 8.5)
-    box(ax, 8.6, 3.5, 2.2, 1.4, 'PostgreSQL\n25 хүснэгт\n40 migration', AMBER, '#b45309', 9.5)
+    box(ax, 8.6, 3.5, 2.2, 1.4, 'PostgreSQL\n25 хүснэгт\n38 migration', AMBER, '#b45309', 9.5)
     box(ax, 8.6, 1.6, 2.2, 1.2, 'Файл хадгалалт\n(зураг, хавсралт)', AMBER, '#b45309', 9)
     box(ax, 8.6, 5.3, 2.2, 1.0, 'Anthropic API\n(сарын тойм, сонголтоор)', GREEN, '#15803d', 8.5)
     arrow(ax, 3.3, 5.4, 4.1, 5.4, 'HTTPS/JSON', both=True)
@@ -240,7 +240,68 @@ def outbox():
     save(fig, 'outbox.png')
 
 
+# 6. PDCA мөчлөг ба системийн модулиуд
+def pdca():
+    from matplotlib.patches import Wedge
+    fig, ax = canvas(10, 7.6)
+    cx, cy, r = 5.0, 3.8, 2.6
+    parts = [
+        (90, 180, '#dbeafe', '#1d4ed8', 'PLAN\nТөлөвлөх', 'Төсөл, ажил оноох,\n5S талбай, аудитын хуваарь', (-1, 1)),
+        (180, 270, '#dcfce7', '#15803d', 'DO\nХийх', 'Ажил гүйцэтгэх, өдрийн бүртгэл,\nутаснаас аудит, улаан шошго', (-1, -1)),
+        (270, 360, '#fef3c7', '#b45309', 'CHECK\nШалгах', 'Аудитын оноо, KPI, өглөөний хурал,\nсарын тайлан', (1, -1)),
+        (0, 90, '#fce7f3', '#be185d', 'ACT\nСайжруулах', 'Засах ажил, Gemba-гийн алхам,\nсанаа, стандарт шинэчлэх', (1, 1)),
+    ]
+    import math
+    for a1, a2, fc, ec, head, body, (sx, sy) in parts:
+        ax.add_patch(Wedge((cx, cy), r, a1, a2, width=1.25, fc=fc, ec='white', lw=3))
+        mid = math.radians((a1 + a2) / 2)
+        ax.text(cx + math.cos(mid) * (r - 0.62), cy + math.sin(mid) * (r - 0.62), head, ha='center', va='center',
+                fontsize=10.5, fontweight='bold', color=ec)
+        tx = cx + sx * (r + 0.35)
+        ty = cy + sy * (r * 0.72)
+        ax.text(tx, ty, body, ha='left' if sx > 0 else 'right', va='center', fontsize=9, color=INK)
+    ax.text(cx, cy + 0.18, 'Тасралтгүй', ha='center', va='center', fontsize=10, fontweight='bold')
+    ax.text(cx, cy - 0.22, 'сайжруулалт', ha='center', va='center', fontsize=10, fontweight='bold')
+    # P (зүүн дээд) → D (зүүн доод) → C (баруун доод) → A (баруун дээд): цагийн зүүний эсрэг
+    for a in (180, 270, 0, 90):
+        m = math.radians(a)
+        ax.annotate('', xy=(cx + math.cos(m + 0.3) * (r + 0.15), cy + math.sin(m + 0.3) * (r + 0.15)),
+                    xytext=(cx + math.cos(m - 0.3) * (r + 0.15), cy + math.sin(m - 0.3) * (r + 0.15)),
+                    arrowprops=dict(arrowstyle='-|>', color='#475569', lw=1.6, connectionstyle='arc3,rad=0.25'))
+    ax.set_xlim(-0.8, 10.8)
+    ax.set_aspect('equal')
+    save(fig, 'pdca.png')
+
+
+# 7. Байршуулалтын диаграмм (Docker Compose)
+def deployment():
+    fig, ax = canvas(12, 6.8)
+    ax.add_patch(FancyBboxPatch((3.0, 0.4), 8.7, 6.0, boxstyle='round,pad=0,rounding_size=0.12',
+                                fc='#f8fafc', ec='#475569', lw=1.3, ls='--'))
+    ax.text(3.2, 6.1, 'Сервер (Linux, Docker Compose)', fontsize=10, fontweight='bold', color='#334155')
+    box(ax, 0.2, 4.4, 2.2, 1.2, 'Хөтөч\n(вэб апп)', BLUE, BLUE_E, 9.5)
+    box(ax, 0.2, 1.9, 2.2, 1.2, 'Гар утас\n(Flutter апп)', BLUE, BLUE_E, 9.5)
+    box(ax, 3.5, 4.1, 2.4, 1.5, 'admin-web\nnginx: статик файл,\n/api → backend', GREY, INK, 8.8)
+    box(ax, 6.6, 2.8, 2.4, 1.6, 'backend\nNestJS API :3000\ncron үйлдлүүд', GREY, INK, 8.8)
+    box(ax, 9.4, 4.6, 2.1, 1.2, 'postgres\n(15-alpine)', AMBER, '#b45309', 9)
+    box(ax, 9.4, 2.9, 2.1, 1.2, 'backup\n(сонголтоор)', '#f1f5f9', '#64748b', 8.8)
+    box(ax, 9.4, 0.8, 2.1, 1.2, 'attachments\nvolume', AMBER, '#b45309', 9)
+    box(ax, 6.6, 0.8, 2.4, 1.2, 'prometheus, grafana\n(сонголтоор)', '#f1f5f9', '#64748b', 8.5)
+    box(ax, 3.5, 0.8, 2.4, 1.2, 'redis\n(сонголтоор)', '#f1f5f9', '#64748b', 9)
+    arrow(ax, 2.4, 5.0, 3.5, 5.0, 'HTTPS')
+    arrow(ax, 2.4, 2.5, 6.6, 3.2, 'HTTPS /api')
+    arrow(ax, 5.9, 4.5, 6.6, 4.1, '')
+    arrow(ax, 9.0, 4.2, 9.4, 5.0, 'SQL', both=True)
+    arrow(ax, 10.45, 4.1, 10.45, 4.6, '')
+    arrow(ax, 8.7, 2.8, 9.4, 1.6, '', both=True)
+    arrow(ax, 7.8, 2.0, 7.8, 2.8, 'metrics')
+    arrow(ax, 6.6, 3.0, 5.9, 1.8, '', both=True)
+    save(fig, 'deployment.png')
+
+
 if __name__ == '__main__':
+    pdca()
+    deployment()
     usecase_diagram()
     architecture()
     er_diagram()

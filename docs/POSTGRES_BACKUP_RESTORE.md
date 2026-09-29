@@ -88,7 +88,7 @@ no knowledge of where Docker actually stores volumes:
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 docker run --rm `
   -v productivity-platform_attachments_prod:/data:ro `
-  -v "${PWD}ackups:/backup" `
+  -v "${PWD}\backups:/backup" `
   alpine tar czf "/backup/attachments-$stamp.tar.gz" -C /data .
 ```
 
@@ -97,7 +97,7 @@ Restore the same way, into the volume:
 ```powershell
 docker run --rm `
   -v productivity-platform_attachments_prod:/data `
-  -v "${PWD}ackups:/backup" `
+  -v "${PWD}\backups:/backup" `
   alpine sh -c "tar xzf /backup/attachments-YYYYMMDD-HHMMSS.tar.gz -C /data"
 ```
 

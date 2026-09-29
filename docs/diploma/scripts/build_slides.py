@@ -173,7 +173,7 @@ picture(s, 'activity_task.png', Cm(8.0), Cm(2.9), h=Cm(15.8))
 s = slide('Архитектур ба технологи', 8, 'Хоёр клиент нэг REST API ашиглана, бизнесийн дүрэм нэг газар. '
           'NestJS, PostgreSQL, React, Flutter. Docker-оор байршина.')
 picture(s, 'architecture.png', Cm(1.6), Cm(3.0), w=Cm(19.5))
-text(s, Cm(21.8), Cm(3.4), Cm(11), Cm(13), ['• NestJS 11 + TypeORM', '• PostgreSQL: 25 хүснэгт, 40 migration',
+text(s, Cm(21.8), Cm(3.4), Cm(11), Cm(13), ['• NestJS 11 + TypeORM', '• PostgreSQL: 25 хүснэгт, 38 migration',
      '• React 18 + Vite + Tailwind', '• Flutter (Android, iOS)', '• JWT + дүрийн эрх', '• Cron: сануулга, аудит, сар хаах',
      '• Docker Compose'], size=16)
 
@@ -187,7 +187,7 @@ text(s, Cm(14.2), Cm(11.8), Cm(18.4), Cm(6), ['• Оноо = Σ авсан / Σ
      '• Офлайн: зөвхөн серверт хүрээгүйг дахин илгээнэ'], size=15)
 
 # Өгөгдлийн сан
-s = slide('Өгөгдлийн сангийн схем', 8, '25 хүснэгт, 40 migration. Бүх хүснэгт байгууллагаар тусгаарлагдана.')
+s = slide('Өгөгдлийн сангийн схем', 8, '25 хүснэгт, 38 migration. Бүх хүснэгт байгууллагаар тусгаарлагдана.')
 picture(s, 'er.png', Cm(5.0), Cm(2.9), h=Cm(15.8))
 
 # Интерфейс
