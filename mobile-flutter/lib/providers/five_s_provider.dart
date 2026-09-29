@@ -18,6 +18,9 @@ class FiveSProvider extends ChangeNotifier {
   /// offline change fails as any other would.
   final Outbox? outbox;
 
+  /// The connection this screen's work goes through, for the screens it opens.
+  ApiService get api => _api;
+
   /// Whether the last change was kept on the phone rather than sent.
   bool lastKept = false;
 

@@ -472,6 +472,12 @@ class ApiService {
     await _dio.post('/account/deletion-request');
   }
 
+  /// Records a gemba walk; its follow-ups become tasks on the server.
+  Future<Map<String, dynamic>> recordGembaWalk(Map<String, dynamic> walk) async {
+    final response = await _dio.post('/gemba', data: walk);
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
   /// The organization's idea box, newest first.
   Future<List<Map<String, dynamic>>> getIdeas() async {
     final response = await _dio.get('/ideas');

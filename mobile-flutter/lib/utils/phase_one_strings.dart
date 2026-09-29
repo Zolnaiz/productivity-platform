@@ -96,6 +96,8 @@ class PhaseOneStrings {
 
   String scoreSoFar(int score) => mn ? 'Оноо: $score%' : 'Score: $score%';
 
+  String gembaStep(int number) => mn ? 'Дараагийн алхам $number' : 'Follow-up $number';
+
   String weekOf(String monday) =>
       mn ? '$monday-нд эхэлсэн долоо хоног' : 'Week starting $monday';
 
@@ -220,6 +222,16 @@ const _en = {
   'noTasks': 'No tasks assigned to you.',
   'retry': 'Try again',
   'sendNow': 'Send now',
+  'gembaWalk': 'Gemba walk',
+  'gembaWhere': 'Where',
+  'gembaNoZone': 'Not a 5S area',
+  'gembaSaw': 'What I saw',
+  'gembaSaid': 'What people said',
+  'gembaNext': 'Follow-ups - each becomes a task',
+  'gembaAddStep': 'Add a follow-up',
+  'gembaSave': 'Record the walk',
+  'gembaSaved': 'Walk recorded. Its follow-ups are on the task board.',
+  'gembaEmpty': 'Write what you saw, or at least one follow-up.',
   'account': 'Account',
   'cancel': 'Cancel',
   'deleteAccount': 'Request account deletion',
@@ -342,6 +354,16 @@ const _mn = {
   'noTasks': 'Танд оноосон ажил алга.',
   'retry': 'Дахин оролдох',
   'sendNow': 'Одоо илгээх',
+  'gembaWalk': 'Gemba явалт',
+  'gembaWhere': 'Хаана',
+  'gembaNoZone': '5S талбай биш',
+  'gembaSaw': 'Юу харсан',
+  'gembaSaid': 'Хүмүүс юу хэлсэн',
+  'gembaNext': 'Дараагийн алхам - тус бүр ажил болно',
+  'gembaAddStep': 'Алхам нэмэх',
+  'gembaSave': 'Явалтыг бүртгэх',
+  'gembaSaved': 'Явалт бүртгэгдлээ. Дараагийн алхмууд ажлын самбарт орлоо.',
+  'gembaEmpty': 'Юу харсанаа эсвэл дор хаяж нэг алхам бичнэ үү.',
   'account': 'Бүртгэл',
   'cancel': 'Болих',
   'deleteAccount': 'Бүртгэл устгах хүсэлт',

@@ -10,6 +10,8 @@ import '../providers/auth_provider.dart';
 import '../providers/five_s_provider.dart';
 import '../utils/phase_one_strings.dart';
 import 'scan_label_screen.dart';
+import 'gemba_screen.dart';
+import '../services/outbox.dart';
 
 /// Reads a label and says which area it names, or null.
 typedef LabelScanner = Future<({String planId, String zoneId})?> Function(
@@ -82,7 +84,29 @@ class _FiveSScreenState extends State<FiveSScreen> {
   Widget build(BuildContext context) {
     final strings = PhaseOneStrings(Localizations.localeOf(context));
     return Scaffold(
-      appBar: AppBar(title: Text(strings.text('fiveS'))),
+      appBar: AppBar(title: Text(strings.text('fiveS')), actions: [
+        // A walk on the floor, for those whose standard work it is.
+        if (gembaRoles.contains(context.watch<AuthProvider>().user?.role))
+          IconButton(
+            key: const Key('open-gemba'),
+            tooltip: strings.text('gembaWalk'),
+            icon: const Icon(Icons.directions_walk),
+            onPressed: () {
+              final fiveS = context.read<FiveSProvider>();
+              Outbox? outbox;
+              try {
+                outbox = context.read<Outbox>();
+              } catch (_) {
+                outbox = null;
+              }
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => GembaWalkScreen(
+                      api: fiveS.api,
+                      outbox: outbox,
+                      zones: [for (final plan in fiveS.plans) ...plan.zones])));
+            },
+          ),
+      ]),
       // Where the thumb is: the person is standing at the label.
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('scan-label'),
