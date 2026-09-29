@@ -300,4 +300,36 @@ void main() {
     expect(await tokens.read('access_token'), isNull);
     expect(await tokens.read('refresh_token'), isNull);
   });
+
+  testWidgets('asks the administrators to delete the account, after asking the person', (tester) async {
+    final (api, adapter, _) = await makeApi((request) => jsonReply(envelope(request.method == 'GET' ? [] : {'requested': true})));
+    final auth = AuthProvider(apiService: api);
+    await auth.fromJson({
+      'user': {'id': 'worker-id', 'email': 'worker@example.com', 'fullName': 'Worker'},
+      'isAuthenticated': true
+    });
+    await tester.pumpWidget(MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: TaskProvider(api)),
+          ChangeNotifierProvider.value(value: auth)
+        ],
+        child: const MaterialApp(
+            locale: Locale('en'),
+            supportedLocales: [Locale('en'), Locale('mn')],
+            localizationsDelegates: testDelegates,
+            home: TasksScreen())));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('account-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Request account deletion'));
+    await tester.pumpAndSettle();
+    expect(adapter.requests.where((request) => request.path == '/account/deletion-request'), isEmpty);
+
+    await tester.tap(find.byKey(const Key('confirm-delete-account')));
+    await tester.pumpAndSettle();
+
+    expect(adapter.requests.where((request) => request.path == '/account/deletion-request' && request.method == 'POST'), hasLength(1));
+    expect(find.text('Your request was sent to the administrators.'), findsOneWidget);
+  });
 }

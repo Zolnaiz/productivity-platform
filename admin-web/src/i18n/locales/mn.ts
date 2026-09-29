@@ -1138,6 +1138,7 @@ const mn: Translations<typeof en> = {
     emptyDescription: 'Огноотой ажил, аудит энд цагийн хэлхээ болж харагдана.',
   },
   raised: {
+    deletionRequested: 'Бүртгэл устгах хүсэлт ирлээ: {{name}}',
     ideaApproved: 'Таны санааг хэрэгжүүлэхээр шийдлээ: {{title}}',
     ideaDeclined: 'Таны санааг одоохондоо хэрэгжүүлэхгүй: {{title}}',
     ideaDone: 'Таны санаа хэрэгжлээ: {{title}}',

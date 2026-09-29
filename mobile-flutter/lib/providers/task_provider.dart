@@ -8,6 +8,9 @@ class TaskProvider extends ChangeNotifier {
   TaskProvider(this._api, {this.outbox});
   final ApiService _api;
   final Outbox? outbox;
+
+  /// The connection this screen's work goes through, for the account actions beside it.
+  ApiService get api => _api;
   List<Task> tasks = [];
   bool loading = false;
   Object? error;

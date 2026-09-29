@@ -126,6 +126,7 @@ class PhaseOneStrings {
 }
 
 const _raisedMn = {
+  'raised.deletionRequested': 'Бүртгэл устгах хүсэлт ирлээ: {{name}}',
   'raised.ideaApproved': 'Таны санааг хэрэгжүүлэхээр шийдлээ: {{title}}',
   'raised.ideaDeclined': 'Таны санааг одоохондоо хэрэгжүүлэхгүй: {{title}}',
   'raised.ideaDone': 'Таны санаа хэрэгжлээ: {{title}}',
@@ -153,6 +154,7 @@ const _raisedMn = {
       '{{date}}-ны аудитын оноо {{score}}%.\nЭнэ бүсийн стандарт {{standard}}%.\nБүсийг стандартад нь эргүүлж оруулна уу; дараагийн аудит үүнийг шалгана.',
 };
 const _raisedEn = {
+  'raised.deletionRequested': 'Account deletion requested: {{name}}',
   'raised.ideaApproved': 'Your idea was taken up: {{title}}',
   'raised.ideaDeclined': 'Your idea was not taken up: {{title}}',
   'raised.ideaDone': 'Your idea is in place: {{title}}',
@@ -218,6 +220,12 @@ const _en = {
   'noTasks': 'No tasks assigned to you.',
   'retry': 'Try again',
   'sendNow': 'Send now',
+  'account': 'Account',
+  'cancel': 'Cancel',
+  'deleteAccount': 'Request account deletion',
+  'deleteAccountExplain': 'Your organization’s administrators will be asked to delete your account. Your work records belong to the organization and may be kept as its records say.',
+  'deleteAccountSend': 'Send the request',
+  'deleteAccountSent': 'Your request was sent to the administrators.',
   'myWeek': 'My week',
   'weekProgress': 'Done this week',
   'weekPlans': 'Next week',
@@ -334,6 +342,12 @@ const _mn = {
   'noTasks': 'Танд оноосон ажил алга.',
   'retry': 'Дахин оролдох',
   'sendNow': 'Одоо илгээх',
+  'account': 'Бүртгэл',
+  'cancel': 'Болих',
+  'deleteAccount': 'Бүртгэл устгах хүсэлт',
+  'deleteAccountExplain': 'Таны байгууллагын админуудаас таны бүртгэлийг устгахыг хүснэ. Ажлын бүртгэлүүд тань байгууллагын өмч тул байгууллагын журмын дагуу хадгалагдаж магадгүй.',
+  'deleteAccountSend': 'Хүсэлт илгээх',
+  'deleteAccountSent': 'Таны хүсэлт админуудад илгээгдлээ.',
   'myWeek': 'Миний долоо хоног',
   'weekProgress': 'Энэ долоо хоногт хийсэн',
   'weekPlans': 'Дараа долоо хоногт',

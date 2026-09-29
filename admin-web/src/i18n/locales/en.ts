@@ -1150,6 +1150,7 @@ const en = {
     to ask, so it words the key instead.
   */
   raised: {
+    deletionRequested: 'Account deletion requested: {{name}}',
     ideaApproved: 'Your idea was taken up: {{title}}',
     ideaDeclined: 'Your idea was not taken up: {{title}}',
     ideaDone: 'Your idea is in place: {{title}}',

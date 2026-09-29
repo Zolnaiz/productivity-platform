@@ -9,6 +9,7 @@ import { interpolate, MailLanguage } from '../shared/mail/wording';
  */
 export const RAISED_WORDING: Record<MailLanguage, Record<string, string>> = {
   en: {
+    'raised.deletionRequested': 'Account deletion requested: {{name}}',
     'raised.ideaApproved': 'Your idea was taken up: {{title}}',
     'raised.ideaDeclined': 'Your idea was not taken up: {{title}}',
     'raised.ideaDone': 'Your idea is in place: {{title}}',
@@ -32,6 +33,7 @@ export const RAISED_WORDING: Record<MailLanguage, Record<string, string>> = {
       'The audit on {{date}} scored {{score}}%.\nThe standard for this area is {{standard}}%.\nBring the area back to its standard; the next audit verifies it.',
   },
   mn: {
+    'raised.deletionRequested': 'Бүртгэл устгах хүсэлт ирлээ: {{name}}',
     'raised.ideaApproved': 'Таны санааг хэрэгжүүлэхээр шийдлээ: {{title}}',
     'raised.ideaDeclined': 'Таны санааг одоохондоо хэрэгжүүлэхгүй: {{title}}',
     'raised.ideaDone': 'Таны санаа хэрэгжлээ: {{title}}',

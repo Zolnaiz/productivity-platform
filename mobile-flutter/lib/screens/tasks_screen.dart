@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/task_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/task_provider.dart';
+import '../services/api_service.dart';
 import '../utils/phase_one_strings.dart';
 
 class TasksScreen extends StatefulWidget {
@@ -31,10 +32,20 @@ class _TasksScreenState extends State<TasksScreen> {
     final strings = PhaseOneStrings(Localizations.localeOf(context));
     return Scaffold(
       appBar: AppBar(title: Text(strings.text('tasks')), actions: [
-        IconButton(
-            tooltip: strings.text('logout'),
-            icon: const Icon(Icons.logout),
-            onPressed: () => context.read<AuthProvider>().logout()),
+        // The account's two ways out: signing out, and asking for it to be
+        // deleted - which Google Play asks every app with accounts to offer.
+        PopupMenuButton<String>(
+          key: const Key('account-menu'),
+          tooltip: strings.text('account'),
+          icon: const Icon(Icons.account_circle_outlined),
+          onSelected: (choice) => choice == 'logout'
+              ? context.read<AuthProvider>().logout()
+              : _requestDeletion(context, context.read<TaskProvider>().api),
+          itemBuilder: (_) => [
+            PopupMenuItem(value: 'logout', child: Text(strings.text('logout'))),
+            PopupMenuItem(value: 'delete', child: Text(strings.text('deleteAccount'))),
+          ],
+        ),
       ]),
       body: Consumer<TaskProvider>(builder: (context, provider, _) {
         if (provider.loading && provider.tasks.isEmpty)
@@ -126,4 +137,31 @@ class _TaskCard extends StatelessWidget {
               ]),
             ])),
       );
+}
+
+/// Asks, then sends the request to the organization's administrators.
+Future<void> _requestDeletion(BuildContext context, ApiService api) async {
+  final strings = PhaseOneStrings(Localizations.localeOf(context));
+  final messenger = ScaffoldMessenger.of(context);
+  final sure = await showDialog<bool>(
+    context: context,
+    builder: (dialog) => AlertDialog(
+      title: Text(strings.text('deleteAccount')),
+      content: Text(strings.text('deleteAccountExplain')),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialog, false), child: Text(strings.text('cancel'))),
+        FilledButton(
+            key: const Key('confirm-delete-account'),
+            onPressed: () => Navigator.pop(dialog, true),
+            child: Text(strings.text('deleteAccountSend'))),
+      ],
+    ),
+  );
+  if (sure != true) return;
+  try {
+    await api.requestAccountDeletion();
+    messenger.showSnackBar(SnackBar(content: Text(strings.text('deleteAccountSent'))));
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(strings.error(e))));
+  }
 }

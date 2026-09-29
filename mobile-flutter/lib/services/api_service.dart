@@ -467,6 +467,11 @@ class ApiService {
     return (response.data as Map).cast<String, dynamic>();
   }
 
+  /// Asks the organization's administrators to delete my account.
+  Future<void> requestAccountDeletion() async {
+    await _dio.post('/account/deletion-request');
+  }
+
   /// The organization's idea box, newest first.
   Future<List<Map<String, dynamic>>> getIdeas() async {
     final response = await _dio.get('/ideas');

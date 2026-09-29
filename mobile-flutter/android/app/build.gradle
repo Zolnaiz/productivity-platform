@@ -18,7 +18,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace 'com.example.productivity_platform'
+    namespace 'mn.bilzeno.productivity'
     compileSdkVersion flutter.compileSdkVersion
     buildToolsVersion '36.1.0'
     ndkVersion flutter.ndkVersion
@@ -40,7 +40,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.example.productivity_platform"
+        applicationId "mn.bilzeno.productivity"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutter.versionCode
@@ -78,17 +78,17 @@ android {
             dimension "environment"
             applicationIdSuffix ".dev"
             versionNameSuffix "-dev"
-            resValue "string", "app_name", "Productivity Dev"
+            resValue "string", "app_name", "Бүтээмж Dev"
         }
         staging {
             dimension "environment"
             applicationIdSuffix ".staging"
             versionNameSuffix "-staging"
-            resValue "string", "app_name", "Productivity Staging"
+            resValue "string", "app_name", "Бүтээмж Staging"
         }
         production {
             dimension "environment"
-            resValue "string", "app_name", "Productivity Platform"
+            resValue "string", "app_name", "Бүтээмж"
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.example.productivity_platform
+package mn.bilzeno.productivity
 
 import io.flutter.embedding.android.FlutterActivity
 

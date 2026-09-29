@@ -17,6 +17,7 @@ import { WeeklyCheckin } from './entities/weekly-checkin.entity';
 import { MonthlySummary } from './entities/monthly-summary.entity';
 import { GembaWalk } from './entities/gemba-walk.entity';
 import { GembaController } from './gemba.controller';
+import { AccountController } from './account.controller';
 import { GembaService } from './gemba.service';
 import { MonthlySummaryService } from './monthly-summary.service';
 import { CheckinsController } from './checkins.controller';
@@ -83,7 +84,7 @@ import { NotificationsService } from './notifications.service';
       Notification,
     ]),
   ],
-  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController, IdeasController, CheckinsController, GembaController],
+  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController, IdeasController, CheckinsController, GembaController, AccountController],
   providers: [
     OperationsService,
     IdeasService,

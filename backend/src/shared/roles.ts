@@ -74,6 +74,8 @@ const viewer = [
   'reports:read',
   // What others have suggested, and what became of it.
   'ideas:read',
+  // Anybody with an account may ask for it to be deleted.
+  'account:request-deletion',
 ];
 
 const user = [
