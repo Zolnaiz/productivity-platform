@@ -136,21 +136,21 @@ const DailyGoalsPage: React.FC = () => {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <Card>
-          <div className="text-sm text-gray-500">{t('goals.todayGoals')}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('goals.todayGoals')}</div>
           <div className="mt-2 text-3xl font-semibold">{stats.todayGoals.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t('goals.completedToday')}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('goals.completedToday')}</div>
           <div className="mt-2 text-3xl font-semibold">{stats.completedToday}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t('goals.completionRate')}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('goals.completionRate')}</div>
           <div className="mt-2 text-3xl font-semibold">{stats.rate}%</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t('goals.carryOver')}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('goals.carryOver')}</div>
           <div className="mt-2 text-3xl font-semibold">{stats.carryOverGoals.length}</div>
         </Card>
       </div>
@@ -200,7 +200,7 @@ const DailyGoalsPage: React.FC = () => {
               {stats.carryOverGoals.length ? (
                 stats.carryOverGoals.map(renderGoal)
               ) : (
-                <p className="text-sm text-gray-500">{t('goals.noCarryOver')}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('goals.noCarryOver')}</p>
               )}
             </div>
           </Card>
@@ -210,7 +210,7 @@ const DailyGoalsPage: React.FC = () => {
               {recentGoals.length ? (
                 recentGoals.map(renderGoal)
               ) : (
-                <p className="text-sm text-gray-500">{t('goals.noOtherGoals')}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('goals.noOtherGoals')}</p>
               )}
             </div>
           </Card>

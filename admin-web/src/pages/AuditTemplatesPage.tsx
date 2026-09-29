@@ -195,21 +195,21 @@ const AuditTemplatesPage: React.FC = () => {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <Card>
-          <div className="text-sm text-gray-500">{t('auditTemplates.templates')}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('auditTemplates.templates')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{templates.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t('auditTemplates.industries')}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('auditTemplates.industries')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{industries.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t('auditTemplates.categories')}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('auditTemplates.categories')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{categories.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t('auditTemplates.auditRuns')}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('auditTemplates.auditRuns')}</div>
           <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{runs.length}</div>
         </Card>
       </div>
@@ -355,7 +355,7 @@ const AuditTemplatesPage: React.FC = () => {
 
             <div className="space-y-3">
               {!loading && filteredTemplates.length === 0 && (
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
                   {t('auditTemplates.noTemplatesMatch')}
                 </div>
               )}
@@ -390,7 +390,7 @@ const AuditTemplatesPage: React.FC = () => {
           <Card title={t('auditTemplates.recentRuns')}>
             <div className="space-y-3">
               {!loading && runs.length === 0 && (
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
                   {t('dashboard.noAuditsYet')}
                 </div>
               )}
@@ -403,7 +403,7 @@ const AuditTemplatesPage: React.FC = () => {
                         <div className="font-medium text-gray-900 dark:text-white">
                           {template?.title || t('auditTemplates.auditRun')}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
                           {run.location || t('auditTemplates.noZone')}
                         </div>
                       </div>

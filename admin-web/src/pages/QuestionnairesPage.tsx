@@ -268,15 +268,15 @@ const QuestionnairesPage: React.FC = () => {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <Card>
-          <div className="text-sm text-gray-500">{t("assessments.templates")}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t("assessments.templates")}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
             {templates.length}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t("assessments.published")}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t("assessments.published")}</div>
           <div className="mt-2 text-2xl font-semibold text-green-700">
             {
               templates.filter((template) => template.status === "published")
@@ -285,13 +285,13 @@ const QuestionnairesPage: React.FC = () => {
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t("assessments.draft")}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t("assessments.draft")}</div>
           <div className="mt-2 text-2xl font-semibold text-yellow-700">
             {templates.filter((template) => template.status === "draft").length}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t("assessments.questions")}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t("assessments.questions")}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
             {templates.reduce(
               (sum, template) => sum + template.questions.length,

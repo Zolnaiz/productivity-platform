@@ -134,21 +134,21 @@ const ExpensesPage: React.FC = () => {
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('expenses.subtitle')}</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <Card>
-          <div className="text-sm text-gray-500">{t('expenses.totalExpenses')}</div>
-          <div className="mt-2 text-xl font-semibold text-gray-900 dark:text-white">{formatMnt(totalAll)}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('expenses.totalExpenses')}</div>
+          <div className="mt-2 break-words text-xl font-semibold tabular-nums text-gray-900 dark:text-white">{formatMnt(totalAll)}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t('expenses.approved')}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('expenses.approved')}</div>
           <div className="mt-2 text-xl font-semibold text-green-700">{formatMnt(totalApproved)}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t('expenses.waiting')}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('expenses.waiting')}</div>
           <div className="mt-2 text-xl font-semibold text-yellow-700">{formatMnt(totalSubmitted)}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t('expenses.records')}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t('expenses.records')}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{expenses.length}</div>
         </Card>
       </div>

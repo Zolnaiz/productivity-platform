@@ -208,15 +208,15 @@ const ResponsesPage: React.FC = () => {
         </Select>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <Card>
-          <div className="text-sm text-gray-500">{t("responses.responses")}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t("responses.responses")}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
             {responses.length}
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t("responses.submitted")}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t("responses.submitted")}</div>
           <div className="mt-2 text-2xl font-semibold text-green-700">
             {
               responses.filter((response) => response.status === "submitted")
@@ -225,7 +225,7 @@ const ResponsesPage: React.FC = () => {
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t("responses.reviewed")}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t("responses.reviewed")}</div>
           <div className="mt-2 text-2xl font-semibold text-blue-600">
             {
               responses.filter((response) => response.status === "reviewed")
@@ -234,7 +234,7 @@ const ResponsesPage: React.FC = () => {
           </div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-500">{t("responses.averageScore")}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t("responses.averageScore")}</div>
           <div className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
             {averageScore}%
           </div>
