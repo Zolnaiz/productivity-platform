@@ -92,11 +92,13 @@ async function bootstrap() {
   }
 
   const port = configService.get('PORT') || 3000;
-  await app.listen(port);
+  const host = configService.get<string>('API_HOST', '0.0.0.0');
+  await app.listen(port, host);
 
   console.log('==========================================');
   console.log('Productivity Platform Backend Started');
   console.log(`Environment: ${nodeEnv}`);
+  console.log(`Listening on: ${host}:${port}`);
   console.log(`API Server: http://localhost:${port}`);
   console.log(`API Documentation: ${enableSwagger ? `http://localhost:${port}/api/docs` : 'disabled'}`);
   console.log(`Database: ${configService.get('DB_HOST')}:${configService.get('DB_PORT')}`);

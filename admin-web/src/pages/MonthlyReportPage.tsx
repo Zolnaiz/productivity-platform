@@ -15,6 +15,8 @@ import { FiveSLayoutPlan } from '../types/fiveS.types';
 import { localDay, localMonth } from '../utils/localDay';
 import { scrollArea } from '../components/common/scrollArea';
 import MonthSummaryCard from '../components/reports/MonthSummaryCard';
+import MonthlyMeasurementsCard from '../components/reports/MonthlyMeasurementsCard';
+import { measurementCsvRows } from '../components/reports/monthlyMeasurements';
 
 const formatMnt = (value: number) =>
   new Intl.NumberFormat('mn-MN', {
@@ -267,6 +269,8 @@ const MonthlyReportPage: React.FC = () => {
       [c('improvementActions'), improvementActions],
       [c('averageProjectProgress'), `${report.kpis.averageProjectProgress}%`],
       [],
+      ...measurementCsvRows(report.measurements, t),
+      [],
       // The per-person rows go in the same file: a monthly report that has to
       // be read on screen and re-typed to be shared is not a report.
       ['person', 'tasksDone', 'tasksAssigned', 'hours', 'workLogs', 'dailyGoalsDone', 'dailyGoals', 'audits', 'assessments'].map(
@@ -440,6 +444,8 @@ const MonthlyReportPage: React.FC = () => {
       {report && (
         <>
           <MonthSummaryCard month={selectedMonth} canWrite={may('reports:close')} />
+
+          <MonthlyMeasurementsCard measurements={report.measurements} />
 
           <Card title={t('monthlyReport.executiveSummary')} subtitle={t('monthlyReport.reportingPeriod', { period: report.period })}>
             <dl className="divide-y divide-gray-200 dark:divide-gray-700">

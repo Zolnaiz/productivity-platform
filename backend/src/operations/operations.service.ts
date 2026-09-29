@@ -1,7 +1,7 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { Project } from './entities/project.entity';
 import { TaskSource, TaskStatus, WorkTask } from './entities/task.entity';
 import { WorkLog } from './entities/work-log.entity';
@@ -540,10 +540,45 @@ export class OperationsService {
     });
   }
 
-  createWorkLog(payload: Partial<WorkLog>, user: CurrentUser) {
+  /** Resolve links once so a task and its recorded hours always name the same project. */
+  private async resolveWorkLinks(
+    payload: { projectId?: string; taskId?: string },
+    user: CurrentUser,
+    organizationId: string | undefined,
+  ) {
+    const scope = { organizationId: organizationId ?? IsNull() };
+    let projectId = payload.projectId;
+
+    if (payload.taskId) {
+      const task = await this.tasks.findOne({
+        where: {
+          id: payload.taskId,
+          ...scope,
+          ...(user?.role === 'user' ? { assigneeId: user.id } : {}),
+        },
+      });
+      if (!task) throw apiError(ErrorCode.ResourceNotFound, 'Task');
+
+      if (projectId && projectId !== task.projectId) {
+        throw apiError(ErrorCode.ValidationFailed, 'projectId');
+      }
+      projectId = task.projectId;
+    }
+
+    if (projectId && !(await this.projects.findOne({ where: { id: projectId, ...scope } }))) {
+      throw apiError(ErrorCode.ResourceNotFound, 'Project');
+    }
+
+    return { projectId, taskId: payload.taskId };
+  }
+
+  async createWorkLog(payload: Partial<WorkLog>, user: CurrentUser) {
+    const organizationId = this.resolveOrganizationId(user, payload.organizationId);
+    const links = await this.resolveWorkLinks(payload, user, organizationId);
     const log = this.workLogs.create({
       ...payload,
-      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      ...links,
+      organizationId,
       userId: user?.id,
       logDate: payload.logDate || todayIn(),
     });
@@ -552,6 +587,7 @@ export class OperationsService {
 
   async createDailyWorkLog(payload: Partial<WorkLog>, user: CurrentUser) {
     const organizationId = this.resolveOrganizationId(user, payload.organizationId);
+    const links = await this.resolveWorkLinks(payload, user, organizationId);
     const logDate = payload.logDate || todayIn();
 
     return this.workLogs.manager.transaction(async (manager) => {
@@ -560,6 +596,7 @@ export class OperationsService {
       const log = await workLogs.save(
         workLogs.create({
           ...payload,
+          ...links,
           organizationId,
           userId: user?.id,
           logDate,
@@ -589,10 +626,13 @@ export class OperationsService {
     });
   }
 
-  createTimeEntry(payload: Partial<TimeEntry>, user: CurrentUser) {
+  async createTimeEntry(payload: Partial<TimeEntry>, user: CurrentUser) {
+    const organizationId = this.resolveOrganizationId(user, payload.organizationId);
+    const links = await this.resolveWorkLinks(payload, user, organizationId);
     const entry = this.timeEntries.create({
       ...payload,
-      organizationId: this.resolveOrganizationId(user, payload.organizationId),
+      ...links,
+      organizationId,
       userId: user?.id,
       workDate: payload.workDate || todayIn(),
     });

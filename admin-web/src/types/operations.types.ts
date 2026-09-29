@@ -191,8 +191,26 @@ export interface ClosedMonth {
   closedBy: string | null;
 }
 
+export interface ReportMeasurement {
+  /** Null means there were no eligible records, not zero performance. */
+  value: number | null;
+  numerator: number;
+  denominator: number;
+  excluded: number;
+}
+
+export interface MonthlyMeasurements {
+  version: 1;
+  timeZone: string;
+  onTimeDelivery: ReportMeasurement;
+  zoneAuditScore: ReportMeasurement;
+  workLinkage: ReportMeasurement;
+}
+
 export interface OperationsMonthlyReport {
   period: string;
+  /** Absent on older servers and demo snapshots that never measured these. */
+  measurements?: MonthlyMeasurements;
   /**
    * When the month was closed and by whom, or nothing while it is open.
    * A closed month is read from what was stored, so its figures no longer

@@ -19,14 +19,30 @@ diagrams, and evaluation write-up can proceed alongside implementation and may
 take another 1–2 weeks depending on the university requirements. A smaller
 defensible MVP that includes phases 1, 2, and a limited pilot is about 3–5 weeks.
 
-## Execution status — 2026-09-25
+## Execution status — 2026-09-30
 
-Phase 1 is in progress on `codex/productivity-core-integrity`. The first code
-pass secures task and work-record ownership, pairs a daily log and its time
-entry in one database transaction, prevents linked hours from being counted
-twice, and adds organization/per-person daily-goal figures to monthly reports.
-The migration has been added but has not been applied. Build and test
-verification remain before this phase can be considered complete.
+The code is on `codex/productivity-core-integrity`. Treat the estimates above as
+the original planning baseline, not as a statement that all five phases remain
+unimplemented. The audit in `PRODUCT_AUDIT_REPORT_2026-09-29.md` records the state
+before the daily-work follow-up described here.
+
+| Phase | Implemented | Still needed |
+| --- | --- | --- |
+| 1. Trust the records | Authenticated authorship, transactionally paired log/time entry, single-count report totals, organization/per-person goals, tenant-scoped project/task lookup and matching links | Review legacy unlinked hours before importing pilot records; confirm department-manager visibility policy with the pilot organization |
+| 2. Daily employee workflow | Web and Flutter project/task selection (including completed tasks), blockers, failure-preserved drafts, Flutter offline queued linkage | Full offline read cache, server retry idempotency and queued evidence uploads |
+| 3. Manager execution view | Task assignment, due dates, live progress board, inbox and reminder infrastructure | Milestones, dependencies and verification of corrective actions |
+| 4. Period reports and archive | Monthly close snapshots, reopen permissions, period rollups and exports | Required correction reasons, approval policy and retention agreement for the pilot |
+| 5. Deploy and evaluate | Docker deployment files and isolated live verification runner | Target organization's deployment, mail/file-store setup, user onboarding and measured before/after pilot |
+
+The daily-work flow now keeps a task's project on both the narrative and its time
+entry. A task from another organization, or another worker's task when submitted
+by an employee, is rejected. A conflicting task/project pair is rejected before
+anything is saved. General work can still be recorded without either link.
+
+Run `scripts/verify-live.ps1 -IncludeMobile` to repeat the real PostgreSQL, API,
+browser and Flutter client checks on a fresh disposable database. The current
+verification results are kept in the README; local verification is not evidence
+of deployment or improved employee productivity.
 
 ## Product principles
 
@@ -37,16 +53,23 @@ verification remain before this phase can be considered complete.
 - Describe productivity as measurable outcomes and flow, not as hours or activity volume alone.
 - Prefer a small set of complete daily workflows over adding disconnected modules.
 
-## Current review priorities
+## Next development priorities
 
-1. Secure attribution for work logs and time entries; do not accept a caller-selected user as the author.
-2. Link the work-log/time-entry pair and calculate hours once.
-3. Make organization report goals include the intended people and show per-person totals.
-4. Confirm whether ordinary employees may read all colleagues' work logs and reports; make the policy explicit in API permissions.
-5. Connect a daily entry to a project or task and expose that flow on mobile.
-6. Add a live manager view and explicitly define its refresh/update delay.
-7. Add report period selection, approval, immutable archived copies, and half-year/year summaries.
-8. Pilot the system and measure before/after time-to-report, on-time completion, overdue work, 5S audit score, and employee adoption.
+1. Define a small pilot KPI set: on-time completion, overdue work, 5S audit score,
+   and reporting effort. Specify period, numerator/denominator, source records and
+   missing-data behavior before implementing a configurable KPI model. Hours alone
+   must not become a productivity score.
+2. Complete the corrective-action loop: source finding, root cause, accountable
+   owner, evidence, manager verification and reassessment.
+3. Make offline retries idempotent on the server, then add read caching and queued
+   photographs without risking duplicate daily logs after uncertain responses.
+4. Require an explanation when a closed monthly report is reopened, and preserve
+   its previous approved version and the correction history.
+5. Verify a deployment with the pilot organization's mail and attachment storage,
+   rehearse a restore, then measure adoption and before/after results.
+
+Each next slice should have a working API, applicable web/mobile flow, permission
+checks and a real-server regression before another module is added.
 
 ## Risks and dependencies
 

@@ -9,6 +9,7 @@ class WorkLog {
     required this.logDate,
     this.hours = 0,
     this.taskId,
+    this.projectId,
     this.blockers,
     this.nextSteps,
   });
@@ -20,6 +21,7 @@ class WorkLog {
   final String logDate;
   final double hours;
   final String? taskId;
+  final String? projectId;
   final String? blockers;
   final String? nextSteps;
 
@@ -30,6 +32,7 @@ class WorkLog {
         // Numeric columns arrive as strings from PostgreSQL.
         hours: double.tryParse('${json['hours'] ?? 0}') ?? 0,
         taskId: json['taskId'] as String?,
+        projectId: json['projectId'] as String?,
         blockers: json['blockers'] as String?,
         nextSteps: json['nextSteps'] as String?,
       );

@@ -301,6 +301,11 @@ class ApiService {
     return (response.data as List).cast<Map<String, dynamic>>();
   }
 
+  Future<List<Map<String, dynamic>>> getProjects() async {
+    final response = await _dio.get('/projects');
+    return (response.data as List).cast<Map<String, dynamic>>();
+  }
+
   Future<Map<String, dynamic>> updateTask(
       String id, Map<String, dynamic> changes) async {
     final response = await _dio.patch('/tasks/$id', data: changes);

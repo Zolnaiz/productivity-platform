@@ -21,11 +21,13 @@ class Network {
 
   ResponseBody reply(RequestOptions request) {
     if (!online) {
-      throw DioException.connectionError(requestOptions: request, reason: 'offline');
+      throw DioException.connectionError(
+          requestOptions: request, reason: 'offline');
     }
     if (request.method != 'GET') sent.add('${request.method} ${request.path}');
     if (request.path == '/refused') {
-      return jsonReply({'success': false, 'errorCode': 'NOT_FOUND'}, status: 404);
+      return jsonReply({'success': false, 'errorCode': 'NOT_FOUND'},
+          status: 404);
     }
     if (request.method == 'GET') return jsonReply(envelope([]));
     return jsonReply(envelope({'id': 'server-id'}), status: 201);
@@ -40,18 +42,22 @@ final _template = AuditTemplate.fromJson({
   ],
 });
 
-final _zone = FiveSZone.fromJson({'id': 'z1', 'code': 'A1', 'name': 'Tool wall'});
+final _zone =
+    FiveSZone.fromJson({'id': 'z1', 'code': 'A1', 'name': 'Tool wall'});
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('keeps an audit walked with no signal, and sends it when the signal is back', () async {
+  test(
+      'keeps an audit walked with no signal, and sends it when the signal is back',
+      () async {
     final network = Network();
     final (api, _, _) = await makeApi(network.reply);
     final outbox = Outbox(api);
     final fiveS = FiveSProvider(api, outbox: outbox);
 
-    final recorded = await fiveS.submit(zone: _zone, template: _template, answers: {'q1': 'yes'});
+    final recorded = await fiveS
+        .submit(zone: _zone, template: _template, answers: {'q1': 'yes'});
 
     expect(recorded?.score, 100);
     expect(fiveS.lastKept, isTrue);
@@ -67,7 +73,11 @@ void main() {
   test('survives the app being closed', () async {
     final network = Network();
     final (api, _, _) = await makeApi(network.reply);
-    await Outbox(api).keep(method: 'POST', path: '/audit-runs', kind: 'audit', data: {'score': 80});
+    await Outbox(api).keep(
+        method: 'POST',
+        path: '/audit-runs',
+        kind: 'audit',
+        data: {'score': 80});
 
     final reopened = Outbox(api);
     await reopened.restore();
@@ -75,7 +85,9 @@ void main() {
     expect(reopened.pending.single.data, {'score': 80});
   });
 
-  test('sends in the order the changes were made, and stops while still offline', () async {
+  test(
+      'sends in the order the changes were made, and stops while still offline',
+      () async {
     final network = Network();
     final (api, _, _) = await makeApi(network.reply);
     final outbox = Outbox(api);
@@ -104,11 +116,13 @@ void main() {
     expect(network.sent, ['POST /refused', 'POST /after']);
   });
 
-  test('keeps a day written up offline on today’s list, hours counted', () async {
+  test('keeps a day written up offline on today’s list, hours counted',
+      () async {
     final network = Network();
     final (api, _, _) = await makeApi(network.reply);
     final outbox = Outbox(api);
-    final logs = WorkLogProvider(api, outbox: outbox, clock: () => DateTime(2026, 9, 28, 17));
+    final logs = WorkLogProvider(api,
+        outbox: outbox, clock: () => DateTime(2026, 9, 28, 17));
 
     expect(await logs.submit(summary: 'Cleared the dock', hours: 2), isTrue);
 
@@ -117,20 +131,68 @@ void main() {
     expect(outbox.pending.single.path, '/work-logs/daily');
   });
 
+  test('project and task links survive an offline write, restart and replay',
+      () async {
+    final network = Network();
+    final (api, adapter, _) = await makeApi(network.reply);
+    final outbox = Outbox(api);
+    final logs = WorkLogProvider(api,
+        outbox: outbox, clock: () => DateTime(2026, 9, 28, 17));
+    const payload = {
+      'summary': 'Cleared the dock',
+      'hours': 2.5,
+      'logDate': '2026-09-28',
+      'projectId': 'p1',
+      'taskId': 't1',
+      'blockers': 'Waiting for labels',
+      'nextSteps': 'Mark the shelves',
+    };
+
+    expect(
+        await logs.submit(
+          summary: 'Cleared the dock',
+          hours: 2.5,
+          projectId: 'p1',
+          taskId: 't1',
+          blockers: 'Waiting for labels',
+          nextSteps: 'Mark the shelves',
+        ),
+        isTrue);
+    expect(logs.today.single.projectId, 'p1');
+    expect(logs.today.single.taskId, 't1');
+    expect(logs.today.single.nextSteps, 'Mark the shelves');
+    expect(outbox.pending.single.data, payload);
+
+    final reopened = Outbox(api);
+    await reopened.restore();
+    expect(reopened.pending.single.data, payload);
+    network.online = true;
+    expect(await reopened.flush(), 1);
+    expect(reopened.pending, isEmpty);
+    final sent = adapter.requests
+        .lastWhere((request) => request.path == '/work-logs/daily');
+    expect(sent.data, payload);
+  });
+
   test('without an outbox, an offline change fails as before', () async {
     final network = Network();
     final (api, _, _) = await makeApi(network.reply);
     final fiveS = FiveSProvider(api);
 
-    expect(await fiveS.submit(zone: _zone, template: _template, answers: {'q1': 'yes'}), isNull);
+    expect(
+        await fiveS
+            .submit(zone: _zone, template: _template, answers: {'q1': 'yes'}),
+        isNull);
     expect(fiveS.error, isNotNull);
   });
 
-  testWidgets('says what is waiting on every tab, and sends it on request', (tester) async {
+  testWidgets('says what is waiting on every tab, and sends it on request',
+      (tester) async {
     final network = Network();
     final (api, _, _) = await makeApi(network.reply);
     final outbox = Outbox(api);
-    await tester.runAsync(() => outbox.keep(method: 'POST', path: '/audit-runs', kind: 'audit'));
+    await tester.runAsync(
+        () => outbox.keep(method: 'POST', path: '/audit-runs', kind: 'audit'));
     final auth = AuthProvider(apiService: api);
     await auth.fromJson({
       'user': {'id': 'u1', 'email': 'op@example.com', 'fullName': 'Operator'},
@@ -142,7 +204,8 @@ void main() {
         ChangeNotifierProvider.value(value: outbox),
         ChangeNotifierProvider.value(value: auth),
         ChangeNotifierProvider.value(value: TaskProvider(api, outbox: outbox)),
-        ChangeNotifierProvider.value(value: WorkLogProvider(api, outbox: outbox)),
+        ChangeNotifierProvider.value(
+            value: WorkLogProvider(api, outbox: outbox)),
         ChangeNotifierProvider.value(value: InboxProvider(api)),
         ChangeNotifierProvider.value(value: IdeaProvider(api)),
         ChangeNotifierProvider.value(value: FiveSProvider(api, outbox: outbox)),
@@ -157,11 +220,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('outbox-banner')), findsOneWidget);
-    expect(find.text('1 kept on this phone, sent when the network is back.'), findsOneWidget);
+    expect(find.text('1 kept on this phone, sent when the network is back.'),
+        findsOneWidget);
 
     network.online = true;
     await tester.tap(find.text('Send now'));
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester
+        .runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pumpAndSettle();
 
     expect(network.sent, contains('POST /audit-runs'));

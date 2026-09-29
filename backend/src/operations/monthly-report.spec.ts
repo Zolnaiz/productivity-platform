@@ -72,3 +72,54 @@ describe('what a month says was finished', () => {
     expect(own.totals.totalHours).toBe(0);
   });
 });
+
+describe('monthly measurement scope and snapshots', () => {
+  it('uses only the reader’s completed tasks, audits and logs', () => {
+    const all = organization({
+      tasks: [
+        { id: 'own', assigneeId: 'u1', status: 'done', completedAt: '2026-03-02', dueDate: '2026-03-01' },
+        { id: 'other', assigneeId: 'u2', status: 'done', completedAt: '2026-03-01', dueDate: '2026-03-02' },
+        { id: 'legacy', assigneeId: 'u1', status: 'done', dueDate: '2026-03-03' },
+        { id: 'open', assigneeId: 'u1', status: 'todo', dueDate: '2026-03-03' },
+      ],
+      auditRuns: [
+        { auditorId: 'u1', createdAt: '2026-03-05', zoneId: 'z1', status: 'submitted', score: 40 },
+        { auditorId: 'u2', createdAt: '2026-03-05', zoneId: 'z1', status: 'completed', score: 100 },
+      ],
+      workLogs: [
+        { userId: 'u1', logDate: '2026-03-05', hours: 1000 },
+        { userId: 'u2', logDate: '2026-03-05', projectId: 'p1', hours: 1 },
+      ],
+    });
+    const own = report(all, '2026-03', { id: 'u1', ownOnly: true });
+    expect(own.measurements.onTimeDelivery).toEqual({ value: 0, numerator: 0, denominator: 1, excluded: 1 });
+    expect(own.measurements.zoneAuditScore).toEqual({ value: 40, numerator: 40, denominator: 1, excluded: 0 });
+    expect(own.measurements.workLinkage).toEqual({ value: 0, numerator: 0, denominator: 1, excluded: 0 });
+    expect(report(all, '2026-03').measurements.onTimeDelivery.value).toBe(50);
+    expect(own.totals.completedTasks).toBe(2); // The established legacy fallback stays in totals only.
+  });
+
+  it('stores the selection clock and preserves month-edge completions after the organization changes time zone', () => {
+    const all = organization({ tasks: [{
+      id: 'edge', status: 'done', dueDate: '2026-04-01', completedAt: '2026-03-31T18:00:00Z',
+    }] });
+    const stored = JSON.parse(JSON.stringify(selectMonthRecords(all, '2026-04', 'Asia/Ulaanbaatar')));
+    expect(stored.measurementTimeZone).toBe('Asia/Ulaanbaatar');
+
+    const closed = buildMonthlyReport(stored, '2026-04', team, 'UTC');
+    expect(closed.completedTasks.map((task) => task.id)).toEqual(['edge']);
+    expect(closed.measurements.timeZone).toBe('Asia/Ulaanbaatar');
+    expect(closed.measurements.onTimeDelivery).toEqual({ value: 100, numerator: 1, denominator: 1, excluded: 0 });
+  });
+
+  it('uses the current organization clock for older snapshots without a stored clock', () => {
+    const stored = selectMonthRecords(organization({ tasks: [{
+      id: 'edge', status: 'done', dueDate: '2026-04-01', completedAt: '2026-03-31T18:00:00Z',
+    }] }), '2026-04', 'Asia/Ulaanbaatar');
+    delete stored.measurementTimeZone;
+
+    const legacy = buildMonthlyReport(stored, '2026-04', team, 'UTC');
+    expect(legacy.measurements.timeZone).toBe('UTC');
+    expect(legacy.measurements.onTimeDelivery.value).toBeNull();
+  });
+});

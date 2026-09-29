@@ -60,6 +60,7 @@ test('an operator writes up their day and walks an area’s checklist', async ({
 
   // The day written up.
   await page.goto('/work-logs');
+  await page.getByRole('button', { name: 'Add daily work log' }).click();
   const summary = `Operator write-up ${Date.now()}`;
   await page.getByLabel('What did you finish?').fill(summary);
   await page.getByLabel('Hours').fill('2');

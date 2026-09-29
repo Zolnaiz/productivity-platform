@@ -1,6 +1,24 @@
 # Roadmap
 
-## What comes next, in order
+## Current priorities — 2026-09-30
+
+The [execution plan](PRODUCT_EXECUTION_PLAN.md) is the current status and next-work
+list. Its phases distinguish code that exists, checks that have run, and work
+that needs an actual pilot. The 2026-09-18 notes below retain earlier design
+rationale and must not be read as an entirely unfinished backlog.
+
+- Daily work now links a project/task on web and mobile, including tasks already
+  completed. The API verifies ownership and project consistency before recording
+  the log and its single paired time entry.
+- `scripts/verify-live.ps1 -IncludeMobile` runs migrations, write smoke, browser
+  and Flutter API checks against disposable Docker PostgreSQL. Docker and Flutter
+  are available on this development machine.
+- Next: traceable pilot KPIs, corrective-action verification, safe offline
+  retry/idempotency, report-correction history, and a measured organization pilot.
+- Deployment still needs the target organization's server, mail transport,
+  attachment storage and backup/restore rehearsal. Local checks do not replace it.
+
+## Earlier sequencing and design notes — 2026-09-18
 
 Written 2026-09-18, after the floor plan became a floor-plan tool and the
 projects and monthly report stopped reporting numbers nobody measured. The
@@ -10,10 +28,10 @@ order is by what blocks the next thing, not by what is most interesting.
 
 Nothing below matters if it only exists on a branch and on one laptop.
 
-- **Merge `feat/design-system-adoption` into `main`.** It is 70 commits ahead.
-  CI runs on pull requests and on `main`, so every one of those commits has
-  been verified locally and by nothing else. This is one pull request and it
-  should happen before the branch grows again.
+- **Review and publish the current branch.** Work is now on
+  `codex/productivity-core-integrity`; the earlier `feat/design-system-adoption`
+  branch/count is historical. Recheck the current upstream diff and remote CI
+  before opening or merging a release PR.
 - **The running API checks its own attachments.** `GET /api/attachments/check`
   and a button in Settings name every attachment whose bytes are missing, asked
   where the store actually is. The script run from the host saw an empty
@@ -150,8 +168,9 @@ could be built honestly.
 - **5S on the phone**: the areas with their last score; an area's open red
   tags, each photographed with the phone's camera, a new tag raised from the
   floor, "cleaned today"; and the checklist
-  answered at the area, recorded against the person's own layer. What is left is the zone QR: scanning an area's label
-  opens its page in the phone's browser, not the app.
+  answered at the area, recorded against the person's own layer. In-app QR
+  scanning is implemented. Opening the native app from a link scanned outside it
+  still needs verified App Links on the deployment domain.
 
 ### 6. Dependencies
 
@@ -179,11 +198,10 @@ could be built honestly.
 
 ### 7. Keep it honest as it grows
 
-- **The browser smoke run is in CI** — sign in, open the plan, draw a wall,
-  switch the theme, open a zone the way its label does. What it does not yet
-  cover is anything that needs the server: signing in for real, saving a plan
-  and reading it back, raising a task and seeing the notification. That needs
-  a Postgres service in the job and a seeded organization.
+- **Browser checks include a real server.** CI has both demo browser checks and
+  a live-API job with fresh PostgreSQL, migrations, seed, writes, browser saves,
+  role-specific navigation and accessibility checks, and the Flutter API client.
+  The local isolated runner now exercises those paths too.
 - **Visual regression screenshots** for the pages that are now designed rather
   than assembled.
 
@@ -198,7 +216,7 @@ could be built honestly.
   looking functional.
 - Invitations are emailed when a mail transport is configured
   (`MAIL_TRANSPORT=smtp`); with `log` they are shared by hand, as before.
-- Add browser-driven API smoke automation for login, dashboard load, and core module navigation.
+- Keep live browser regressions alongside changes to login, dashboard and module navigation; the runner and CI already exercise them.
 - Decide whether runtime auth tables should remain as dedicated operations-platform migrations or be merged into the legacy initial migration set before first production deployment.
 - Seeded demo content is still written in one language in the source. Unlike
   error messages, this is organization data rather than UI copy, so it belongs
@@ -244,7 +262,7 @@ at once are all in; section 3 describes them.
 ## Next Mobile Work
 
 - Push notifications, server side first (see section 5).
-- The zone QR in the app: scanning an area's label to open its checklist.
+- Verified Android App Links for QR links opened outside the app; in-app scanning is implemented.
 - An iOS build.
 
 ## Recently Completed Hardening
@@ -455,13 +473,11 @@ at once are all in; section 3 describes them.
 - Add production error reporting and alerting for observability.
 - Add Redis-backed distributed rate limiting if the API runs on multiple backend instances.
 
-## Known Constraints
+## Current environment and external dependencies
 
-- Docker cannot start on the development machine: virtualisation is disabled
-  in firmware and enabling it in the ASUS PRIME H310M-F BIOS has not taken.
-  Nothing depends on it any more. `npm run migration:check` applies every
-  migration to PostgreSQL compiled to WebAssembly, in process, and the runtime
-  smoke runs against a native PostgreSQL 18 install — both verified passing on
-  2026-09-16.
-- Root Docker compose and production profile configs have been validated with `docker compose config`, but image build/run still needs Docker daemon.
-- Flutter CLI is not installed on PATH yet, so mobile `flutter analyze` / test checks cannot run until SDK setup finishes.
+- Docker Desktop responds and can run isolated PostgreSQL locally; the old BIOS
+  virtualization blocker no longer describes this machine.
+- Flutter 3.47.2 is on PATH and Android Studio provides the Android toolchain.
+  The README records the latest actual test/build results.
+- iOS validation, a production signing key, deployment-domain App Links, live
+  SMTP and a real organization pilot still require their respective environments.

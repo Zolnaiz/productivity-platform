@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../models/project_model.dart';
 import '../models/work_log_model.dart';
 import '../services/api_service.dart';
 import '../services/outbox.dart';
@@ -21,15 +22,21 @@ class WorkLogProvider extends ChangeNotifier {
   final DateTime Function() _clock;
 
   List<WorkLog> today = [];
+  List<Project> projects = [];
   bool loading = false;
   bool saving = false;
   Object? error;
+  Object? projectsError;
 
   String get day => localDay(_clock());
 
   double get hoursToday => today.fold(0, (sum, log) => sum + log.hours);
 
   bool get sessionExpired {
+    return _unauthorized(error) || _unauthorized(projectsError);
+  }
+
+  bool _unauthorized(Object? error) {
     try {
       final dynamic failure = error;
       return failure.response?.statusCode == 401;
@@ -41,16 +48,30 @@ class WorkLogProvider extends ChangeNotifier {
   Future<void> load() async {
     loading = true;
     error = null;
+    projectsError = null;
     notifyListeners();
+    await Future.wait([_loadLogs(), _loadProjects()]);
+    loading = false;
+    notifyListeners();
+  }
+
+  Future<void> _loadLogs() async {
     try {
       final logs = (await _api.getWorkLogs()).map(WorkLog.fromJson);
       final date = day;
       today = logs.where((log) => log.logDate == date).toList();
     } catch (e) {
       error = e;
-    } finally {
-      loading = false;
-      notifyListeners();
+    }
+  }
+
+  Future<void> _loadProjects() async {
+    try {
+      projects = (await _api.getProjects()).map(Project.fromJson).toList();
+    } catch (e) {
+      // A missing connection must not discard the last usable choices or
+      // prevent a general work log from being written.
+      projectsError = e;
     }
   }
 
@@ -61,6 +82,7 @@ class WorkLogProvider extends ChangeNotifier {
     required String summary,
     required double hours,
     String? taskId,
+    String? projectId,
     String? blockers,
     String? nextSteps,
   }) async {
@@ -73,20 +95,24 @@ class WorkLogProvider extends ChangeNotifier {
       'hours': hours,
       'logDate': day,
       if (taskId != null) 'taskId': taskId,
+      if (projectId != null) 'projectId': projectId,
       if (blockers != null && blockers.isNotEmpty) 'blockers': blockers,
       if (nextSteps != null && nextSteps.isNotEmpty) 'nextSteps': nextSteps,
     };
     try {
       final saved = await _api.createDailyWorkLog(entry);
       final raw = saved['workLog'];
-      final log = WorkLog.fromJson(
-          raw is Map ? raw.cast<String, dynamic>() : saved);
+      final log =
+          WorkLog.fromJson(raw is Map ? raw.cast<String, dynamic>() : saved);
       today = [log, ...today];
       return true;
     } catch (e) {
       if (outbox != null && neverSent(e)) {
         await outbox!.keep(
-            method: 'POST', path: '/work-logs/daily', kind: 'workLog', data: entry);
+            method: 'POST',
+            path: '/work-logs/daily',
+            kind: 'workLog',
+            data: entry);
         // On today's list at once, so the hours add up; the server's copy
         // replaces it when the list is read again.
         today = [

@@ -35,7 +35,7 @@ $mobile = Join-Path $root "mobile-flutter"
 
 Invoke-Step "Flutter version" $mobile "flutter --version"
 Invoke-Step "Flutter pub get" $mobile "flutter pub get"
-Invoke-Step "Flutter analyze" $mobile "flutter analyze --no-fatal-infos --no-fatal-warnings"
+Invoke-Step "Flutter analyze" $mobile "flutter analyze"
 
 if (-not $SkipTests) {
   if (Test-Path (Join-Path $mobile "test")) {

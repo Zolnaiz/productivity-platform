@@ -23,7 +23,7 @@ Productivity Platform is a web-based operations and productivity management syst
 admin-web/        React + TypeScript admin web app
 backend/          NestJS API for operations data
 docs/             Product, setup, and verification docs
-mobile-flutter/   Mobile app workspace placeholder/reference
+mobile-flutter/   Flutter employee app for Android
 scripts/          Repository-level helper scripts
 ```
 
@@ -54,6 +54,19 @@ To include PostgreSQL runtime smoke plus browser login smoke:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\verify.ps1 -IncludeE2E
 ```
+
+To run just the live stack checks, including the Flutter API client:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\verify-live.ps1 -IncludeMobile
+```
+
+This creates a disposable Docker PostgreSQL on port 55433, builds the current
+API on port 3300, and tests the browser on port 3301. It runs migrations, seed,
+API writes and the live browser tests, then stops its processes and removes
+only its test database. Existing databases and servers are not reused. See
+[Verification](docs/VERIFY.md) for options and [Execution Plan](docs/PRODUCT_EXECUTION_PLAN.md)
+for current development priorities.
 
 ## Frontend
 
@@ -192,7 +205,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - The audit trail is written by the server. An interceptor in front of every route records each accepted change — actor, role, module, action, target, method, route, status — taken from the verified token and the route rather than from any request body, so a client cannot write its own history. Reads are not recorded, refused requests are not recorded, and the table is append-only: there is no route that writes, edits or removes an entry.
 - Failing to write an audit entry never fails the request it describes; the gap is logged instead.
 - Client route guards name the permission the server checks rather than a role list of their own. Those lists had drifted in both directions: an `admin` could open the workspace settings and then be refused the save, while an `organization_admin` was locked out of an audit log the server would have served. The guard fails open when the permission list is unavailable, because it exists to avoid offering an unusable page — the server is the boundary.
-- Departments are still kept in the browser only, and that screen says so rather than presenting a local list as a shared record.
+- Departments are stored by the API and scoped to the organization; their people and areas are counted from the corresponding records.
 - Right-clicking the plan opens a menu of what applies to whatever is under the pointer, with the stacking actions live only for a drawn object and paste live only once something has been copied. Overlapping objects are reordered from it: SVG draws in array order, so the array is the stacking order and no `zIndex` column exists to fall out of step with it.
 - Areas are copied with Ctrl+C/Ctrl+V or duplicated with Ctrl+D, singly or a whole selection at a time. A copy keeps how the area is set up and inherits none of what happened in it: no audit score, no last-audit or last-cleaned date, no red tags. Each copy gets its own code, because two areas sharing one on a printed label sheet is a real problem on a shop floor.
 - A new workspace is asked how to begin — trace a drawing it already has, start from a named shell at real dimensions, or draw from scratch — rather than being handed a pre-drawn sample office. An empty plan used to be silently replaced with one, so somebody signing up saw a building that was not theirs with areas named Reception and Workstations, and their first job was working out that none of it was real. A template is walls and nothing else, and the screen says so.
@@ -301,7 +314,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Unused Socket.IO dependencies were removed and backend `js-yaml` is pinned through overrides to keep dependency audits clean.
 - PostgreSQL backup/restore guidance is documented for Docker and non-Docker environments.
 - Light, dark and follow-the-system are switchable from the header, and so is Mongolian or English. Both capabilities were complete and unreachable: the theme context has supported all three modes from the start with every component styled for them, and the language switch was buried in Settings — which somebody who cannot read the current language has to find first.
-- Frontend admin routes are role-guarded (`admin`/`super_admin`; audit log is `super_admin` only).
+- Frontend administrative routes use the permissions returned by the API; the server enforces each route's permission independently.
 - Frontend production mode does not silently fall back to demo data for real backend failures.
 - Frontend demo mode is disabled in production unless `VITE_ENABLE_DEMO_MODE=true`.
 - Frontend API calls clear stale `demo-token` auth data instead of sending it in production.
@@ -315,19 +328,31 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-As of 2026-09-29, on branch `codex/productivity-core-integrity`:
+As of 2026-09-30, on branch `codex/productivity-core-integrity`:
 
-- Backend: 830 tests passing; lint clean; the migration check applies all 38 runtime/operations
-  migrations to a real PostgreSQL (WebAssembly) and checks every mapped
-  column, including the ones every entity inherits
-- Frontend: 1017 tests passing, 18 browser checks passing and 21 against the real server (every page checked by axe for WCAG 2 AA in both themes, and as an operator and the owner on real data), lint and build clean;
-  a test fails the build if Mongolian, or English markup text, is written straight into a screen
-- Mobile: `flutter analyze` clean, 116 tests passing (the sign-in and every tab checked against Flutter's tap-target, label and contrast guidelines in both themes and at twice the text size); the integration test
-  passes on an Android 35 emulator against a running backend (sign in, tasks,
-  a day written up, the inbox, a 5S check recorded with a photograph, an area
-  cleaned)
-- Live API: against a fresh PostgreSQL 16, the smoke test's reads of every page
-  and, with `SMOKE_WRITES=true`, one of every write pass - which is how the
-  broken notification inbox was found. CI runs both on every push.
-- Production compose stack: built from scratch, migrations applied in the
-  container, seeded, smoke test passing through nginx's `/api` proxy
+- Backend: **927 tests passing in 65 suites**; lint and build clean. All 38
+  runtime/operations migrations pass the PostgreSQL WebAssembly schema check and
+  are also applied to fresh Docker PostgreSQL 16 by the live runner.
+- Frontend: **1,033 tests passing in 107 files**; lint and production build pass.
+  The existing large-bundle warning remains (main chunk about 846 kB).
+- Browser: **39 checks passing, none skipped**: 18 demo and 21 live checks,
+  including owner/operator navigation, accessibility, and a completed task's
+  project, blocker and single paired time entry persisted through a reload.
+- Mobile: **125 local tests passing**, one environment-gated live test skipped in
+  that run; `flutter analyze` clean. The live test was then run separately and
+  **passed** against the disposable API, checking login/refresh, projects, tasks,
+  canonical daily work links, persisted hours and inbox.
+- Android: production-flavor release APK builds successfully (55.9 MB). This
+  verification build uses `https://example.invalid/api` and the local debug key;
+  set the deployment API URL and production signing key before distribution.
+- Live API: read/write smoke passes against disposable Docker PostgreSQL 16,
+  including inferred task/project links and rejected mismatches. Test API,
+  database and web endpoints bind to loopback; test processes/database are
+  cleaned up. Logs are retained under `tmp/`.
+- Dependency audits: **0 vulnerabilities** in both npm projects. Production
+  Docker Compose configuration passes for default/cache/backup/monitoring.
+
+CI defines these checks for pull requests and pushes to `main`/`master`; a remote
+CI run has not been claimed for these local changes. Earlier production-compose
+and Android-emulator runs are described in the deployment/mobile docs and were
+not repeated as a deployment or emulator test in this pass.

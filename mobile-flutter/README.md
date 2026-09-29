@@ -17,6 +17,11 @@ else in the app - the earlier expense, questionnaire, report and profile
 screens were built on sample data, never spoke to the server, and have been
 removed.
 
+Today can link a write-up to a project, an assigned task (including finished
+tasks), or neither. Choosing a task selects its project; changing the project
+clears an incompatible task. The same project/task links and hours are retained
+in the phone's outbox when offline and sent when the connection returns.
+
 ## Point the app at an API server
 
 The API base URL includes the `/api` prefix. You can set it at build or run time
@@ -95,7 +100,10 @@ Set `MOBILE_TEST_EMAIL` and `MOBILE_TEST_PASSWORD` with `--dart-define` to use
 another test account. The test signs in through the API and requests `/tasks`.
 
 For a host-side live API check without an emulator, run real HTTP sign-in,
-refresh, and task-list assertions from the test runner:
+refresh, project/task-list assertions, and a daily write-up from the test runner.
+The account needs an assigned task linked to a project. The check verifies that
+a task-only write infers its project and stores matching links/hours in exactly
+one time entry, then reads both records back:
 
 ```sh
 flutter test test/phase_one_live_backend_test.dart \\

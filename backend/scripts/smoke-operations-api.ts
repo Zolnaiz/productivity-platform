@@ -119,7 +119,8 @@ async function main() {
       name: 'login with seeded owner',
       ok: response.status === 200 && typeof loginToken === 'string',
       status: response.status,
-      detail: summarizeBody(body),
+      // Authentication responses contain credentials, including on malformed
+      // successes. Never include their body in persisted smoke-test output.
     });
   } catch (error) {
     results.push({
@@ -162,6 +163,26 @@ async function main() {
       ok: false,
       detail: error instanceof Error ? error.message : String(error),
     });
+  }
+
+  try {
+    const { response, body } = await request('/operations/monthly-report', token);
+    const measurements = unwrapData(body)?.measurements;
+    const validMeasurement = (metric: any) =>
+      typeof metric?.numerator === 'number' && Number.isFinite(metric.numerator) && metric.numerator >= 0 &&
+      Number.isInteger(metric?.denominator) && metric.denominator >= 0 &&
+      Number.isInteger(metric?.excluded) && metric.excluded >= 0 &&
+      (metric.denominator === 0
+        ? metric.value === null
+        : typeof metric.value === 'number' && Number.isFinite(metric.value) && metric.value >= 0 && metric.value <= 100);
+    results.push({
+      name: 'monthly report exposes versioned measurements with evidence counts',
+      ok: response.status === 200 && measurements?.version === 1 && typeof measurements.timeZone === 'string' &&
+        ['onTimeDelivery', 'zoneAuditScore', 'workLinkage'].every((key) => validMeasurement(measurements[key])),
+      status: response.status,
+    });
+  } catch (error) {
+    results.push({ name: 'monthly report measurements', ok: false, detail: error instanceof Error ? error.message : String(error) });
   }
 
   let createdProjectId: string | undefined;
@@ -327,14 +348,32 @@ async function main() {
     const ownerId: string | undefined = me?.id ?? me?.user?.id;
     const today = new Date().toISOString().slice(0, 10);
 
+    const linkedProject = await write('write: create a project for linked daily work', '/projects', 'POST',
+      { name: `Smoke linked work ${Date.now()}`, status: 'active' },
+      (status, data) => status === 201 && typeof data?.id === 'string');
     const task = await write('write: create a task for somebody', '/tasks', 'POST',
-      { title: `Smoke task ${Date.now()}`, assigneeId: ownerId, dueDate: today, estimatedHours: 1 },
+      { title: `Smoke task ${Date.now()}`, assigneeId: ownerId, dueDate: today, estimatedHours: 1,
+        ...(linkedProject?.id ? { projectId: linkedProject.id } : {}) },
       (status, data) => status === 201 && typeof data?.id === 'string');
     if (task?.id) {
       await write('write: finishing a task dates it', `/tasks/${task.id}`, 'PATCH', { status: 'done' },
         (status, data) => status === 200 && typeof data?.completedAt === 'string');
       await write('write: work cannot go to somebody outside the organization', `/tasks/${task.id}`, 'PATCH',
         { assigneeId: '00000000-0000-4000-8000-000000000000' }, (status) => status === 400);
+    }
+
+    if (task?.id && linkedProject?.id) {
+      await write('write: daily work infers its task project for both records', '/work-logs/daily', 'POST',
+        { summary: 'Smoke linked write-up', taskId: task.id, hours: 1.5, logDate: today },
+        (status, data) => status === 201 &&
+          data?.workLog?.projectId === linkedProject.id && data?.workLog?.taskId === task.id &&
+          data?.timeEntry?.projectId === linkedProject.id && data?.timeEntry?.taskId === task.id &&
+          data?.timeEntry?.workLogId === data?.workLog?.id && data?.timeEntry?.hours === 1.5 &&
+          data?.workLog?.hours === 1.5 && data?.timeEntry?.userId === ownerId &&
+          data?.workLog?.userId === ownerId && data?.timeEntry?.workDate === today);
+      await write('write: daily work rejects contradictory project and task', '/work-logs/daily', 'POST',
+        { summary: 'Must not save', taskId: task.id, projectId: '00000000-0000-4000-8000-000000000000', hours: 1 },
+        (status, data) => status === 400 && data?.errorCode === 'VALIDATION_FAILED');
     }
 
     await write('write: a day written up with its time', '/work-logs/daily', 'POST',
@@ -416,7 +455,7 @@ async function main() {
 
     const last = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
     await write('write: close last month', '/operations/monthly-closes', 'POST', { month: last },
-      (status, data) => (status === 201 || status === 200) && Boolean(data?.closed));
+      (status, data) => (status === 201 || status === 200) && Boolean(data?.closed) && data?.measurements?.version === 1);
     await write('write: reopen it', `/operations/monthly-closes/${last}`, 'DELETE', undefined,
       (status, data) => status === 200 && data?.closed === null);
   }

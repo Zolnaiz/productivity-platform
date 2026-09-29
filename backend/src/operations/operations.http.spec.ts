@@ -73,7 +73,7 @@ const repositoryMock = () => ({
   find: jest.fn(async () => []),
   // Loosely typed on purpose: a route that needs a richer row — a plan with
   // a zone on it — replaces this in its own `beforeEach`.
-  findOne: jest.fn(async (): Promise<Record<string, unknown>> => ({ id: 'p1', organizationId: 'org-1' })),
+  findOne: jest.fn(async (_options?: any): Promise<Record<string, unknown>> => ({ id: 'p1', organizationId: 'org-1' })),
   create: jest.fn((value) => value),
   save: jest.fn(async (value) => ({ id: 'p1', ...value })),
   softRemove: jest.fn(async (value) => value),
@@ -83,6 +83,7 @@ const repositoryMock = () => ({
   // mock has to answer one.
   update: jest.fn(async () => ({ affected: 1 })),
   createQueryBuilder: jest.fn(),
+  manager: { transaction: jest.fn() },
 });
 
 describe('operations API over HTTP', () => {
@@ -536,6 +537,109 @@ describe('operations API over HTTP', () => {
         .set('Authorization', as(UserRole.USER))
         .send({ name: 'New line' })
         .expect(403);
+    });
+  });
+
+  describe('linking recorded work to projects and assigned tasks', () => {
+    const projectId = '11111111-1111-4111-8111-111111111111';
+    const otherProjectId = '22222222-2222-4222-8222-222222222222';
+    const taskId = '33333333-3333-4333-8333-333333333333';
+    const otherWorkerTaskId = '44444444-4444-4444-8444-444444444444';
+    const otherOrgTaskId = '55555555-5555-4555-8555-555555555555';
+    const input = { summary: 'Inspection', hours: 1.5, logDate: '2026-09-29' };
+    const routes = ['/api/work-logs', '/api/work-logs/daily', '/api/time-entries'];
+    const bodyFor = (route: string, links: Record<string, unknown> = {}) =>
+      route.endsWith('time-entries')
+        ? { workDate: input.logDate, hours: input.hours, ...links }
+        : { ...input, ...links };
+
+    beforeEach(() => {
+      const rows = new Map<unknown, Record<string, unknown>[]>([
+        [Project, [{ id: projectId, organizationId: 'org-1' }, { id: otherProjectId, organizationId: 'org-2' }]],
+        [WorkTask, [
+          { id: taskId, organizationId: 'org-1', assigneeId: 'u1', projectId },
+          { id: otherWorkerTaskId, organizationId: 'org-1', assigneeId: 'u2', projectId },
+          { id: otherOrgTaskId, organizationId: 'org-2', assigneeId: 'u1', projectId: otherProjectId },
+        ]],
+      ]);
+      rows.forEach((records, entity) => {
+        repositories.get(entity)!.findOne.mockImplementation(async ({ where }) =>
+          records.find((record) => Object.entries(where).every(([key, value]) => record[key] === value)) ?? null,
+        );
+      });
+      repositories.get(WorkLog)!.save.mockClear();
+      repositories.get(TimeEntry)!.save.mockClear();
+      repositories.get(WorkLog)!.manager.transaction.mockImplementation(async (work) =>
+        work({ getRepository: (entity) => repositories.get(entity) }),
+      );
+    });
+
+    afterEach(() => {
+      [Project, WorkTask].forEach((entity) => {
+        repositories.get(entity)!.findOne.mockImplementation(async () => ({ id: 'p1', organizationId: 'org-1' }));
+      });
+    });
+
+    it.each(routes)('infers a worker task project through %s', async (route) => {
+      const response = await request(app.getHttpServer()).post(route)
+        .set('Authorization', as(UserRole.USER))
+        .send(bodyFor(route, { taskId })).expect(201);
+
+      const record = response.body.data.workLog ?? response.body.data;
+      expect(record).toMatchObject({ projectId, taskId, organizationId: 'org-1', userId: 'u1' });
+      if (route.endsWith('daily')) {
+        expect(response.body.data.timeEntry).toMatchObject({
+          projectId, taskId, workLogId: record.id, workDate: input.logDate, hours: 1.5, userId: 'u1',
+        });
+      }
+    });
+
+    it.each(routes)('rejects contradictory project and task through %s', async (route) => {
+      const response = await request(app.getHttpServer()).post(route)
+        .set('Authorization', as(UserRole.USER))
+        .send(bodyFor(route, { taskId, projectId: otherProjectId })).expect(400);
+
+      expect(response.body.errorCode).toBe('VALIDATION_FAILED');
+      expect(repositories.get(WorkLog)!.save).not.toHaveBeenCalled();
+      expect(repositories.get(TimeEntry)!.save).not.toHaveBeenCalled();
+    });
+
+    it.each(routes.flatMap((route) => [
+      [route, { taskId: otherWorkerTaskId }],
+      [route, { taskId: otherOrgTaskId }],
+      [route, { projectId: otherProjectId }],
+    ] as const))('refuses inaccessible links through %s: %j', async (route, links) => {
+      const response = await request(app.getHttpServer()).post(route)
+        .set('Authorization', as(UserRole.USER))
+        .send(bodyFor(route, links)).expect(404);
+
+      expect(response.body.errorCode).toBe('RESOURCE_NOT_FOUND');
+      expect(repositories.get(WorkLog)!.save).not.toHaveBeenCalled();
+      expect(repositories.get(TimeEntry)!.save).not.toHaveBeenCalled();
+    });
+
+    it('allows a manager to record their work on another team member task', async () => {
+      const response = await request(app.getHttpServer()).post('/api/work-logs/daily')
+        .set('Authorization', as(UserRole.MANAGER))
+        .send({ ...input, taskId: otherWorkerTaskId }).expect(201);
+
+      expect(response.body.data.workLog).toMatchObject({ userId: 'u1', projectId, taskId: otherWorkerTaskId });
+    });
+
+    it('allows general daily work without a project or task', async () => {
+      const response = await request(app.getHttpServer()).post('/api/work-logs/daily')
+        .set('Authorization', as(UserRole.USER)).send(input).expect(201);
+
+      expect(response.body.data.workLog).toMatchObject(input);
+      expect(response.body.data.timeEntry).toMatchObject({ workLogId: response.body.data.workLog.id, hours: 1.5 });
+    });
+
+    it('does not let viewers create daily work', async () => {
+      await request(app.getHttpServer()).post('/api/work-logs/daily')
+        .set('Authorization', as(UserRole.VIEWER)).send(input).expect(403);
+
+      expect(repositories.get(WorkLog)!.save).not.toHaveBeenCalled();
+      expect(repositories.get(TimeEntry)!.save).not.toHaveBeenCalled();
     });
   });
 

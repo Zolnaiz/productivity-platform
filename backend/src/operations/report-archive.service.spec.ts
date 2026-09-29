@@ -82,6 +82,24 @@ describe('a month that has been closed', () => {
     const report = await service.monthlyReport({ id: 'u1', role: 'user', organizationId: 'org-1' }, '2026-03');
 
     expect(report.completedTasks.map((task) => (task as { id: string }).id)).toEqual(['t1']);
+    expect(report.measurements.onTimeDelivery).toEqual({ value: 100, numerator: 1, denominator: 1, excluded: 0 });
+  });
+
+  it('reads measurements using the stored clock after organization settings change', async () => {
+    const { service, closes, organizations, operations } = createService();
+    const records = selectMonthRecords({
+      ...march,
+      tasks: [{ id: 'edge', status: 'done', assigneeId: 'u1', dueDate: '2026-03-01', completedAt: '2026-02-28T18:00:00Z' }],
+    } as never, '2026-03', 'Asia/Ulaanbaatar');
+    closes.findOne.mockResolvedValue({ period: '2026-03', records, createdAt: new Date() });
+    organizations.findOne.mockResolvedValue({ id: 'org-1', settings: { timezone: 'UTC' } });
+
+    const report = await service.monthlyReport({ id: 'u1', role: 'user', organizationId: 'org-1' }, '2026-03');
+
+    expect(operations.monthRecords).not.toHaveBeenCalled();
+    expect(report.measurements).toMatchObject({
+      timeZone: 'Asia/Ulaanbaatar', onTimeDelivery: { value: 100, numerator: 1, denominator: 1, excluded: 0 },
+    });
   });
 
   it('cannot be closed while it is still running', async () => {

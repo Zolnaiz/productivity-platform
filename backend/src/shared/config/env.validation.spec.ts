@@ -6,12 +6,24 @@ describe('envValidationSchema', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.value.NODE_ENV).toBe('development');
+    expect(result.value.API_HOST).toBe('0.0.0.0');
     expect(result.value.JWT_SECRET).toBe('dev-secret-change-me');
     expect(result.value.JWT_EXPIRES_IN).toBe('1h');
     expect(result.value.JWT_REFRESH_EXPIRES_IN).toBe('7d');
     expect(result.value.RATE_LIMIT_TTL_MS).toBe(60000);
     expect(result.value.RATE_LIMIT_LIMIT).toBe(120);
     expect(result.value.ENABLE_METRICS).toBe(false);
+  });
+
+  it.each(['127.0.0.1', '::1', 'localhost'])('accepts explicit loopback API_HOST %s', (host) => {
+    const result = envValidationSchema.validate({ API_HOST: host });
+
+    expect(result.error).toBeUndefined();
+    expect(result.value.API_HOST).toBe(host);
+  });
+
+  it.each(['http://127.0.0.1', '127.0.0.1:3300', ''])('refuses invalid API_HOST %j', (host) => {
+    expect(envValidationSchema.validate({ API_HOST: host }).error).toBeDefined();
   });
 
   it('requires a strong JWT secret in production', () => {

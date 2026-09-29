@@ -11,6 +11,7 @@ class Task {
     this.priority = 'medium',
     this.dueDate,
     this.assigneeId,
+    this.projectId,
   });
 
   final String id;
@@ -26,6 +27,7 @@ class Task {
   final String priority;
   final DateTime? dueDate;
   final String? assigneeId;
+  final String? projectId;
 
   factory Task.fromJson(Map<String, dynamic> json) => Task(
         id: json['id'] as String,
@@ -42,6 +44,7 @@ class Task {
         priority: json['priority'] as String? ?? 'medium',
         dueDate: DateTime.tryParse(json['dueDate'] as String? ?? ''),
         assigneeId: json['assigneeId'] as String?,
+        projectId: json['projectId'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -56,6 +59,7 @@ class Task {
         'priority': priority,
         'dueDate': dueDate?.toIso8601String(),
         'assigneeId': assigneeId,
+        'projectId': projectId,
       };
 
   Task copyWith({String? status}) => Task(
@@ -70,5 +74,6 @@ class Task {
         priority: priority,
         dueDate: dueDate,
         assigneeId: assigneeId,
+        projectId: projectId,
       );
 }

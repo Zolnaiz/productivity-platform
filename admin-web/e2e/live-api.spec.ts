@@ -202,21 +202,53 @@ test('a department added is still there after a reload', async ({ page }) => {
   expect(await removeThrough(page, `/departments/${data.id}`)).toBe(200);
 });
 
-test('a day written up is still there after a reload', async ({ page }) => {
+test('a completed task is written up with its project, blocker and one clock entry after a reload', async ({ page }) => {
   await signIn(page);
+  const api = process.env.E2E_API_URL || 'http://localhost:3000/api';
+  const token = await page.evaluate(() => localStorage.getItem('token'));
+  const headers = { authorization: `Bearer ${token}` };
+  const marker = Date.now();
+  const projectResponse = await page.request.post(`${api}/projects`, {
+    headers, data: { name: `Daily work project ${marker}` },
+  });
+  expect(projectResponse.status()).toBe(201);
+  const { data: project } = await projectResponse.json();
+  const taskResponse = await page.request.post(`${api}/tasks`, {
+    headers, data: { title: `Completed daily work ${marker}`, projectId: project.id, status: 'done' },
+  });
+  expect(taskResponse.status()).toBe(201);
+  const { data: task } = await taskResponse.json();
   await page.goto('/work-logs');
+  await page.getByRole('button', { name: 'Add daily work log' }).click();
 
-  const summary = `Live check write-up ${Date.now()}`;
+  const summary = `Live check write-up ${marker}`;
+  await page.getByLabel('Task (optional)').selectOption(task.id);
+  await expect(page.getByLabel('Project (optional)')).toHaveValue(project.id);
   await page.getByLabel('What did you finish?').fill(summary);
   await page.getByLabel('Hours').fill('1.5');
+  await page.getByLabel('Blocker', { exact: true }).fill('Waiting for inspection');
   const created = page.waitForResponse(
     (response) => /\/work-logs(\/daily)?$/.test(new URL(response.url()).pathname) && response.request().method() === 'POST',
   );
   await page.getByRole('button', { name: 'Add log' }).click();
-  expect((await created).status()).toBe(201);
+  const saved = await created;
+  expect(saved.status()).toBe(201);
+  const { data } = await saved.json();
+  expect(data.workLog).toMatchObject({ projectId: project.id, taskId: task.id, blockers: 'Waiting for inspection' });
+  expect(data.timeEntry).toMatchObject({ projectId: project.id, taskId: task.id, workLogId: data.workLog.id });
 
   await page.reload();
   await expect(page.getByText(summary)).toBeVisible();
+  const record = page.getByRole('article').filter({ hasText: summary });
+  await expect(record.getByText(project.name, { exact: true })).toBeVisible();
+  await expect(record.getByText(task.title, { exact: true })).toBeVisible();
+  await expect(record.getByText('Blocker: Waiting for inspection', { exact: true })).toBeVisible();
+  const entriesResponse = await page.request.get(`${api}/time-entries`, { headers });
+  expect(entriesResponse.status()).toBe(200);
+  const { data: entries } = await entriesResponse.json();
+  const pairedEntries = entries.filter((entry: { workLogId?: string }) => entry.workLogId === data.workLog.id);
+  expect(pairedEntries).toHaveLength(1);
+  expect(Number(pairedEntries[0].hours)).toBe(1.5);
 });
 
 test('an expense submitted is still there after a reload', async ({ page }) => {

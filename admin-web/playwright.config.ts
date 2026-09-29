@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const webPort = Number(process.env.E2E_WEB_PORT || '3001');
+if (!Number.isInteger(webPort) || webPort < 1024 || webPort > 65535) {
+  throw new Error('E2E_WEB_PORT must be an integer between 1024 and 65535.');
+}
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
@@ -15,7 +20,7 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'http://127.0.0.1:3001',
+    baseURL: process.env.E2E_BASE_URL || `http://127.0.0.1:${webPort}`,
     trace: 'on-first-retry',
   },
   projects: [
@@ -25,9 +30,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 3001',
-    url: 'http://127.0.0.1:3001',
-    reuseExistingServer: true,
+    command: `npm run dev -- --host 127.0.0.1 --port ${webPort} --strictPort`,
+    url: `http://127.0.0.1:${webPort}`,
+    reuseExistingServer: process.env.E2E_REUSE_SERVER !== 'false',
     timeout: 120_000,
   },
 });

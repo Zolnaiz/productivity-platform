@@ -7,7 +7,8 @@ import { AssessmentResponse } from './entities/assessment-response.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { projectProgressPercent, summarisePeople, sumRecordedHours } from './monthly-people';
-import { completionMonth, doneByEndOf, monthOf, plannedMonth } from './task-completion';
+import { completionMonth, doneByEndOf, monthOf, organizationTimeZone, plannedMonth } from './task-completion';
+import { monthlyMeasurements } from './monthly-measurements';
 
 /**
  * One month of an organization's records, as the monthly report reads them.
@@ -17,6 +18,8 @@ import { completionMonth, doneByEndOf, monthOf, plannedMonth } from './task-comp
  * both are counted by one set of rules instead of two that drift.
  */
 export interface MonthRecords {
+  /** Stored with new snapshots so a later organization clock change cannot move their cohort. */
+  measurementTimeZone?: string;
   /** The tasks the month is about: planned for it, or finished in it. */
   tasks: WorkTask[];
   workLogs: WorkLog[];
@@ -63,11 +66,13 @@ export const selectMonthRecords = (
   month: string,
   timeZone?: string
 ): MonthRecords => {
-  const isIn = (value: Date | string | null | undefined) => monthOf(value, timeZone) === month;
+  const measurementTimeZone = timeZone ?? organizationTimeZone();
+  const isIn = (value: Date | string | null | undefined) => monthOf(value, measurementTimeZone) === month;
 
   return {
+    measurementTimeZone,
     tasks: all.tasks.filter(
-      (task) => plannedMonth(task, timeZone) === month || completionMonth(task, timeZone) === month
+      (task) => plannedMonth(task, measurementTimeZone) === month || completionMonth(task, measurementTimeZone) === month
     ),
     workLogs: all.workLogs.filter((log) => isIn(log.logDate || log.createdAt)),
     timeEntries: all.timeEntries.filter((entry) => isIn(entry.workDate || entry.createdAt)),
@@ -98,6 +103,7 @@ export const buildMonthlyReport = (
   viewer: ReportViewer,
   timeZone?: string
 ) => {
+  const reportingTimeZone = records.measurementTimeZone ?? timeZone ?? organizationTimeZone();
   const { ownOnly } = viewer;
   const mine =
     <T>(owner: (record: T) => string | undefined) =>
@@ -120,9 +126,9 @@ export const buildMonthlyReport = (
       monthlyTasks.some((task) => task.projectId === project.id)
   );
 
-  const completedTasks = monthlyTasks.filter((task) => completionMonth(task, timeZone) === month);
-  const plannedTasks = monthlyTasks.filter((task) => plannedMonth(task, timeZone) === month);
-  const plannedDone = plannedTasks.filter((task) => doneByEndOf(task, month, timeZone));
+  const completedTasks = monthlyTasks.filter((task) => completionMonth(task, reportingTimeZone) === month);
+  const plannedTasks = monthlyTasks.filter((task) => plannedMonth(task, reportingTimeZone) === month);
+  const plannedDone = plannedTasks.filter((task) => doneByEndOf(task, month, reportingTimeZone));
   const completedDailyGoals = monthlyDailyGoals.filter((goal) => goal.completed);
   const totalHours = sumRecordedHours(monthlyWorkLogs, monthlyTimeEntries);
   const completionRate = plannedTasks.length
@@ -163,7 +169,7 @@ export const buildMonthlyReport = (
     tasks: monthlyTasks.map((task) => ({
       assigneeId: task.assigneeId,
       status: task.status,
-      finishedInPeriod: completionMonth(task, timeZone) === month,
+      finishedInPeriod: completionMonth(task, reportingTimeZone) === month,
     })),
     workLogs: monthlyWorkLogs,
     timeEntries: monthlyTimeEntries,
@@ -175,6 +181,11 @@ export const buildMonthlyReport = (
   return {
     period: month,
     people,
+    measurements: monthlyMeasurements(
+      { completedTasks, auditRuns: monthlyAuditRuns, workLogs: monthlyWorkLogs },
+      month,
+      reportingTimeZone,
+    ),
     totals: {
       projects: visibleProjects.length,
       tasks: monthlyTasks.length,

@@ -30,8 +30,38 @@ The script runs:
 - frontend tests, check-only lint, and build
 - production Docker Compose config validation for default, cache, backup, and monitoring profiles when the Docker CLI is installed
 - backend and frontend dependency audits, unless `-SkipAudit` is used
-- runtime PostgreSQL/API smoke and Playwright browser smoke only when `-IncludeE2E` is used
+- isolated Docker PostgreSQL/API write checks and all Playwright tests, including live-server tests, when `-IncludeE2E` is used
 - mobile Flutter pub get/analyze/test only when `-IncludeMobile` is used
+- Flutter's real API test when both `-IncludeE2E` and `-IncludeMobile` are used
+
+## Isolated live verification
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\verify-live.ps1 -IncludeMobile
+```
+
+Requires running Docker Desktop, installed backend/frontend npm dependencies,
+Playwright Chromium (`cd admin-web; npx playwright install chromium`), and Flutter
+when `-IncludeMobile` is selected. The runner uses PostgreSQL 16, the same major
+version as CI, in a uniquely named container with an in-memory data directory.
+It builds the current backend, applies every migration to an empty database,
+seeds test accounts, starts the API, exercises reads and writes, and runs the
+complete browser suite with `E2E_LIVE_API=true`. No live-browser test is silently
+skipped. The optional Flutter check uses real HTTP without needing an emulator.
+
+Default loopback ports are 55433 (database), 3300 (API), and 3301 (web). Override
+them with `-DatabasePort`, `-ApiPort`, and `-WebPort` if needed. An occupied port
+fails before any test container starts; a running application is never reused.
+Use `-SkipBrowser` for an API-only check (optionally with `-IncludeMobile`).
+
+The runner overrides database, authentication, seed, mail and client URL settings
+for its own process. `API_HOST=127.0.0.1` binds the test API to loopback; the
+database and web server are likewise local-only. Mail uses the log transport and scheduled jobs are disabled.
+Its `finally` block stops the API and the owned container after success or failure;
+the disposable database is removed. API logs and test uploads remain in the
+git-ignored `tmp/productivity-verify-<run-id>/` directory for diagnosis. The existing
+`runtime-smoke.ps1` below is a development helper that uses the configured local
+database; use `verify-live.ps1` for repeatable verification.
 
 Dependency audits call the npm registry. If the environment blocks network access, run `verify.ps1 -SkipAudit` first, then run `npm audit --audit-level=moderate` inside `backend` and `admin-web` when network access is available.
 
@@ -66,6 +96,12 @@ Mobile verification can also be run directly:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\mobile-verify.ps1
 ```
+
+Run Flutter tests and Android builds sequentially in the same checkout. Both
+regenerate the Android plugin registrant; a test started during a release build
+can insert the development-only integration-test plugin while Gradle is compiling
+the release. If that produces a missing `IntegrationTestPlugin` error, finish the
+tests and run the release build again; do not edit generated Java by hand.
 
 The helper runs a Docker preflight first. If Docker Desktop is not running, it stops before migrations and prints the exact action needed.
 

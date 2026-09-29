@@ -61,8 +61,9 @@ if (-not $SkipAudit) {
 }
 
 if ($IncludeE2E) {
-  Invoke-Step "Runtime smoke for E2E" $root "powershell -ExecutionPolicy Bypass -File .\scripts\runtime-smoke.ps1 -KeepBackendRunning"
-  Invoke-Step "Frontend browser smoke" $adminWeb "npm run test:e2e"
+  $liveCommand = 'powershell -ExecutionPolicy Bypass -File .\scripts\verify-live.ps1'
+  if ($IncludeMobile) { $liveCommand += ' -IncludeMobile' }
+  Invoke-Step "Isolated PostgreSQL/API/browser verification" $root $liveCommand
 }
 
 if ($IncludeMobile) {

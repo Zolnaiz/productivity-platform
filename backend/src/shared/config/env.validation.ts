@@ -9,6 +9,7 @@ const weakSecrets = [
 export const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
   PORT: Joi.number().default(3000),
+  API_HOST: Joi.string().hostname().default('0.0.0.0'),
   CORS_ORIGINS: Joi.string().allow('').default(''),
   RATE_LIMIT_TTL_MS: Joi.number().integer().min(1000).default(60000),
   RATE_LIMIT_LIMIT: Joi.number().integer().min(1).default(120),
