@@ -50,6 +50,32 @@ describe('translations', () => {
   });
 });
 
+/*
+  Mongolian sentences with English words left in them - "deadline",
+  "workspace", "Dashboard" - read as unfinished. Names that are the same in
+  both languages, keys on a keyboard and file formats are the exceptions.
+*/
+describe('Mongolian wording', () => {
+  const allowed = new Set([
+    'BILZENO', 'Ctrl', 'Shift', 'Delete', 'Space', 'Enter', 'Alt', 'Esc',
+    'PDF', 'CSV', 'JSON', 'Excel', 'SVG', 'QR', 'WCAG', 'Google', 'Play',
+    'Kaizen', 'Gemba', 'Claude', 'Anthropic', 'Pomodoro', 'Demo', 'workspace',
+  ]);
+  const read = (key: string) =>
+    key.split('.').reduce<unknown>((value, part) => (value as Record<string, unknown>)?.[part], mn);
+
+  it('leaves no English word inside a Mongolian sentence', () => {
+    const mixed = flatten(mn).filter((key) => {
+      const text = String(read(key) ?? '').replace(/\{\{\w+\}\}/g, '');
+      if (!/[А-Яа-яӨөҮү]/.test(text)) return false;
+      const words = text.match(/[A-Za-z][A-Za-z-]{3,}/g) ?? [];
+      return words.some((word) => !allowed.has(word.replace(/-$/, '')));
+    });
+
+    expect(mixed).toEqual([]);
+  });
+});
+
 describe('language selection', () => {
   beforeEach(() => {
     localStorage.clear();
