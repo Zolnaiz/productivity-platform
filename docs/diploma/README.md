@@ -7,9 +7,9 @@
 | Хавтас | Юу байгаа |
 |---|---|
 | `latex/` | Дипломын бичвэр (MUST-Thesis загвар). Overleaf-ийн төсөлтэй ижил. `main.tex`-ээс эхэлнэ. |
-| `fig/` | Бүх зураг, диаграм (скриптээр үүсгэсэн + дэлгэцийн зургууд). `latex/Figures/`-д хуулагдсан. |
-| `scripts/` | Диаграм (`make_figures.py`, `make_uml.py`), илтгэл (`build_slides.py`), даалгаврын маягт (`fill_task_form.py`), Word ноорог (`build_docx.py`, `content.py`). |
-| `output/` | Гаралт: `Uzleg1_iltgel.pptx/.pdf`, `Diplom_daalgavar.docx`, `diplom-latex.zip`; `archive/` — анхны Word ноорог. Git-д ордоггүй. |
+| `latex/Figures/` | Бүх зураг, диаграм — скриптээр үүсгэсэн ба дэлгэцийн зургууд. Бичвэр, илтгэл хоёулаа эндээс авна. |
+| `scripts/` | Диаграм (`make_figures.py`, `make_uml.py`), илтгэл (`build_slides.py`), даалгаврын маягт (`fill_task_form.py`). |
+| `output/` | Гаралт: `Uzleg1_iltgel.pptx/.pdf`, `Diplom_daalgavar.docx/.pdf`. Git-д ордоггүй. |
 | `materials/` | Сургуулийн материал: журам А/55, үзлэгийн хуваарь, LaTeX загвар, даалгаврын маягт, жишээ диплом, жишээ илтгэл. Git-д ордоггүй. |
 
 ## Үзлэгийн хуваарь (2026 намар)

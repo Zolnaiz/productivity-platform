@@ -1,4 +1,4 @@
-"""UML диаграмууд: класс, дараалал, үйл ажиллагаа. python make_uml.py -> fig/*.png"""
+"""UML диаграмууд: класс, дараалал, үйл ажиллагаа. python make_uml.py -> latex/Figures/*.png"""
 import os
 
 import matplotlib
@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, Rectangle, Polygon
 
 plt.rcParams['font.family'] = 'Arial'
-OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'fig')
+OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'latex', 'Figures')
 INK = '#1f2937'
 HEAD = '#dbeafe'
 GREY = '#6b7280'

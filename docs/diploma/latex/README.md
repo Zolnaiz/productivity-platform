@@ -1,16 +1,11 @@
 # Дипломын LaTeX төсөл (MUST-Thesis загвар)
 
-Overleaf-д ажиллуулах:
-1. Энэ хавтсыг zip болгоно (`diplom-latex.zip` бэлэн байгаа).
-2. Overleaf → New Project → Upload Project → zip-ээ сонгоно.
-3. Menu → Compiler: **pdfLaTeX**, Main document: **main.tex**.
-4. Recompile.
+Overleaf дээрх төсөлтэй ижил. Compiler: **pdfLaTeX**, main document: **main.tex**.
 
-Засах шаардлагатай газрууд:
-- `main.tex` — [Овог Нэр], [О.Нэр], удирдагч, зөвлөгч, шүүмжлэгч, и-мэйл.
-- `FrontBackMatter/Acknowledgments.tex` — багш нарын нэр.
-- `Chapters/Chapter1.tex` 1.3 — хэрэглэгчийн судалгааны үр дүн (TODO).
-- `Chapters/Chapter4.tex` — эдийн засгийн тооцооны таамаглал (бодит тоогоор шинэчлэх).
-- `Appendices/summary.tex` — Үзлэг 3-ын дараа дүгнэлт.
+Зураг бүр `Figures/`-д байна; диаграмуудыг `../scripts/make_figures.py`, `../scripts/make_uml.py` дахин үүсгэнэ.
 
-Диаграмуудыг дахин үүсгэх: `docs/diploma/make_figures.py`, `make_uml.py`.
+Үлдсэн газрууд:
+- `main.tex` — зөвлөгч, шүүмжлэгч багшийн нэр.
+- `Chapters/Chapter1.tex` 1.3 — хэрэглэгчийн судалгааны үр дүн (10-р сард).
+- `Chapters/Chapter4.tex` — эдийн засгийн тооцооны таамаглалыг туршилтын бодит тоогоор солих.
+- `Appendices/summary.tex` — III үзлэгийн дараах дүгнэлт.

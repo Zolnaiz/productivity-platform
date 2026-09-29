@@ -1,4 +1,4 @@
-"""Дипломын бичвэрийн диаграмууд. python make_figures.py -> fig/*.png"""
+"""Дипломын бичвэрийн диаграмууд. python make_figures.py -> latex/Figures/*.png"""
 import os
 
 import matplotlib
@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse, FancyBboxPatch, Rectangle
 
 plt.rcParams['font.family'] = 'Arial'
-OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'fig')
+OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'latex', 'Figures')
 os.makedirs(OUT, exist_ok=True)
 INK = '#1f2937'
 BLUE = '#dbeafe'
