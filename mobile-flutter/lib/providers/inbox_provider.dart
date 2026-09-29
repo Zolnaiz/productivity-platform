@@ -112,4 +112,19 @@ class InboxProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Everything read in one go, put back the same way if the server says no.
+  Future<void> markAllRead() async {
+    if (unread == 0) return;
+    final before = items;
+    items = [for (final each in items) each.read ? each : each.markedRead()];
+    notifyListeners();
+    try {
+      await _api.markAllNotificationsRead();
+    } catch (e) {
+      items = before;
+      error = e;
+      notifyListeners();
+    }
+  }
 }

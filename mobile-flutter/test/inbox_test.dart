@@ -5,6 +5,7 @@ import 'package:productivity_mobile/providers/auth_provider.dart';
 import 'package:productivity_mobile/providers/inbox_provider.dart';
 import 'package:productivity_mobile/screens/inbox_screen.dart';
 import 'package:productivity_mobile/services/api_service.dart';
+import 'package:productivity_mobile/utils/phase_one_strings.dart';
 
 import 'support/fake_api.dart';
 
@@ -102,5 +103,35 @@ void main() {
 
     expect(find.text('2026-09-30-нд дуусна'), findsOneWidget);
     expect(find.text('Due 2026-09-30'), findsNothing);
+  });
+
+  testWidgets('marks everything read in one tap', (tester) async {
+    final (api, adapter, _) = await makeApi((request) => request.method == 'PATCH'
+        ? jsonReply(envelope({'updated': 2}))
+        : jsonReply(envelope([
+            _reminder,
+            {..._reminder, 'id': 'n3'},
+          ])));
+    final inbox = await _pump(tester, api);
+    expect(inbox.unread, 2);
+
+    await tester.tap(find.byKey(const Key('inbox-read-all')));
+    await tester.pumpAndSettle();
+
+    expect(adapter.requests.last.path, '/notifications/read-all');
+    expect(inbox.unread, 0);
+    // Nothing left to mark, so the button goes.
+    expect(find.byKey(const Key('inbox-read-all')), findsNothing);
+  });
+
+  test('says when something arrived', () {
+    final now = DateTime(2026, 9, 29, 15);
+    const en = PhaseOneStrings(Locale('en'));
+    const mn = PhaseOneStrings(Locale('mn'));
+    expect(en.sentAt(DateTime(2026, 9, 29, 9, 5), now), 'Today 09:05');
+    expect(mn.sentAt(DateTime(2026, 9, 28, 18, 30), now), 'Өчигдөр 18:30');
+    expect(en.sentAt(DateTime(2026, 9, 20, 8), now), '2026-09-20');
+    // Across the turn of a month, yesterday is still yesterday.
+    expect(en.sentAt(DateTime(2026, 9, 30, 7), DateTime(2026, 10, 1, 9)), 'Yesterday 07:00');
   });
 }

@@ -529,4 +529,13 @@ class ApiService {
       rethrow;
     }
   }
+
+  Future<void> markAllNotificationsRead() async {
+    try {
+      await _dio.patch('/notifications/read-all');
+    } catch (e) {
+      if (isDebug) debugPrint('❌ Failed to mark notifications as read: $e');
+      rethrow;
+    }
+  }
 }

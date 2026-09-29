@@ -100,6 +100,21 @@ class PhaseOneStrings {
 
   String dueOn(String day) => mn ? 'Дуусах: $day' : 'Due $day';
 
+  /// When something arrived, in the phone's own time: the hour today and
+  /// yesterday, the date before that.
+  String sentAt(DateTime at, DateTime now) {
+    final local = at.toLocal();
+    String two(int value) => value.toString().padLeft(2, '0');
+    final day = DateTime(local.year, local.month, local.day);
+    final today = DateTime(now.year, now.month, now.day);
+    final time = '${two(local.hour)}:${two(local.minute)}';
+    if (day == today) return mn ? 'Өнөөдөр $time' : 'Today $time';
+    if (day == DateTime(now.year, now.month, now.day - 1)) {
+      return mn ? 'Өчигдөр $time' : 'Yesterday $time';
+    }
+    return '${local.year}-${two(local.month)}-${two(local.day)}';
+  }
+
   String weekOf(String monday) =>
       mn ? '$monday-нд эхэлсэн долоо хоног' : 'Week starting $monday';
 
@@ -187,6 +202,7 @@ const _en = {
   'tasks': 'My tasks',
   'today': 'Today',
   'inbox': 'Inbox',
+  'markAllRead': 'Mark all read',
   'fiveS': '5S',
   'fiveSEmpty': 'No areas on the floor plan yet. They are drawn on the web.',
   'neverChecked': 'Not checked yet',
@@ -328,6 +344,7 @@ const _mn = {
   'tasks': 'Миний ажлууд',
   'today': 'Өнөөдөр',
   'inbox': 'Мэдэгдэл',
+  'markAllRead': 'Бүгдийг уншсан',
   'fiveS': '5S',
   'fiveSEmpty': 'Зураг төсөлд бүс алга байна. Бүсийг вэб дээр зурна.',
   'neverChecked': 'Одоогоор шалгаагүй',
