@@ -12,6 +12,7 @@ import { operationsService } from '../services/operations.service';
 import { Project, TimeEntry, WorkLog, WorkTask } from '../types/operations.types';
 import { isProjectLate, summariseProject } from '../components/projects/projectProgress';
 import { localDay } from '../utils/localDay';
+import { useAuth } from '../contexts/AuthContext';
 
 const statusKey: Record<string, string> = {
   planned: 'projects.statusPlanned',
@@ -21,7 +22,25 @@ const statusKey: Record<string, string> = {
   cancelled: 'projects.statusCancelled',
 };
 
+/** Each stage in a colour of its own, so the list reads at a glance. */
+const statusTone: Record<string, string> = {
+  planned: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  active: 'bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200',
+  on_hold: 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200',
+  completed: 'bg-green-50 text-green-800 dark:bg-green-950/40 dark:text-green-200',
+  cancelled: 'bg-gray-100 text-gray-600 line-through dark:bg-gray-800 dark:text-gray-400',
+};
+
+/** What the list shows: the work still going on, unless asked for more. */
+type Show = 'open' | 'completed' | 'all';
+const isOpen = (project: Project) => project.status !== 'completed' && project.status !== 'cancelled';
+
 const ProjectsPage: React.FC = () => {
+  const { hasPermission } = useAuth();
+  // The server refuses these to anybody else, so they are offered only where they would work.
+  const canUpdate = hasPermission('projects:update');
+  const canDelete = hasPermission('projects:delete');
+  const [show, setShow] = useState<Show>('open');
   const { t } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
   /**
@@ -172,6 +191,28 @@ const ProjectsPage: React.FC = () => {
         </Button>
       </div>
 
+      <div role="radiogroup" aria-label={t('projects.show.label')} className="flex flex-wrap gap-2">
+        {(['open', 'completed', 'all'] as const).map((key) => (
+          <button
+            key={key}
+            type="button"
+            role="radio"
+            aria-checked={show === key}
+            onClick={() => setShow(key)}
+            className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+              show === key
+                ? 'border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
+                : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800'
+            }`}
+          >
+            {t(`projects.show.${key}`)}{' '}
+            <span className="tabular-nums">
+              ({key === 'all' ? projects.length : projects.filter((project) => (key === 'open' ? isOpen(project) : !isOpen(project))).length})
+            </span>
+          </button>
+        ))}
+      </div>
+
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
           {error}
@@ -191,7 +232,15 @@ const ProjectsPage: React.FC = () => {
             </div>
           </Card>
         )}
-        {projects.map((project) => {
+        {projects
+          .filter((project) => (show === 'all' ? true : show === 'open' ? isOpen(project) : !isOpen(project)))
+          // Late first, then soonest due; no date last.
+          .sort(
+            (a, b) =>
+              Number(isProjectLate(b, today)) - Number(isProjectLate(a, today)) ||
+              (a.dueDate || '9999').localeCompare(b.dueDate || '9999'),
+          )
+          .map((project) => {
           const summary = summariseProject(project, tasks, timeEntries, workLogs, today);
           const counted = summary.progress.source === 'tasks';
           const late = isProjectLate(project, today);
@@ -203,7 +252,7 @@ const ProjectsPage: React.FC = () => {
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{project.name}</h2>
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{project.description}</p>
               </div>
-              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+              <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${statusTone[project.status] ?? statusTone.planned}`}>
                 {t(statusKey[project.status] ?? '', { defaultValue: project.status })}
               </span>
             </div>
@@ -295,7 +344,7 @@ const ProjectsPage: React.FC = () => {
                 a project has tasks, dragging a number over the top of them is
                 how a status report ends up disagreeing with the task board.
               */}
-              {!counted && (
+              {!counted && canUpdate && (
                 <label className="text-sm text-gray-600 dark:text-gray-400">
                   {t('projects.progressEstimate')}
                   <input
@@ -308,8 +357,10 @@ const ProjectsPage: React.FC = () => {
                   />
                 </label>
               )}
+              {canUpdate && (
               <Select
                 label={t('projects.status')}
+                aria-label={t('projects.statusFor', { name: project.name })}
                 value={project.status}
                 onChange={(event) => updateStatus(project, event.target.value as Project['status'])}
               >
@@ -319,6 +370,7 @@ const ProjectsPage: React.FC = () => {
                 <option value="completed">{t('projects.statusCompleted')}</option>
                 <option value="cancelled">{t('projects.statusCancelled')}</option>
               </Select>
+              )}
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-3">
@@ -334,15 +386,16 @@ const ProjectsPage: React.FC = () => {
               >
                 {t('projects.planWork')}
               </Link>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
-                type="button"
-                onClick={() => setProjectPendingDelete(project)}
-              >
-                {t('projects.deleteProject')}
-              </Button>
+              {canDelete && (
+                <button
+                  type="button"
+                  className="text-sm text-gray-600 hover:text-red-700 hover:underline dark:text-gray-400 dark:hover:text-red-300"
+                  aria-label={t('projects.deleteFor', { name: project.name })}
+                  onClick={() => setProjectPendingDelete(project)}
+                >
+                  {t('projects.deleteProject')}
+                </button>
+              )}
             </div>
           </Card>
           );

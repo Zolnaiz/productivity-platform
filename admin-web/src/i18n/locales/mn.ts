@@ -95,6 +95,9 @@ const mn: Translations<typeof en> = {
     no: 'Үгүй',
   },
   projects: {
+    statusFor: '{{name}}-н төлөв',
+    deleteFor: '{{name}}-г устгах',
+    show: { label: 'Төсөл шүүх', open: 'Явагдаж буй', completed: 'Дууссан, цуцалсан', all: 'Бүгд' },
     statusActive: 'Идэвхтэй',
     statusCancelled: 'Цуцалсан',
     statusCompleted: 'Дууссан',

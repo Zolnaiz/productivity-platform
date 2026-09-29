@@ -13,6 +13,12 @@ const serviceMocks = vi.hoisted(() => ({
   deleteProject: vi.fn(),
 }));
 
+const auth = vi.hoisted(() => ({ permissions: ['projects:update', 'projects:delete'] as string[] }));
+
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({ hasPermission: (permission: string) => auth.permissions.includes(permission) }),
+}));
+
 vi.mock('../services/operations.service', () => ({
   operationsService: {
     getProjects: serviceMocks.getProjects,
@@ -54,6 +60,7 @@ const renderPage = () =>
 describe('ProjectsPage', () => {
   beforeEach(() => {
     Object.values(serviceMocks).forEach((mock) => mock.mockReset());
+    auth.permissions = ['projects:update', 'projects:delete'];
     serviceMocks.getProjects.mockResolvedValue([project]);
     serviceMocks.getTasks.mockResolvedValue([]);
     serviceMocks.getTimeEntries.mockResolvedValue([]);
@@ -155,6 +162,8 @@ describe('ProjectsPage', () => {
     ]);
 
     renderPage();
+    // Finished projects are one filter away from the work going on.
+    (await screen.findByRole('radio', { name: /Finished or cancelled/ })).click();
     await screen.findByText('Operations rollout');
 
     expect(screen.queryByText('late')).toBeNull();
@@ -164,5 +173,40 @@ describe('ProjectsPage', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByText('Operations rollout')).toBeTruthy());
+  });
+});
+
+describe('reading the list of projects', () => {
+  beforeEach(() => {
+    Object.values(serviceMocks).forEach((mock) => mock.mockReset());
+    auth.permissions = ['projects:update', 'projects:delete'];
+    serviceMocks.getProjects.mockResolvedValue([
+      { ...project, id: 'p-later', name: 'Later project', dueDate: '2099-06-01' },
+      { ...project, id: 'p-late', name: 'Late project', dueDate: '2020-01-01' },
+      { ...project, id: 'p-done', name: 'Finished project', status: 'completed' },
+    ]);
+    serviceMocks.getTasks.mockResolvedValue([]);
+    serviceMocks.getTimeEntries.mockResolvedValue([]);
+    serviceMocks.getWorkLogs.mockResolvedValue([]);
+  });
+
+  it('shows the work going on, late first, and the finished on request', async () => {
+    renderPage();
+
+    await screen.findByText('Late project');
+    const names = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent);
+    expect(names).toEqual(['Late project', 'Later project']);
+
+    screen.getByRole('radio', { name: /Finished or cancelled/ }).click();
+    await waitFor(() => expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual(['Finished project']));
+  });
+
+  it('offers no status change or delete to somebody who may not', async () => {
+    auth.permissions = [];
+    renderPage();
+
+    await screen.findByText('Late project');
+    expect(screen.queryByLabelText('Status of Late project')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete Late project' })).toBeNull();
   });
 });

@@ -95,6 +95,9 @@ const en = {
     adminSubtitle: 'Workspace control centre',
   },
   projects: {
+    statusFor: 'Status of {{name}}',
+    deleteFor: 'Delete {{name}}',
+    show: { label: 'Show projects', open: 'Going on', completed: 'Finished or cancelled', all: 'All' },
     statusActive: 'Active',
     statusCancelled: 'Cancelled',
     statusCompleted: 'Completed',
