@@ -98,6 +98,8 @@ class PhaseOneStrings {
 
   String gembaStep(int number) => mn ? 'Дараагийн алхам $number' : 'Follow-up $number';
 
+  String dueOn(String day) => mn ? 'Дуусах: $day' : 'Due $day';
+
   String weekOf(String monday) =>
       mn ? '$monday-нд эхэлсэн долоо хоног' : 'Week starting $monday';
 
@@ -222,6 +224,14 @@ const _en = {
   'noTasks': 'No tasks assigned to you.',
   'retry': 'Try again',
   'sendNow': 'Send now',
+  'markDone': 'Mark done',
+  'reopen': 'Open again',
+  'group.late': 'Late',
+  'group.today': 'Due today',
+  'group.week': 'This week',
+  'group.later': 'Later',
+  'group.noDate': 'No date',
+  'group.done': 'Done',
   'gembaWalk': 'Gemba walk',
   'gembaWhere': 'Where',
   'gembaNoZone': 'Not a 5S area',
@@ -354,6 +364,14 @@ const _mn = {
   'noTasks': 'Танд оноосон ажил алга.',
   'retry': 'Дахин оролдох',
   'sendNow': 'Одоо илгээх',
+  'markDone': 'Дууссан болгох',
+  'reopen': 'Дахин нээх',
+  'group.late': 'Хоцорсон',
+  'group.today': 'Өнөөдөр дуусах',
+  'group.week': 'Энэ долоо хоногт',
+  'group.later': 'Дараа нь',
+  'group.noDate': 'Хугацаагүй',
+  'group.done': 'Дууссан',
   'gembaWalk': 'Gemba явалт',
   'gembaWhere': 'Хаана',
   'gembaNoZone': '5S талбай биш',
