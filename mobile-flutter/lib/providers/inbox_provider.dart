@@ -15,6 +15,7 @@ class InboxItem {
     this.bodyParams = const {},
     this.read = false,
     this.createdAt,
+    this.link,
   });
 
   final String id;
@@ -29,6 +30,10 @@ class InboxItem {
   final bool read;
   final DateTime? createdAt;
 
+  /// Where on the web it points, `/tasks` or `/ideas`; the phone opens the
+  /// tab that holds the same thing.
+  final String? link;
+
   factory InboxItem.fromJson(Map<String, dynamic> json) => InboxItem(
         id: json['id'] as String,
         title: json['title'] as String? ?? '',
@@ -41,6 +46,7 @@ class InboxItem {
             (json['bodyParams'] as Map?)?.cast<String, dynamic>() ?? const {},
         read: json['readAt'] != null,
         createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+        link: json['link'] as String?,
       );
 
   InboxItem markedRead() => InboxItem(
@@ -53,6 +59,7 @@ class InboxItem {
         bodyParams: bodyParams,
         read: true,
         createdAt: createdAt,
+        link: link,
       );
 }
 

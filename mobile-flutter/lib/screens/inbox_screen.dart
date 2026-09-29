@@ -7,7 +7,11 @@ import '../utils/phase_one_strings.dart';
 
 /// What the person has been told, newest first. Opening an item marks it read.
 class InboxScreen extends StatefulWidget {
-  const InboxScreen({super.key});
+  const InboxScreen({super.key, this.onOpen});
+
+  /// Takes the person to what an item is about; given the item's link.
+  final void Function(String link)? onOpen;
+
   @override
   State<InboxScreen> createState() => _InboxScreenState();
 }
@@ -100,7 +104,10 @@ class _InboxScreenState extends State<InboxScreen> {
                           ]),
                       isThreeLine: item.body.contains('\n') ||
                           (item.createdAt != null && item.body.isNotEmpty),
-                      onTap: () => inbox.markRead(item),
+                      onTap: () {
+                        inbox.markRead(item);
+                        if (item.link != null) widget.onOpen?.call(item.link!);
+                      },
                     );
                   },
                 ),

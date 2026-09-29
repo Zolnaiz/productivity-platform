@@ -24,6 +24,21 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _tab = 0;
 
+  /// The tab holding what a message is about. A task given out a minute ago
+  /// is not in the list read this morning, so the tasks are read again.
+  void _open(String link) {
+    final tab = link.startsWith('/tasks')
+        ? 0
+        : link.startsWith('/ideas')
+            ? 3
+            : null;
+    if (tab == null) return;
+    if (tab == 0) {
+      context.read<TaskProvider>().load(assigneeId: context.read<AuthProvider>().user?.id);
+    }
+    setState(() => _tab = tab);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -115,12 +130,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         Expanded(
           child: IndexedStack(
               index: _tab,
-              children: const [
-                TasksScreen(),
-                WorkLogScreen(),
-                FiveSScreen(),
-                IdeasScreen(),
-                InboxScreen()
+              children: [
+                const TasksScreen(),
+                const WorkLogScreen(),
+                const FiveSScreen(),
+                const IdeasScreen(),
+                InboxScreen(onOpen: _open)
               ]),
         ),
       ]),

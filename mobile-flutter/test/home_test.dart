@@ -64,4 +64,47 @@ void main() {
     expect(inbox.unread, 1);
     expect(find.text('1'), findsOneWidget);
   });
+
+  testWidgets('opens the tasks from a message about a task', (tester) async {
+    final (api, adapter, _) = await makeApi((request) {
+      if (request.path == '/notifications') {
+        return jsonReply(envelope([
+          {'id': 'n1', 'title': 'Clear the aisle', 'readAt': null, 'link': '/tasks'},
+        ]));
+      }
+      return jsonReply(envelope([]));
+    });
+    final auth = AuthProvider(apiService: api);
+    await auth.fromJson({
+      'user': {'id': 'u1', 'email': 'op@example.com', 'fullName': 'Operator', 'role': 'user'},
+      'isAuthenticated': true
+    });
+    await tester.pumpWidget(MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: auth),
+        ChangeNotifierProvider.value(value: TaskProvider(api)),
+        ChangeNotifierProvider.value(value: WorkLogProvider(api)),
+        ChangeNotifierProvider.value(value: InboxProvider(api)),
+        ChangeNotifierProvider.value(value: IdeaProvider(api)),
+        ChangeNotifierProvider.value(value: FiveSProvider(api)),
+      ],
+      child: const MaterialApp(
+        locale: Locale('en'),
+        supportedLocales: [Locale('en'), Locale('mn')],
+        localizationsDelegates: testDelegates,
+        home: HomeScreen(),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Inbox').last);
+    await tester.pumpAndSettle();
+    adapter.requests.clear();
+    await tester.tap(find.byKey(const Key('inbox-n1')));
+    await tester.pumpAndSettle();
+
+    final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    expect(bar.selectedIndex, 0);
+    expect(adapter.requests.map((request) => request.path), contains('/tasks'));
+  });
 }
