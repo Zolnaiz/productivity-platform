@@ -458,7 +458,7 @@ const QuestionnairesPage: React.FC = () => {
       </div>
 
       <Card
-        title={`Template library (${filteredTemplates.length})`}
+        title={`${t("auditTemplates.templateLibrary")} (${filteredTemplates.length})`}
         loading={loading}
       >
         {filteredTemplates.length ? (

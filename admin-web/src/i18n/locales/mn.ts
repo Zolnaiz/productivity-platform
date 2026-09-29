@@ -1753,6 +1753,8 @@ const mn: Translations<typeof en> = {
     approvals: 'Батлалт',
     noUrgentItems: 'Яаралтай зүйл алга.',
     noOpenItems: 'Хийгдээгүй ажил алга.',
+    needsAttention: 'Анхаарах ({{count}})',
+    workQueue: 'Ажлын дараалал ({{count}})',
   },
   profile: {
     averageAssessmentScore: 'Үнэлгээний дундаж оноо',

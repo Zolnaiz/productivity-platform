@@ -10,18 +10,18 @@ import { Notification, notificationService } from '../services/notification.serv
 import { ActionItem } from '../types/action.types';
 
 const typeStyles: Record<ActionItem['type'], string> = {
-  overdue: 'bg-red-50 text-red-700 border-red-200',
-  audit: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  assessment: 'bg-purple-50 text-purple-700 border-purple-200',
-  expense: 'bg-green-50 text-green-700 border-green-200',
-  project: 'bg-blue-50 text-blue-700 border-blue-200',
-  task: 'bg-gray-50 text-gray-700 border-gray-200',
+  overdue: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-900',
+  audit: 'bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-900',
+  assessment: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-200 dark:border-purple-900',
+  expense: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-900',
+  project: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-900',
+  task: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700',
 };
 
 const priorityStyles: Record<ActionItem['priority'], string> = {
-  high: 'text-red-600',
-  medium: 'text-yellow-700',
-  low: 'text-gray-500',
+  high: 'text-red-700 dark:text-red-300',
+  medium: 'text-yellow-800 dark:text-yellow-300',
+  low: 'text-gray-600 dark:text-gray-400',
 };
 
 const NotificationsPage: React.FC = () => {
@@ -80,9 +80,9 @@ const NotificationsPage: React.FC = () => {
             </span>
           </div>
           <div className="mt-2 font-medium text-gray-900 dark:text-white">{actionText(item, t).message}</div>
-          <div className="mt-1 text-sm text-gray-500">{actionText(item, t).meta}</div>
+          <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">{actionText(item, t).meta}</div>
         </div>
-        <Link className="text-sm font-medium text-blue-600 hover:text-blue-500" to={item.path}>
+        <Link className="shrink-0 text-sm font-medium text-blue-700 hover:underline dark:text-blue-300" to={item.path}>
           {t('notifications.open')}
         </Link>
       </div>
@@ -162,39 +162,42 @@ const NotificationsPage: React.FC = () => {
         </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <div className="text-sm text-gray-500">{t('notifications.totalActions')}</div>
-          <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{items.length}</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-gray-500">{t('notifications.highPriority')}</div>
-          <div className="mt-2 text-3xl font-semibold text-red-600">{grouped.urgent.length}</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-gray-500">{t('notifications.qualityActions')}</div>
-          <div className="mt-2 text-3xl font-semibold text-purple-600">
-            {items.filter((item) => item.type === 'audit' || item.type === 'assessment').length}
+      {/* Four figures in one strip - two by two on a phone, not four screens of cards. */}
+      <dl className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="action-figures">
+        {[
+          { label: 'notifications.totalActions', value: items.length, tone: 'text-gray-900 dark:text-white' },
+          { label: 'notifications.highPriority', value: grouped.urgent.length, tone: 'text-red-700 dark:text-red-300' },
+          {
+            label: 'notifications.qualityActions',
+            value: items.filter((item) => item.type === 'audit' || item.type === 'assessment').length,
+            tone: 'text-purple-700 dark:text-purple-300',
+          },
+          {
+            label: 'notifications.approvals',
+            value: items.filter((item) => item.type === 'expense').length,
+            tone: 'text-green-700 dark:text-green-300',
+          },
+        ].map((figure) => (
+          <div
+            key={figure.label}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800"
+          >
+            <dt className="text-sm text-gray-600 dark:text-gray-400">{t(figure.label)}</dt>
+            <dd className={`mt-1 text-2xl font-semibold tabular-nums ${figure.tone}`}>{figure.value}</dd>
           </div>
-        </Card>
-        <Card>
-          <div className="text-sm text-gray-500">{t('notifications.approvals')}</div>
-          <div className="mt-2 text-3xl font-semibold text-green-700">
-            {items.filter((item) => item.type === 'expense').length}
-          </div>
-        </Card>
-      </div>
+        ))}
+      </dl>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card title={`Needs attention (${grouped.urgent.length})`}>
+        <Card title={t('notifications.needsAttention', { count: grouped.urgent.length })}>
           <div className="space-y-3">
-            {grouped.urgent.length ? grouped.urgent.map(renderItem) : <p className="text-sm text-gray-500">{t('notifications.noUrgentItems')}</p>}
+            {grouped.urgent.length ? grouped.urgent.map(renderItem) : <p className="text-sm text-gray-600 dark:text-gray-400">{t('notifications.noUrgentItems')}</p>}
           </div>
         </Card>
 
-        <Card title={`Work queue (${grouped.work.length})`}>
+        <Card title={t('notifications.workQueue', { count: grouped.work.length })}>
           <div className="space-y-3">
-            {grouped.work.length ? grouped.work.map(renderItem) : <p className="text-sm text-gray-500">{t('notifications.noOpenItems')}</p>}
+            {grouped.work.length ? grouped.work.map(renderItem) : <p className="text-sm text-gray-600 dark:text-gray-400">{t('notifications.noOpenItems')}</p>}
           </div>
         </Card>
       </div>

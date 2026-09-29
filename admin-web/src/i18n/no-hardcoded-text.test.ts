@@ -97,4 +97,23 @@ describe('text in the screens', () => {
 
     expect({ writtenInTheMarkup: offenders }).toEqual({ writtenInTheMarkup: [] });
   });
+
+  // A heading handed to a component is on the screen as much as text between
+  // tags: `title={`Needs attention (${count})`}` read in English on the
+  // Mongolian notifications page until this looked there too.
+  it('has no English handed to a component as its words', () => {
+    const attribute =
+      /\b(title|label|placeholder|aria-label|description|subtitle|emptyText|message)=\{?[`"']([A-Z][a-z]+(?: [a-zA-Z]+)+)/;
+    const offenders = sources(root)
+      .filter((path) => path.endsWith('.tsx'))
+      .flatMap((path) =>
+        readFileSync(path, 'utf-8')
+          .split(/\r?\n/)
+          .map((line, index) => ({ line, index }))
+          .filter(({ line }) => !isComment(line) && attribute.test(line))
+          .map(({ index }) => `${relative(root, path).replace(/\\/g, '/')}:${index + 1}`),
+      );
+
+    expect({ handedToAComponent: offenders }).toEqual({ handedToAComponent: [] });
+  });
 });

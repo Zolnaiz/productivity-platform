@@ -1770,6 +1770,8 @@ const en = {
     approvals: 'Approvals',
     noUrgentItems: 'No urgent items.',
     noOpenItems: 'No open work items.',
+    needsAttention: 'Needs attention ({{count}})',
+    workQueue: 'Work queue ({{count}})',
   },
   profile: {
     averageAssessmentScore: 'Average assessment score',
