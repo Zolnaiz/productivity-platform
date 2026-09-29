@@ -115,6 +115,69 @@ def usecase_diagram():
     save(fig, 'usecase.png')
 
 
+# 1б. Илтгэлийн use-case диаграм: хэвтээ, том үсэгтэй; тодорхойлсон use-case-ууд UC дугаартай
+def usecase_slide():
+    fig, ax = canvas(14, 7.1)
+    ax.add_patch(Rectangle((2.2, 0.3), 9.6, 6.7, fc='white', ec=INK, lw=1.4))
+    ax.text(7.0, 6.72, 'Бүтээмжийн платформ', ha='center', va='center', fontsize=14, fontweight='bold')
+    # (түлхүүр, нэр, тодорхойлсон бол UC дугаар); баганын дарааллаар дээрээс доош
+    left = [('login', 'Нэвтрэх', 'UC-01'), ('tasks', 'Өөрийн ажлыг харах, дуусгах', ''),
+            ('worklog', 'Өдрийн бүртгэл хөтлөх', ''), ('checkin', 'Долоо хоногийн тайлан бичих', 'UC-07'),
+            ('audit', '5S аудит хийх (QR)', 'UC-02'), ('redtag', 'Улаан шошго бүртгэх', ''),
+            ('idea', 'Сайжруулалтын санаа илгээх', 'UC-06'), ('inbox', 'Мэдэгдэл унших', ''),
+            ('archive', 'Тайлан, архив үзэх', '')]
+    right = [('assign', 'Ажил оноох, хянах', 'UC-03'), ('huddle', 'Өглөөний хурал хөтлөх', 'UC-08'),
+             ('gemba', 'Gemba явалт бүртгэх', 'UC-05'), ('review', 'Санаа хянах', ''),
+             ('report', 'Сарын тайлан хаах, батлах', 'UC-04'), ('layout', '5S талбай, стандарт тохируулах', 'UC-09'),
+             ('users', 'Хэрэглэгч урих, эрх олгох', ''), ('org', 'Байгууллагын тохиргоо', ''),
+             ('remind', 'Сануулга, аудит төлөвлөх', '')]
+    w, h = 4.2, 0.6
+    rows = [6.2 - i * 0.66 for i in range(9)]
+    pos = {}
+    for column, x in ((left, 4.7), (right, 9.3)):
+        for (key, name, uc), y in zip(column, rows):
+            pos[key] = (x, y)
+            ax.add_patch(Ellipse((x, y), w, h, fc='#bfdbfe' if uc else BLUE, ec=BLUE_E, lw=1.8 if uc else 1.0))
+            if uc:
+                ax.text(x, y + 0.14, uc, ha='center', va='center', fontsize=9.5, fontweight='bold', color=BLUE_E)
+                ax.text(x, y - 0.1, name, ha='center', va='center', fontsize=11.5, color=INK)
+            else:
+                ax.text(x, y, name, ha='center', va='center', fontsize=12, color=INK)
+
+    def figure(x, y, name):
+        ax.add_patch(plt.Circle((x, y + 0.62), 0.16, fc='white', ec=INK, lw=1.4))
+        ax.plot([x, x], [y + 0.46, y + 0.06], color=INK, lw=1.4)
+        ax.plot([x - 0.25, x + 0.25], [y + 0.33, y + 0.33], color=INK, lw=1.4)
+        ax.plot([x, x - 0.2], [y + 0.06, y - 0.25], color=INK, lw=1.4)
+        ax.plot([x, x + 0.2], [y + 0.06, y - 0.25], color=INK, lw=1.4)
+        ax.text(x, y - 0.35, name, ha='center', va='top', fontsize=12.5, fontweight='bold')
+
+    figure(1.0, 4.1, 'Ажилтан')
+    figure(1.0, 1.1, 'Ажиглагч')
+    figure(13.0, 4.5, 'Менежер')
+    figure(13.0, 2.1, 'Админ')
+    figure(13.0, 0.3, 'Цагийн хуваарь')
+    line = dict(color='#6b7280', lw=0.9)
+
+    def link(fx, fy, keys, side):
+        for key in keys:
+            x, y = pos[key]
+            ax.plot([fx, x + side * w / 2], [fy, y], **line)
+
+    link(1.3, 4.35, ['login', 'tasks', 'worklog', 'checkin', 'audit', 'redtag', 'idea', 'inbox'], -1)
+    link(1.3, 1.35, ['inbox', 'archive'], -1)
+    link(12.7, 4.75, ['assign', 'huddle', 'gemba', 'review', 'report', 'layout'], 1)
+    link(12.7, 2.35, ['users', 'org'], 1)
+    link(12.7, 0.55, ['remind'], 1)
+    # Эрхийн удамшил: ажилтан ажиглагчийн, админ менежерийн бүх use-case-ийг өвлөнө
+    dashed = dict(arrowstyle='-|>', color=INK, lw=1.1, ls='--')
+    ax.annotate('', xy=(1.0, 2.0), xytext=(1.0, 3.45), arrowprops=dashed)
+    ax.text(0.65, 2.72, 'өвлөнө', fontsize=10, rotation=90, va='center')
+    ax.annotate('', xy=(13.0, 3.85), xytext=(13.0, 2.95), arrowprops=dashed)
+    ax.text(13.35, 3.4, 'өвлөнө', fontsize=10, rotation=90, va='center')
+    save(fig, 'usecase_slide.png')
+
+
 # 2. Архитектур
 def architecture():
     fig, ax = canvas(11, 6.6)
