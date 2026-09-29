@@ -49,8 +49,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const Icon(Icons.work_outline, size: 64),
                   const SizedBox(height: 16),
-                  Text(strings.text('tasks'),
+                  // The app's name, not a tab's: "My tasks" here read as if
+                  // the task list had opened empty.
+                  Text(strings.text('appName'),
                       style: Theme.of(context).textTheme.headlineMedium,
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 8),
+                  Text(strings.text('signInHint'),
+                      style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center),
                   const SizedBox(height: 32),
                   TextFormField(
