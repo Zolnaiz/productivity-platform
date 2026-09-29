@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Select from '../components/common/Select';
 import { raisedTitle } from '../components/common/raisedText';
+import GembaAdherence from '../components/huddle/GembaAdherence';
 import { huddleFigures } from '../components/huddle/huddle';
 import { localDay } from '../components/progress/progressBoard';
 import { useAuth } from '../contexts/AuthContext';
@@ -215,7 +216,7 @@ const HuddlePage: React.FC = () => {
         </section>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className={`grid gap-5 ${hasPermission('gemba:walk') ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
         <section className={panel} aria-labelledby="huddle-fives">
           <h2 id="huddle-fives" className={heading}>
             <Tag className="h-5 w-5 text-red-700 dark:text-red-400" aria-hidden="true" />
@@ -266,6 +267,17 @@ const HuddlePage: React.FC = () => {
             ))}
           </ul>
         </section>
+
+        {hasPermission('gemba:walk') && (
+          <GembaAdherence
+            today={today}
+            readAt={readAt}
+            people={people}
+            nameOf={nameOf}
+            className={panel}
+            headingClassName={heading}
+          />
+        )}
       </div>
     </div>
   );

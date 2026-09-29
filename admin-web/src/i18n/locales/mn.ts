@@ -630,6 +630,12 @@ const mn: Translations<typeof en> = {
     nothingRaised: 'Энэ долоо хоногт юу ч гараагүй.',
     idea: 'Санаа',
     nobody: 'Хариуцагчгүй',
+    gemba: {
+      title: 'Энэ долоо хоногийн Gemba явалт',
+      onTarget_one: 'энэ долоо хоногт цехээр явсан удирдлага',
+      onTarget_other: 'энэ долоо хоногт {{count}} удаа цехээр явсан удирдлага',
+      record: 'Явалт бүртгэх',
+    },
   },
   insights: {
     title: 'Аудитын үр дүн',

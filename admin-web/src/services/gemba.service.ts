@@ -53,7 +53,7 @@ export const gembaService = {
       week,
       target: 1,
       walks,
-      walkers: [{ userId: 'demo-user', walks: walks.filter((walk) => walk.walkerId === 'demo-user').length }],
+      walkers: [{ userId: 'u1', walks: walks.filter((walk) => walk.walkerId === 'u1').length }],
     };
   },
 
@@ -61,13 +61,13 @@ export const gembaService = {
     if (!isDemoMode()) return post<GembaWalk>('/gemba', walk);
     const saved: GembaWalk = {
       id: localId('gemba'),
-      walkerId: 'demo-user',
+      walkerId: 'u1',
       walkedOn: walk.walkedOn ?? new Date().toISOString().slice(0, 10),
       zoneId: walk.zoneId,
       area: walk.area ?? '',
       observations: walk.observations ?? '',
       conversations: walk.conversations ?? '',
-      followUps: (walk.followUps ?? []).map((followUp) => ({ ...followUp, assigneeId: followUp.assigneeId || 'demo-user' })),
+      followUps: (walk.followUps ?? []).map((followUp) => ({ ...followUp, assigneeId: followUp.assigneeId || 'u1' })),
     };
     try {
       localStorage.setItem(demoKey, JSON.stringify([saved, ...readDemo()]));

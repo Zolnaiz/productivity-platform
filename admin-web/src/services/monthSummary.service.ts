@@ -48,7 +48,7 @@ export const monthSummaryService = {
           period,
           text: text.trim(),
           aiDrafted: false,
-          approvedBy: approve ? 'demo-user' : null,
+          approvedBy: approve ? 'u1' : null,
           approvedAt: approve ? new Date().toISOString() : null,
         })
       : put<MonthSummary>('/operations/monthly-summary', { month: period, text, approve }),

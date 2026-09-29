@@ -7,7 +7,7 @@ const demoKey = 'productivity-demo-ideas';
 const demoIdeas: Idea[] = [
   {
     id: 'idea-demo-1',
-    authorId: 'demo-user-2',
+    authorId: 'u2',
     title: 'Shadow board for the torque wrenches',
     description: 'We lose about ten minutes a shift looking for the right wrench.',
     area: 'A03 - Assembly',
@@ -18,7 +18,7 @@ const demoIdeas: Idea[] = [
   },
   {
     id: 'idea-demo-2',
-    authorId: 'demo-user-3',
+    authorId: 'u3',
     title: 'Floor tape at the dock doors',
     description: 'Pallets are left across the walkway. A marked bay would keep it clear.',
     area: 'Loading dock',
@@ -58,7 +58,7 @@ export const ideaService = {
 
     const created: Idea = {
       id: localId('idea'),
-      authorId: 'demo-user',
+      authorId: 'u1',
       title: idea.title.trim(),
       description: idea.description?.trim() ?? '',
       area: idea.area?.trim() ?? '',
@@ -98,7 +98,7 @@ export const ideaService = {
       status: decision.status,
       reviewNote: decision.note ?? current.reviewNote,
       reviewedAt: new Date().toISOString(),
-      reviewerId: 'demo-user',
+      reviewerId: 'u1',
       taskId,
     };
     writeDemo(ideas.map((idea) => (idea.id === id ? reviewed : idea)));

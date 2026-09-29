@@ -45,14 +45,14 @@ export const addDays = (day: string, days: number) => {
 
 export const checkinService = {
   getMine: async (week: string): Promise<WeeklyCheckin | null> => {
-    if (isDemoMode()) return readDemo().find((item) => item.userId === 'demo-user' && item.week === mondayOf(week)) ?? null;
+    if (isDemoMode()) return readDemo().find((item) => item.userId === 'u1' && item.week === mondayOf(week)) ?? null;
     return get<WeeklyCheckin | null>('/checkins/mine', { week });
   },
 
   saveMine: async (checkin: Pick<WeeklyCheckin, 'week' | 'progress' | 'plans' | 'problems'>): Promise<WeeklyCheckin> => {
     if (!isDemoMode()) return put<WeeklyCheckin>('/checkins/mine', checkin);
-    const saved: WeeklyCheckin = { ...checkin, week: mondayOf(checkin.week), userId: 'demo-user', updatedAt: new Date().toISOString() };
-    writeDemo([...readDemo().filter((item) => !(item.userId === 'demo-user' && item.week === saved.week)), saved]);
+    const saved: WeeklyCheckin = { ...checkin, week: mondayOf(checkin.week), userId: 'u1', updatedAt: new Date().toISOString() };
+    writeDemo([...readDemo().filter((item) => !(item.userId === 'u1' && item.week === saved.week)), saved]);
     return saved;
   },
 

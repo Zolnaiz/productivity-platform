@@ -632,6 +632,12 @@ const en = {
     nothingRaised: 'Nothing raised this week.',
     idea: 'Idea',
     nobody: 'Nobody',
+    gemba: {
+      title: 'Gemba walks this week',
+      onTarget_one: 'managers who have walked the floor this week',
+      onTarget_other: 'managers who have walked the floor {{count}} times this week',
+      record: 'Record a walk',
+    },
   },
   insights: {
     title: 'Audit results',
