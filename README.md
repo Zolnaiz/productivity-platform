@@ -317,7 +317,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 As of 2026-09-28, on branch `codex/productivity-core-integrity`:
 
-- Backend: 828 tests passing; lint clean; the migration check applies all 38
+- Backend: 830 tests passing; lint clean; the migration check applies all 40
   migrations to a real PostgreSQL (WebAssembly) and checks every mapped
   column, including the ones every entity inherits
 - Frontend: 1017 tests passing, 18 browser checks passing and 21 against the real server (every page checked by axe for WCAG 2 AA in both themes, and as an operator and the owner on real data), lint and build clean;

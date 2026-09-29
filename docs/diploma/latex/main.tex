@@ -1,0 +1,136 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ШУТИС-МХТС, Компьютерын ухааны тэнхим
+% Бакалаврын дипломын ажил — MUST-Thesis загвар (v2.3) дээр
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[
+12pt,
+oneside,
+english,
+onehalfspacing,
+nolistspacing,
+headsepline,
+]{MUST-Thesis}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T2A]{fontenc}
+\usepackage[mongolian]{babel}
+\usepackage{titlesec}
+\usepackage[table]{xcolor}
+\usepackage{amsmath,amssymb}
+\usepackage{rotating}
+\usepackage{enumitem}
+\setlist{noitemsep}
+% Урт үг, URL хуудаснаас халихгүй
+\setlength{\emergencystretch}{3em}
+
+\let\oldtabular\tabular
+\let\endoldtabular\endtabular
+\renewenvironment{tabular}
+   {\bgroup\singlespacing\oldtabular}%
+   {\endoldtabular\egroup}
+
+\usepackage{caption,longtable,ltcaption}
+\DeclareCaptionJustification{nohyphen}{\hyphenpenalty=10000}
+\captionsetup{justification=nohyphen}
+
+\usepackage{float}
+\usepackage{array}
+
+% Загварын өнгө: нүүр хуудас (Cover), бүлгийн нүүр (Chapter)
+\definecolor{Cover}{RGB}{102,255,255}
+\definecolor{Chapter}{RGB}{255,220,180}
+\definecolor{lightlightgray}{gray}{0.93}
+\usepackage{listings}
+\renewcommand{\lstlistingname}{Эх код}
+\lstset{
+language={},
+basicstyle=\linespread{1.0}\ttfamily\small,
+numbers=left,
+numberstyle=\tiny,
+numbersep=5pt,
+backgroundcolor=\color{lightlightgray},
+frame=none,
+tabsize=2,
+captionpos=t,
+breaklines=true,
+columns=flexible,
+}
+
+\usepackage[autostyle=false]{csquotes}
+\usepackage[backend=bibtex,natbib=true,sorting=none,sortcites]{biblatex}
+\addbibresource{references.bib}
+
+\newcommand{\authorshipname}{Зохиогч эрхийн хамгаалал}
+\newcommand{\abbrevname}{Товчилсон үгс}
+\newcommand{\constantsname}{Физик тогтмолууд}
+\newcommand{\symbolsname}{Таних тэмдэгтүүд}
+\newcommand{\acknowledgementname}{Талархал}
+\newcommand{\abstractname}{Хураангуй}
+\newcommand{\yes}{$\checkmark$}
+
+%-------------------------------------------------------------------------------
+%	THESIS INFORMATION — [ ] доторхыг өөрийнхөөрөө солино
+%-------------------------------------------------------------------------------
+
+\thesistitle{Байгууллагын бүтээмжийг дэмжих платформ хөгжүүлэлт}
+\thesistype{БАКАЛАВРЫН ДИПЛОМЫН АЖИЛ}
+\supervisor{Доктор (Ph.D), дэд профессор Г.Ганчимэг}
+\reader{[Шүүмжлэгчийн нэр]}
+\advisor{[Зөвлөгч багшийн нэр]}
+\degreeind{071405000000002306}
+\degree{Программ хангамжийн инженерчлэл}
+\authorshort{Б.Билгүүн}
+\authorlong{Бямбадоржийн Билгүүн}
+\addresses{Оюутны код: B190910014}
+\subject{Программ хангамжийн инженерчлэл}
+\keywords{Бүтээмж, 5S, Lean, Gemba, ажлын удирдлага, вэб апп, гар утасны апп}
+\university{\href{http://www.must.edu.mn}{Шинжлэх Ухаан Технологийн Их Сургууль}}
+\department{Компьютерийн ухааны тэнхим}
+\deptchair{Доктор (Ph.D), Дэд профессор А.Хүдэр}
+\group{Программ хангамжийн инженерчлэл}
+\faculty{\href{http://www.sict.edu.mn}{Мэдээлэл, Холбооны Технологийн Сургууль}}
+
+\hypersetup{pdftitle=\ttitle}
+\hypersetup{pdfauthor=\shortname}
+\hypersetup{pdfkeywords=\keywordnames}
+\hypersetup{allcolors=black}
+
+\begin{document}
+\sloppy
+
+\frontmatter
+\pagestyle{plain}
+
+\include{FrontBackMatter/Titlepage}
+\include{FrontBackMatter/Plan-Review}
+\include{FrontBackMatter/Declaration}
+\include{FrontBackMatter/Abstract}
+\include{FrontBackMatter/Acknowledgments}
+\include{FrontBackMatter/Abbreviations}
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\include{Chapters/introduction}
+\mainmatter
+
+\pagestyle{thesis}
+\myformat
+
+\include{Chapters/Chapter1}
+\include{Chapters/Chapter2}
+\include{Chapters/Chapter3}
+\include{Chapters/Chapter4}
+\pagestyle{plain}
+\include{Appendices/summary}
+
+\appendix
+% \include{Appendices/AppendixA}
+
+\defformat
+\addchaptertocentry{Ном зүй}
+\printbibliography[heading=bibliography,title={Ном зүй}]
+
+\end{document}
