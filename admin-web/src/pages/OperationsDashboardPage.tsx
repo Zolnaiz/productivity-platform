@@ -6,6 +6,7 @@ import KpiCard from '../components/widgets/KpiCard';
 import MyDayCard from '../components/widgets/MyDayCard';
 import QuickActions from '../components/widgets/QuickActions';
 import SetupChecklist from '../components/setup/SetupChecklist';
+import WeekReminder from '../components/widgets/WeekReminder';
 import { runsOthersWork } from '../components/layout/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { actionText } from '../components/common/actionText';
@@ -88,6 +89,8 @@ const OperationsDashboardPage: React.FC = () => {
       </div>
 
       <QuickActions />
+
+      <WeekReminder />
 
       {/* Until the organization is set up, that is the first thing an administrator does. */}
       {(user?.roles || []).some((role) => role === 'admin' || role === 'super_admin') && <SetupChecklist hideWhenDone />}

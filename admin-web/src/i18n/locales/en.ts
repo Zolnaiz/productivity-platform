@@ -578,6 +578,8 @@ const en = {
   },
   weekly: {
     title: 'My week',
+    reminder: 'The week is nearly over and your check-in is not written yet: two minutes - done, next, in the way.',
+    writeNow: 'Write my week',
     subtitle: 'Three short parts, written on Friday: what got done, what is next, and what is in the way. Your manager reads the team\u2019s, and the problems first.',
     weekLabel: 'Week',
     previous: 'Previous week',
