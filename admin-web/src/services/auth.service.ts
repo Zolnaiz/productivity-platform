@@ -1,4 +1,4 @@
-import { post, get } from './api';
+import { post, get, patch } from './api';
 import { User, LoginCredentials, RegisterData, AuthResponse } from '../types/user.types';
 
 type BackendUser = Partial<User> & {
@@ -131,6 +131,29 @@ export const authService = {
     password: string;
   }): Promise<void> => {
     return await post('/auth/reset-password', data);
+  },
+
+  // Урилгын холбоосоор орж ирсэн хүний нэр, эрхийг урьдчилан харах
+  previewInvitation: async (token: string): Promise<{ email: string; role: string }> => {
+    return await get(`/auth/invitations/token/${encodeURIComponent(token)}`);
+  },
+
+  // Урилгыг хүлээн авч нууц үгээ тохируулах
+  acceptInvitation: async (
+    token: string,
+    data: { firstName: string; lastName: string; password: string },
+  ): Promise<void> => {
+    return await post(`/auth/invitations/token/${encodeURIComponent(token)}/accept`, data);
+  },
+
+  // Өөрийн нэр, утас, хэлийг засах
+  updateOwnProfile: async (data: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    language?: string;
+  }): Promise<void> => {
+    return await patch('/users/profile/me', data);
   },
 
   // Session шалгах

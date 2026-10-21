@@ -369,6 +369,24 @@ class ApiService {
     }
   }
 
+  /// Edits the signed-in person's own name, phone and language.
+  Future<void> updateProfile({String? firstName, String? lastName, String? phone, String? language}) async {
+    await _dio.patch('/users/profile/me', data: {
+      if (firstName != null) 'firstName': firstName,
+      if (lastName != null) 'lastName': lastName,
+      if (phone != null) 'phone': phone,
+      if (language != null) 'language': language,
+    });
+    await getCurrentUser();
+  }
+
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    await _dio.post('/auth/change-password', data: {
+      'currentPassword': currentPassword,
+      'newPassword': newPassword,
+    });
+  }
+
   Future<Map<String, dynamic>> getCurrentUser() async {
     try {
       final response = await _dio.get('/auth/me');

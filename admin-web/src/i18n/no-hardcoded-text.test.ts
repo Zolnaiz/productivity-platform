@@ -24,6 +24,7 @@ const allowed: Record<string, string> = {
   // Each language names itself, so the switch is readable whichever is active.
   'components/layout/LanguageToggle.tsx': 'language names',
   'pages/SettingsPage.tsx': 'language names',
+  'pages/AccountPage.tsx': 'language names',
 };
 
 const isComment = (line: string) => /^\s*(\/\/|\*|\/\*|\{\/\*)/.test(line);

@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from '../shared/decorators/public.decorator';
@@ -61,14 +62,18 @@ export class AuthController {
     return this.authService.getProfile(req.user.id);
   }
 
+  // Tighter than the global limit: this endpoint sends mail and guesses tokens.
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Public()
   @Post('forgot-password')
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Public()
   @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto.token, resetPasswordDto.password);
   }

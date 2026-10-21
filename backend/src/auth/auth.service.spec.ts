@@ -63,6 +63,7 @@ describe('AuthService', () => {
       organizationsService as unknown as OrganizationsService,
       jwtService as unknown as JwtService,
       configService as unknown as ConfigService,
+      { send: jest.fn(), describe: jest.fn() },
     );
   });
 

@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
 import { UserRole } from '../shared/constants';
@@ -77,10 +77,33 @@ describe('UsersService', () => {
     repository.findOne.mockResolvedValue({ ...user });
     jest.spyOn(bcrypt, 'compare').mockResolvedValue(false as never);
 
+    // 400 with its own code, not 401: the caller's session is fine, and a 401
+    // makes clients try to refresh it.
     await expect(service.changePassword('user-1', 'bad-password', 'new-password')).rejects.toBeInstanceOf(
-      UnauthorizedException,
+      BadRequestException,
     );
     expect(repository.save).not.toHaveBeenCalled();
+  });
+
+  it('stores, finds and burns a reset token', async () => {
+    const update = jest.fn();
+    (repository as any).update = update;
+    jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashed-new' as never);
+    const expiresAt = new Date();
+
+    await service.setResetToken('user-1', 'hash-1', expiresAt);
+    expect(update).toHaveBeenCalledWith('user-1', { resetPasswordToken: 'hash-1', resetPasswordExpires: expiresAt });
+
+    repository.findOne.mockResolvedValue({ ...user });
+    await service.findByResetToken('hash-1');
+    expect(repository.findOne).toHaveBeenCalledWith({ where: { resetPasswordToken: 'hash-1' } });
+
+    await service.completePasswordReset('user-1', 'NewPassword1');
+    expect(update).toHaveBeenLastCalledWith('user-1', {
+      password: 'hashed-new',
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+    });
   });
 
   it('allows ADMIN users to read users from their own organization', async () => {

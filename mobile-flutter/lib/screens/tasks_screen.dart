@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../providers/task_provider.dart';
 import '../services/api_service.dart';
 import '../utils/phase_one_strings.dart';
+import 'profile_screen.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -39,10 +40,18 @@ class _TasksScreenState extends State<TasksScreen> {
           key: const Key('account-menu'),
           tooltip: strings.text('account'),
           icon: const Icon(Icons.account_circle_outlined),
-          onSelected: (choice) => choice == 'logout'
-              ? context.read<AuthProvider>().logout()
-              : _requestDeletion(context, context.read<TaskProvider>().api),
+          onSelected: (choice) {
+            if (choice == 'logout') {
+              context.read<AuthProvider>().logout();
+            } else if (choice == 'profile') {
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ProfileScreen(api: context.read<TaskProvider>().api)));
+            } else {
+              _requestDeletion(context, context.read<TaskProvider>().api);
+            }
+          },
           itemBuilder: (_) => [
+            PopupMenuItem(value: 'profile', child: Text(strings.text('profile'))),
             PopupMenuItem(value: 'logout', child: Text(strings.text('logout'))),
             PopupMenuItem(value: 'delete', child: Text(strings.text('deleteAccount'))),
           ],

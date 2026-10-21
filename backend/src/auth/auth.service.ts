@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
@@ -8,6 +8,14 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UserRole } from '../shared/constants';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
+import { MAILER, Mailer } from '../shared/mail/mailer';
+import { mailLanguageOf } from '../shared/mail/wording';
+import { createInvitationToken, hashInvitationToken, hashesMatch, normalizeEmail } from './invitation-token';
+import {
+  PASSWORD_RESET_COOLDOWN_MS,
+  PASSWORD_RESET_TTL_MS,
+  passwordResetMail,
+} from './password-reset-mail';
 
 const durationToSeconds = (duration: string) => {
   const match = duration.trim().match(/^(\d+)([smhd])?$/);
@@ -37,6 +45,7 @@ export class AuthService {
     private readonly organizationsService: OrganizationsService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User> {
@@ -132,16 +141,76 @@ export class AuthService {
     return { message: 'Password changed successfully' };
   }
 
+  /**
+   * Starts a password reset.
+   *
+   * The answer is the same whether or not the address belongs to anyone, so
+   * the form cannot be used to find out who has an account. Only the hash of
+   * the token is stored; the raw token exists in the email alone.
+   */
   async forgotPassword(email: string) {
-    this.logger.log(`Forgot password for email: ${email}`);
-    return {
+    const answer = {
       message: 'If this email is registered, password reset instructions will be sent',
     };
+    const user = await this.usersService.findByEmail(normalizeEmail(email));
+
+    if (!user || !user.isActive) {
+      return answer;
+    }
+
+    // Issued less than a cooldown ago: the earlier mail is still on its way.
+    const issuedAt = user.resetPasswordExpires
+      ? new Date(user.resetPasswordExpires).getTime() - PASSWORD_RESET_TTL_MS
+      : 0;
+    if (Date.now() - issuedAt < PASSWORD_RESET_COOLDOWN_MS) {
+      return answer;
+    }
+
+    const token = createInvitationToken();
+    await this.usersService.setResetToken(
+      user.id,
+      hashInvitationToken(token),
+      new Date(Date.now() + PASSWORD_RESET_TTL_MS),
+    );
+
+    try {
+      const language =
+        (user.language === 'mn' || user.language === 'en' ? user.language : undefined) ??
+        mailLanguageOf(user.organization?.settings) ??
+        'mn';
+      await this.mailer.send({
+        to: user.email,
+        ...passwordResetMail(language, token, this.configService.get<string>('APP_BASE_URL') ?? ''),
+      });
+    } catch {
+      // The token exists and can be requested again; a mail failure must not
+      // reveal itself to the (possibly hostile) caller.
+      this.logger.warn(`Could not email a password reset for user ${user.id}`);
+    }
+
+    return answer;
   }
 
-  async resetPassword(_token: string, _password: string) {
-    this.logger.log('Password reset requested');
-    return { message: 'Password reset request accepted' };
+  /** Sets a new password from a reset token. Wrong, expired and used tokens are indistinguishable. */
+  async resetPassword(token: string, password: string) {
+    const tokenHash = hashInvitationToken(token);
+    const user = await this.usersService.findByResetToken(tokenHash);
+
+    if (
+      !user ||
+      !user.resetPasswordToken ||
+      !hashesMatch(user.resetPasswordToken, tokenHash) ||
+      !user.resetPasswordExpires ||
+      new Date(user.resetPasswordExpires).getTime() <= Date.now() ||
+      !user.isActive
+    ) {
+      throw apiError(ErrorCode.PasswordResetInvalid);
+    }
+
+    await this.usersService.completePasswordReset(user.id, password);
+    this.logger.log(`Password reset completed for user ${user.id}`);
+
+    return { message: 'Password has been reset' };
   }
 
   async getProfile(userId: string) {
