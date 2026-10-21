@@ -199,12 +199,30 @@ export interface ReportMeasurement {
   excluded: number;
 }
 
+/** A record behind a K2 or K4 number: which task, and how many days it contributed. */
+export interface MeasurementEvidence {
+  id: string;
+  title?: string;
+  days?: number;
+  dueDate?: string;
+}
+
 export interface MonthlyMeasurements {
-  version: 1;
+  /** 1: K1, K3 and linkage only. 2 adds K2, K4, K6 and the records behind them. */
+  version: 1 | 2;
   timeZone: string;
+  referenceDay?: string;
   onTimeDelivery: ReportMeasurement;
+  lateWork?: ReportMeasurement;
   zoneAuditScore: ReportMeasurement;
+  fixClosureDays?: ReportMeasurement;
+  checkinRate?: ReportMeasurement;
   workLinkage: ReportMeasurement;
+  evidence?: {
+    lateWork: MeasurementEvidence[];
+    fixClosureDays: MeasurementEvidence[];
+    checkinMissing: Array<{ userId: string; week: string }>;
+  };
 }
 
 export interface OperationsMonthlyReport {

@@ -123,3 +123,63 @@ describe('monthly measurement scope and snapshots', () => {
     expect(legacy.measurements.onTimeDelivery.value).toBeNull();
   });
 });
+
+describe('K2, K4 and K6 on the monthly report', () => {
+  const all = organization({
+    tasks: [
+      // Due in February, still open: late in March even though planned for another month.
+      { id: 'old', assigneeId: 'u1', status: 'todo', dueDate: '2026-02-20', createdAt: '2026-02-01T00:00:00Z' },
+      { id: 'mine', assigneeId: 'u1', status: 'in_progress', dueDate: '2026-03-30', createdAt: '2026-03-01T00:00:00Z' },
+      { id: 'theirs', assigneeId: 'u2', status: 'todo', dueDate: '2026-03-25', createdAt: '2026-03-01T00:00:00Z' },
+      // Finished before March began: not a March candidate at all.
+      { id: 'gone', assigneeId: 'u1', status: 'done', dueDate: '2026-01-10', completedAt: '2026-01-09T00:00:00Z' },
+      {
+        id: 'fix', assigneeId: 'u2', status: 'done', sourceType: 'audit_run', dueDate: '2026-03-20',
+        createdAt: '2026-03-10T00:00:00Z', completedAt: '2026-03-13T00:00:00Z',
+      },
+    ],
+    weeklyCheckins: [
+      { userId: 'u1', week: '2026-03-02' },
+      { userId: 'u2', week: '2026-03-02' },
+      { userId: 'u2', week: '2026-03-09' },
+    ],
+    members: [
+      { id: 'u1', role: 'user', isActive: true },
+      { id: 'u2', role: 'manager', isActive: true },
+      { id: 'boss', role: 'admin', isActive: true },
+      { id: 'left', role: 'user', isActive: false },
+    ],
+  });
+
+  it('counts the team: late work including older months, fix closure, check-ins of active staff', () => {
+    const measurements = buildMonthlyReport(selectMonthRecords(all, '2026-03'), '2026-03', { ...team, today: '2026-04-15' }).measurements;
+
+    expect(measurements.referenceDay).toBe('2026-03-31');
+    expect(measurements.lateWork).toEqual({ value: 15.3, numerator: 46, denominator: 3, excluded: 0 });
+    expect(measurements.evidence.lateWork.map((item) => item.id)).toEqual(['old', 'theirs', 'mine']);
+    expect(measurements.fixClosureDays).toEqual({ value: 3, numerator: 3, denominator: 1, excluded: 0 });
+    // u1 and u2 over five Mondays; the admin and the departed are not expected.
+    expect(measurements.checkinRate).toEqual({ value: 30, numerator: 3, denominator: 10, excluded: 0 });
+  });
+
+  it('counts only the reader’s own records for an employee, and stops the clock at today', () => {
+    const measurements = buildMonthlyReport(selectMonthRecords(all, '2026-03'), '2026-03', {
+      id: 'u1', ownOnly: true, today: '2026-03-10',
+    }).measurements;
+
+    expect(measurements.referenceDay).toBe('2026-03-10');
+    // Only 'old' is overdue on the 10th among u1's tasks.
+    expect(measurements.lateWork).toMatchObject({ denominator: 1, numerator: 18 });
+    expect(measurements.fixClosureDays.denominator).toBe(0);
+    // Two Mondays by the 10th; u1 wrote one.
+    expect(measurements.checkinRate).toEqual({ value: 50, numerator: 1, denominator: 2, excluded: 0 });
+  });
+
+  it('reports K2 and K6 as no data for a month closed before they existed', () => {
+    const { lateCandidates: _late, weeklyCheckins: _weeks, members: _members, ...oldSnapshot } = selectMonthRecords(all, '2026-03');
+    const measurements = buildMonthlyReport(oldSnapshot, '2026-03', team).measurements;
+
+    expect(measurements.lateWork.value).toBeNull();
+    expect(measurements.checkinRate.value).toBeNull();
+  });
+});

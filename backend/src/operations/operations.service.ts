@@ -21,6 +21,7 @@ import { defaultGuidelineContent } from './five-s-guideline-content';
 import { mergeFloorFacts } from './layout-merge';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { projectProgressPercent, sumRecordedHours } from './monthly-people';
+import { WeeklyCheckin } from './entities/weekly-checkin.entity';
 import { buildMonthlyReport, MonthRecords, OrganizationRecords, selectMonthRecords } from './monthly-report';
 import { NotificationsService } from './notifications.service';
 import { noteAuditBefore } from '../audit/audit-context';
@@ -90,6 +91,8 @@ export class OperationsService {
       leave it out; the application always has it.
     */
     @Optional() @InjectRepository(User) private readonly users?: Repository<User>,
+    // For K6 on the monthly report; optional for the same reason as `users`.
+    @Optional() @InjectRepository(WeeklyCheckin) private readonly weeklyCheckins?: Repository<WeeklyCheckin>,
   ) {}
 
   /**
@@ -1461,7 +1464,28 @@ export class OperationsService {
       this.dailyGoals.find({ where: organization }),
     ]);
 
-    return { projects, tasks, workLogs, timeEntries, auditRuns, assessmentResponses, expenses, dailyGoals };
+    // K6 needs who wrote a weekly check-in and who was expected to. A service
+    // built without those repositories reports K6 as "no data", never as 0%.
+    const [weeklyCheckins, members] = await Promise.all([
+      this.weeklyCheckins?.find?.({ where: organization }),
+      this.users?.find?.({
+        where: organization,
+        select: { id: true, role: true, isActive: true } as never,
+      }),
+    ]);
+
+    return {
+      projects,
+      tasks,
+      workLogs,
+      timeEntries,
+      auditRuns,
+      assessmentResponses,
+      expenses,
+      dailyGoals,
+      weeklyCheckins,
+      members: members?.map((member) => ({ id: member.id, role: member.role, isActive: member.isActive })),
+    };
   }
 
   resolveReportMonth(month?: string) {
