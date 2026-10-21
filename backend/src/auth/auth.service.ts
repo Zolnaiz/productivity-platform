@@ -166,14 +166,23 @@ export class AuthService {
       return answer;
     }
 
+    // Not awaited: storing the token and talking to SMTP take time an
+    // unknown address does not, and that difference would reveal which
+    // addresses are registered.
+    void this.issuePasswordReset(user);
+
+    return answer;
+  }
+
+  private async issuePasswordReset(user: User) {
     const token = createInvitationToken();
-    await this.usersService.setResetToken(
-      user.id,
-      hashInvitationToken(token),
-      new Date(Date.now() + PASSWORD_RESET_TTL_MS),
-    );
 
     try {
+      await this.usersService.setResetToken(
+        user.id,
+        hashInvitationToken(token),
+        new Date(Date.now() + PASSWORD_RESET_TTL_MS),
+      );
       const language =
         (user.language === 'mn' || user.language === 'en' ? user.language : undefined) ??
         mailLanguageOf(user.organization?.settings) ??
@@ -183,12 +192,9 @@ export class AuthService {
         ...passwordResetMail(language, token, this.configService.get<string>('APP_BASE_URL') ?? ''),
       });
     } catch {
-      // The token exists and can be requested again; a mail failure must not
-      // reveal itself to the (possibly hostile) caller.
-      this.logger.warn(`Could not email a password reset for user ${user.id}`);
+      // The request can be repeated; nothing about the failure reaches the caller.
+      this.logger.warn(`Could not issue a password reset for user ${user.id}`);
     }
-
-    return answer;
   }
 
   /** Sets a new password from a reset token. Wrong, expired and used tokens are indistinguishable. */
@@ -207,7 +213,11 @@ export class AuthService {
       throw apiError(ErrorCode.PasswordResetInvalid);
     }
 
-    await this.usersService.completePasswordReset(user.id, password);
+    // Consumed conditionally: of two requests racing with one token, only the
+    // one whose write still finds the token in place wins.
+    if (!(await this.usersService.completePasswordReset(user.id, tokenHash, password))) {
+      throw apiError(ErrorCode.PasswordResetInvalid);
+    }
     this.logger.log(`Password reset completed for user ${user.id}`);
 
     return { message: 'Password has been reset' };

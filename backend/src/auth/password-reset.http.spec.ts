@@ -44,13 +44,22 @@ describe('password reset over HTTP', () => {
     },
     findByResetToken: async (hash: string) =>
       users.find((u) => u.resetPasswordToken === hash) ?? null,
-    completePasswordReset: async (id: string, password: string) => {
+    // Mirrors the conditional UPDATE: only matches while the token is in place and live.
+    completePasswordReset: async (id: string, hash: string, password: string) => {
+      await new Promise((resolve) => setImmediate(resolve));
       const row = users.find((u) => u.id === id)!;
+      if (row.resetPasswordToken !== hash || !row.resetPasswordExpires || row.resetPasswordExpires <= new Date()) {
+        return false;
+      }
       row.password = password;
       row.resetPasswordToken = null;
       row.resetPasswordExpires = null;
+      return true;
     },
   };
+
+  /** Issuance is detached from the response; let it finish before reading the mail. */
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
 
   const tokenFromMail = () => {
     const match = sent[sent.length - 1].body.match(/reset-password\/([\w-]+)/);
@@ -99,7 +108,7 @@ describe('password reset over HTTP', () => {
     request(app.getHttpServer()).post('/api/auth/reset-password').send({ token, password });
 
   it('emails a link and stores only the hash of the token', async () => {
-    await forgot('bat@example.com').expect(201);
+    expect((await forgot('bat@example.com')).status).toBe(201);
 
     expect(sent).toHaveLength(1);
     expect(sent[0].to).toBe('bat@example.com');
@@ -116,7 +125,8 @@ describe('password reset over HTTP', () => {
 
     const bodies = [];
     for (const email of ['nobody@example.com', 'off@example.com', 'bat@example.com']) {
-      const response = await forgot(email).expect(201);
+      const response = await forgot(email);
+      expect(response.status).toBe(201);
       bodies.push({ status: response.status, data: response.body.data });
     }
 
@@ -187,7 +197,38 @@ describe('password reset over HTTP', () => {
   it('rejects a short new password and a malformed address before touching anything', async () => {
     await forgot('bat@example.com');
     await reset(tokenFromMail(), '123').expect(400);
-    await forgot('not-an-email').expect(400);
+    expect((await forgot('not-an-email')).status).toBe(400);
+  });
+
+  it('lets only one of two concurrent requests with the same token succeed', async () => {
+    await forgot('bat@example.com');
+    const token = tokenFromMail();
+
+    const [a, b] = await Promise.all([reset(token, 'FirstWins1'), reset(token, 'SecondWins1')]);
+
+    expect([a.status, b.status].sort()).toEqual([200, 400]);
+    expect(['FirstWins1', 'SecondWins1']).toContain(users[0].password);
+  });
+
+  it('answers before the mail is sent (no timing difference from SMTP)', async () => {
+    let release!: () => void;
+    const slowMail = new Promise<void>((resolve) => (release = resolve));
+    const mailer = app.get(MAILER);
+    const original = mailer.send;
+    mailer.send = async (m: never) => {
+      await slowMail;
+      sent.push(m);
+    };
+
+    const response = await request(app.getHttpServer()).post('/api/auth/forgot-password').send({ email: 'bat@example.com' });
+    expect(response.status).toBe(201);
+    expect(sent).toHaveLength(0);
+
+    release();
+    await settle();
+    await settle();
+    expect(sent).toHaveLength(1);
+    mailer.send = original;
   });
 
   it('rate-limits forgot-password per client', async () => {

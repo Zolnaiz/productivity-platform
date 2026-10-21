@@ -86,7 +86,7 @@ describe('UsersService', () => {
   });
 
   it('stores, finds and burns a reset token', async () => {
-    const update = jest.fn();
+    const update = jest.fn().mockResolvedValue({ affected: 1 });
     (repository as any).update = update;
     jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashed-new' as never);
     const expiresAt = new Date();
@@ -98,12 +98,15 @@ describe('UsersService', () => {
     await service.findByResetToken('hash-1');
     expect(repository.findOne).toHaveBeenCalledWith({ where: { resetPasswordToken: 'hash-1' } });
 
-    await service.completePasswordReset('user-1', 'NewPassword1');
-    expect(update).toHaveBeenLastCalledWith('user-1', {
-      password: 'hashed-new',
-      resetPasswordToken: null,
-      resetPasswordExpires: null,
-    });
+    await expect(service.completePasswordReset('user-1', 'hash-1', 'NewPassword1')).resolves.toBe(true);
+    expect(update).toHaveBeenLastCalledWith(
+      { id: 'user-1', resetPasswordToken: 'hash-1', resetPasswordExpires: expect.anything() },
+      { password: 'hashed-new', resetPasswordToken: null, resetPasswordExpires: null },
+    );
+
+    // Another request already consumed it: nothing matched, so this one loses.
+    update.mockResolvedValueOnce({ affected: 0 });
+    await expect(service.completePasswordReset('user-1', 'hash-1', 'Other12345')).resolves.toBe(false);
   });
 
   it('allows ADMIN users to read users from their own organization', async () => {

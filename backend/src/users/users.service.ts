@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -238,13 +238,24 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { resetPasswordToken: tokenHash } });
   }
 
-  /** Sets a new password and burns the reset token in the same write, so it cannot be used twice. */
-  async completePasswordReset(userId: string, newPassword: string) {
-    await this.usersRepository.update(userId, {
-      password: await bcrypt.hash(newPassword, 10),
-      resetPasswordToken: null as unknown as undefined,
-      resetPasswordExpires: null as unknown as undefined,
-    });
+  /**
+   * Sets a new password and burns the reset token in one conditional write.
+   *
+   * The token hash and its expiry are part of the WHERE clause, so a second
+   * request racing with the same token finds nothing to update. Returns
+   * whether this call was the one that consumed it.
+   */
+  async completePasswordReset(userId: string, tokenHash: string, newPassword: string) {
+    const result = await this.usersRepository.update(
+      { id: userId, resetPasswordToken: tokenHash, resetPasswordExpires: MoreThan(new Date()) },
+      {
+        password: await bcrypt.hash(newPassword, 10),
+        resetPasswordToken: null as unknown as undefined,
+        resetPasswordExpires: null as unknown as undefined,
+      },
+    );
+
+    return (result.affected ?? 0) === 1;
   }
 
   async remove(id: string, currentUser: any) {
