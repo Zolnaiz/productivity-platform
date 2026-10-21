@@ -86,8 +86,8 @@ describe('text in the screens', () => {
               (bare !== text && /^[A-Za-z0-9 ,’.:%!?-]+$/.test(bare) && /[a-z]{2,} [a-z]{2,}/.test(bare)));
           const inline =
             />([A-Z][a-z]+(?: [a-zA-Z]+)+[.!?]?)</.exec(line)?.[1] ??
-            (/>[A-Z][a-z]+ \{/.test(line) ? text : '') ||
-            (/\}%? ([a-z]{2,}(?: [a-z]{2,})+)[.!?]?</.exec(line)?.[1] ?? '');
+            ((/>[A-Z][a-z]+ \{/.test(line) ? text : '') ||
+              (/\}%? ([a-z]{2,}(?: [a-z]{2,})+)[.!?]?</.exec(line)?.[1] ?? ''));
           const words = standsAlone ? text : inline;
 
           if (words && !names.has(words)) found.push(`${relative(root, path).replace(/\\/g, '/')}:${index + 1}`);
