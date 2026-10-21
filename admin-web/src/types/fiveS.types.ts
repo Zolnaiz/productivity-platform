@@ -74,6 +74,8 @@ export interface FiveSZone {
   contents: string;
   standard: string;
   labelText: string;
+  /** Floor area in square metres, typed in the area table. Optional. */
+  areaSquareMetres?: number;
   stage: FiveSStage;
   auditFrequency: 'daily' | 'weekly' | 'monthly';
   lastAuditScore?: number;

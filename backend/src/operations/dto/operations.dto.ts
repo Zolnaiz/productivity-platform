@@ -166,6 +166,12 @@ class FiveSZoneDto {
   @IsString()
   labelText: string;
 
+  /** Floor area in square metres, from the 5S area table. */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  areaSquareMetres?: number;
+
   @IsIn(['sort', 'set_in_order', 'shine', 'standardize', 'sustain'])
   stage: 'sort' | 'set_in_order' | 'shine' | 'standardize' | 'sustain';
 

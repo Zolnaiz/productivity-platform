@@ -28,7 +28,7 @@ const signIn = async (page: import('@playwright/test').Page) => {
 test('somebody can sign in and reach the floor plan', async ({ page }) => {
   await signIn(page);
 
-  await page.goto('/fives');
+  await page.goto('/fives?view=map');
 
   // The canvas is the page: if it is not here, nothing else on it matters.
   await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
@@ -36,7 +36,7 @@ test('somebody can sign in and reach the floor plan', async ({ page }) => {
 
 test('the plan can be drawn on', async ({ page }) => {
   await signIn(page);
-  await page.goto('/fives');
+  await page.goto('/fives?view=map');
 
   const canvas = page.locator('svg[aria-label="5S floor plan"]');
   await expect(canvas).toBeVisible();
@@ -62,7 +62,7 @@ test('the plan can be drawn on', async ({ page }) => {
 
 test('the plan is not a white slab at night', async ({ page }) => {
   await signIn(page);
-  await page.goto('/fives');
+  await page.goto('/fives?view=map');
 
   const paper = page.locator('svg[aria-label="5S floor plan"] rect[data-canvas-background]').first();
   await expect(paper).toHaveAttribute('fill', '#ffffff');
@@ -87,7 +87,7 @@ test('the monthly report opens and is compiled per person', async ({ page }) => 
 
 test('a zone label opens the area it names', async ({ page }) => {
   await signIn(page);
-  await page.goto('/fives');
+  await page.goto('/fives?view=map');
   await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
 
   const target = await page.evaluate(() => {
@@ -104,7 +104,7 @@ test('a red tag can be raised from the label, one-handed', async ({ page }) => {
   // The step that turns the zone page from a notice board into a tool: the
   // person who finds the clutter is usually the person working next to it.
   await signIn(page);
-  await page.goto('/fives');
+  await page.goto('/fives?view=map');
   await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
 
   const target = await page.evaluate(() => {
@@ -127,7 +127,7 @@ test('cleaning can be recorded from the label, and the stored date is shown', as
   // screen has to be the one that was stored, not the one this machine
   // happens to think it is.
   await signIn(page);
-  await page.goto('/fives');
+  await page.goto('/fives?view=map');
   await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
 
   const target = await page.evaluate(() => {
@@ -159,7 +159,7 @@ test('a checklist can be walked from the label, and a failing area raises work',
   // map and raises the work it calls for. Both used to happen only for an
   // audit typed up afterwards at a desk.
   await signIn(page);
-  await page.goto('/fives');
+  await page.goto('/fives?view=map');
   await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
 
   const target = await page.evaluate(() => {
@@ -215,7 +215,7 @@ test('a department counts its people and its areas', async ({ page }) => {
   // staff list and from every floor of the plan, which is the only reason the
   // page is worth reading.
   await signIn(page);
-  await page.goto('/fives');
+  await page.goto('/fives?view=map');
   await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
 
   await page.goto('/departments');
@@ -234,7 +234,7 @@ test('the editor moves between the buildings an organization has', async ({ page
   // can get to the second one. The demo held a single plan until now, so this
   // path had never been opened in a browser at all.
   await signIn(page);
-  await page.goto('/fives');
+  await page.goto('/fives?view=map');
   await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
 
   const chooser = page.locator('select').filter({ hasText: 'Warehouse' }).first();
@@ -266,7 +266,7 @@ test('a walk can be drawn on the plan and comes back in metres', async ({ page }
   // somebody walks to do a job. It is geometry against a laid-out canvas, so
   // jsdom cannot see it at all — a click there lands wherever the maths says.
   await signIn(page);
-  await page.goto('/fives');
+  await page.goto('/fives?view=map');
 
   const canvas = page.locator('svg[aria-label="5S floor plan"]');
   await expect(canvas).toBeVisible();

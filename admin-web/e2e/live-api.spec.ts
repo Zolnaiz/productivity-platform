@@ -37,7 +37,7 @@ const planSaved = (page: Page) =>
 
 test('a zone renamed in the editor is still renamed after a reload', async ({ page }) => {
   await signIn(page);
-  await page.goto('/fives');
+  await page.goto('/fives?view=map');
 
   const name = page.getByLabel('Zone name');
   const original = await name.inputValue();
@@ -58,7 +58,7 @@ test('a zone renamed in the editor is still renamed after a reload', async ({ pa
 
 test('an audit layer renamed on the plan is still renamed after a reload', async ({ page }) => {
   await signIn(page);
-  await page.goto('/fives');
+  await page.goto('/fives?view=map');
 
   const layer = page.getByLabel('Name of layer 1');
   const original = await layer.inputValue();

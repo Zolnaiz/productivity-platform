@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import FiveSFloorPlanSetup from '../components/fives/FiveSFloorPlanSetup';
 import FiveSGuidelineRegisters from '../components/fives/FiveSGuidelineRegisters';
+import FiveSZoneTable from '../components/fives/FiveSZoneTable';
 
-const views = ['map', 'areas', 'registers'] as const;
+const views = ['table', 'map', 'areas', 'registers'] as const;
 type View = (typeof views)[number];
 
 /**
@@ -16,16 +17,19 @@ type View = (typeof views)[number];
  * scrolled past the drawing tools to find it. Now it is three tabs - the
  * map, the areas, the registers - and the tab is in the address, so a link
  * can open straight on the registers.
+ *
+ * The first tab is a plain table of the areas, which is all most sites need;
+ * drawing a floor plan is offered as an extra rather than as the way in.
  */
 const FiveSSetupPage: React.FC = () => {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const asked = searchParams.get('view');
-  const view: View = views.includes(asked as View) ? (asked as View) : 'map';
+  const view: View = views.includes(asked as View) ? (asked as View) : 'table';
 
   const choose = (next: View) => {
     const params = new URLSearchParams(searchParams);
-    if (next === 'map') params.delete('view');
+    if (next === 'table') params.delete('view');
     else params.set('view', next);
     setSearchParams(params, { replace: true });
   };
@@ -75,8 +79,9 @@ const FiveSSetupPage: React.FC = () => {
 
       <div id="fives-panel" role="tabpanel" aria-labelledby={`fives-tab-${view}`} className="space-y-6">
         {/* Kept mounted on the registers tab, so undo and unsaved drawing survive a look at them. */}
-        <div hidden={view === 'registers'}>
-          <FiveSFloorPlanSetup section={view === 'registers' ? 'none' : view} />
+        {view === 'table' && <FiveSZoneTable />}
+        <div hidden={view === 'registers' || view === 'table'}>
+          <FiveSFloorPlanSetup section={view === 'registers' || view === 'table' ? 'none' : view} />
         </div>
         {view === 'registers' && <FiveSGuidelineRegisters />}
       </div>
