@@ -1,10 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { currentPage, sections, visibleSections } from './navigation';
+import { currentPage, everydayPageCount, sections, visibleSections } from './navigation';
 
 describe('the menu', () => {
-  it('is short for everybody: six places for staff, seven for a manager, nine for an admin', () => {
+  it('keeps eight everyday pages for staff and twelve for a manager; the rest is under Other', () => {
+    expect(everydayPageCount(['user'])).toBeLessThanOrEqual(8);
+    expect(everydayPageCount(['manager'])).toBeLessThanOrEqual(12);
+    expect(everydayPageCount(['user'])).toBe(8);
+    expect(everydayPageCount(['manager'])).toBe(12);
+
     expect(visibleSections(['user']).map((section) => section.id)).toEqual([
       'today',
       'work',
@@ -12,9 +17,46 @@ describe('the menu', () => {
       'ideas',
       'notifications',
       'reports',
+      'more',
     ]);
-    expect(visibleSections(['manager'])).toHaveLength(7);
-    expect(visibleSections(['admin'])).toHaveLength(9);
+    // An administrator keeps a manager's everyday pages, plus the administration sections.
+    expect(visibleSections(['admin']).map((section) => section.id)).toEqual([
+      'today',
+      'team',
+      'work',
+      'quality',
+      'ideas',
+      'notifications',
+      'reports',
+      'more',
+      'people',
+      'settings',
+    ]);
+  });
+
+  it('moves pages, never drops them: everything a role could open is still reachable', () => {
+    for (const roles of [['user'], ['manager'], ['admin'], ['super_admin']]) {
+      const reachable = visibleSections(roles).flatMap((section) => section.pages.map((page) => page.path));
+      const permitted = sections
+        .filter((section) => !section.roles || section.roles.some((role) => roles.includes(role)))
+        .flatMap((section) => section.pages.filter((page) => !page.roles || page.roles.some((role) => roles.includes(role))))
+        .map((page) => page.path);
+      expect(new Set(reachable)).toEqual(new Set(permitted));
+    }
+  });
+
+  it('puts help and feedback, goals and notes under Other for staff', () => {
+    const other = visibleSections(['user']).find((section) => section.id === 'more')?.pages.map((page) => page.path);
+    expect(other).toEqual(expect.arrayContaining(['/help', '/feedback', '/goals', '/notes', '/projects']));
+    expect(other).not.toContain('/tasks');
+  });
+
+  it('gives a manager the team pages and the month plan in sight, the weekly check-in under Other', () => {
+    const everyday = visibleSections(['manager'])
+      .filter((section) => section.id !== 'more')
+      .flatMap((section) => section.pages.map((page) => page.path));
+    expect(everyday).toEqual(expect.arrayContaining(['/huddle', '/gemba', '/progress', '/plan', '/projects']));
+    expect(everyday).not.toContain('/weekly');
   });
 
   it('keeps the owner-only audit log from an admin who is not the owner', () => {

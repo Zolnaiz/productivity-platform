@@ -1,5 +1,16 @@
 import type { LucideIcon } from 'lucide-react';
-import { Activity, Bell, BarChart3, Briefcase, Lightbulb, Map as MapIcon, Settings, Sun, Users } from 'lucide-react';
+import {
+  Activity,
+  Bell,
+  BarChart3,
+  Briefcase,
+  Lightbulb,
+  Map as MapIcon,
+  MoreHorizontal,
+  Settings,
+  Sun,
+  Users,
+} from 'lucide-react';
 
 /**
  * Where everything is.
@@ -10,12 +21,20 @@ import { Activity, Bell, BarChart3, Briefcase, Lightbulb, Map as MapIcon, Settin
  * and put the rest one step down (Asana, Linear, Tervene). So the menu names
  * sections, and a section's pages are tabs across the top of it: nothing is
  * gone, but each person's menu is only what their job uses.
+ *
+ * Within that, a page marked `core` for a person's tier stays where it is;
+ * every other page they may open moves to one "Other" section. An employee
+ * keeps at most eight pages in sight, a manager twelve; nothing is removed.
  */
+
+/** Whose everyday work a page is: `employee` for staff, `manager` for whoever runs others' work. */
+export type Tier = 'employee' | 'manager';
 
 export interface NavPage {
   path: string;
   labelKey: string;
   roles?: string[];
+  core?: Tier[];
 }
 
 export interface NavSection {
@@ -24,6 +43,8 @@ export interface NavSection {
   icon: LucideIcon;
   pages: NavPage[];
   roles?: string[];
+  /** Administration: shown whole to those who may see it, never folded into "Other". */
+  whole?: boolean;
 }
 
 const adminRoles = ['admin', 'super_admin'];
@@ -40,7 +61,7 @@ export const sections: NavSection[] = [
     labelKey: 'nav.section.today',
     icon: Sun,
     pages: [
-      { path: '/dashboard', labelKey: 'nav.today' },
+      { path: '/dashboard', labelKey: 'nav.today', core: ['employee', 'manager'] },
       { path: '/goals', labelKey: 'nav.goals' },
       { path: '/notes', labelKey: 'nav.notes' },
       { path: '/badges', labelKey: 'nav.badges' },
@@ -52,9 +73,9 @@ export const sections: NavSection[] = [
     icon: Activity,
     roles: managerRoles,
     pages: [
-      { path: '/huddle', labelKey: 'nav.huddle' },
-      { path: '/progress', labelKey: 'nav.progressBoard' },
-      { path: '/gemba', labelKey: 'nav.gemba' },
+      { path: '/huddle', labelKey: 'nav.huddle', core: ['manager'] },
+      { path: '/progress', labelKey: 'nav.progressBoard', core: ['manager'] },
+      { path: '/gemba', labelKey: 'nav.gemba', core: ['manager'] },
     ],
   },
   {
@@ -62,12 +83,12 @@ export const sections: NavSection[] = [
     labelKey: 'nav.section.work',
     icon: Briefcase,
     pages: [
-      { path: '/tasks', labelKey: 'nav.tasks' },
-      { path: '/projects', labelKey: 'nav.projects' },
-      { path: '/plan', labelKey: 'nav.monthPlan' },
+      { path: '/tasks', labelKey: 'nav.tasks', core: ['employee', 'manager'] },
+      { path: '/projects', labelKey: 'nav.projects', core: ['manager'] },
+      { path: '/plan', labelKey: 'nav.monthPlan', core: ['manager'] },
       { path: '/calendar', labelKey: 'nav.calendar' },
-      { path: '/work-logs', labelKey: 'nav.workLogs' },
-      { path: '/weekly', labelKey: 'nav.weekly' },
+      { path: '/work-logs', labelKey: 'nav.workLogs', core: ['employee', 'manager'] },
+      { path: '/weekly', labelKey: 'nav.weekly', core: ['employee'] },
     ],
   },
   {
@@ -75,7 +96,7 @@ export const sections: NavSection[] = [
     labelKey: 'nav.section.quality',
     icon: MapIcon,
     pages: [
-      { path: '/fives', labelKey: 'nav.fiveS' },
+      { path: '/fives', labelKey: 'nav.fiveS', core: ['employee', 'manager'] },
       { path: '/audit-insights', labelKey: 'nav.auditInsights' },
       { path: '/audit-templates', labelKey: 'nav.auditTemplates' },
       { path: '/assessments', labelKey: 'nav.assessments' },
@@ -86,20 +107,20 @@ export const sections: NavSection[] = [
     id: 'ideas',
     labelKey: 'nav.section.ideas',
     icon: Lightbulb,
-    pages: [{ path: '/ideas', labelKey: 'nav.section.ideas' }],
+    pages: [{ path: '/ideas', labelKey: 'nav.section.ideas', core: ['employee', 'manager'] }],
   },
   {
     id: 'notifications',
     labelKey: 'nav.notifications',
     icon: Bell,
-    pages: [{ path: '/notifications', labelKey: 'nav.notifications' }],
+    pages: [{ path: '/notifications', labelKey: 'nav.notifications', core: ['employee', 'manager'] }],
   },
   {
     id: 'reports',
     labelKey: 'nav.section.reports',
     icon: BarChart3,
     pages: [
-      { path: '/reports', labelKey: 'nav.monthlyReport' },
+      { path: '/reports', labelKey: 'nav.monthlyReport', core: ['employee', 'manager'] },
       { path: '/reports/period', labelKey: 'nav.periodReports' },
       { path: '/history', labelKey: 'nav.history' },
       { path: '/analytics', labelKey: 'nav.analytics' },
@@ -107,10 +128,20 @@ export const sections: NavSection[] = [
     ],
   },
   {
+    id: 'support',
+    labelKey: 'nav.section.support',
+    icon: Lightbulb,
+    pages: [
+      { path: '/help', labelKey: 'nav.help' },
+      { path: '/feedback', labelKey: 'nav.feedback' },
+    ],
+  },
+  {
     id: 'people',
     labelKey: 'nav.section.people',
     icon: Users,
     roles: adminRoles,
+    whole: true,
     pages: [
       { path: '/users', labelKey: 'nav.users' },
       { path: '/departments', labelKey: 'nav.departments' },
@@ -121,6 +152,7 @@ export const sections: NavSection[] = [
     labelKey: 'nav.settings',
     icon: Settings,
     roles: adminRoles,
+    whole: true,
     pages: [
       { path: '/setup', labelKey: 'nav.setup' },
       { path: '/settings', labelKey: 'nav.settings' },
@@ -134,12 +166,45 @@ export const sections: NavSection[] = [
 const allowed = (roles: string[] | undefined, userRoles: readonly string[]) =>
   !roles?.length || roles.some((role) => userRoles.includes(role));
 
-/** The sections this person has, each holding only the pages they may open. */
-export const visibleSections = (userRoles: readonly string[]): NavSection[] =>
-  sections
-    .filter((section) => allowed(section.roles, userRoles))
-    .map((section) => ({ ...section, pages: section.pages.filter((page) => allowed(page.roles, userRoles)) }))
-    .filter((section) => section.pages.length > 0);
+/** The tier whose everyday pages this person keeps in sight. */
+export const tierOf = (userRoles: readonly string[]): Tier => (runsOthersWork(userRoles) ? 'manager' : 'employee');
+
+/**
+ * The sections this person has, each holding only the pages they may open.
+ *
+ * Pages that are not everyday work for their tier are gathered, in menu
+ * order, into one "Other" section placed before administration.
+ */
+export const visibleSections = (userRoles: readonly string[]): NavSection[] => {
+  const tier = tierOf(userRoles);
+  const everyday: NavSection[] = [];
+  const administration: NavSection[] = [];
+  const other: NavPage[] = [];
+
+  for (const section of sections) {
+    if (!allowed(section.roles, userRoles)) continue;
+    const pages = section.pages.filter((page) => allowed(page.roles, userRoles));
+    if (section.whole) {
+      if (pages.length) administration.push({ ...section, pages });
+      continue;
+    }
+    const kept = pages.filter((page) => page.core?.includes(tier));
+    other.push(...pages.filter((page) => !page.core?.includes(tier)));
+    if (kept.length) everyday.push({ ...section, pages: kept });
+  }
+
+  const more: NavSection[] = other.length
+    ? [{ id: 'more', labelKey: 'nav.section.more', icon: MoreHorizontal, pages: other }]
+    : [];
+
+  return [...everyday, ...more, ...administration];
+};
+
+/** How many pages a person sees outside "Other" and administration — the number kept small. */
+export const everydayPageCount = (userRoles: readonly string[]) =>
+  visibleSections(userRoles)
+    .filter((section) => section.id !== 'more' && !section.whole)
+    .reduce((count, section) => count + section.pages.length, 0);
 
 const matches = (pathname: string, path: string) => pathname === path || pathname.startsWith(`${path}/`);
 
