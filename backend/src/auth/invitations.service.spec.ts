@@ -321,3 +321,56 @@ describe('delivering the invitation', () => {
     spy.mockRestore();
   });
 });
+
+describe('UC-17 inviting many people from a spreadsheet', () => {
+  const rows = [
+    { email: 'Bold@Example.com ', role: 'user' },
+    { email: 'not-an-email', role: 'user' },
+    { email: 'bold@example.com', role: 'user' },
+    { email: 'sara@example.com', role: 'pilot' },
+    { email: 'boss@example.com', role: 'super_admin' },
+    { email: 'taken@example.com', role: 'manager' },
+    { email: 'mend@example.com', role: 'Manager' },
+  ];
+
+  it('previews row by row and invites nobody on a dry run', async () => {
+    const { service, usersService, sent } = createService();
+    usersService.findByEmail.mockImplementation(async (email: string) =>
+      email === 'taken@example.com' ? { id: 'u9' } : null,
+    );
+
+    const result = await service.importMany(rows, owner, true);
+
+    expect(result).toMatchObject({ dryRun: true, total: 7, valid: 2 });
+    expect(result.rows.map((row) => row.error ?? row.status)).toEqual([
+      'ok',
+      'email_invalid',
+      'duplicate_in_file',
+      'role_invalid',
+      'role_not_allowed',
+      'email_taken',
+      'ok',
+    ]);
+    expect(result.rows[0]).toMatchObject({ row: 1, email: 'bold@example.com' });
+    expect(sent).toHaveLength(0);
+  });
+
+  it('invites the good rows and reports the bad ones', async () => {
+    const { service, rows: stored, sent } = createService();
+
+    const result = await service.importMany(rows.slice(0, 3), owner);
+
+    expect(result.valid).toBe(1);
+    expect(stored.map((row) => row.email)).toEqual(['bold@example.com']);
+    expect(sent).toHaveLength(1);
+  });
+
+  it('lets a manager import only roles below their own', async () => {
+    const { service } = createService();
+    const manager = { id: 'm1', organizationId: 'org-1', role: UserRole.MANAGER };
+
+    const result = await service.importMany([{ email: 'x@example.com', role: 'admin' }], manager, true);
+
+    expect(result.rows[0].error).toBe('role_not_allowed');
+  });
+});

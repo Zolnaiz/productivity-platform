@@ -65,6 +65,12 @@ class PhaseOneStrings {
     return 'unknown';
   }
 
+  String todayUnread(int count) =>
+      mn ? 'Уншаагүй $count мэдэгдэл байна' : '$count unread messages';
+
+  String todayAllTasks(int open) =>
+      mn ? 'Бүх ажил ($open нээлттэй)' : 'All tasks ($open open)';
+
   String hoursValue(double hours) {
     final shown =
         hours == hours.roundToDouble() ? hours.toInt().toString() : '$hours';
@@ -303,6 +309,16 @@ const _en = {
   'appName': 'Бүтээмж',
   'signInHint': 'Sign in with your organization account',
   'logout': 'Sign out',
+  'todayTitle': 'Today',
+  'todayScan': 'Check an area by QR',
+  'todayLogged': 'Today’s work is logged',
+  'todayNotLogged': 'Today’s work is not logged yet',
+  'todayReminderHint': 'Write it before the end of your shift.',
+  'todayWrite': 'Write',
+  'todayAllRead': 'No unread messages',
+  'todayDue': 'Due today and late',
+  'todayNothingDue': 'Nothing due today.',
+  'workLogTab': 'Log',
   'profile': 'My profile',
   'profileFirstName': 'First name',
   'profileLastName': 'Last name',
@@ -465,6 +481,16 @@ const _mn = {
   'appName': 'Бүтээмж',
   'signInHint': 'Байгууллагынхаа бүртгэлээр нэвтэрнэ үү',
   'logout': 'Гарах',
+  'todayTitle': 'Өнөөдөр',
+  'todayScan': 'QR-аар 5S аудит хийх',
+  'todayLogged': 'Өнөөдрийн ажил бүртгэгдсэн',
+  'todayNotLogged': 'Өнөөдрийн ажлаа бүртгээгүй байна',
+  'todayReminderHint': 'Ээлж дуусахаас өмнө бичээрэй.',
+  'todayWrite': 'Бичих',
+  'todayAllRead': 'Уншаагүй мэдэгдэл алга',
+  'todayDue': 'Өнөөдөр болон хоцорсон ажил',
+  'todayNothingDue': 'Өнөөдөр дуусгах ажил алга.',
+  'workLogTab': 'Бүртгэл',
   'profile': 'Миний профайл',
   'profileFirstName': 'Нэр',
   'profileLastName': 'Овог',

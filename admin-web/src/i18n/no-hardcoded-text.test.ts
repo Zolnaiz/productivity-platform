@@ -25,6 +25,8 @@ const allowed: Record<string, string> = {
   'components/layout/LanguageToggle.tsx': 'language names',
   'pages/SettingsPage.tsx': 'language names',
   'pages/AccountPage.tsx': 'language names',
+  // Recognises the Mongolian column headings and role words people type in their own spreadsheets.
+  'utils/sheetImport.ts': 'spreadsheet headings people write',
 };
 
 const isComment = (line: string) => /^\s*(\/\/|\*|\/\*|\{\/\*)/.test(line);

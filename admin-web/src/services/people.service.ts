@@ -7,6 +7,13 @@ import {
   TeamUser,
 } from '../types/people.types';
 
+export interface BulkInviteResult {
+  dryRun: boolean;
+  total: number;
+  valid: number;
+  rows: Array<{ row: number; email: string; role: string; status: 'ok' | 'error'; error?: string }>;
+}
+
 /**
  * The people in the organization.
  *
@@ -341,6 +348,13 @@ export const peopleService = {
           token: 'demo-invitation-token',
         })
       : post<IssuedInvitation>('/auth/invitations', { email, role }),
+
+  /**
+   * Invites everybody on a spreadsheet. `dryRun` checks every row by the
+   * server's own rules and invites nobody - the preview.
+   */
+  importInvitations: (rows: Array<{ email: string; role: string }>, dryRun: boolean) =>
+    post<BulkInviteResult>('/auth/invitations/import', { rows, dryRun }),
 
   revokeInvitation: (id: string) =>
     isDemoMode()

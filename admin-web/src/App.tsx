@@ -36,6 +36,8 @@ import TeamUsersPage from "./pages/TeamUsersPage";
 import DepartmentsPage from "./pages/DepartmentsPage";
 import ProfilePage from "./pages/ProfilePage";
 import AccountPage from "./pages/AccountPage";
+import FeedbackPage from "./pages/FeedbackPage";
+import HelpPage from "./pages/HelpPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
@@ -121,6 +123,8 @@ function App() {
                 />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="account" element={<AccountPage />} />
+                <Route path="help" element={<HelpPage />} />
+                <Route path="feedback" element={<FeedbackPage />} />
                 <Route
                   path="organizations"
                   element={
