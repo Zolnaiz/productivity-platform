@@ -34,28 +34,7 @@ class _TasksScreenState extends State<TasksScreen> {
     final strings = PhaseOneStrings(Localizations.localeOf(context));
     return Scaffold(
       appBar: AppBar(title: Text(strings.text('tasks')), actions: [
-        // The account's two ways out: signing out, and asking for it to be
-        // deleted - which Google Play asks every app with accounts to offer.
-        PopupMenuButton<String>(
-          key: const Key('account-menu'),
-          tooltip: strings.text('account'),
-          icon: const Icon(Icons.account_circle_outlined),
-          onSelected: (choice) {
-            if (choice == 'logout') {
-              context.read<AuthProvider>().logout();
-            } else if (choice == 'profile') {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => ProfileScreen(api: context.read<TaskProvider>().api)));
-            } else {
-              _requestDeletion(context, context.read<TaskProvider>().api);
-            }
-          },
-          itemBuilder: (_) => [
-            PopupMenuItem(value: 'profile', child: Text(strings.text('profile'))),
-            PopupMenuItem(value: 'logout', child: Text(strings.text('logout'))),
-            PopupMenuItem(value: 'delete', child: Text(strings.text('deleteAccount'))),
-          ],
-        ),
+        AccountMenu(api: context.read<TaskProvider>().api),
       ]),
       body: Consumer<TaskProvider>(builder: (context, provider, _) {
         if (provider.loading && provider.tasks.isEmpty)
@@ -182,6 +161,38 @@ class _TaskCard extends StatelessWidget {
 }
 
 /// Asks, then sends the request to the organization's administrators.
+/// The account's ways out and in: the profile, signing out, and asking for
+/// the account to be deleted - which Google Play asks every app with accounts
+/// to offer. On every screen that is somebody's first tab.
+class AccountMenu extends StatelessWidget {
+  const AccountMenu({super.key, required this.api});
+  final ApiService api;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = PhaseOneStrings(Localizations.localeOf(context));
+    return PopupMenuButton<String>(
+      key: const Key('account-menu'),
+      tooltip: strings.text('account'),
+      icon: const Icon(Icons.account_circle_outlined),
+      onSelected: (choice) {
+        if (choice == 'logout') {
+          context.read<AuthProvider>().logout();
+        } else if (choice == 'profile') {
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProfileScreen(api: api)));
+        } else {
+          _requestDeletion(context, api);
+        }
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(value: 'profile', child: Text(strings.text('profile'))),
+        PopupMenuItem(value: 'logout', child: Text(strings.text('logout'))),
+        PopupMenuItem(value: 'delete', child: Text(strings.text('deleteAccount'))),
+      ],
+    );
+  }
+}
+
 Future<void> _requestDeletion(BuildContext context, ApiService api) async {
   final strings = PhaseOneStrings(Localizations.localeOf(context));
   final messenger = ScaffoldMessenger.of(context);

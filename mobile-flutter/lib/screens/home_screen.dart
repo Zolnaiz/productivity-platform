@@ -9,7 +9,7 @@ import '../utils/phase_one_strings.dart';
 import 'five_s_screen.dart';
 import 'ideas_screen.dart';
 import 'inbox_screen.dart';
-import 'tasks_screen.dart';
+import 'today_screen.dart';
 import 'work_log_screen.dart';
 
 /// What somebody on shift does with the app: see their work, write up their
@@ -23,6 +23,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _tab = 0;
+
+  /// Each press of "check an area by QR" on the Today tab, for the 5S tab to answer.
+  final _scanRequests = ValueNotifier<int>(0);
+
+  void _scanFromToday() {
+    setState(() => _tab = 2);
+    _scanRequests.value++;
+  }
 
   /// The tab holding what a message is about. A task given out a minute ago
   /// is not in the list read this morning, so the tasks are read again.
@@ -48,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _scanRequests.dispose();
     super.dispose();
   }
 
@@ -131,9 +140,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: IndexedStack(
               index: _tab,
               children: [
-                const TasksScreen(),
+                TodayScreen(
+                  onScan: _scanFromToday,
+                  onWriteLog: () => setState(() => _tab = 1),
+                  onOpenInbox: () => setState(() => _tab = 4),
+                ),
                 const WorkLogScreen(),
-                const FiveSScreen(),
+                FiveSScreen(scanRequests: _scanRequests),
                 const IdeasScreen(),
                 InboxScreen(onOpen: _open)
               ]),
@@ -144,9 +157,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         onDestinationSelected: (index) => setState(() => _tab = index),
         destinations: [
           NavigationDestination(
-              icon: const Icon(Icons.checklist), label: strings.text('tasks')),
+              icon: const Icon(Icons.today), label: strings.text('today')),
           NavigationDestination(
-              icon: const Icon(Icons.edit_note), label: strings.text('today')),
+              icon: const Icon(Icons.edit_note), label: strings.text('workLogTab')),
           NavigationDestination(
               icon: const Icon(Icons.fact_check_outlined),
               label: strings.text('fiveS')),
