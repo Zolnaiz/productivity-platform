@@ -24,9 +24,22 @@ interface CompletableTask {
  */
 export const organizationTimeZone = () => process.env.APP_TIME_ZONE || 'Asia/Ulaanbaatar';
 
+/*
+ * One formatter per time zone, made once. Building an Intl.DateTimeFormat is
+ * far dearer than using one: made per call, it was most of the monthly
+ * report's time - about a second for 10,000 records (docs/RESULTS.md).
+ */
+const dayFormatters = new Map<string, Intl.DateTimeFormat>();
+
 /** The calendar day of a moment in a time zone, as YYYY-MM-DD. */
-export const dayIn = (timeZone: string, moment: Date) =>
-  new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(moment);
+export const dayIn = (timeZone: string, moment: Date) => {
+  let formatter = dayFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
+    dayFormatters.set(timeZone, formatter);
+  }
+  return formatter.format(moment);
+};
 
 /**
  * Today, on the organization's calendar.
