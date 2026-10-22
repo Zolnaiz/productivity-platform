@@ -34,6 +34,7 @@ const base: HuddleInput = {
     { id: 'i1', authorId: 'b', title: 'Shadow board', description: '', area: '', benefit: '', status: 'submitted', reviewNote: '' },
     { id: 'i2', authorId: 'a', title: 'Taken', description: '', area: '', benefit: '', status: 'approved', reviewNote: '' },
   ],
+  members: null,
   people: null,
   departmentId: null,
 };
@@ -67,6 +68,34 @@ describe('the morning huddle', () => {
     expect(figures.auditsYesterday.map((run) => run.id)).toEqual(['run2']);
     expect(figures.problems).toEqual([]);
     expect(figures.ideasWaiting.map((idea) => idea.id)).toEqual(['i1']);
+  });
+
+  it('flags work due within two days that nobody has started', () => {
+    const tasks = [
+      ...base.tasks,
+      { id: 'soon', title: 'Order gloves', status: 'todo', priority: 'low', assigneeId: 'a', dueDate: '2026-10-04' },
+      { id: 'started', title: 'Paint lines', status: 'in_progress', priority: 'low', assigneeId: 'a', dueDate: '2026-10-03' },
+      { id: 'later', title: 'Plan the month', status: 'todo', priority: 'low', assigneeId: 'a', dueDate: '2026-10-05' },
+    ] as typeof base.tasks;
+
+    // Due today and not started counts; late work is already 'late', not at risk.
+    expect(huddleFigures({ ...base, tasks }).atRisk.map((task) => task.id)).toEqual(['today', 'soon']);
+  });
+
+  it('names who has not written this week\u2019s check-in, only when check-ins were read', () => {
+    const member = (id: string, role: string, extra: object = {}) =>
+      ({ id, firstName: id, lastName: '', email: `${id}@x.mn`, role, isActive: true, ...extra }) as never;
+    const members = [
+      member('a', 'user'),
+      member('b', 'manager'),
+      member('c', 'user', { departmentId: 'd2' }),
+      member('d', 'admin'),
+      member('e', 'user', { isActive: false }),
+    ];
+
+    expect(huddleFigures(base).noCheckin).toEqual([]);
+    expect(huddleFigures({ ...base, members }).noCheckin.map((who) => who.id)).toEqual(['c']);
+    expect(huddleFigures({ ...base, members, people: new Set(['b']) }).noCheckin).toEqual([]);
   });
 
   it('says there is no audit average when nothing was audited', () => {

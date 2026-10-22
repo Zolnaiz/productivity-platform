@@ -5,7 +5,7 @@ import Button from '../components/common/Button';
 import Select from '../components/common/Select';
 import { raisedTitle } from '../components/common/raisedText';
 import GembaAdherence from '../components/huddle/GembaAdherence';
-import { huddleFigures } from '../components/huddle/huddle';
+import { AT_RISK_DAYS, huddleFigures } from '../components/huddle/huddle';
 import { localDay } from '../components/progress/progressBoard';
 import { useAuth } from '../contexts/AuthContext';
 import { checkinService, mondayOf, WeeklyCheckin } from '../services/checkin.service';
@@ -96,10 +96,11 @@ const HuddlePage: React.FC = () => {
         auditRuns,
         checkins,
         ideas,
+        members: hasPermission('checkins:team') ? members : null,
         people,
         departmentId: departmentId || null,
       }),
-    [today, tasks, plans, auditRuns, checkins, ideas, people, departmentId],
+    [today, tasks, plans, auditRuns, checkins, ideas, members, hasPermission, people, departmentId],
   );
 
   const nameOf = (id?: string) => {
@@ -193,7 +194,7 @@ const HuddlePage: React.FC = () => {
             <AlertTriangle className="h-5 w-5 text-red-700 dark:text-red-400" aria-hidden="true" />
             {t('huddle.attention')}
           </h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <div className={`${big} text-red-700 dark:text-red-300`} data-testid="late">{figures.late.length}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">{t('huddle.late')}</div>
@@ -202,12 +203,24 @@ const HuddlePage: React.FC = () => {
               <div className={big} data-testid="nobody">{figures.nobodyOnIt.length}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">{t('huddle.nobodyOnIt')}</div>
             </div>
+            <div>
+              <div className={`${big} text-amber-700 dark:text-amber-300`} data-testid="at-risk">{figures.atRisk.length}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t('huddle.atRisk', { count: AT_RISK_DAYS })}</div>
+            </div>
           </div>
           <ul className="mt-3 divide-y divide-gray-100 dark:divide-gray-700">
             {figures.late.slice(0, 6).map((task) => (
               <li key={task.id} className={line}>
                 <span className="truncate text-gray-800 dark:text-gray-200">{raisedTitle(task, t)}</span>
                 <span className="shrink-0 text-sm text-red-700 dark:text-red-300">
+                  {nameOf(task.assigneeId)} · {task.dueDate?.slice(5, 10)}
+                </span>
+              </li>
+            ))}
+            {figures.atRisk.slice(0, 4).map((task) => (
+              <li key={task.id} className={line}>
+                <span className="truncate text-gray-800 dark:text-gray-200">{raisedTitle(task, t)}</span>
+                <span className="shrink-0 text-sm text-amber-700 dark:text-amber-300">
                   {nameOf(task.assigneeId)} · {task.dueDate?.slice(5, 10)}
                 </span>
               </li>
@@ -249,6 +262,12 @@ const HuddlePage: React.FC = () => {
             <Lightbulb className="h-5 w-5 text-amber-700 dark:text-amber-400" aria-hidden="true" />
             {t('huddle.voices')}
           </h2>
+          {figures.noCheckin.length > 0 && (
+            <p className="mb-3 text-base text-gray-700 dark:text-gray-300" data-testid="no-checkin">
+              <span className="font-medium">{t('huddle.noCheckin', { count: figures.noCheckin.length })}:</span>{' '}
+              {figures.noCheckin.map((member) => memberName(member)).join(', ')}
+            </p>
+          )}
           {figures.problems.length === 0 && figures.ideasWaiting.length === 0 && (
             <p className="text-base text-gray-600 dark:text-gray-400">{t('huddle.nothingRaised')}</p>
           )}
