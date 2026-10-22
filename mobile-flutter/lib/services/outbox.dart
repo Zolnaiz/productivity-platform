@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
@@ -17,9 +18,14 @@ class PendingWrite {
     required this.kind,
     this.data,
     required this.createdAt,
-  });
+    String? key,
+  }) : key = key ?? id;
 
   final String id;
+
+  /// Sent as `Idempotency-Key`, so the server writes it once however many
+  /// times it is sent.
+  final String key;
   final String method;
   final String path;
 
@@ -35,6 +41,7 @@ class PendingWrite {
         'kind': kind,
         'data': data,
         'createdAt': createdAt.toIso8601String(),
+        'key': key,
       };
 
   factory PendingWrite.fromJson(Map<String, dynamic> json) => PendingWrite(
@@ -45,6 +52,7 @@ class PendingWrite {
         data: (json['data'] as Map?)?.cast<String, dynamic>(),
         createdAt:
             DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+        key: json['key'] as String?,
       );
 }
 
@@ -56,6 +64,19 @@ bool neverSent(Object error) =>
     error is DioException &&
     error.response == null &&
     error.type == DioExceptionType.connectionError;
+
+/// Whether a request that carried an `Idempotency-Key` can be kept and sent
+/// again: no answer came back, whether or not it arrived. The server writes
+/// a key once, so a timeout is as safe to retry as no network at all.
+bool unanswered(Object error) =>
+    error is DioException && error.response == null && error.type != DioExceptionType.cancel;
+
+final _random = Random.secure();
+
+/// A fresh `Idempotency-Key`: the moment and 64 random bits.
+String newIdempotencyKey() =>
+    '${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}-'
+    '${_random.nextInt(1 << 32).toRadixString(36)}${_random.nextInt(1 << 32).toRadixString(36)}';
 
 /// Changes kept on the phone until the server can take them.
 ///
@@ -120,7 +141,8 @@ class Outbox extends ChangeNotifier {
       {required String method,
       required String path,
       required String kind,
-      Map<String, dynamic>? data}) async {
+      Map<String, dynamic>? data,
+      String? key}) async {
     pending = [
       ...pending,
       PendingWrite(
@@ -130,6 +152,7 @@ class Outbox extends ChangeNotifier {
         kind: kind,
         data: data,
         createdAt: DateTime.now(),
+        key: key ?? newIdempotencyKey(),
       ),
     ];
     await _save();
@@ -148,7 +171,8 @@ class Outbox extends ChangeNotifier {
       while (pending.isNotEmpty) {
         final next = pending.first;
         try {
-          await _api.send(next.method, next.path, next.data);
+          await _api.send(next.method, next.path, next.data,
+              idempotencyKey: next.key);
           sent++;
         } on DioException catch (error) {
           final status = error.response?.statusCode;

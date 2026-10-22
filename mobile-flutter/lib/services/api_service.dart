@@ -321,9 +321,13 @@ class ApiService {
 
   /// Records a day's work and the time it took, as one act: the server saves
   /// the note and its clock entry together, so the hours are counted once.
-  Future<Map<String, dynamic>> createDailyWorkLog(
-      Map<String, dynamic> entry) async {
-    final response = await _dio.post('/work-logs/daily', data: entry);
+  Future<Map<String, dynamic>> createDailyWorkLog(Map<String, dynamic> entry,
+      {String? idempotencyKey}) async {
+    final response = await _dio.post('/work-logs/daily',
+        data: entry,
+        options: Options(headers: {
+          if (idempotencyKey != null) 'Idempotency-Key': idempotencyKey
+        }));
     return (response.data as Map).cast<String, dynamic>();
   }
 
@@ -517,9 +521,15 @@ class ApiService {
   }
 
   /// Sends a change kept on the phone while it was offline, as it was made.
-  Future<dynamic> send(String method, String path, Map<String, dynamic>? data) async {
-    final response =
-        await _dio.request(path, data: data, options: Options(method: method));
+  Future<dynamic> send(String method, String path, Map<String, dynamic>? data,
+      {String? idempotencyKey}) async {
+    final response = await _dio.request(path,
+        data: data,
+        options: Options(
+            method: method,
+            headers: {
+              if (idempotencyKey != null) 'Idempotency-Key': idempotencyKey
+            }));
     return response.data;
   }
 

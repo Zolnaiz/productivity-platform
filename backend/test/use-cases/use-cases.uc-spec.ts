@@ -75,6 +75,27 @@ describe('UC-02 Өдрийн ажлын бүртгэл хөтлөх (keep the da
     const response = await team.employee.post('/work-logs/daily', { hours: 2 });
     expect(response.status).toBe(400);
   });
+
+  it('alternative: a phone that lost the answer sends the log again and it is saved once', async () => {
+    const key = `uc02-${Date.now()}-retry`;
+    const summary = `Packed 12 crates ${key}`;
+    const body = { summary, hours: 3, logDate: today() };
+
+    const first = await team.employee.post('/work-logs/daily', body).set('Idempotency-Key', key);
+    const again = await team.employee.post('/work-logs/daily', body).set('Idempotency-Key', key);
+    expect(first.status).toBe(201);
+    expect(again.status).toBe(201);
+    expect(again.headers['idempotent-replayed']).toBe('true');
+    expect(data(again)).toEqual(data(first));
+
+    const logs = data<any[]>(await team.employee.get('/work-logs'));
+    expect(logs.filter((log) => log.summary === summary)).toHaveLength(1);
+
+    // The key is the employee's: the same key on another request is refused, not replayed.
+    const reused = await team.employee.post('/ideas', { title: 'x', description: 'y' }).set('Idempotency-Key', key);
+    expect(reused.status).toBe(409);
+    expect(errorCode(reused)).toBe('IDEMPOTENCY_KEY_REUSED');
+  });
 });
 
 describe('UC-03 Долоо хоногийн тайлан бичих (write the weekly check-in)', () => {

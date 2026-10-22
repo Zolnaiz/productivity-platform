@@ -53,6 +53,7 @@ export const liveTables = [
   'feedback_messages',
   'personal_notes',
   'focus_sessions',
+  'idempotency_keys',
 ];
 
 /** Declared by `BaseEntity` rather than by the entity, so they are counted separately below. */
@@ -80,6 +81,7 @@ const entityDirectories = [
   'users/entities',
   'organizations/entities',
   'audit/entities',
+  'shared/idempotency',
 ];
 
 export const mappedColumns = (): MappedColumn[] => {

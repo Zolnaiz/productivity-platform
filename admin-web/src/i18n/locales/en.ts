@@ -1404,6 +1404,8 @@ const en = {
     AI_NOT_CONFIGURED: 'AI drafting is not set up on this server. Write the summary yourself, or ask the administrator to add the AI key.',
     AI_FAILED: 'The AI could not write a draft just now. Try again in a minute, or write the summary yourself.',
     REGISTER_CHANGED: 'Somebody else saved the register meanwhile. Reload it and make the change again.',
+    REQUEST_IN_PROGRESS: 'The same change is still being saved. Wait a moment and try again.',
+    IDEMPOTENCY_KEY_REUSED: 'This change could not be matched to the one it repeats. Reload the page and make it again.',
     INTERNAL_ERROR: 'Something went wrong on the server. Try again in a moment.',
     offline: 'Could not reach the server. Check your connection and try again.',
     unknown: 'Something went wrong. Try again.',
