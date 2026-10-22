@@ -312,6 +312,36 @@ describe('UC-14 Багийн бүтээмжийг дүгнэх (review team prod
     expect(check.fixes.find((item: any) => item.taskId === fix.id)).toMatchObject({ status: 'verified', triggerScore: 40, reauditScore: 95 });
   });
 
+  it('main (PDCA loop): the fixer records the root cause and a manager signs the finished fix off', async () => {
+    const failing = data(await team.employee.post('/audit-runs', {
+      templateId, zoneId, status: 'submitted', score: 30,
+      answers: [{ questionId: 'q1', value: 1 }, { questionId: 'q2', value: 1 }],
+    }));
+    const fix = data<any[]>(await team.manager.get('/tasks')).find((task) => task.sourceType === 'audit_run' && task.sourceId === failing.id);
+    expect(fix.assigneeId).toBe(team.employeeId);
+
+    expect((await team.employee.patch(`/tasks/${fix.id}`, { rootCause: 'Tools have no marked place' })).status).toBe(200);
+    // Not before the work is finished, and never by the person who did it.
+    const early = await team.manager.post(`/tasks/${fix.id}/sign-off`);
+    expect(early.status).toBe(409);
+    expect(errorCode(early)).toBe('FIX_NOT_DONE');
+    await team.employee.patch(`/tasks/${fix.id}`, { status: 'done' });
+    expect((await team.employee.post(`/tasks/${fix.id}/sign-off`)).status).toBe(403);
+
+    const signed = await team.manager.post(`/tasks/${fix.id}/sign-off`);
+    expect(signed.status).toBe(201);
+    const check = data(await team.manager.get('/operations/improvement-verification'));
+    expect(check.fixes.find((item: any) => item.taskId === fix.id)).toMatchObject({
+      rootCause: 'Tools have no marked place',
+      signedOffBy: team.managerId,
+    });
+
+    // Reopened, it is no longer the fix that was signed off.
+    await team.employee.patch(`/tasks/${fix.id}`, { status: 'in_progress' });
+    const after = data(await team.manager.get('/operations/improvement-verification'));
+    expect(after.fixes.find((item: any) => item.taskId === fix.id).signedOffBy).toBeUndefined();
+  });
+
   it('alternative: an employee sees only their own figures, not the team’s', async () => {
     const report = data(await team.employee.get(`/operations/monthly-report?month=${today().slice(0, 7)}`));
     expect(report.people.every((person: any) => person.userId === team.employeeId)).toBe(true);

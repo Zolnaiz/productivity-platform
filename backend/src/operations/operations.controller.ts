@@ -121,6 +121,13 @@ export class OperationsController {
     return this.operationsService.updateTask(id, body, req.user);
   }
 
+  @Post('tasks/:id/sign-off')
+  @RequirePermission('fixes:signoff')
+  @ApiOperation({ summary: 'A manager confirms a finished audit-raised fix was done properly' })
+  signOffFix(@Param('id') id: string, @Request() req) {
+    return this.operationsService.signOffFix(id, req.user);
+  }
+
   @Get('work-logs')
   @RequirePermission('worklogs:read')
   findWorkLogs(@Request() req) {

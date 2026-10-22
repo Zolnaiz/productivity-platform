@@ -631,6 +631,53 @@ describe('OperationsService organization scoping', () => {
     });
   });
 
+  describe('signing off a 5S fix', () => {
+    const doneFix = { id: 't1', organizationId: 'org-1', sourceType: 'audit_run', status: 'done', assigneeId: 'u1' };
+
+    it('records the manager and the moment', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({ ...doneFix });
+      repositories.tasks.save.mockImplementation(async (value: any) => value);
+      const at = new Date('2026-03-06T03:00:00Z');
+
+      const saved = await service.signOffFix('t1', { id: 'm1', role: 'manager', organizationId: 'org-1' }, at);
+
+      expect(saved).toMatchObject({ fixSignedOffBy: 'm1', fixSignedOffAt: at });
+    });
+
+    it('is refused to whoever did the fix, even a manager', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({ ...doneFix, assigneeId: 'm1' });
+
+      await expect(service.signOffFix('t1', { id: 'm1', role: 'manager', organizationId: 'org-1' })).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode: 'ACCESS_DENIED' }),
+      });
+      expect(repositories.tasks.save).not.toHaveBeenCalled();
+    });
+
+    it('is refused for work that is not an audit fix', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({ ...doneFix, sourceType: 'red_tag' });
+
+      await expect(service.signOffFix('t1', { id: 'm1', role: 'manager', organizationId: 'org-1' })).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode: 'FIX_NOT_DONE' }),
+      });
+    });
+
+    it('cannot be written through an ordinary edit', async () => {
+      const { service, repositories } = createService();
+      repositories.tasks.findOne.mockResolvedValue({ ...doneFix });
+
+      await service.updateTask('t1', { fixSignedOffBy: 'me', fixSignedOffAt: new Date() } as never, {
+        id: 'm1',
+        role: 'manager',
+        organizationId: 'org-1',
+      });
+
+      expect(repositories.tasks.save.mock.calls[0][0].fixSignedOffBy).toBeUndefined();
+    });
+  });
+
   describe('the monthly report', () => {
     const month = '2026-09';
 

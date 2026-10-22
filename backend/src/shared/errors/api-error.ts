@@ -45,6 +45,7 @@ export const ErrorCode = {
   ReportMonthNotEnded: 'REPORT_MONTH_NOT_ENDED',
   RegisterChanged: 'REGISTER_CHANGED',
   RequestInProgress: 'REQUEST_IN_PROGRESS',
+  FixNotDone: 'FIX_NOT_DONE',
   IdempotencyKeyReused: 'IDEMPOTENCY_KEY_REUSED',
   AiNotConfigured: 'AI_NOT_CONFIGURED',
   AiFailed: 'AI_FAILED',
@@ -157,6 +158,10 @@ const definitions: Record<ErrorCode, ErrorDefinition> = {
   [ErrorCode.RegisterChanged]: {
     exception: ConflictException,
     message: 'The register was changed by somebody else since it was read',
+  },
+  [ErrorCode.FixNotDone]: {
+    exception: ConflictException,
+    message: 'Only a finished fix raised by an audit can be signed off',
   },
   [ErrorCode.RequestInProgress]: {
     exception: ConflictException,

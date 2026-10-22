@@ -27,11 +27,16 @@ type Moment = Date | string | null | undefined;
 export interface FixTask {
   id: string;
   title?: string;
+  titleKey?: string | null;
+  titleParams?: Record<string, string | number> | null;
   status?: string;
   assigneeId?: string;
   sourceType?: string | null;
   sourceId?: string | null;
   completedAt?: Moment;
+  rootCause?: string | null;
+  fixSignedOffBy?: string | null;
+  fixSignedOffAt?: Moment;
 }
 
 export interface AuditRunRecord {
@@ -45,6 +50,9 @@ export interface AuditRunRecord {
 export interface VerifiedFix {
   taskId: string;
   title?: string;
+  /** So a screen can word the server-raised title in its reader's language. */
+  titleKey?: string;
+  titleParams?: Record<string, string | number>;
   assigneeId?: string;
   zoneId?: string;
   status: VerificationStatus;
@@ -56,6 +64,11 @@ export interface VerifiedFix {
   reauditAt?: string;
   /** Re-audit score minus the failing score, in points. */
   delta?: number;
+  /** Why the area fell short, in the words of whoever worked the fix. */
+  rootCause?: string;
+  /** The manager who checked the finished work, and when. */
+  signedOffBy?: string;
+  signedOffAt?: string;
 }
 
 const time = (value: Moment): number | undefined => {
@@ -101,12 +114,17 @@ export const verifyImprovements = (tasks: FixTask[], runs: AuditRunRecord[]) => 
     const base: VerifiedFix = {
       taskId: task.id,
       title: task.title,
+      titleKey: task.titleKey ?? undefined,
+      titleParams: task.titleParams ?? undefined,
       assigneeId: task.assigneeId,
       zoneId: trigger.zoneId ?? undefined,
       status: 'open',
       triggerRunId: trigger.id,
       triggerScore,
       triggerAt: iso(time(trigger.createdAt)),
+      rootCause: task.rootCause?.trim() || undefined,
+      signedOffBy: task.fixSignedOffBy ?? undefined,
+      signedOffAt: iso(time(task.fixSignedOffAt)),
     };
 
     const closedAt = time(task.completedAt);
@@ -154,6 +172,9 @@ export const verifyImprovements = (tasks: FixTask[], runs: AuditRunRecord[]) => 
       verified: count('verified'),
       improved: count('improved'),
       notImproved: count('not_improved'),
+      // How much of the loop is filled in, beside whether it worked.
+      rootCauseRecorded: fixes.filter((fix) => fix.rootCause).length,
+      signedOff: fixes.filter((fix) => fix.signedOffBy).length,
     },
     verificationRate: {
       value: reaudited ? Math.round((count('verified') / reaudited) * 1000) / 10 : null,

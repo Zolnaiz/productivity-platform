@@ -53,6 +53,8 @@ export interface WorkTask extends RaisedTitle {
   actualHours?: number;
   /** When it was moved to done; set by the server, cleared on reopening. */
   completedAt?: string | null;
+  /** Why the area fell short, for a fix an audit raised. */
+  rootCause?: string | null;
 }
 
 export interface WorkLog {
@@ -335,11 +337,23 @@ export type VerificationStatus = 'open' | 'done_undated' | 'awaiting_reaudit' | 
 /** GET /operations/improvement-verification: did the work an audit raised bring the area back? */
 export interface ImprovementVerification {
   standard: number;
-  counts: { open: number; doneUndated: number; awaitingReaudit: number; verified: number; improved: number; notImproved: number };
+  counts: {
+    open: number;
+    doneUndated: number;
+    awaitingReaudit: number;
+    verified: number;
+    improved: number;
+    notImproved: number;
+    /** Absent on servers older than the root cause and sign-off. */
+    rootCauseRecorded?: number;
+    signedOff?: number;
+  };
   verificationRate: ReportMeasurement;
   fixes: Array<{
     taskId: string;
     title?: string;
+    titleKey?: string;
+    titleParams?: Record<string, string | number>;
     assigneeId?: string;
     zoneId?: string;
     status: VerificationStatus;
@@ -350,5 +364,8 @@ export interface ImprovementVerification {
     reauditScore?: number;
     reauditAt?: string;
     delta?: number;
+    rootCause?: string;
+    signedOffBy?: string;
+    signedOffAt?: string;
   }>;
 }

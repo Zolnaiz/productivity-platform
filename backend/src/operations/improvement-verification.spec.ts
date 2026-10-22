@@ -45,7 +45,16 @@ describe('PDCA check: verifying audit-raised fixes', () => {
       [fix() as never, fix({ id: 't3', sourceId: 'r3' }) as never, fix({ id: 't4', sourceId: 'missing' }) as never, fix({ id: 't5', sourceType: 'idea' }) as never],
       runs as never,
     );
-    expect(result.counts).toEqual({ open: 0, doneUndated: 0, awaitingReaudit: 0, verified: 1, improved: 0, notImproved: 1 });
+    expect(result.counts).toEqual({
+      open: 0,
+      doneUndated: 0,
+      awaitingReaudit: 0,
+      verified: 1,
+      improved: 0,
+      notImproved: 1,
+      rootCauseRecorded: 0,
+      signedOff: 0,
+    });
     expect(result.verificationRate).toEqual({ value: 50, numerator: 1, denominator: 2, excluded: 1 });
   });
 
@@ -53,6 +62,34 @@ describe('PDCA check: verifying audit-raised fixes', () => {
     const result = verifyImprovements([fix({ completedAt: null }) as never], [failing]);
     expect(result.counts).toMatchObject({ open: 0, doneUndated: 1 });
     expect(result.verificationRate).toEqual({ value: null, numerator: 0, denominator: 0, excluded: 1 });
+  });
+
+  it('carries the root cause and the manager’s sign-off with each fix, and counts them', () => {
+    const result = verifyImprovements(
+      [
+        fix({ id: 'a', rootCause: '  No shadow board for the tools ', fixSignedOffBy: 'm1', fixSignedOffAt: '2026-03-03T03:00:00Z' }),
+        fix({ id: 'b', rootCause: '   ' }),
+      ] as never,
+      [failing],
+    );
+
+    expect(result.fixes[0]).toMatchObject({
+      rootCause: 'No shadow board for the tools',
+      signedOffBy: 'm1',
+      signedOffAt: '2026-03-03T03:00:00.000Z',
+    });
+    // A blank answer is no root cause.
+    expect(result.fixes[1].rootCause).toBeUndefined();
+    expect(result.counts).toMatchObject({ rootCauseRecorded: 1, signedOff: 1 });
+  });
+
+  it('passes on the key a raised title is worded from', () => {
+    const result = verifyImprovements(
+      [fix({ titleKey: 'raised.auditFix.title', titleParams: { zone: 'A01' } })] as never,
+      [failing],
+    );
+
+    expect(result.fixes[0]).toMatchObject({ titleKey: 'raised.auditFix.title', titleParams: { zone: 'A01' } });
   });
 
   it('handles no fixes at all', () => {

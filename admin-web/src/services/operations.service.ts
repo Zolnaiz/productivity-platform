@@ -936,6 +936,9 @@ export const operationsService = {
       ? Promise.resolve(createDemo<AuditTemplate>('auditTemplates', data))
       : post<AuditTemplate>('/audit-templates', withoutClientScopedFields(data)),
   /** PDCA check: each audit-raised fix and what the next audit of its area found. */
+  /** A manager's check that a finished 5S fix was done properly. */
+  signOffFix: (taskId: string) =>
+    isDemoMode() ? Promise.resolve(null) : post<WorkTask>(`/tasks/${taskId}/sign-off`),
   getImprovementVerification: () =>
     fallback<ImprovementVerification>(() => get('/operations/improvement-verification'), {
       standard: 85,

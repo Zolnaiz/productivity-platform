@@ -12,6 +12,8 @@ vi.mock('../services/operations.service', () => ({
   },
 }));
 vi.mock('../services/fiveSLayout.service', () => ({ fiveSLayoutService: { getPlans: mocks.getPlans } }));
+vi.mock('../services/people.service', () => ({ peopleService: { getMembers: async () => [] } }));
+vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1' }, hasPermission: () => false }) }));
 // The chart needs a laid-out page; what it draws is tested with the numbers.
 vi.mock('../components/charts/MonthlyScoreChart', () => ({ default: () => <div data-testid="trend" /> }));
 vi.mock('../components/charts/HorizontalBarChart', () => ({ default: () => <div data-testid="pareto" /> }));

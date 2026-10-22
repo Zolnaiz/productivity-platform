@@ -130,4 +130,18 @@ export class WorkTask extends BaseEntity {
    */
   @Column({ type: 'timestamptz', name: 'completed_at', nullable: true })
   completedAt?: Date | null;
+
+  /** Why the area fell short, for a fix an audit raised. Written by whoever works it. */
+  @Column({ type: 'text', name: 'root_cause', nullable: true })
+  rootCause?: string | null;
+
+  /**
+   * The manager who checked a finished fix was done properly, and when.
+   * Set by the server on sign-off and cleared when the task is reopened.
+   */
+  @Column({ name: 'fix_signed_off_by', nullable: true })
+  fixSignedOffBy?: string | null;
+
+  @Column({ type: 'timestamptz', name: 'fix_signed_off_at', nullable: true })
+  fixSignedOffAt?: Date | null;
 }

@@ -141,6 +141,9 @@ const manager = [
   'checkins:team',
   // Walking the floor, and the week's walks against the target.
   'gemba:walk',
+  // Checking that a finished 5S fix was done properly, before the area is
+  // audited again.
+  'fixes:signoff',
 ];
 
 const admin = [

@@ -380,6 +380,12 @@ export class CreateTaskDto extends OrganizationScopedDto {
   @IsNumber()
   @Min(0)
   actualHours?: number;
+
+  /** Why the area fell short, for a fix an audit raised. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  rootCause?: string;
 }
 
 export class UpdateTaskDto extends PartialType(CreateTaskDto) {}
