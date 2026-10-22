@@ -180,6 +180,32 @@ describe('UC-07 Хувийн бүртгэлээ удирдах (manage own accou
     expect(ownerBadges.find((badge) => badge.id === 'firstWorkLog')).toMatchObject({ earned: false, current: 0 });
   });
 
+  it('main: a browser keeps its session in an HttpOnly cookie that no script can read', async () => {
+    const me = data(await team.manager.get('/auth/me'));
+    const login = await team.anonymous
+      .post('/auth/login', { email: me.email, password: 'Password123' })
+      .set('X-Session-Cookie', 'true');
+    expect(login.status).toBe(200);
+    expect(data(login).refresh_token).toBeUndefined();
+    const cookie = String(login.headers['set-cookie']?.[0] ?? '');
+    expect(cookie).toMatch(/^pp_refresh=[^;]+/);
+    expect(cookie).toMatch(/HttpOnly/);
+    expect(cookie).toMatch(/SameSite=Strict/);
+    expect(cookie).toMatch(/Path=\/api\/auth/);
+
+    // The cookie alone is enough to get a new access token.
+    const refreshed = await team.anonymous.post('/auth/refresh', {}).set('X-Session-Cookie', 'true').set('Cookie', cookie.split(';')[0]);
+    expect(refreshed.status).toBe(200);
+    expect(data(refreshed).access_token).toEqual(expect.any(String));
+
+    const out = await team.anonymous
+      .post('/auth/logout', {})
+      .set('Authorization', `Bearer ${data(refreshed).access_token}`)
+      .set('Cookie', cookie.split(';')[0]);
+    expect(String(out.headers['set-cookie']?.[0] ?? '')).toMatch(/^pp_refresh=;/);
+    expect((await team.anonymous.post('/auth/refresh', {}).set('X-Session-Cookie', 'true')).status).toBe(401);
+  });
+
   it('refused: a wrong current password, and a forgot-password answer that reveals nothing', async () => {
     const wrong = await team.employee.post('/auth/change-password', { currentPassword: 'nope-nope', newPassword: 'Whatever123' });
     expect(wrong.status).toBe(400);

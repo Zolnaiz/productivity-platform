@@ -12,8 +12,10 @@ left, in order:
 2. Run the pilot and measure: baseline and after-use K1–K6, report preparation
    time (K5) and SUS (K7), which the system does not compute.
 3. Mobile read caching and queued photographs for offline use.
-4. Move the web session token from browser storage to an HttpOnly cookie
-   before real employee data goes in.
+4. The web refresh token is in an HttpOnly cookie now. Still to do before
+   real employee data goes in: keep the access token in memory rather than
+   browser storage, and revoke refresh tokens on the server at logout and on
+   a password change.
 
 ## Priorities as of 2026-09-30
 

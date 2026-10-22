@@ -284,6 +284,22 @@ test('a daily goal added is still there after a reload', async ({ page }) => {
   await expect(page.getByText(title)).toBeVisible();
 });
 
+test('a session outlives its access token through a cookie no script can read', async ({ page }) => {
+  await signIn(page);
+
+  // Nothing a script on the page could carry off for longer than an hour.
+  expect(await page.evaluate(() => localStorage.getItem('refreshToken'))).toBeNull();
+  expect(await page.evaluate(() => document.cookie)).not.toContain('pp_refresh');
+  const cookie = (await page.context().cookies()).find((item) => item.name === 'pp_refresh');
+  expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'Strict', path: '/api/auth' });
+
+  // The access token expired (here: spoiled); the next request renews it from the cookie.
+  await page.evaluate(() => localStorage.setItem('token', 'expired.access.token'));
+  await page.reload();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('token'))).not.toBe('expired.access.token');
+});
+
 test('a month closed stays closed after a reload, and reopens', async ({ page }) => {
   await signIn(page);
 
