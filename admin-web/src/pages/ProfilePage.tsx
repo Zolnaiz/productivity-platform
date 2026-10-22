@@ -294,8 +294,12 @@ const ProfilePage: React.FC = () => {
                 {summary.earnedBadges.length ? (
                   summary.earnedBadges.map((badge) => (
                     <div key={badge.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                      <div className="font-medium text-gray-900 dark:text-white">{badge.title}</div>
-                      <div className="text-sm text-gray-500">{badge.description}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {t(`badges.items.${badge.id}.title`, { defaultValue: badge.title ?? badge.id })}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {t(`badges.items.${badge.id}.description`, { defaultValue: badge.description ?? '' })}
+                      </div>
                     </div>
                   ))
                 ) : (

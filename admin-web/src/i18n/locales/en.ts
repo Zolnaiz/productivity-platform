@@ -2124,6 +2124,14 @@ const en = {
     saved: 'Saved',
   },
   badges: {
+    progress: 'Progress: {{current}} of {{target}}',
+    items: {
+      firstWorkLog: { title: 'First work log', description: 'Kept the daily work log at least once.' },
+      auditStarter: { title: 'Audit starter', description: 'Walked and submitted at least one 5S audit.' },
+      focusStreak: { title: 'Focus day', description: 'Three focus sessions in one day.' },
+      weeklyRhythm: { title: 'Weekly rhythm', description: 'Wrote four weekly check-ins.' },
+      ideaTakenUp: { title: 'Idea taken up', description: 'A manager approved one of your ideas.' },
+    },
     earned: 'Earned',
     locked: 'Locked',
     title: 'Badges',

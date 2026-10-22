@@ -26,24 +26,10 @@ const defaults = {
     { id: 'f2', title: 'Audit UI flow', minutes: 25, date: today() },
   ] as FocusSession[],
   badges: [
-    {
-      id: 'b1',
-      title: 'First work log',
-      description: 'Submitted at least one daily work log.',
-      earned: true,
-    },
-    {
-      id: 'b2',
-      title: 'Audit starter',
-      description: 'Completed an operational audit.',
-      earned: true,
-    },
-    {
-      id: 'b3',
-      title: 'Focus streak',
-      description: 'Log three focus sessions in a day.',
-      earned: false,
-    },
+    // Demo only: a signed-in account's badges come from its own records on the server.
+    { id: 'firstWorkLog', earned: true, current: 1, target: 1 },
+    { id: 'auditStarter', earned: true, current: 1, target: 1 },
+    { id: 'focusStreak', earned: false, current: 2, target: 3 },
   ] as Badge[],
 };
 
@@ -192,8 +178,11 @@ export const productivityService = {
       () => update<DailyGoal>('goals', id, data),
     );
   },
-  getFocusSessions: () => Promise.resolve(read<FocusSession>('focusSessions')),
-  createFocusSession: (data: Omit<FocusSession, 'id'>) =>
-    Promise.resolve(create<FocusSession>('focusSessions', data)),
-  getBadges: () => Promise.resolve(read<Badge>('badges')),
+  getFocusSessions: () =>
+    fallback<FocusSession[]>(() => get('/focus-sessions'), () => read<FocusSession>('focusSessions')),
+  createFocusSession: async (data: Omit<FocusSession, 'id'>) => {
+    if (!hasRealAccessToken()) return create<FocusSession>('focusSessions', data);
+    return unwrap(await post<FocusSession>('/focus-sessions', { title: data.title, minutes: data.minutes, date: data.date }));
+  },
+  getBadges: () => fallback<Badge[]>(() => get('/badges'), () => read<Badge>('badges')),
 };

@@ -43,6 +43,22 @@ describe('productivityService demo storage', () => {
     expect(notes).toEqual([{ id: 'server-1', title: 'Written offline', content: 'keep me', tag: 'work', createdAt: '2026-10-01' }]);
   });
 
+  it('reads focus sessions and badges from the server when signed in, and saves sessions there', async () => {
+    localStorage.setItem('token', 'real-token');
+    apiMocks.get.mockImplementation(async (url: string) =>
+      url === '/badges'
+        ? [{ id: 'firstWorkLog', earned: false, current: 0, target: 1 }]
+        : [{ id: 'f1', title: 'Deep work', minutes: 25, date: '2026-10-22' }],
+    );
+    apiMocks.post.mockResolvedValue({ id: 'f2', title: 'Next', minutes: 50, date: '2026-10-22' });
+    const { productivityService } = await import('./productivity.service');
+
+    expect(await productivityService.getBadges()).toEqual([{ id: 'firstWorkLog', earned: false, current: 0, target: 1 }]);
+    expect((await productivityService.getFocusSessions())[0].title).toBe('Deep work');
+    await productivityService.createFocusSession({ title: 'Next', minutes: 50, date: '2026-10-22' });
+    expect(apiMocks.post).toHaveBeenCalledWith('/focus-sessions', { title: 'Next', minutes: 50, date: '2026-10-22' });
+  });
+
   it('creates and deletes notes through the API when signed in', async () => {
     localStorage.setItem('token', 'real-token');
     apiMocks.post.mockResolvedValue({ id: 'n9', title: 'New', content: 'x', tag: '', createdAt: '2026-10-22T00:00:00Z' });

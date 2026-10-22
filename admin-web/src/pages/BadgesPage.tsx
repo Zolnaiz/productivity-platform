@@ -27,12 +27,21 @@ const BadgesPage: React.FC = () => {
             <Card key={badge.id}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h2 className="font-semibold text-gray-900 dark:text-white">{badge.title}</h2>
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{badge.description}</p>
+                  <h2 className="font-semibold text-gray-900 dark:text-white">
+                    {t(`badges.items.${badge.id}.title`, { defaultValue: badge.title ?? badge.id })}
+                  </h2>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    {t(`badges.items.${badge.id}.description`, { defaultValue: badge.description ?? '' })}
+                  </p>
+                  {badge.target !== undefined && (
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {t('badges.progress', { current: badge.current ?? 0, target: badge.target })}
+                    </p>
+                  )}
                 </div>
                 <span
                   className={`w-fit rounded-full px-2 py-0.5 text-xs ${
-                    badge.earned ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
+                    badge.earned ? 'bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
                   }`}
                 >
                   {badge.earned ? t('badges.earned') : t('badges.locked')}

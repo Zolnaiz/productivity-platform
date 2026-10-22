@@ -2107,6 +2107,14 @@ const mn: Translations<typeof en> = {
     saved: 'Хадгалагдлаа',
   },
   badges: {
+    progress: 'Явц: {{current}} / {{target}}',
+    items: {
+      firstWorkLog: { title: 'Анхны ажлын бүртгэл', description: 'Өдрийн ажлын бүртгэлээ дор хаяж нэг удаа хөтөлсөн.' },
+      auditStarter: { title: 'Аудитын эхлэл', description: '5S аудитыг дор хаяж нэг удаа хийж илгээсэн.' },
+      focusStreak: { title: 'Төвлөрлийн өдөр', description: 'Нэг өдөрт 3 төвлөрлийн сесс хийсэн.' },
+      weeklyRhythm: { title: 'Долоо хоногийн хэмнэл', description: '4 долоо хоногийн тайлан бичсэн.' },
+      ideaTakenUp: { title: 'Хэрэгжсэн санаа', description: 'Таны санааг менежер баталсан.' },
+    },
     earned: 'Авсан',
     locked: 'Түгжээтэй',
     title: 'Тэмдэг',

@@ -149,6 +149,16 @@ describe('UC-07 Хувийн бүртгэлээ удирдах (manage own accou
     expect(data<any[]>(await team.manager.get('/notes'))).toEqual([]);
   });
 
+  it('main: focus sessions are kept on the server and badges come from the person’s own records', async () => {
+    expect((await team.employee.post('/focus-sessions', { title: 'Write up line 2', minutes: 25 })).status).toBe(201);
+    expect(data<any[]>(await team.employee.get('/focus-sessions')).map((item) => item.title)).toContain('Write up line 2');
+    const badges = data<any[]>(await team.employee.get('/badges'));
+    expect(badges.find((badge) => badge.id === 'firstWorkLog')).toMatchObject({ earned: true });
+    // The owner logged no work: nothing is handed out for free.
+    const ownerBadges = data<any[]>(await team.owner.get('/badges'));
+    expect(ownerBadges.find((badge) => badge.id === 'firstWorkLog')).toMatchObject({ earned: false, current: 0 });
+  });
+
   it('refused: a wrong current password, and a forgot-password answer that reveals nothing', async () => {
     const wrong = await team.employee.post('/auth/change-password', { currentPassword: 'nope-nope', newPassword: 'Whatever123' });
     expect(wrong.status).toBe(400);

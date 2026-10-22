@@ -80,6 +80,8 @@ const viewer = [
   'feedback:create',
   // Their own notes, which nobody else reads.
   'notes:own',
+  // Their own focus sessions and the badges their own records earn.
+  'personal:own',
 ];
 
 const user = [

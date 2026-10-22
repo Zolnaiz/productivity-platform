@@ -24,9 +24,12 @@ export interface FocusSession {
   date: string;
 }
 
+/** A badge earned from the person's own records; its words come from `badges.items.<id>`. */
 export interface Badge {
   id: string;
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   earned: boolean;
+  current?: number;
+  target?: number;
 }
