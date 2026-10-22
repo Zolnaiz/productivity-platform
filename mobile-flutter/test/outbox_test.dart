@@ -210,6 +210,28 @@ void main() {
     expect(retry.headers['Idempotency-Key'], key);
   });
 
+  test('keeps a change whose first copy is still being saved', () async {
+    var inProgress = true;
+    final (api, _, _) = await makeApi((request) {
+      if (inProgress) {
+        return jsonReply(
+            {'success': false, 'errorCode': 'REQUEST_IN_PROGRESS'},
+            status: 409);
+      }
+      return jsonReply(envelope({'id': 'saved'}), status: 201);
+    });
+    final outbox = Outbox(api);
+    await outbox.keep(method: 'POST', path: '/ideas', kind: 'idea');
+
+    expect(await outbox.flush(), 0);
+    expect(outbox.pending, hasLength(1));
+    expect(outbox.refused, 0);
+
+    inProgress = false;
+    expect(await outbox.flush(), 1);
+    expect(outbox.pending, isEmpty);
+  });
+
   test('every kept change carries a key of its own', () async {
     final network = Network();
     final (api, _, _) = await makeApi(network.reply);

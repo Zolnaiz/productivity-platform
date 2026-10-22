@@ -71,6 +71,15 @@ bool neverSent(Object error) =>
 bool unanswered(Object error) =>
     error is DioException && error.response == null && error.type != DioExceptionType.cancel;
 
+/// The API's error code in a refusal, wherever its error filter put it.
+String? errorCodeOf(DioException error) {
+  final body = error.response?.data;
+  if (body is! Map) return null;
+  final nested = body['error'];
+  return (body['errorCode'] ?? (nested is Map ? nested['errorCode'] : null))
+      as String?;
+}
+
 final _random = Random.secure();
 
 /// A fresh `Idempotency-Key`: the moment and 64 random bits.
@@ -176,9 +185,14 @@ class Outbox extends ChangeNotifier {
           sent++;
         } on DioException catch (error) {
           final status = error.response?.statusCode;
-          // Still offline, the server failing, or the session over: keep it
-          // and try again later.
-          if (status == null || status >= 500 || status == 401) break;
+          // Still offline, the server failing, the session over, or the
+          // first copy of it still being saved: keep it and try again later.
+          if (status == null ||
+              status >= 500 ||
+              status == 401 ||
+              errorCodeOf(error) == 'REQUEST_IN_PROGRESS') {
+            break;
+          }
           // Refused for what it says: sending it again would be refused again.
           refused++;
         }
