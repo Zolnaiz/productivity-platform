@@ -14,7 +14,8 @@ const createService = () => {
     tasks: createRepository(),
     workLogs: createRepository(),
     timeEntries: createRepository(),
-    auditTemplates: createRepository(),
+    // A run is refused unless its checklist exists, so the checklist is found by default.
+    auditTemplates: { ...createRepository(), findOne: jest.fn(async () => ({ id: 'template-1' })) },
     auditRuns: createRepository(),
     assessmentTemplates: createRepository(),
     assessmentResponses: createRepository(),

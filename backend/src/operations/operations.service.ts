@@ -1076,6 +1076,16 @@ export class OperationsService {
   }
 
   async createAuditRun(payload: Partial<AuditRun>, user: CurrentUser) {
+    // A run against a checklist that is not this organization's is refused
+    // here, as not found, rather than failing later as a server error.
+    const organizationId = this.resolveOrganizationId(user, payload.organizationId);
+    const template = await this.auditTemplates.findOne({
+      where: { id: payload.templateId, ...(organizationId ? { organizationId } : {}) },
+    });
+    if (!template) {
+      throw apiError(ErrorCode.ResourceNotFound, 'AuditTemplate');
+    }
+
     // The drawing this was walked against, decided before the run is written
     // rather than matched to one afterwards by somebody's memory.
     const version = await this.versionWalkedAgainst(payload, user);
