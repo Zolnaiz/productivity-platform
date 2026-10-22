@@ -1279,6 +1279,7 @@ const mn: Translations<typeof en> = {
       improved: 'Сайжирсан, стандартад хүрээгүй',
       not_improved: 'Сайжраагүй',
       awaiting_reaudit: 'Дахин аудит хүлээж буй',
+      done_undated: 'Дууссан, огноо тодорхойгүй',
       open: 'Хийгдэж буй',
     },
   },

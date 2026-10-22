@@ -301,12 +301,12 @@ export interface OperationsMonthlyReport {
   }>;
 }
 
-export type VerificationStatus = 'open' | 'awaiting_reaudit' | 'verified' | 'improved' | 'not_improved';
+export type VerificationStatus = 'open' | 'done_undated' | 'awaiting_reaudit' | 'verified' | 'improved' | 'not_improved';
 
 /** GET /operations/improvement-verification: did the work an audit raised bring the area back? */
 export interface ImprovementVerification {
   standard: number;
-  counts: { open: number; awaitingReaudit: number; verified: number; improved: number; notImproved: number };
+  counts: { open: number; doneUndated: number; awaitingReaudit: number; verified: number; improved: number; notImproved: number };
   verificationRate: ReportMeasurement;
   fixes: Array<{
     taskId: string;

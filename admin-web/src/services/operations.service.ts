@@ -885,7 +885,7 @@ export const operationsService = {
   getImprovementVerification: () =>
     fallback<ImprovementVerification>(() => get('/operations/improvement-verification'), {
       standard: 85,
-      counts: { open: 0, awaitingReaudit: 0, verified: 0, improved: 0, notImproved: 0 },
+      counts: { open: 0, doneUndated: 0, awaitingReaudit: 0, verified: 0, improved: 0, notImproved: 0 },
       verificationRate: { value: null, numerator: 0, denominator: 0, excluded: 0 },
       fixes: [],
     }),

@@ -12,6 +12,7 @@ const tone: Record<VerificationStatus, string> = {
   not_improved: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200',
   awaiting_reaudit: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
   open: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
+  done_undated: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
 };
 
 /**
@@ -57,7 +58,7 @@ const FixVerificationCard: React.FC<{ zones: FiveSZone[] }> = ({ zones }) => {
               : t('fixCheck.rate', { value: rate.value, numerator: rate.numerator, denominator: rate.denominator })}
           </p>
           <ul className="flex flex-wrap gap-2 text-xs">
-            {(['verified', 'improved', 'not_improved', 'awaiting_reaudit', 'open'] as VerificationStatus[]).map((status) => (
+            {(['verified', 'improved', 'not_improved', 'awaiting_reaudit', 'done_undated', 'open'] as VerificationStatus[]).map((status) => (
               <li key={status} className={`rounded-full px-2 py-1 ${tone[status]}`}>
                 {t(`fixCheck.status.${status}`)}: {result.fixes.filter((fix) => fix.status === status).length}
               </li>

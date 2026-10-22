@@ -1284,6 +1284,7 @@ const en = {
       improved: 'Improved, below standard',
       not_improved: 'Not improved',
       awaiting_reaudit: 'Awaiting re-audit',
+      done_undated: 'Done, date unknown',
       open: 'In progress',
     },
   },

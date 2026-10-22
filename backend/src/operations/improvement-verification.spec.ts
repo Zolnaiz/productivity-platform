@@ -10,6 +10,7 @@ describe('PDCA check: verifying audit-raised fixes', () => {
   it.each([
     ['still open', fix({ status: 'in_progress', completedAt: null }), [], 'open'],
     ['done, area not audited since', fix(), [], 'awaiting_reaudit'],
+    ['done before completion dates were kept: not open, not matched', fix({ completedAt: null }), [{ id: 'r2', zoneId: 'z1', status: 'submitted', score: 95, createdAt: '2026-03-06T03:00:00Z' }], 'done_undated'],
     ['an audit before the fix was closed does not count', fix(), [{ id: 'r2', zoneId: 'z1', status: 'submitted', score: 95, createdAt: '2026-03-04T03:00:00Z' }], 'awaiting_reaudit'],
     ['re-audit meets the standard', fix(), [{ id: 'r2', zoneId: 'z1', status: 'submitted', score: 90, createdAt: '2026-03-06T03:00:00Z' }], 'verified'],
     ['exactly the standard is verified', fix(), [{ id: 'r2', zoneId: 'z1', status: 'completed', score: 85, createdAt: '2026-03-06T03:00:00Z' }], 'verified'],
@@ -44,8 +45,14 @@ describe('PDCA check: verifying audit-raised fixes', () => {
       [fix() as never, fix({ id: 't3', sourceId: 'r3' }) as never, fix({ id: 't4', sourceId: 'missing' }) as never, fix({ id: 't5', sourceType: 'idea' }) as never],
       runs as never,
     );
-    expect(result.counts).toEqual({ open: 0, awaitingReaudit: 0, verified: 1, improved: 0, notImproved: 1 });
+    expect(result.counts).toEqual({ open: 0, doneUndated: 0, awaitingReaudit: 0, verified: 1, improved: 0, notImproved: 1 });
     expect(result.verificationRate).toEqual({ value: 50, numerator: 1, denominator: 2, excluded: 1 });
+  });
+
+  it('counts an undated done fix as excluded from the rate, never as open', () => {
+    const result = verifyImprovements([fix({ completedAt: null }) as never], [failing]);
+    expect(result.counts).toMatchObject({ open: 0, doneUndated: 1 });
+    expect(result.verificationRate).toEqual({ value: null, numerator: 0, denominator: 0, excluded: 1 });
   });
 
   it('handles no fixes at all', () => {

@@ -42,9 +42,10 @@ K5 (time spent preparing the monthly report) and K7 (SUS) are not computed from 
 | Status | Rule |
 |---|---|
 | `open` | the fix task is not done |
+| `done_undated` | done, but closed before completion moments were recorded; no re-audit can be matched, so it is excluded from the rate |
 | `awaiting_reaudit` | done, and no submitted audit of the same zone after its `completedAt` |
 | `verified` | the first audit of the zone after the fix scored ≥ 85 |
 | `improved` | that audit scored higher than the failing one, but below 85 |
 | `not_improved` | that audit scored the same or lower |
 
-`verificationRate` = verified / re-audited (verified + improved + not improved), the same `{value|null, numerator, denominator, excluded}` shape. `excluded` counts fixes whose triggering audit no longer exists. An employee sees the fixes assigned to them, a manager the team's. Shown on the web under 5S → Results.
+`verificationRate` = verified / re-audited (verified + improved + not improved), the same `{value|null, numerator, denominator, excluded}` shape. `excluded` counts fixes whose triggering audit no longer exists, and `done_undated` fixes. An employee sees the fixes assigned to them, a manager the team's. Shown on the web under 5S → Results.

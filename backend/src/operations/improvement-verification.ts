@@ -7,6 +7,8 @@
  * audit of the same area after the task was closed. Each fix is classified:
  *
  *   open              - the fix task is not done yet
+ *   done_undated      - done before completion moments were recorded: when it
+ *                       was closed is unknown, so no re-audit can be matched
  *   awaiting_reaudit  - done, but the area has not been audited since
  *   verified          - the next audit met the standard (score >= 85)
  *   improved          - the next audit scored higher than the failing one, but below standard
@@ -18,7 +20,7 @@
 
 export const VERIFICATION_STANDARD = 85;
 
-export type VerificationStatus = 'open' | 'awaiting_reaudit' | 'verified' | 'improved' | 'not_improved';
+export type VerificationStatus = 'open' | 'done_undated' | 'awaiting_reaudit' | 'verified' | 'improved' | 'not_improved';
 
 type Moment = Date | string | null | undefined;
 
@@ -108,8 +110,12 @@ export const verifyImprovements = (tasks: FixTask[], runs: AuditRunRecord[]) => 
     };
 
     const closedAt = time(task.completedAt);
-    if (task.status !== 'done' || closedAt === undefined) {
+    if (task.status !== 'done') {
       fixes.push(base);
+      continue;
+    }
+    if (closedAt === undefined) {
+      fixes.push({ ...base, status: 'done_undated' });
       continue;
     }
 
@@ -143,6 +149,7 @@ export const verifyImprovements = (tasks: FixTask[], runs: AuditRunRecord[]) => 
     standard: VERIFICATION_STANDARD,
     counts: {
       open: count('open'),
+      doneUndated: count('done_undated'),
       awaitingReaudit: count('awaiting_reaudit'),
       verified: count('verified'),
       improved: count('improved'),
@@ -152,7 +159,8 @@ export const verifyImprovements = (tasks: FixTask[], runs: AuditRunRecord[]) => 
       value: reaudited ? Math.round((count('verified') / reaudited) * 1000) / 10 : null,
       numerator: count('verified'),
       denominator: reaudited,
-      excluded: unmatched,
+      // Fixes whose audit is gone, and done fixes with no date to match a re-audit to.
+      excluded: unmatched + count('done_undated'),
     },
     fixes,
   };
