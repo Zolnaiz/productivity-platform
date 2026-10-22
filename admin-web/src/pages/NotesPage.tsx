@@ -107,7 +107,7 @@ const NotesPage: React.FC = () => {
                 <span>{note.createdAt}</span>
                 <button
                   type="button"
-                  className="rounded px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                  className="rounded px-2 py-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                   aria-label={t('notes.deleteNamed', { title: note.title })}
                   onClick={() => deleteNote(note)}
                 >
