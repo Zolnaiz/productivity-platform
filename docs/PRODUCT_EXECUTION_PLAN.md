@@ -30,7 +30,7 @@ real server. None of it has run at a pilot organization yet.
 | Next-work item (from the list below) | State | Where |
 | --- | --- | --- |
 | 1. Pilot KPI set | Implemented and checked: K1–K4, K6 and record linkage, each with numerator, denominator, excluded records and the records behind it | `docs/measurements.md`, monthly report page |
-| 2. Corrective-action loop | Partly: an audit-raised fix is checked against the next audit of the same area (verified / improved / not improved). Root cause and manager sign-off are not recorded | `GET /operations/improvement-verification`, 5S → Results |
+| 2. Corrective-action loop | Implemented and checked: an audit-raised fix carries its root cause and a manager's sign-off (never the fixer's own), and is checked against the next audit of the same area (verified / improved / not improved) | `GET /operations/improvement-verification`, `POST /tasks/:id/sign-off`, 5S → Results |
 | 3. Idempotent offline retries | Implemented and checked: `Idempotency-Key` on any POST; the Flutter outbox and the daily write-up send one, so a timed-out write is retried without being saved twice. Read caching and queued photographs are not done | `backend/src/shared/idempotency`, `mobile-flutter/lib/services/outbox.dart` |
 | 4. Reason and history for a reopened month | Implemented and checked: reopening needs a reason; every closed copy is kept with who reopened it and why, and the report page compares their figures with the month now | `POST /operations/monthly-closes/:month/reopen`, `GET …/history` |
 | 5. Deployment and pilot | Not started: needs the organization's server, mail relay, attachment storage, a restore rehearsal and participants | `docs/DEPLOY.md` |

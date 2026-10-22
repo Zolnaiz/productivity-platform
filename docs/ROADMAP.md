@@ -11,10 +11,8 @@ left, in order:
    a backup and restore rehearsal (`docs/DEPLOY.md`).
 2. Run the pilot and measure: baseline and after-use K1–K6, report preparation
    time (K5) and SUS (K7), which the system does not compute.
-3. Finish the corrective-action loop: root cause and manager sign-off on an
-   audit-raised fix.
-4. Mobile read caching and queued photographs for offline use.
-5. Move the web session token from browser storage to an HttpOnly cookie
+3. Mobile read caching and queued photographs for offline use.
+4. Move the web session token from browser storage to an HttpOnly cookie
    before real employee data goes in.
 
 ## Priorities as of 2026-09-30

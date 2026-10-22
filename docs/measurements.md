@@ -49,3 +49,10 @@ K5 (time spent preparing the monthly report) and K7 (SUS) are not computed from 
 | `not_improved` | that audit scored the same or lower |
 
 `verificationRate` = verified / re-audited (verified + improved + not improved), the same `{value|null, numerator, denominator, excluded}` shape. `excluded` counts fixes whose triggering audit no longer exists, and `done_undated` fixes. An employee sees the fixes assigned to them, a manager the team's. Shown on the web under 5S → Results.
+
+Beside whether it worked, each fix carries the rest of the corrective-action loop:
+
+- `rootCause`: why the area fell short, written by whoever works the fix (or a manager).
+- `signedOffBy` / `signedOffAt`: a manager's check that the finished work was done properly (`POST /tasks/:id/sign-off`, permission `fixes:signoff`). It is refused for an unfinished fix and for whoever did the fix, and it is cleared when the fix is reopened.
+
+`counts.rootCauseRecorded` and `counts.signedOff` say how much of the loop is filled in. Neither changes the verification rate: only the next audit decides whether a fix worked.
