@@ -19,6 +19,29 @@ diagrams, and evaluation write-up can proceed alongside implementation and may
 take another 1–2 weeks depending on the university requirements. A smaller
 defensible MVP that includes phases 1, 2, and a limited pilot is about 3–5 weeks.
 
+## Execution status — 2026-10-22
+
+This supersedes the 2026-09-30 table below for the items it names. "Checked"
+means the repository's own suites ran green on that code, locally and in CI:
+backend unit and HTTP tests, the UC-01…UC-22 acceptance suite against
+PostgreSQL 16, web unit tests, Flutter tests, and the browser suite against a
+real server. None of it has run at a pilot organization yet.
+
+| Next-work item (from the list below) | State | Where |
+| --- | --- | --- |
+| 1. Pilot KPI set | Implemented and checked: K1–K4, K6 and record linkage, each with numerator, denominator, excluded records and the records behind it | `docs/measurements.md`, monthly report page |
+| 2. Corrective-action loop | Partly: an audit-raised fix is checked against the next audit of the same area (verified / improved / not improved). Root cause and manager sign-off are not recorded | `GET /operations/improvement-verification`, 5S → Results |
+| 3. Idempotent offline retries | Implemented and checked: `Idempotency-Key` on any POST; the Flutter outbox and the daily write-up send one, so a timed-out write is retried without being saved twice. Read caching and queued photographs are not done | `backend/src/shared/idempotency`, `mobile-flutter/lib/services/outbox.dart` |
+| 4. Reason and history for a reopened month | Implemented and checked: reopening needs a reason; every closed copy is kept with who reopened it and why, and the report page compares their figures with the month now | `POST /operations/monthly-closes/:month/reopen`, `GET …/history` |
+| 5. Deployment and pilot | Not started: needs the organization's server, mail relay, attachment storage, a restore rehearsal and participants | `docs/DEPLOY.md` |
+
+Also done since 2026-09-30: password reset, invitation import from a
+spreadsheet, a feedback page, notes, focus sessions and badges stored on the
+server, organization settings merged per key (two admins no longer overwrite
+each other), pages loaded on first use (first-load JavaScript 1541 kB → 642
+kB), and the morning huddle flags work at risk and missing check-ins. The
+running record is [WORKLOG.md](WORKLOG.md).
+
 ## Execution status — 2026-09-30
 
 The code is on `codex/productivity-core-integrity`. Treat the estimates above as

@@ -1,6 +1,23 @@
 # Roadmap
 
-## Current priorities — 2026-09-30
+## Current priorities — 2026-10-22
+
+The status of each next-work item is in the
+[execution plan](PRODUCT_EXECUTION_PLAN.md#execution-status--2026-10-22), and
+what was done, with the test counts, is in [WORKLOG.md](WORKLOG.md). What is
+left, in order:
+
+1. Deploy to the pilot organization: server, mail relay, attachment storage,
+   a backup and restore rehearsal (`docs/DEPLOY.md`).
+2. Run the pilot and measure: baseline and after-use K1–K6, report preparation
+   time (K5) and SUS (K7), which the system does not compute.
+3. Finish the corrective-action loop: root cause and manager sign-off on an
+   audit-raised fix.
+4. Mobile read caching and queued photographs for offline use.
+5. Move the web session token from browser storage to an HttpOnly cookie
+   before real employee data goes in.
+
+## Priorities as of 2026-09-30
 
 The [execution plan](PRODUCT_EXECUTION_PLAN.md) is the current status and next-work
 list. Its phases distinguish code that exists, checks that have run, and work
