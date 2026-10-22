@@ -1,18 +1,18 @@
 # Тестийн болон хэмжилтийн үр дүн
 
-> `npm run results` (backend)-ээр автоматаар үүсгэв. Гараар бүү засаарай. Commit `1bf0ed3`, 2026-10-22T03:24:56.590Z.
+> `npm run results` (backend)-ээр автоматаар үүсгэв. Гараар бүү засаарай. Commit `b358c1c`, 2026-10-22T04:57:34.871Z.
 
 ## 1. Suite бүрийн нийлбэр
 
 | Suite | Команд | Passed | Failed | Skipped | Тайлбар |
 |---|---|---:|---:|---:|---|
-| Backend unit + HTTP (jest) | `npx jest` | 1000 | 0 | 0 |  |
-| Use-case acceptance (jest + supertest + PostgreSQL) | `npx jest --config ./test/jest-uc.json --runInBand` | 46 | 0 | 0 |  |
-| Web (vitest) | `cd admin-web && npx vitest run` | 1079 | 0 | 0 |  |
+| Backend unit + HTTP (jest) | `npx jest` | 1012 | 0 | 0 |  |
+| Use-case acceptance (jest + supertest + PostgreSQL) | `npx jest --config ./test/jest-uc.json --runInBand` | 47 | 0 | 0 |  |
+| Web (vitest) | `cd admin-web && npx vitest run` | 1081 | 0 | 0 |  |
 | Mobile (flutter test) | `cd mobile-flutter && flutter test` | 131 | 0 | 1 |  |
 | Browser e2e (Playwright, demo + live API) | `cd admin-web && npx playwright test` | 39 | 0 | 0 |  |
 
-Нийт ажилласан тест: **2295 passed**, **0 failed**.
+Нийт ажилласан тест: **2310 passed**, **0 failed**.
 
 Lint: backend — clean, web — clean.
 
@@ -28,7 +28,7 @@ Lint: backend — clean, web — clean.
 | UC-04 | Сарын тайлангаа өөрийн бүртгэлээс бэлтгэх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the monthly report counts the employee’s own logs and measurements<br>✓ refused: an employee cannot draft the team’s monthly summary | pass |
 | UC-05 | Улаан шошгоор дутагдал бүртгэх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: a red tag on a zone is recorded with a follow-up task<br>✓ alternative: a red tag on a zone that does not exist is refused | pass |
 | UC-06 | Сайжруулалтын санаа гаргах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the idea is saved as submitted<br>✓ alternative: an idea with a too-short title is refused | pass |
-| UC-07 | Хувийн бүртгэлээ удирдах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: edit own phone, change password with the current one, sign in with the new one<br>✓ main: keeps personal notes on the server and deletes own records; another person’s is not found<br>✓ refused: a wrong current password, and a forgot-password answer that reveals nothing | pass |
+| UC-07 | Хувийн бүртгэлээ удирдах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: edit own phone, change password with the current one, sign in with the new one<br>✓ main: keeps personal notes on the server and deletes own records; another person’s is not found<br>✓ main: focus sessions are kept on the server and badges come from the person’s own records<br>✓ refused: a wrong current password, and a forgot-password answer that reveals nothing | pass |
 | UC-08 | 5S аудит хийх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: an audit on a zone is scored; a follow-up task is created and assigned<br>✓ refused: an audit against a template that does not exist | pass |
 | UC-09 | Төсөл үүсгэж, ажил оноож хянах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the manager creates a project and a task; the assignee is notified<br>✓ refused: an employee cannot create a project | pass |
 | UC-10 | Сарын төлөвлөгөө гаргах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: tasks are planned for next month with owners and dates<br>✓ refused: an employee cannot plan work for others | pass |
@@ -108,7 +108,7 @@ Lint: backend — clean, web — clean.
 | Аюулгүй байдал | Эрхийн матриц (доор); нууц үг сэргээлтийн халдлагын тохиолдол | 15/15 татгалзах тест pass; сэргээлт: 13/13 pass |
 | Ашиглахад хялбар байдал | SUS асуулга бодит хэрэглэгч шаарддаг | Хэмжээгүй (не измерено) — пилот дээр SUS авах шаардлагатай; хүртээмжийн автомат шалгалт (axe, Flutter accessibility) suite-д багтсан |
 | Найдвартай байдал | Офлайн outbox, дахин илгээлт | 8/8 pass; бодит сүлжээний тасалдлын туршилт хэмжээгүй |
-| Засвар үйлчилгээ | Тестийн тоо, lint | 2295 тест; lint backend clean, web clean |
+| Засвар үйлчилгээ | Тестийн тоо, lint | 2310 тест; lint backend clean, web clean |
 | Нийцтэй байдал | Web (Chromium e2e), Android/iOS Flutter client, нэг API | e2e 39 passed, 0 failed; бусад хөтөч, бодит төхөөрөмж дээр хэмжээгүй |
 
 ### Эрхийн матриц (UC тестийн татгалзсан урсгалаас)
