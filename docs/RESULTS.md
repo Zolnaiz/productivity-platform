@@ -1,18 +1,18 @@
 # Тестийн болон хэмжилтийн үр дүн
 
-> `npm run results` (backend)-ээр автоматаар үүсгэв. Гараар бүү засаарай. Commit `fe9075c`, 2026-10-22T00:06:42.723Z.
+> `npm run results` (backend)-ээр автоматаар үүсгэв. Гараар бүү засаарай. Commit `1bf0ed3`, 2026-10-22T03:24:56.590Z.
 
 ## 1. Suite бүрийн нийлбэр
 
 | Suite | Команд | Passed | Failed | Skipped | Тайлбар |
 |---|---|---:|---:|---:|---|
-| Backend unit + HTTP (jest) | `npx jest` | 983 | 0 | 0 |  |
-| Use-case acceptance (jest + supertest + PostgreSQL) | `npx jest --config ./test/jest-uc.json --runInBand` | 44 | 0 | 0 |  |
-| Web (vitest) | `cd admin-web && npx vitest run` | 1075 | 0 | 0 |  |
+| Backend unit + HTTP (jest) | `npx jest` | 1000 | 0 | 0 |  |
+| Use-case acceptance (jest + supertest + PostgreSQL) | `npx jest --config ./test/jest-uc.json --runInBand` | 46 | 0 | 0 |  |
+| Web (vitest) | `cd admin-web && npx vitest run` | 1079 | 0 | 0 |  |
 | Mobile (flutter test) | `cd mobile-flutter && flutter test` | 131 | 0 | 1 |  |
 | Browser e2e (Playwright, demo + live API) | `cd admin-web && npx playwright test` | 39 | 0 | 0 |  |
 
-Нийт ажилласан тест: **2272 passed**, **0 failed**.
+Нийт ажилласан тест: **2295 passed**, **0 failed**.
 
 Lint: backend — clean, web — clean.
 
@@ -28,14 +28,14 @@ Lint: backend — clean, web — clean.
 | UC-04 | Сарын тайлангаа өөрийн бүртгэлээс бэлтгэх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the monthly report counts the employee’s own logs and measurements<br>✓ refused: an employee cannot draft the team’s monthly summary | pass |
 | UC-05 | Улаан шошгоор дутагдал бүртгэх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: a red tag on a zone is recorded with a follow-up task<br>✓ alternative: a red tag on a zone that does not exist is refused | pass |
 | UC-06 | Сайжруулалтын санаа гаргах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the idea is saved as submitted<br>✓ alternative: an idea with a too-short title is refused | pass |
-| UC-07 | Хувийн бүртгэлээ удирдах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: edit own phone, change password with the current one, sign in with the new one<br>✓ refused: a wrong current password, and a forgot-password answer that reveals nothing | pass |
+| UC-07 | Хувийн бүртгэлээ удирдах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: edit own phone, change password with the current one, sign in with the new one<br>✓ main: keeps personal notes on the server and deletes own records; another person’s is not found<br>✓ refused: a wrong current password, and a forgot-password answer that reveals nothing | pass |
 | UC-08 | 5S аудит хийх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: an audit on a zone is scored; a follow-up task is created and assigned<br>✓ refused: an audit against a template that does not exist | pass |
 | UC-09 | Төсөл үүсгэж, ажил оноож хянах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the manager creates a project and a task; the assignee is notified<br>✓ refused: an employee cannot create a project | pass |
 | UC-10 | Сарын төлөвлөгөө гаргах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: tasks are planned for next month with owners and dates<br>✓ refused: an employee cannot plan work for others | pass |
 | UC-11 | Өглөөний хурал хөтлөх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the manager reads the team’s week and open work for the huddle board<br>✓ alternative: a week that is not a date is refused | pass |
 | UC-12 | Gemba явалт хийх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: a walk is recorded and its follow-up becomes a task for the named person<br>✓ refused: an employee cannot record a gemba walk | pass |
 | UC-13 | Санааг хянаж шийдвэрлэх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: approving an idea creates the task to put it in place<br>✓ refused: an employee cannot decide on ideas | pass |
-| UC-14 | Багийн бүтээмжийг дүгнэх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the manager sees the team’s month with K1–K6 and per-person rows<br>✓ alternative: an employee sees only their own figures, not the team’s | pass |
+| UC-14 | Багийн бүтээмжийг дүгнэх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the manager sees the team’s month with K1–K6 and per-person rows<br>✓ main (PDCA check): an audit-raised fix is verified by the next audit of its area<br>✓ alternative: an employee sees only their own figures, not the team’s | pass |
 | UC-15 | Хагас жил, жилийн тайлан гаргах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the manager gets a period report spanning several months<br>✓ alternative: a range that ends before it starts is refused | pass |
 | UC-16 | Сарын тайланг хааж батлах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the manager closes last month and it appears among the closed months<br>✓ refused: the running month cannot be closed, and the AI draft says it is not configured | pass |
 | UC-17 | Хэрэглэгч урьж, эрх олгох | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the owner invites one person and previews a spreadsheet import<br>✓ refused: an employee cannot invite anybody | pass |
@@ -108,7 +108,7 @@ Lint: backend — clean, web — clean.
 | Аюулгүй байдал | Эрхийн матриц (доор); нууц үг сэргээлтийн халдлагын тохиолдол | 15/15 татгалзах тест pass; сэргээлт: 13/13 pass |
 | Ашиглахад хялбар байдал | SUS асуулга бодит хэрэглэгч шаарддаг | Хэмжээгүй (не измерено) — пилот дээр SUS авах шаардлагатай; хүртээмжийн автомат шалгалт (axe, Flutter accessibility) suite-д багтсан |
 | Найдвартай байдал | Офлайн outbox, дахин илгээлт | 8/8 pass; бодит сүлжээний тасалдлын туршилт хэмжээгүй |
-| Засвар үйлчилгээ | Тестийн тоо, lint | 2272 тест; lint backend clean, web clean |
+| Засвар үйлчилгээ | Тестийн тоо, lint | 2295 тест; lint backend clean, web clean |
 | Нийцтэй байдал | Web (Chromium e2e), Android/iOS Flutter client, нэг API | e2e 39 passed, 0 failed; бусад хөтөч, бодит төхөөрөмж дээр хэмжээгүй |
 
 ### Эрхийн матриц (UC тестийн татгалзсан урсгалаас)

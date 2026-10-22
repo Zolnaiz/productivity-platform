@@ -333,8 +333,8 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 As of 2026-10-22, on branch `feat/finish-core`. The numbers below come from [docs/RESULTS.md](docs/RESULTS.md), which `npm run results` (in `backend`) generates from each suite's own output:
 
-- Backend: **983 unit and HTTP tests passing**, plus **44 use-case acceptance tests** (UC-01 … UC-22, each with a main flow and a refused or alternative flow) on a real PostgreSQL 16 (`npm run test:uc`). Lint and build are clean. Migrations run up, down and up again against PostgreSQL 16, and `npm run migration:check` passes.
-- Frontend: **1,075 tests passing**. Lint and production build pass.
+- Backend: **1,000 unit and HTTP tests passing**, plus **46 use-case acceptance tests** (UC-01 … UC-22, each with a main flow and a refused or alternative flow) on a real PostgreSQL 16 (`npm run test:uc`). Lint and build are clean. Migrations run up, down and up again against PostgreSQL 16, and `npm run migration:check` passes.
+- Frontend: **1,079 tests passing**. Lint and production build pass.
 - Browser: **39 Playwright checks passing**: 18 in demo mode and 21 against a live API.
 - Mobile: **131 tests passing**, with one environment-gated live test skipped. `flutter analyze` is clean.
 - Performance: on 50 users and 10,000 records, every measured endpoint has p95 under 200 ms (NFR-06 allows 2 s). Before a fix in this branch, the monthly report's p95 was 1.75 s. Both measurements are in RESULTS.md.
