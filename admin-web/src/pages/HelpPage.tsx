@@ -36,7 +36,7 @@ const HelpPage: React.FC = () => {
       </div>
       <p className="text-sm text-gray-600 dark:text-gray-400">
         {t('help.more')}{' '}
-        <Link className="text-blue-600 hover:text-blue-500" to="/feedback">
+        <Link className="text-blue-600 underline hover:text-blue-500" to="/feedback">
           {t('help.feedbackLink')}
         </Link>
       </p>
