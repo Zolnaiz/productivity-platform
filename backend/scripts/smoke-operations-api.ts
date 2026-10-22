@@ -168,17 +168,20 @@ async function main() {
   try {
     const { response, body } = await request('/operations/monthly-report', token);
     const measurements = unwrapData(body)?.measurements;
-    const validMeasurement = (metric: any) =>
+    // K2 and K4 are means in days, so they have no upper bound of 100.
+    const validMeasurement = (metric: any, upper = 100) =>
       typeof metric?.numerator === 'number' && Number.isFinite(metric.numerator) && metric.numerator >= 0 &&
       Number.isInteger(metric?.denominator) && metric.denominator >= 0 &&
       Number.isInteger(metric?.excluded) && metric.excluded >= 0 &&
       (metric.denominator === 0
         ? metric.value === null
-        : typeof metric.value === 'number' && Number.isFinite(metric.value) && metric.value >= 0 && metric.value <= 100);
+        : typeof metric.value === 'number' && Number.isFinite(metric.value) && metric.value >= 0 && metric.value <= upper);
     results.push({
       name: 'monthly report exposes versioned measurements with evidence counts',
-      ok: response.status === 200 && measurements?.version === 1 && typeof measurements.timeZone === 'string' &&
-        ['onTimeDelivery', 'zoneAuditScore', 'workLinkage'].every((key) => validMeasurement(measurements[key])),
+      ok: response.status === 200 && measurements?.version === 2 && typeof measurements.timeZone === 'string' &&
+        ['onTimeDelivery', 'zoneAuditScore', 'checkinRate', 'workLinkage'].every((key) => validMeasurement(measurements[key])) &&
+        ['lateWork', 'fixClosureDays'].every((key) => validMeasurement(measurements[key], Number.POSITIVE_INFINITY)) &&
+        Array.isArray(measurements.evidence?.lateWork),
       status: response.status,
     });
   } catch (error) {
@@ -455,7 +458,7 @@ async function main() {
 
     const last = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
     await write('write: close last month', '/operations/monthly-closes', 'POST', { month: last },
-      (status, data) => (status === 201 || status === 200) && Boolean(data?.closed) && data?.measurements?.version === 1);
+      (status, data) => (status === 201 || status === 200) && Boolean(data?.closed) && data?.measurements?.version === 2);
     await write('write: reopen it', `/operations/monthly-closes/${last}`, 'DELETE', undefined,
       (status, data) => status === 200 && data?.closed === null);
   }

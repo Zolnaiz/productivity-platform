@@ -234,6 +234,12 @@ jobs:
           SMOKE_WRITES: 'true'
         run: npm run smoke:api
 
+      # One acceptance test per use case (UC-01 … UC-22), through the real
+      # application on this database: main flow and a refused or alternative one.
+      - name: Use-case acceptance tests
+        working-directory: backend
+        run: npm run test:uc
+
       # The web's saves read back from the real server: a save that never
       # leaves the browser, or that the API refuses, looks fine in demo mode.
       - name: Browser against the real server
