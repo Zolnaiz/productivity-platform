@@ -14,8 +14,8 @@ left, in order:
 3. Mobile read caching and queued photographs for offline use.
 4. The web refresh token is in an HttpOnly cookie now. Still to do before
    real employee data goes in: keep the access token in memory rather than
-   browser storage, and revoke refresh tokens on the server at logout and on
-   a password change.
+   browser storage. A password change or reset already ends every other
+   session; logging out ends only the browser's own.
 
 ## Priorities as of 2026-09-30
 

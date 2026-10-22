@@ -206,6 +206,29 @@ describe('UC-07 Хувийн бүртгэлээ удирдах (manage own accou
     expect((await team.anonymous.post('/auth/refresh', {}).set('X-Session-Cookie', 'true')).status).toBe(401);
   });
 
+  it('alternative: a password change ends every other session, and keeps the one that made it', async () => {
+    const me = data(await team.manager.get('/auth/me'));
+    const signIn = async () => data(await team.anonymous.post('/auth/login', { email: me.email, password: 'Password123' }));
+    const phone = await signIn();
+    const laptop = await signIn();
+
+    const changed = await team.anonymous
+      .post('/auth/change-password', { currentPassword: 'Password123', newPassword: 'Password123x' })
+      .set('Authorization', `Bearer ${laptop.access_token}`);
+    expect(changed.status).toBe(201);
+
+    // The phone's week-long token is no good any more; the laptop's new one is.
+    const stale = await team.anonymous.post('/auth/refresh', { refreshToken: phone.refresh_token });
+    expect(stale.status).toBe(401);
+    expect(errorCode(stale)).toBe('AUTH_SESSION_EXPIRED');
+    expect((await team.anonymous.post('/auth/refresh', { refreshToken: data(changed).refresh_token })).status).toBe(200);
+
+    // Put back, for the tests after this one.
+    await team.anonymous
+      .post('/auth/change-password', { currentPassword: 'Password123x', newPassword: 'Password123' })
+      .set('Authorization', `Bearer ${data(changed).access_token}`);
+  });
+
   it('refused: a wrong current password, and a forgot-password answer that reveals nothing', async () => {
     const wrong = await team.employee.post('/auth/change-password', { currentPassword: 'nope-nope', newPassword: 'Whatever123' });
     expect(wrong.status).toBe(400);

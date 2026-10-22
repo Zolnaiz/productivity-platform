@@ -101,7 +101,8 @@ describe('UsersService', () => {
     await expect(service.completePasswordReset('user-1', 'hash-1', 'NewPassword1')).resolves.toBe(true);
     expect(update).toHaveBeenLastCalledWith(
       { id: 'user-1', resetPasswordToken: 'hash-1', resetPasswordExpires: expect.anything() },
-      { password: 'hashed-new', resetPasswordToken: null, resetPasswordExpires: null },
+      // The reset also ends every session signed in with the old password.
+      { password: 'hashed-new', resetPasswordToken: null, resetPasswordExpires: null, tokenVersion: expect.any(Function) },
     );
 
     // Another request already consumed it: nothing matched, so this one loses.

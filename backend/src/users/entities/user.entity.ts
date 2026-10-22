@@ -104,6 +104,11 @@ export class User {
   @Exclude()
   resetPasswordExpires?: Date;
 
+  /** Refresh tokens issued under an older version are refused. Moved on by a password change or reset. */
+  @Column({ name: 'token_version', type: 'int', default: 0 })
+  @Exclude()
+  tokenVersion: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

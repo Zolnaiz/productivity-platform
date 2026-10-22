@@ -100,11 +100,13 @@ export class AuthController {
   async changePassword(
     @Request() req,
     @Body() changePasswordDto: ChangePasswordDto,
+    @Res({ passthrough: true }) res?,
   ) {
-    return this.authService.changePassword(
+    const session = await this.authService.changePassword(
       req.user.id,
       changePasswordDto.currentPassword,
       changePasswordDto.newPassword,
     );
+    return res ? deliverSession(req, res, session, this.secureCookies) : session;
   }
 }

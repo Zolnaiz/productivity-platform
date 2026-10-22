@@ -192,7 +192,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Every migration is applied to a real PostgreSQL on each verification run and the resulting schema is inspected: every live table present, every mapped column present, the schema writable, and the partial unique index behind one-task-per-finding actually refusing a second. PGlite runs PostgreSQL in process, so this needs no Docker, daemon or virtualisation.
 - Production requires `JWT_SECRET`.
 - Production rejects known weak JWT and refresh-token secrets.
-- The web app keeps its refresh token in an HttpOnly, `SameSite=Strict` cookie limited to `/api/auth` (`Secure` in production), never in browser storage, so a script on the page can carry off at most the one-hour access token. The phone app keeps its tokens in the device's secure storage. Logging out removes the cookie; refresh tokens are not yet revoked on the server, so one copied before logout stays valid until it expires.
+- The web app keeps its refresh token in an HttpOnly, `SameSite=Strict` cookie limited to `/api/auth` (`Secure` in production), never in browser storage, so a script on the page can carry off at most the one-hour access token. The phone app keeps its tokens in the device's secure storage. Logging out removes the cookie. A password change or reset ends every other session: each refresh token carries the account's token version, and both move it on.
 - Production rejects `DB_SYNCHRONIZE=true`.
 - Swagger is disabled in production unless `ENABLE_SWAGGER=true`.
 - Public operations access is disabled by default.

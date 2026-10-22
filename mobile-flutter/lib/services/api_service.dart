@@ -384,11 +384,20 @@ class ApiService {
     await getCurrentUser();
   }
 
+  /// Changes the password. The server ends every other session and answers
+  /// this one with new tokens, which are kept so the phone stays signed in.
   Future<void> changePassword(String currentPassword, String newPassword) async {
-    await _dio.post('/auth/change-password', data: {
+    final response = await _dio.post('/auth/change-password', data: {
       'currentPassword': currentPassword,
       'newPassword': newPassword,
     });
+    final data = response.data;
+    if (data is Map && data['access_token'] is String) {
+      await _writeToken('access_token', data['access_token'] as String);
+      if (data['refresh_token'] is String) {
+        await _writeToken('refresh_token', data['refresh_token'] as String);
+      }
+    }
   }
 
   Future<Map<String, dynamic>> getCurrentUser() async {

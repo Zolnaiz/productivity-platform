@@ -120,7 +120,8 @@ export class AuthService {
       });
 
       const user = await this.usersService.findById(payload.sub);
-      if (!user || !user.isActive) {
+      // Issued before the last password change or reset: that session is over.
+      if (!user || !user.isActive || (payload.ver ?? 0) !== (user.tokenVersion ?? 0)) {
         throw apiError(ErrorCode.AuthSessionExpired);
       }
 
@@ -136,9 +137,13 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
+  /**
+   * Changes the password and ends every other session. The device that
+   * changed it gets a new session with the answer, so it stays signed in.
+   */
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
-    await this.usersService.changePassword(userId, currentPassword, newPassword);
-    return { message: 'Password changed successfully' };
+    const user = await this.usersService.changePassword(userId, currentPassword, newPassword);
+    return { message: 'Password changed successfully', ...this.buildAuthResponse(user) };
   }
 
   /**
@@ -262,7 +267,7 @@ export class AuthService {
     });
 
     const refreshToken = this.jwtService.sign(
-      { sub: user.id },
+      { sub: user.id, ver: user.tokenVersion ?? 0 },
       {
         secret: this.refreshSecret(),
         expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
