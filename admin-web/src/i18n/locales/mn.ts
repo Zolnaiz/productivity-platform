@@ -6,6 +6,20 @@ import type { Translations } from './en';
  * fails the build here until it is translated — the two can never drift.
  */
 const mn: Translations<typeof en> = {
+  monthHistory: {
+    title: 'Энэ тайлангийн өмнөх хувилбарууд',
+    subtitle: 'Энэ сарыг хаасны дараа дахин нээсэн. Хаасан хувилбар бүр хадгалагдсан бөгөөд хэн, яагаад дахин нээсэн, тухайн үеийн дүн хамт харагдана.',
+    version: '{{number}}-р хувилбар',
+    closedBy: '{{date}}-нд {{name}} хаасан',
+    closedAutomatically: '{{date}}-нд автоматаар хаагдсан',
+    reopenedBy: '{{date}}-нд {{name}} дахин нээсэн',
+    reopenedUnrecorded: '{{date}}-нд дахин нээсэн; тухайн үед хэн, яагаад нээснийг бүртгэдэггүй байсан',
+    figure: 'Үзүүлэлт',
+    nowClosed: 'Одоо (хаалттай)',
+    nowOpen: 'Одоо (нээлттэй)',
+    completedTasks: 'Дууссан ажил',
+    totalHours: 'Бүртгэсэн цаг',
+  },
   reportMeasurements: {
     title: 'Ажлын үр дүн ба бүртгэлийн чанар',
     subtitle: 'Таны харах эрхтэй энэ сарын бүртгэлээс тооцсон. Үр дүнг тооцоонд орсон бүртгэлийн тоотой хамт уншина уу.',
@@ -956,6 +970,9 @@ const mn: Translations<typeof en> = {
     statusRunning: 'Энэ сар үргэлжилж байна. Сар дууссаны дараа хааж болно.',
     closeMonth: 'Сарыг хаах',
     reopenMonth: 'Сарыг дахин нээх',
+    reopenTitle: '{{month}}-ийг дахин нээх',
+    reopenExplain: 'Хаасан хувилбар хадгалагдана. Түүнийг харсан хүмүүс дүн яагаад өөрчлөгдсөнийг харах болно.',
+    reopenReason: 'Яагаад өөрчлөх шаардлагатай вэ?',
     sitesTitle: 'Барилгаар',
     sitesSubtitle: 'Байгууллагад нэгээс олон байршил байвал харагдана; хоёр байртай үйлдвэр нэг мэт уншигдах ёсгүй.',
     site: 'Байршил',

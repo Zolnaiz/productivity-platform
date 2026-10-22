@@ -29,6 +29,14 @@ export class MonthlyReportClose extends BaseEntity {
   @Column({ name: 'closed_by', nullable: true })
   closedBy?: string;
 
+  /** Who opened it again. Set only on a copy that has been reopened. */
+  @Column({ name: 'reopened_by', nullable: true })
+  reopenedBy?: string;
+
+  /** What the correction was for, in the words of whoever reopened it. */
+  @Column({ name: 'reopen_reason', type: 'text', nullable: true })
+  reopenReason?: string;
+
   /** The month's records as they stood when it was closed. */
   @Column({ type: 'jsonb', default: () => "'{}'" })
   records: Record<string, unknown>;

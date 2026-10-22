@@ -320,6 +320,20 @@ describe('UC-16 Сарын тайланг хааж батлах (close the month
     expect(list.some((close) => close.period === previousMonth())).toBe(true);
   });
 
+  it('alternative: reopening needs a reason, and the history keeps who reopened it and why', async () => {
+    const month = previousMonth();
+    expect((await team.owner.post(`/operations/monthly-closes/${month}/reopen`, {})).status).toBe(400);
+    expect((await team.manager.post(`/operations/monthly-closes/${month}/reopen`, { reason: 'Late entries' })).status).toBe(403);
+
+    const reopened = await team.owner.post(`/operations/monthly-closes/${month}/reopen`, { reason: 'Late entries' });
+    expect(reopened.status).toBe(201);
+    expect(data(reopened).closed).toBeNull();
+
+    const history = data(await team.manager.get(`/operations/monthly-closes/${month}/history`));
+    expect(history.versions.at(-1)).toMatchObject({ reopenedBy: team.ownerId, reopenReason: 'Late entries' });
+    expect(history.current.closed).toBeNull();
+  });
+
   it('refused: the running month cannot be closed, and the AI draft says it is not configured', async () => {
     const response = await team.manager.post('/operations/monthly-closes', { month: today().slice(0, 7) });
     expect(response.status).toBe(409);

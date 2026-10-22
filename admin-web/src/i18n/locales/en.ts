@@ -6,6 +6,20 @@
  * so adding a key here forces the translation to be added everywhere.
  */
 const en = {
+  monthHistory: {
+    title: 'Earlier versions of this report',
+    subtitle: 'This month was closed and opened again. Each closed copy is kept, with who reopened it and why, next to the figures it held.',
+    version: 'Version {{number}}',
+    closedBy: 'closed on {{date}} by {{name}}',
+    closedAutomatically: 'closed automatically on {{date}}',
+    reopenedBy: 'reopened on {{date}} by {{name}}',
+    reopenedUnrecorded: 'reopened on {{date}}; who and why were not recorded then',
+    figure: 'Figure',
+    nowClosed: 'Now (closed)',
+    nowOpen: 'Now (open)',
+    completedTasks: 'Tasks finished',
+    totalHours: 'Hours logged',
+  },
   reportMeasurements: {
     title: 'Measured outcomes and record quality',
     subtitle: 'This month, from the records you are allowed to see. Read the sample size alongside each result.',
@@ -960,6 +974,9 @@ const en = {
     statusRunning: 'This month is still running. It can be closed once it has ended.',
     closeMonth: 'Close month',
     reopenMonth: 'Reopen month',
+    reopenTitle: 'Reopen {{month}}',
+    reopenExplain: 'The closed copy is kept. People who were shown it will see why the figures changed.',
+    reopenReason: 'Why does it need to change?',
     sitesTitle: 'By building',
     sitesSubtitle: 'Shown once an organization has more than one; a plant with two of them should not read as one.',
     site: 'Site',

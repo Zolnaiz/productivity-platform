@@ -46,6 +46,9 @@ describe('how loudly an entry reads', () => {
   it('marks the destructive ones', () => {
     expect(severityFor('DELETE', 'deleted')).toBe('warning');
     expect(severityFor('POST', 'deactivate')).toBe('warning');
+    // A signed-off month opened again changes what people were shown.
+    expect(severityFor('POST', 'reopen')).toBe('warning');
+    expect(describeRoute('POST', '/api/operations/monthly-closes/:id/reopen')).toMatchObject({ action: 'reopen' });
   });
 
   it('leaves ordinary changes alone', () => {

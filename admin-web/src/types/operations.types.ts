@@ -191,6 +191,35 @@ export interface ClosedMonth {
   closedBy: string | null;
 }
 
+/** What one version of a month is compared on. Null where nothing was counted. */
+export interface MonthFigures {
+  onTimeDelivery: number | null;
+  lateWork: number | null;
+  zoneAuditScore: number | null;
+  fixClosureDays: number | null;
+  checkinRate: number | null;
+  completedTasks: number;
+  totalHours: number;
+}
+
+/** A closed copy of a month that was later reopened. */
+export interface MonthVersion {
+  closedAt: string;
+  /** Nobody, when the scheduled close did it. */
+  closedBy: string | null;
+  reopenedAt: string;
+  reopenedBy: string | null;
+  reopenReason: string | null;
+  figures: MonthFigures;
+}
+
+/** Every version of a month anybody was shown, oldest first, and the month now. */
+export interface MonthHistory {
+  period: string;
+  versions: MonthVersion[];
+  current: { closed: { at: string; by: string | null } | null; figures: MonthFigures } | null;
+}
+
 export interface ReportMeasurement {
   /** Null means there were no eligible records, not zero performance. */
   value: number | null;

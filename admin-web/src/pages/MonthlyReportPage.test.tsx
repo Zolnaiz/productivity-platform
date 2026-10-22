@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MonthlyReportPage from './MonthlyReportPage';
 
@@ -9,6 +9,7 @@ const serviceMocks = vi.hoisted(() => ({
   getPlans: vi.fn(),
   closeMonth: vi.fn(),
   reopenMonth: vi.fn(),
+  getMonthHistory: vi.fn(),
   getOwnPermissions: vi.fn(),
 }));
 
@@ -17,6 +18,7 @@ vi.mock('../services/operations.service', () => ({
     getMonthlyReport: serviceMocks.getMonthlyReport,
     closeMonth: serviceMocks.closeMonth,
     reopenMonth: serviceMocks.reopenMonth,
+    getMonthHistory: serviceMocks.getMonthHistory,
   },
 }));
 
@@ -119,6 +121,8 @@ const report = {
 
 describe('MonthlyReportPage', () => {
   beforeEach(() => {
+    serviceMocks.getMonthHistory.mockReset();
+    serviceMocks.getMonthHistory.mockResolvedValue({ period: '2026-06', versions: [], current: null });
     serviceMocks.getMonthlyReport.mockReset();
     serviceMocks.getMembers.mockReset();
     serviceMocks.getMembers.mockResolvedValue([]);
@@ -527,10 +531,56 @@ describe('closing a month', () => {
     await showJune();
     fireEvent.click(await screen.findByRole('button', { name: 'Reopen month' }));
 
-    await waitFor(() => expect(serviceMocks.reopenMonth).toHaveBeenCalledWith('2026-06'));
+    // Not without a reason: a report that changes after it was handed in says why.
+    const dialog = await screen.findByRole('dialog');
+    const confirm = within(dialog).getByRole('button', { name: 'Reopen month' }) as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+    fireEvent.change(within(dialog).getByLabelText('Why does it need to change?'), {
+      target: { value: '  Two tasks were logged late  ' },
+    });
+    fireEvent.click(confirm);
+
+    await waitFor(() => expect(serviceMocks.reopenMonth).toHaveBeenCalledWith('2026-06', 'Two tasks were logged late'));
     await waitFor(() =>
       expect(screen.getByTestId('month-close-status').getAttribute('data-closed')).toBe('false'),
     );
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('shows what a reopened month said before, who reopened it and why', async () => {
+    const figures = {
+      onTimeDelivery: 80,
+      lateWork: null,
+      zoneAuditScore: 90,
+      fixClosureDays: 2,
+      checkinRate: 50,
+      completedTasks: 4,
+      totalHours: 12,
+    };
+    serviceMocks.getMonthlyReport.mockResolvedValue(report);
+    serviceMocks.getMonthHistory.mockResolvedValue({
+      period: '2026-06',
+      versions: [
+        {
+          closedAt: '2026-07-05T06:30:00Z',
+          closedBy: null,
+          reopenedAt: '2026-07-08T06:30:00Z',
+          reopenedBy: 'nobody-we-know',
+          reopenReason: 'Two tasks were logged late',
+          figures,
+        },
+      ],
+      current: { closed: null, figures: { ...figures, completedTasks: 6 } },
+    });
+
+    await showJune();
+
+    const history = await screen.findByTestId('month-history');
+    expect(history.textContent).toContain('Two tasks were logged late');
+    expect(history.textContent).toContain('closed automatically on 2026-07-05');
+    expect(history.textContent).toContain('Now (open)');
+    // Only the figure that moved is marked.
+    expect(history.querySelectorAll('[data-changed="true"]')).toHaveLength(1);
   });
 });
 
