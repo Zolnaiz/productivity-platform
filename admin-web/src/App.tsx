@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -6,49 +7,53 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import Layout from "./components/layout/Layout";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
 import ProtectedRoute from "./components/common/ProtectedRoute";
-import ZonePage from "./pages/ZonePage";
-import OperationsDashboardPage from "./pages/OperationsDashboardPage";
-import ProjectsPage from "./pages/ProjectsPage";
-import TasksPage from "./pages/TasksPage";
-import WorkLogsPage from "./pages/WorkLogsPage";
-import FiveSSetupPage from "./pages/FiveSSetupPage";
-import IdeasPage from "./pages/IdeasPage";
-import HuddlePage from "./pages/HuddlePage";
-import AuditInsightsPage from "./pages/AuditInsightsPage";
-import SetupPage from "./pages/SetupPage";
-import HistoryPage from "./pages/HistoryPage";
-import GembaPage from "./pages/GembaPage";
-import WeeklyCheckinPage from "./pages/WeeklyCheckinPage";
-import AuditTemplatesPage from "./pages/AuditTemplatesPage";
-import MonthlyReportPage from "./pages/MonthlyReportPage";
-import PeriodReportPage from "./pages/PeriodReportPage";
-import ProgressBoardPage from "./pages/ProgressBoardPage";
-import MonthPlanPage from "./pages/MonthPlanPage";
-import NotificationsPage from "./pages/NotificationsPage";
-import CalendarPage from "./pages/CalendarPage";
-import NotesPage from "./pages/NotesPage";
-import DailyGoalsPage from "./pages/DailyGoalsPage";
-import PomodoroPage from "./pages/PomodoroPage";
-import BadgesPage from "./pages/BadgesPage";
-import TeamUsersPage from "./pages/TeamUsersPage";
-import DepartmentsPage from "./pages/DepartmentsPage";
-import ProfilePage from "./pages/ProfilePage";
-import AccountPage from "./pages/AccountPage";
-import FeedbackPage from "./pages/FeedbackPage";
-import HelpPage from "./pages/HelpPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import AcceptInvitationPage from "./pages/AcceptInvitationPage";
-import OrganizationsPage from "./pages/OrganizationsPage";
-import SettingsPage from "./pages/SettingsPage";
-import AuditLogPage from "./pages/AuditLogPage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import QuestionnairesPage from "./pages/QuestionnairesPage";
-import ResponsesPage from "./pages/ResponsesPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
-import ExpensesPage from "./pages/ExpensesPage";
+import Loading from "./components/common/Loading";
+
+// Every page but the first two a visitor sees is its own chunk, loaded
+// when it is first opened.
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const ZonePage = lazy(() => import("./pages/ZonePage"));
+const OperationsDashboardPage = lazy(() => import("./pages/OperationsDashboardPage"));
+const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
+const TasksPage = lazy(() => import("./pages/TasksPage"));
+const WorkLogsPage = lazy(() => import("./pages/WorkLogsPage"));
+const FiveSSetupPage = lazy(() => import("./pages/FiveSSetupPage"));
+const IdeasPage = lazy(() => import("./pages/IdeasPage"));
+const HuddlePage = lazy(() => import("./pages/HuddlePage"));
+const AuditInsightsPage = lazy(() => import("./pages/AuditInsightsPage"));
+const SetupPage = lazy(() => import("./pages/SetupPage"));
+const HistoryPage = lazy(() => import("./pages/HistoryPage"));
+const GembaPage = lazy(() => import("./pages/GembaPage"));
+const WeeklyCheckinPage = lazy(() => import("./pages/WeeklyCheckinPage"));
+const AuditTemplatesPage = lazy(() => import("./pages/AuditTemplatesPage"));
+const MonthlyReportPage = lazy(() => import("./pages/MonthlyReportPage"));
+const PeriodReportPage = lazy(() => import("./pages/PeriodReportPage"));
+const ProgressBoardPage = lazy(() => import("./pages/ProgressBoardPage"));
+const MonthPlanPage = lazy(() => import("./pages/MonthPlanPage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const CalendarPage = lazy(() => import("./pages/CalendarPage"));
+const NotesPage = lazy(() => import("./pages/NotesPage"));
+const DailyGoalsPage = lazy(() => import("./pages/DailyGoalsPage"));
+const PomodoroPage = lazy(() => import("./pages/PomodoroPage"));
+const BadgesPage = lazy(() => import("./pages/BadgesPage"));
+const TeamUsersPage = lazy(() => import("./pages/TeamUsersPage"));
+const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const AccountPage = lazy(() => import("./pages/AccountPage"));
+const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
+const HelpPage = lazy(() => import("./pages/HelpPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const AcceptInvitationPage = lazy(() => import("./pages/AcceptInvitationPage"));
+const OrganizationsPage = lazy(() => import("./pages/OrganizationsPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
+const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
+const QuestionnairesPage = lazy(() => import("./pages/QuestionnairesPage"));
+const ResponsesPage = lazy(() => import("./pages/ResponsesPage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
+const ExpensesPage = lazy(() => import("./pages/ExpensesPage"));
 
 const adminRoles = ["admin", "super_admin"];
 // Whoever runs other people's work.
@@ -60,6 +65,7 @@ function App() {
       <NotificationProvider>
         <AuthProvider>
             <Toaster position="top-right" />
+            <Suspense fallback={<Loading fullscreen />}>
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
@@ -190,6 +196,7 @@ function App() {
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
         </AuthProvider>
       </NotificationProvider>
     </ThemeProvider>

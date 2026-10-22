@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
+import Loading from '../common/Loading';
 import SectionTabs from './SectionTabs';
 
 const Layout: React.FC = () => {
@@ -95,7 +96,10 @@ const Layout: React.FC = () => {
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="py-6 px-4 sm:px-6 lg:px-8">
           <SectionTabs />
-          <Outlet />
+          {/* A page still loading keeps the menu and header on screen. */}
+          <Suspense fallback={<Loading />}>
+            <Outlet />
+          </Suspense>
         </main>
         <Footer />
       </div>

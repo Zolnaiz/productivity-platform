@@ -32,9 +32,6 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router-dom')) {
             return 'vendor';
           }
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/apexcharts')) {
-            return 'charts';
-          }
           if (id.includes('node_modules/axios') || id.includes('node_modules/date-fns') || id.includes('node_modules/clsx')) {
             return 'utils';
           }
