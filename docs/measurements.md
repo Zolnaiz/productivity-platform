@@ -34,3 +34,17 @@ K5 (time spent preparing the monthly report) and K7 (SUS) are not computed from 
 3. **K4 uses exact elapsed time** between the moments `createdAt` and `completedAt`, in fractional days rounded to one decimal, not whole calendar days. It only counts tasks raised by an audit (`audit_run`). Red-tag tasks are a separate source and are not included.
 4. **K6 is measured in person-weeks.** The thesis measures K6 weekly. For a month, the rate is the share of (person, week) pairs that have a check-in, which is the same as the average of the weekly shares. A week belongs to the month that contains its Monday. "Expected people" are active members with the role `user` or `manager`. Administrators are not expected to write check-ins.
 5. **Reports closed before this change** have no `lateCandidates`, `weeklyCheckins` or `members`, so K2 and K6 are `null` for them ("no data"). They are not recomputed from live data.
+
+## Fix verification (PDCA "Check")
+
+`GET /operations/improvement-verification` (`backend/src/operations/improvement-verification.ts`) answers whether the work an audit raised actually brought the area back. For each task with `sourceType = audit_run`:
+
+| Status | Rule |
+|---|---|
+| `open` | the fix task is not done |
+| `awaiting_reaudit` | done, and no submitted audit of the same zone after its `completedAt` |
+| `verified` | the first audit of the zone after the fix scored ≥ 85 |
+| `improved` | that audit scored higher than the failing one, but below 85 |
+| `not_improved` | that audit scored the same or lower |
+
+`verificationRate` = verified / re-audited (verified + improved + not improved), the same `{value|null, numerator, denominator, excluded}` shape. `excluded` counts fixes whose triggering audit no longer exists. An employee sees the fixes assigned to them, a manager the team's. Shown on the web under 5S → Results.

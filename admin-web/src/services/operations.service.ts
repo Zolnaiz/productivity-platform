@@ -2,6 +2,7 @@ import { del, get, isDemoMode, localId, patch, post, shouldUseDemoFallback } fro
 import { planHoldingZone, readDemoPlans, replaceDemoPlan, writeDemoPlans } from './demoPlanStore';
 import {
   AuditTemplate,
+  ImprovementVerification,
   AuditRun,
   ClosedMonth,
   OperationsMonthlyReport,
@@ -880,6 +881,15 @@ export const operationsService = {
     isDemoMode()
       ? Promise.resolve(createDemo<AuditTemplate>('auditTemplates', data))
       : post<AuditTemplate>('/audit-templates', withoutClientScopedFields(data)),
+  /** PDCA check: each audit-raised fix and what the next audit of its area found. */
+  getImprovementVerification: () =>
+    fallback<ImprovementVerification>(() => get('/operations/improvement-verification'), {
+      standard: 85,
+      counts: { open: 0, awaitingReaudit: 0, verified: 0, improved: 0, notImproved: 0 },
+      verificationRate: { value: null, numerator: 0, denominator: 0, excluded: 0 },
+      fixes: [],
+    }),
+
   getAuditRuns: (zoneId?: string) =>
     fallback<AuditRun[]>(
       () => get('/audit-runs', zoneId ? { zoneId } : undefined),

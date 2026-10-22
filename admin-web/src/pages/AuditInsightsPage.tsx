@@ -10,6 +10,7 @@ import { monthlyTrend, shortfallPareto } from '../components/fives/auditInsights
 import { localDay } from '../components/progress/progressBoard';
 import { fiveSLayoutService } from '../services/fiveSLayout.service';
 import { operationsService } from '../services/operations.service';
+import FixVerificationCard from '../components/fives/FixVerificationCard';
 import { FiveSZone } from '../types/fiveS.types';
 import { AuditRun, AuditTemplate } from '../types/operations.types';
 
@@ -154,6 +155,8 @@ const AuditInsightsPage: React.FC = () => {
           </div>
         )}
       </Card>
+
+      <FixVerificationCard zones={zones} />
     </div>
   );
 };

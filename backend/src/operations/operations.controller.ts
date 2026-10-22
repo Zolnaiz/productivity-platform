@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OperationsService } from './operations.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
 import {
@@ -57,6 +57,13 @@ export class OperationsController {
   @RequirePermission('reports:read')
   summary(@Request() req) {
     return this.operationsService.dashboardSummary(req.user);
+  }
+
+  @Get('operations/improvement-verification')
+  @RequirePermission('reports:read')
+  @ApiOperation({ summary: 'Audit-raised fixes and whether the next audit of the area confirmed them' })
+  improvementVerification(@Request() req) {
+    return this.operationsService.improvementVerification(req.user);
   }
 
   @Get('projects')

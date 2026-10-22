@@ -300,3 +300,26 @@ export interface OperationsMonthlyReport {
     note?: string;
   }>;
 }
+
+export type VerificationStatus = 'open' | 'awaiting_reaudit' | 'verified' | 'improved' | 'not_improved';
+
+/** GET /operations/improvement-verification: did the work an audit raised bring the area back? */
+export interface ImprovementVerification {
+  standard: number;
+  counts: { open: number; awaitingReaudit: number; verified: number; improved: number; notImproved: number };
+  verificationRate: ReportMeasurement;
+  fixes: Array<{
+    taskId: string;
+    title?: string;
+    assigneeId?: string;
+    zoneId?: string;
+    status: VerificationStatus;
+    triggerRunId: string;
+    triggerScore: number | null;
+    triggerAt?: string;
+    reauditRunId?: string;
+    reauditScore?: number;
+    reauditAt?: string;
+    delta?: number;
+  }>;
+}

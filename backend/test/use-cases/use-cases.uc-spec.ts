@@ -259,6 +259,19 @@ describe('UC-14 Багийн бүтээмжийг дүгнэх (review team prod
     expect(report.people.some((person: any) => person.userId === team.employeeId)).toBe(true);
   });
 
+  it('main (PDCA check): an audit-raised fix is verified by the next audit of its area', async () => {
+    const failing = data(await team.employee.post('/audit-runs', {
+      templateId, zoneId, status: 'submitted', score: 40,
+      answers: [{ questionId: 'q1', value: 1 }, { questionId: 'q2', value: 1 }],
+    }));
+    const fix = data<any[]>(await team.manager.get('/tasks')).find((task) => task.sourceType === 'audit_run' && task.sourceId === failing.id);
+    expect(fix).toBeTruthy();
+    await team.manager.patch(`/tasks/${fix.id}`, { status: 'done' });
+    await team.employee.post('/audit-runs', { templateId, zoneId, status: 'submitted', score: 95, answers: [{ questionId: 'q1', value: 5 }, { questionId: 'q2', value: 5 }] });
+    const check = data(await team.manager.get('/operations/improvement-verification'));
+    expect(check.fixes.find((item: any) => item.taskId === fix.id)).toMatchObject({ status: 'verified', triggerScore: 40, reauditScore: 95 });
+  });
+
   it('alternative: an employee sees only their own figures, not the team’s', async () => {
     const report = data(await team.employee.get(`/operations/monthly-report?month=${today().slice(0, 7)}`));
     expect(report.people.every((person: any) => person.userId === team.employeeId)).toBe(true);
