@@ -65,6 +65,12 @@ class PhaseOneStrings {
     return 'unknown';
   }
 
+  String todayUnread(int count) =>
+      mn ? 'Уншаагүй $count мэдэгдэл байна' : '$count unread messages';
+
+  String todayAllTasks(int open) =>
+      mn ? 'Бүх ажил ($open нээлттэй)' : 'All tasks ($open open)';
+
   String hoursValue(double hours) {
     final shown =
         hours == hours.roundToDouble() ? hours.toInt().toString() : '$hours';
@@ -303,6 +309,28 @@ const _en = {
   'appName': 'Бүтээмж',
   'signInHint': 'Sign in with your organization account',
   'logout': 'Sign out',
+  'todayTitle': 'Today',
+  'todayScan': 'Check an area by QR',
+  'todayLogged': 'Today’s work is logged',
+  'todayNotLogged': 'Today’s work is not logged yet',
+  'todayReminderHint': 'Write it before the end of your shift.',
+  'todayWrite': 'Write',
+  'todayAllRead': 'No unread messages',
+  'todayDue': 'Due today and late',
+  'todayNothingDue': 'Nothing due today.',
+  'workLogTab': 'Log',
+  'profile': 'My profile',
+  'profileFirstName': 'First name',
+  'profileLastName': 'Last name',
+  'profilePhone': 'Phone',
+  'profileLanguage': 'Language',
+  'profileSave': 'Save',
+  'profileSaved': 'Saved',
+  'profilePassword': 'Change password',
+  'profileCurrentPassword': 'Current password',
+  'profileNewPassword': 'New password',
+  'profilePasswordChanged': 'Password changed',
+  'profilePasswordShort': 'At least 6 characters',
   'email': 'Email',
   'password': 'Password',
   'forgot': 'Forgot password?',
@@ -335,6 +363,9 @@ const _en = {
   'error.INVITATION_EXPIRED': 'This invitation has expired. Ask for a new one.',
   'error.INVITATION_USED':
       'This invitation has already been used. Sign in instead.',
+  'error.PASSWORD_RESET_INVALID':
+      'This reset link is not valid or has expired. Request a new one.',
+  'error.AUTH_CURRENT_PASSWORD_WRONG': 'The current password is incorrect.',
   'error.RESOURCE_NOT_FOUND': 'That record was not found.',
   'error.VALIDATION_FAILED': 'Check your details and try again.',
   'error.UNSUPPORTED_FILE_TYPE':
@@ -450,6 +481,28 @@ const _mn = {
   'appName': 'Бүтээмж',
   'signInHint': 'Байгууллагынхаа бүртгэлээр нэвтэрнэ үү',
   'logout': 'Гарах',
+  'todayTitle': 'Өнөөдөр',
+  'todayScan': 'QR-аар 5S аудит хийх',
+  'todayLogged': 'Өнөөдрийн ажил бүртгэгдсэн',
+  'todayNotLogged': 'Өнөөдрийн ажлаа бүртгээгүй байна',
+  'todayReminderHint': 'Ээлж дуусахаас өмнө бичээрэй.',
+  'todayWrite': 'Бичих',
+  'todayAllRead': 'Уншаагүй мэдэгдэл алга',
+  'todayDue': 'Өнөөдөр болон хоцорсон ажил',
+  'todayNothingDue': 'Өнөөдөр дуусгах ажил алга.',
+  'workLogTab': 'Бүртгэл',
+  'profile': 'Миний профайл',
+  'profileFirstName': 'Нэр',
+  'profileLastName': 'Овог',
+  'profilePhone': 'Утас',
+  'profileLanguage': 'Хэл',
+  'profileSave': 'Хадгалах',
+  'profileSaved': 'Хадгаллаа',
+  'profilePassword': 'Нууц үг солих',
+  'profileCurrentPassword': 'Одоогийн нууц үг',
+  'profileNewPassword': 'Шинэ нууц үг',
+  'profilePasswordChanged': 'Нууц үг солигдлоо',
+  'profilePasswordShort': 'Дор хаяж 6 тэмдэгт',
   'email': 'И-мэйл',
   'password': 'Нууц үг',
   'forgot': 'Нууц үгээ мартсан уу?',
@@ -484,6 +537,9 @@ const _mn = {
       'Энэ урилгын хугацаа дууссан байна. Шинээр авна уу.',
   'error.INVITATION_USED':
       'Энэ урилгыг аль хэдийн ашигласан байна. Оронд нь нэвтэрнэ үү.',
+  'error.PASSWORD_RESET_INVALID':
+      'Сэргээх холбоос хүчингүй эсвэл хугацаа нь дууссан байна. Шинээр хүсэлт илгээнэ үү.',
+  'error.AUTH_CURRENT_PASSWORD_WRONG': 'Одоогийн нууц үг буруу байна.',
   'error.RESOURCE_NOT_FOUND': 'Бичлэг олдсонгүй.',
   'error.VALIDATION_FAILED': 'Мэдээллээ шалгаад дахин оролдоно уу.',
   'error.UNSUPPORTED_FILE_TYPE':

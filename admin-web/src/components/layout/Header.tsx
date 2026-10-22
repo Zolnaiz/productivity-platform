@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Menu, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import LanguageToggle from './LanguageToggle';
@@ -327,14 +327,14 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         */}
         <LanguageToggle />
         <ThemeToggle />
-        <div className="hidden text-right sm:block">
+        <Link to="/account" title={t('account.open')} className="hidden text-right sm:block">
           <div className="text-sm font-medium text-gray-900 dark:text-white">
             {user?.name || user?.email}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">
             {user?.roles?.[0] ? t(`users.roles.${user.roles[0]}`) : ''}
           </div>
-        </div>
+        </Link>
         <button
           type="button"
           onClick={handleLogout}

@@ -35,6 +35,8 @@ export const ErrorCode = {
   InvitationInvalid: 'INVITATION_INVALID',
   InvitationExpired: 'INVITATION_EXPIRED',
   InvitationUsed: 'INVITATION_USED',
+  PasswordResetInvalid: 'PASSWORD_RESET_INVALID',
+  AuthCurrentPasswordWrong: 'AUTH_CURRENT_PASSWORD_WRONG',
   ResourceNotFound: 'RESOURCE_NOT_FOUND',
   ValidationFailed: 'VALIDATION_FAILED',
   UnsupportedFileType: 'UNSUPPORTED_FILE_TYPE',
@@ -113,6 +115,18 @@ const definitions: Record<ErrorCode, ErrorDefinition> = {
   [ErrorCode.InvitationUsed]: {
     exception: ConflictException,
     message: 'This invitation has already been used',
+  },
+  // One code for a wrong, expired and already-used token: telling them apart
+  // would tell an attacker which guesses were once real.
+  [ErrorCode.PasswordResetInvalid]: {
+    exception: BadRequestException,
+    message: 'This password reset link is not valid or has expired',
+  },
+  // 400 rather than 401: the caller is signed in, and a 401 makes the client
+  // try to refresh a session that is perfectly good.
+  [ErrorCode.AuthCurrentPasswordWrong]: {
+    exception: BadRequestException,
+    message: 'The current password is incorrect',
   },
   [ErrorCode.ResourceNotFound]: {
     exception: NotFoundException,

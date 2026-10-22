@@ -1,5 +1,5 @@
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -24,9 +24,12 @@ Future<({String planId, String zoneId})?> scanWithCamera(BuildContext context) =
 /// The areas on the organization's floor plans, each with how it scored last.
 /// Tapping one walks its checklist; scanning its label opens it too.
 class FiveSScreen extends StatefulWidget {
-  const FiveSScreen({super.key, this.scanLabel = scanWithCamera});
+  const FiveSScreen({super.key, this.scanLabel = scanWithCamera, this.scanRequests});
 
   final LabelScanner scanLabel;
+
+  /// Bumped from elsewhere (the Today tab's big button) to start a scan here.
+  final ValueListenable<int>? scanRequests;
   @override
   State<FiveSScreen> createState() => _FiveSScreenState();
 }
@@ -35,7 +38,14 @@ class _FiveSScreenState extends State<FiveSScreen> {
   @override
   void initState() {
     super.initState();
+    widget.scanRequests?.addListener(_scan);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    widget.scanRequests?.removeListener(_scan);
+    super.dispose();
   }
 
   Future<void> _load() async {

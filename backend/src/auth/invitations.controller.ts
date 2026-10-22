@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { InvitationsService } from './invitations.service';
-import { AcceptInvitationDto, CreateInvitationDto } from './dto/invitation.dto';
+import { AcceptInvitationDto, BulkInviteDto, CreateInvitationDto } from './dto/invitation.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PermissionsGuard } from '../shared/guards/permissions.guard';
 import { RequirePermission } from '../shared/decorators/permissions.decorator';
@@ -21,6 +21,15 @@ export class InvitationsController {
   @Post()
   invite(@Body() body: CreateInvitationDto, @Request() request: AuthenticatedRequest) {
     return this.invitations.invite(body.email, body.role, request.user ?? {});
+  }
+
+  /** UC-17: many people from one CSV or Excel sheet; `dryRun` is the preview. */
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermission('invitations:create')
+  @Post('import')
+  importMany(@Body() body: BulkInviteDto, @Request() request: AuthenticatedRequest) {
+    return this.invitations.importMany(body.rows, request.user ?? {}, body.dryRun ?? false);
   }
 
   @ApiBearerAuth()

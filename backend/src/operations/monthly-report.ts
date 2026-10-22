@@ -8,7 +8,9 @@ import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { projectProgressPercent, summarisePeople, sumRecordedHours } from './monthly-people';
 import { completionMonth, doneByEndOf, monthOf, organizationTimeZone, plannedMonth } from './task-completion';
-import { monthlyMeasurements } from './monthly-measurements';
+import { WeeklyCheckin } from './entities/weekly-checkin.entity';
+import { lastDayOf, monthlyMeasurements } from './monthly-measurements';
+import { dayIn } from './task-completion';
 
 /**
  * One month of an organization's records, as the monthly report reads them.
@@ -36,7 +38,25 @@ export interface MonthRecords {
    * task a project has, and a closed month stores only that month's tasks.
    */
   projectProgress: Record<string, number>;
+  /**
+   * K2's candidates: committed tasks due by the month's end that were not done
+   * before it began. Absent in months closed before K2 existed.
+   */
+  lateCandidates?: WorkTask[];
+  /** K6: check-ins for the month's weeks, and the people expected to write them. */
+  weeklyCheckins?: WeeklyCheckin[];
+  members?: ReportMember[];
 }
+
+/** Who is in the organization, as far as the K6 denominator needs to know. */
+export interface ReportMember {
+  id: string;
+  role?: string;
+  isActive?: boolean;
+}
+
+/** The roles asked to write a weekly check-in: those who do the work and those who run it. */
+const CHECKIN_ROLES = new Set(['user', 'manager']);
 
 export interface OrganizationRecords {
   projects: Project[];
@@ -47,10 +67,14 @@ export interface OrganizationRecords {
   assessmentResponses: AssessmentResponse[];
   expenses: ExpenseItem[];
   dailyGoals: DailyGoal[];
+  weeklyCheckins?: WeeklyCheckin[];
+  members?: ReportMember[];
 }
 
 export interface ReportViewer {
   id?: string;
+  /** Today, YYYY-MM-DD, for a month still running; tests pass it, the server uses the clock. */
+  today?: string;
   /** An employee reads their own month; managers read the team's. */
   ownOnly: boolean;
 }
@@ -86,7 +110,24 @@ export const selectMonthRecords = (
     projectProgress: Object.fromEntries(
       all.projects.map((project) => [project.id, projectProgressPercent(project, all.tasks)])
     ),
+    lateCandidates: all.tasks.filter((task) => {
+      // Backlog and undated work is nobody's promise yet, so it cannot be late.
+      if (task.status === 'backlog' || !task.dueDate) return false;
+      const due = plannedMonth(task, measurementTimeZone);
+      if (due === undefined) return true;
+      if (due > month) return false;
+      const finished = completionMonth(task, measurementTimeZone);
+      return !finished || finished >= month;
+    }),
+    weeklyCheckins: (all.weeklyCheckins ?? []).filter((checkin) => String(checkin.week).slice(0, 7) === month),
+    members: all.members,
   };
+};
+
+/** The "as of" day: the month's last day once it has ended, today while it runs. */
+export const referenceDayFor = (month: string, timeZone: string, today = dayIn(timeZone, new Date())) => {
+  const last = lastDayOf(month);
+  return today < last ? today : last;
 };
 
 /**
@@ -182,9 +223,25 @@ export const buildMonthlyReport = (
     period: month,
     people,
     measurements: monthlyMeasurements(
-      { completedTasks, auditRuns: monthlyAuditRuns, workLogs: monthlyWorkLogs },
+      {
+        completedTasks,
+        auditRuns: monthlyAuditRuns,
+        workLogs: monthlyWorkLogs,
+        lateCandidates: records.lateCandidates?.filter(mine((task) => task.assigneeId)),
+        weeklyCheckins: records.weeklyCheckins?.filter(mine((checkin) => checkin.userId)),
+        checkinPeople: records.members
+          ? ownOnly
+            ? viewer.id
+              ? [viewer.id]
+              : []
+            : records.members
+                .filter((member) => member.isActive !== false && CHECKIN_ROLES.has(member.role ?? ''))
+                .map((member) => member.id)
+          : undefined,
+      },
       month,
       reportingTimeZone,
+      referenceDayFor(month, reportingTimeZone, viewer.today),
     ),
     totals: {
       projects: visibleProjects.length,

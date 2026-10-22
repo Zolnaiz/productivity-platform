@@ -11,6 +11,8 @@ import { AuditTier, FiveSZone } from '../types/fiveS.types';
 import { readAuditTiers } from '../components/fives/tierRules';
 import { AuditAnswers, answersForRun, scoreAnswers } from '../components/fives/auditAnswers';
 import { useSaveFailure } from '../hooks/useSaveFailure';
+import FiveSTemplateLibrary from '../components/fives/FiveSTemplateLibrary';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * The mark an area has to reach. 85 is the common 5S pass mark.
@@ -25,6 +27,7 @@ const PASSING_SCORE = 85;
 const AuditTemplatesPage: React.FC = () => {
   const { t } = useTranslation();
   const saveFailed = useSaveFailure();
+  const { hasPermission } = useAuth();
   const [templates, setTemplates] = useState<AuditTemplate[]>([]);
   const [runs, setRuns] = useState<AuditRun[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
@@ -182,6 +185,13 @@ const AuditTemplatesPage: React.FC = () => {
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('auditTemplates.title')}</h1>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('auditTemplates.subtitle')}</p>
       </div>
+
+      {hasPermission('templates:create') && (
+        <FiveSTemplateLibrary
+          existing={templates}
+          onAdded={(template) => setTemplates((current) => [template, ...current])}
+        />
+      )}
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">

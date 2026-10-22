@@ -36,6 +36,29 @@ const INVITATION_MAIL: Record<MailLanguage, Record<'subject' | 'invited' | 'open
   },
 };
 
+/** Deliberately plain: the spreadsheet's errors are reported, not thrown. */
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export interface BulkInviteRow {
+  email: string;
+  role: string;
+}
+
+export type BulkInviteError =
+  | 'email_invalid'
+  | 'duplicate_in_file'
+  | 'role_invalid'
+  | 'role_not_allowed'
+  | 'email_taken';
+
+export interface BulkInviteResult {
+  row: number;
+  email: string;
+  role: string;
+  status: 'ok' | 'error';
+  error?: BulkInviteError;
+}
+
 interface Inviter {
   id?: string;
   organizationId?: string;
@@ -154,6 +177,49 @@ export class InvitationsService {
     await this.deliver(address, token, organizationId);
 
     return { invitation: this.toSummary(invitation), token };
+  }
+
+  /**
+   * Invites many people at once, from a spreadsheet the caller uploaded.
+   *
+   * Every row is checked by the same rules as a single invitation and the
+   * answer says, row by row, what was wrong. With `dryRun` nothing is created:
+   * that is the preview the screen shows before anybody presses import.
+   * Rows that pass are invited even when others fail, so fixing one typo does
+   * not mean uploading forty people again.
+   */
+  async importMany(rows: BulkInviteRow[], inviter: Inviter, dryRun = false) {
+    this.requireOrganization(inviter);
+    const seen = new Set<string>();
+    const results: BulkInviteResult[] = [];
+
+    for (const [index, row] of rows.entries()) {
+      const email = normalizeEmail(row.email ?? '');
+      const role = (row.role ?? '').trim().toLowerCase() as UserRole;
+      const base = { row: index + 1, email, role };
+      let error: BulkInviteError | undefined;
+
+      if (!EMAIL_PATTERN.test(email)) error = 'email_invalid';
+      else if (seen.has(email)) error = 'duplicate_in_file';
+      else if (!Object.values(UserRole).includes(role)) error = 'role_invalid';
+      else if (!canAssignRole(inviter.role, role)) error = 'role_not_allowed';
+      else if (await this.usersService.findByEmail(email)) error = 'email_taken';
+      seen.add(email);
+
+      if (error) {
+        results.push({ ...base, status: 'error', error });
+        continue;
+      }
+      if (!dryRun) await this.invite(email, role, inviter);
+      results.push({ ...base, status: 'ok' });
+    }
+
+    return {
+      dryRun,
+      total: rows.length,
+      valid: results.filter((result) => result.status === 'ok').length,
+      rows: results,
+    };
   }
 
   /** Pending invitations for the caller's organization. Never includes a token. */

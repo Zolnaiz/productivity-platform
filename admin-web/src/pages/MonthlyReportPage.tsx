@@ -445,7 +445,13 @@ const MonthlyReportPage: React.FC = () => {
         <>
           <MonthSummaryCard month={selectedMonth} canWrite={may('reports:close')} />
 
-          <MonthlyMeasurementsCard measurements={report.measurements} />
+          <MonthlyMeasurementsCard
+            measurements={report.measurements}
+            nameOf={(userId) => {
+              const member = members.find((candidate) => candidate.id === userId);
+              return member ? memberName(member) : userId;
+            }}
+          />
 
           <Card title={t('monthlyReport.executiveSummary')} subtitle={t('monthlyReport.reportingPeriod', { period: report.period })}>
             <dl className="divide-y divide-gray-200 dark:divide-gray-700">

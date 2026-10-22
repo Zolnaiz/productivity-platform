@@ -75,7 +75,15 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Audit
+      # What ships to the browser is held to the strict line. The development
+      # toolchain is reported but does not block: as of 2026-10 `braces` has no
+      # patched release at all and `postcss-selector-parser` is fixed only by
+      # Tailwind 4, both reached through tailwindcss@3 at build time.
+      - name: Audit (production dependencies)
+        run: npm audit --omit=dev --audit-level=moderate
+
+      - name: Audit (development dependencies, reported)
+        continue-on-error: true
         run: npm audit --audit-level=moderate
 
   # Every serious defect found in this application in the last month was found
@@ -233,6 +241,12 @@ jobs:
         env:
           SMOKE_WRITES: 'true'
         run: npm run smoke:api
+
+      # One acceptance test per use case (UC-01 … UC-22), through the real
+      # application on this database: main flow and a refused or alternative one.
+      - name: Use-case acceptance tests
+        working-directory: backend
+        run: npm run test:uc
 
       # The web's saves read back from the real server: a save that never
       # leaves the browser, or that the API refuses, looks fine in demo mode.

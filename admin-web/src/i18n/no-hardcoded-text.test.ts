@@ -24,6 +24,9 @@ const allowed: Record<string, string> = {
   // Each language names itself, so the switch is readable whichever is active.
   'components/layout/LanguageToggle.tsx': 'language names',
   'pages/SettingsPage.tsx': 'language names',
+  'pages/AccountPage.tsx': 'language names',
+  // Recognises the Mongolian column headings and role words people type in their own spreadsheets.
+  'utils/sheetImport.ts': 'spreadsheet headings people write',
 };
 
 const isComment = (line: string) => /^\s*(\/\/|\*|\/\*|\{\/\*)/.test(line);
@@ -85,8 +88,8 @@ describe('text in the screens', () => {
               (bare !== text && /^[A-Za-z0-9 ,’.:%!?-]+$/.test(bare) && /[a-z]{2,} [a-z]{2,}/.test(bare)));
           const inline =
             />([A-Z][a-z]+(?: [a-zA-Z]+)+[.!?]?)</.exec(line)?.[1] ??
-            (/>[A-Z][a-z]+ \{/.test(line) ? text : '') ||
-            (/\}%? ([a-z]{2,}(?: [a-z]{2,})+)[.!?]?</.exec(line)?.[1] ?? '');
+            ((/>[A-Z][a-z]+ \{/.test(line) ? text : '') ||
+              (/\}%? ([a-z]{2,}(?: [a-z]{2,})+)[.!?]?</.exec(line)?.[1] ?? ''));
           const words = standsAlone ? text : inline;
 
           if (words && !names.has(words)) found.push(`${relative(root, path).replace(/\\/g, '/')}:${index + 1}`);

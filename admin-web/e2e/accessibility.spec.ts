@@ -67,7 +67,7 @@ for (const theme of ['light', 'dark'] as const) {
 
     await page.getByTestId('demo-sign-in').click();
     await expect(page).toHaveURL(/\/dashboard$/);
-    await page.goto('/fives');
+    await page.goto('/fives?view=map');
     await expect(page.locator('svg[aria-label="5S floor plan"]')).toBeVisible();
     const target = await page.evaluate(() => {
       const [plan] = JSON.parse(localStorage.getItem('productivity-demo-5s-layouts') || '[]');

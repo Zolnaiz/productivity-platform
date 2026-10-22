@@ -58,7 +58,7 @@ describe('translations', () => {
 describe('Mongolian wording', () => {
   const allowed = new Set([
     'BILZENO', 'Ctrl', 'Shift', 'Delete', 'Space', 'Enter', 'Alt', 'Esc',
-    'PDF', 'CSV', 'JSON', 'Excel', 'SVG', 'QR', 'WCAG', 'Google', 'Play',
+    'PDF', 'CSV', 'JSON', 'Excel', 'xlsx', 'SVG', 'QR', 'WCAG', 'Google', 'Play',
     'Kaizen', 'Gemba', 'Claude', 'Anthropic', 'Pomodoro', 'Demo', 'workspace',
   ]);
   const read = (key: string) =>

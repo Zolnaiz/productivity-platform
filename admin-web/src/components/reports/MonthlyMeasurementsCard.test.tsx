@@ -72,3 +72,62 @@ describe('monthly measurements', () => {
     ]);
   });
 });
+
+describe('K2, K4 and K6', () => {
+  const v2: MonthlyMeasurements = {
+    ...measurements,
+    version: 2,
+    referenceDay: '2026-03-31',
+    lateWork: { value: 6, numerator: 12, denominator: 2, excluded: 1 },
+    fixClosureDays: { value: 1.5, numerator: 3, denominator: 2, excluded: 0 },
+    checkinRate: { value: 30, numerator: 3, denominator: 10, excluded: 0 },
+    evidence: {
+      lateWork: [
+        { id: 'b', title: 'Fix shelf', days: 10, dueDate: '2026-03-21' },
+        { id: 'a', title: 'Paint lines', days: 2, dueDate: '2026-03-29' },
+      ],
+      fixClosureDays: [{ id: 'f', title: 'Clear aisle', days: 1.5 }],
+      checkinMissing: [{ userId: 'u1', week: '2026-03-09' }],
+    },
+  };
+
+  it('shows each with its counts and the records behind it', () => {
+    render(<MonthlyMeasurementsCard measurements={v2} nameOf={(id) => (id === 'u1' ? 'Bat Dorj' : id)} />);
+
+    const late = within(screen.getByRole('region', { name: 'Late work (K2)' }));
+    expect(late.getByText('6 days')).toBeTruthy();
+    expect(late.getByText('2 late tasks, 12 days in total')).toBeTruthy();
+    expect(late.getByText('Fix shelf — 10 days late')).toBeTruthy();
+
+    const fixes = within(screen.getByRole('region', { name: 'Fix closure time (K4)' }));
+    expect(fixes.getByText('1.5 days')).toBeTruthy();
+    expect(fixes.getByText('Clear aisle — closed in 1.5 days')).toBeTruthy();
+
+    const checkins = within(screen.getByRole('region', { name: 'Weekly check-in rate (K6)' }));
+    expect(checkins.getByText('30%')).toBeTruthy();
+    expect(checkins.getByText('Bat Dorj — week of 2026-03-09')).toBeTruthy();
+    expect(screen.getByText(/As of 2026-03-31/)).toBeTruthy();
+  });
+
+  it('says "no data" for an empty K2 mean rather than 0 days', () => {
+    render(<MonthlyMeasurementsCard measurements={{ ...v2, lateWork: { value: null, numerator: 0, denominator: 0, excluded: 0 } }} />);
+    const late = within(screen.getByRole('region', { name: 'Late work (K2)' }));
+    expect(late.getByText('Not enough data')).toBeTruthy();
+    expect(late.getByText('0 late tasks, 0 days in total')).toBeTruthy();
+  });
+
+  it('puts the new columns and the traced records in the CSV', () => {
+    const rows = measurementCsvRows(v2, i18n.t.bind(i18n));
+    const titles = rows.map((row) => row[0]);
+    expect(titles).toEqual(expect.arrayContaining(['Late work (K2)', 'Fix closure time (K4)', 'Weekly check-in rate (K6)', 'Reference day']));
+    expect(rows).toContainEqual(['Late work (K2)', '6 days', 12, 2, 1, 'Total days late / late tasks']);
+    expect(rows).toContainEqual(['Late work (K2)', 'Fix shelf', 10]);
+    expect(rows).toContainEqual(['Fix closure time (K4)', 'Clear aisle', 1.5]);
+  });
+
+  it('still renders a version-1 report without the new measures', () => {
+    render(<MonthlyMeasurementsCard measurements={measurements} />);
+    expect(screen.queryByRole('region', { name: 'Late work (K2)' })).toBeNull();
+    expect(screen.getByRole('region', { name: 'On-time delivery' })).toBeTruthy();
+  });
+});

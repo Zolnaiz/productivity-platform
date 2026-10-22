@@ -76,6 +76,8 @@ const viewer = [
   'ideas:read',
   // Anybody with an account may ask for it to be deleted.
   'account:request-deletion',
+  // And may tell the administrators what is wrong with the product.
+  'feedback:create',
 ];
 
 const user = [
@@ -164,6 +166,8 @@ const admin = [
   // organization's store, for whoever looks after the workspace - which is
   // the administrator who registered it.
   'attachments:check',
+  // Reading what members have reported about the product.
+  'feedback:read',
 ];
 
 const organizationAdmin = [...admin, 'organization:update', 'auditlog:read'];

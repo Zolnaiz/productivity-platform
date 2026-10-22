@@ -16,7 +16,8 @@ const createService = () => {
     tasks: createRepository(),
     workLogs: createRepository(),
     timeEntries: createRepository(),
-    auditTemplates: createRepository(),
+    // A run is refused unless its checklist exists, so the checklist is found by default.
+    auditTemplates: { ...createRepository(), findOne: jest.fn(async () => ({ id: 'template-1' })) },
     auditRuns: createRepository(),
     assessmentTemplates: createRepository(),
     assessmentResponses: createRepository(),
@@ -78,6 +79,17 @@ const zone = (over: Record<string, any> = {}) => ({
  * zone's score fields were never written by anything.
  */
 describe('audit runs update the zone they audited', () => {
+  it('refuses a run against a checklist the organization does not have, as not found', async () => {
+    const { service, repositories } = createService();
+    repositories.auditTemplates.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.createAuditRun({ templateId: 'missing', zoneId: 'zone-a', status: 'submitted' } as any, user),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(repositories.auditTemplates.findOne).toHaveBeenCalledWith({ where: { id: 'missing', organizationId: 'org-1' } });
+    expect(repositories.auditRuns.save).not.toHaveBeenCalled();
+  });
+
   it('writes the score and date onto the matching zone', async () => {
     const { service, repositories } = createService();
     const layout = layoutWith([zone(), zone({ id: 'zone-b', code: 'A02' })]);

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Copy, Mail, UserPlus, Users } from 'lucide-react';
+import { Copy, FileUp, Mail, UserPlus, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
@@ -8,6 +8,7 @@ import Input from '../components/common/Input';
 import Modal from '../components/common/Modal';
 import Select from '../components/common/Select';
 import Table from '../components/common/Table';
+import BulkInvite from '../components/people/BulkInvite';
 import { apiErrorMessage } from '../i18n/apiError';
 import { peopleService } from '../services/people.service';
 import { Department } from '../types/people.types';
@@ -64,6 +65,7 @@ const TeamUsersPage: React.FC = () => {
 
   const grantable = useMemo(() => assignableBy[ownRole] ?? [], [ownRole]);
 
+  const [importOpen, setImportOpen] = useState(false);
   const load = useCallback(async () => {
     setError(null);
 
@@ -155,9 +157,14 @@ const TeamUsersPage: React.FC = () => {
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('users.subtitle')}</p>
         </div>
         {may('invitations:create') && grantable.length > 0 && (
-          <Button icon={UserPlus} type="button" onClick={() => setInviteOpen(true)}>
-            {t('users.invite')}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" icon={FileUp} type="button" onClick={() => setImportOpen(true)}>
+              {t('bulkInvite.open')}
+            </Button>
+            <Button icon={UserPlus} type="button" onClick={() => setInviteOpen(true)}>
+              {t('users.invite')}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -185,6 +192,10 @@ const TeamUsersPage: React.FC = () => {
           </div>
         </Card>
       )}
+
+      <Modal isOpen={importOpen} onClose={() => setImportOpen(false)} title={t('bulkInvite.title')}>
+        <BulkInvite onDone={load} />
+      </Modal>
 
       <Modal isOpen={inviteOpen} onClose={() => setInviteOpen(false)} title={t('users.invite')}>
         <form onSubmit={sendInvitation} className="space-y-4">

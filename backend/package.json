@@ -37,7 +37,10 @@
     "docker:compose:dev": "docker-compose -f docker-compose.dev.yml up",
     "docker:compose:prod": "docker-compose -f docker-compose.prod.yml up",
     "prepare": "husky install",
-    "migration:check": "ts-node --transpile-only scripts/check-migrations.ts"
+    "migration:check": "ts-node --transpile-only scripts/check-migrations.ts",
+    "test:uc": "jest --config ./test/jest-uc.json --runInBand",
+    "bench": "ts-node --transpile-only scripts/benchmark.ts",
+    "results": "ts-node --transpile-only scripts/results.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1138.0",

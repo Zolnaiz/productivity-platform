@@ -1,0 +1,90 @@
+{
+  "measuredAt": "2026-10-21T23:47:34.400Z",
+  "machine": {
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cores": 4,
+    "memoryGb": 16,
+    "os": "Linux 6.18.44-fc-v139",
+    "node": "v22.22.0",
+    "database": "PostgreSQL (local, same machine)"
+  },
+  "dataset": {
+    "users": 50,
+    "tasks": 4000,
+    "workLogs": 4000,
+    "auditRuns": 2000,
+    "totalRecords": 10000,
+    "zones": 20,
+    "seedSeconds": 9
+  },
+  "method": "20 warm-up requests, then 200 sequential requests per endpoint over HTTP on 127.0.0.1 (keep-alive fetch); client and server on one machine.",
+  "nfr06ThresholdMs": 2000,
+  "endpoints": [
+    {
+      "endpoint": "POST /auth/login",
+      "samples": 200,
+      "p50": 70.95,
+      "p95": 76.77,
+      "mean": 71.29,
+      "max": 107.59
+    },
+    {
+      "endpoint": "GET /tasks (manager, whole organization)",
+      "samples": 200,
+      "p50": 140.88,
+      "p95": 182.19,
+      "mean": 145.16,
+      "max": 284.12
+    },
+    {
+      "endpoint": "POST /work-logs/daily",
+      "samples": 200,
+      "p50": 5.44,
+      "p95": 8.21,
+      "mean": 5.8,
+      "max": 20.87
+    },
+    {
+      "endpoint": "POST /audit-runs (submit)",
+      "samples": 200,
+      "p50": 15.27,
+      "p95": 19.19,
+      "mean": 15.48,
+      "max": 23.12
+    },
+    {
+      "endpoint": "GET /operations/monthly-report (manager, K1–K6)",
+      "samples": 200,
+      "p50": 146.87,
+      "p95": 184.78,
+      "mean": 148.77,
+      "max": 211.83
+    },
+    {
+      "endpoint": "Report CSV (report fetch + CSV serialisation)",
+      "samples": 200,
+      "p50": 152.15,
+      "p95": 196.85,
+      "mean": 156.11,
+      "max": 230.27
+    }
+  ],
+  "algorithms": [
+    {
+      "name": "K1 + K3 (monthlyMeasurements), 10,000 records",
+      "samples": 50,
+      "p50": 15.24,
+      "p95": 18.57,
+      "mean": 15.38,
+      "max": 19.26
+    },
+    {
+      "name": "Audit score (scoreAnswers), 10,000 audits × 10 questions",
+      "samples": 50,
+      "p50": 1.46,
+      "p95": 2.41,
+      "mean": 1.55,
+      "max": 2.91
+    }
+  ]
+}

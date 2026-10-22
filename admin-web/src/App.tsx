@@ -7,7 +7,6 @@ import Layout from "./components/layout/Layout";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import PlatformModulePage from "./pages/PlatformModulePage";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import ZonePage from "./pages/ZonePage";
 import OperationsDashboardPage from "./pages/OperationsDashboardPage";
@@ -36,6 +35,12 @@ import BadgesPage from "./pages/BadgesPage";
 import TeamUsersPage from "./pages/TeamUsersPage";
 import DepartmentsPage from "./pages/DepartmentsPage";
 import ProfilePage from "./pages/ProfilePage";
+import AccountPage from "./pages/AccountPage";
+import FeedbackPage from "./pages/FeedbackPage";
+import HelpPage from "./pages/HelpPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import OrganizationsPage from "./pages/OrganizationsPage";
 import SettingsPage from "./pages/SettingsPage";
 import AuditLogPage from "./pages/AuditLogPage";
@@ -59,34 +64,9 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route
-                path="/forgot-password"
-                element={
-                  <PlatformModulePage
-                    titleKey="auth.forgotPasswordTitle"
-                    descriptionKey="auth.forgotPasswordDescription"
-                    items={[
-                      "Email request",
-                      "Reset token",
-                      "Security audit log",
-                    ]}
-                  />
-                }
-              />
-              <Route
-                path="/reset-password/:token"
-                element={
-                  <PlatformModulePage
-                    titleKey="auth.newPasswordTitle"
-                    descriptionKey="auth.newPasswordDescription"
-                    items={[
-                      "Token validation",
-                      "New password form",
-                      "Session cleanup",
-                    ]}
-                  />
-                }
-              />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+              <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
 
               <Route
                 element={
@@ -142,6 +122,9 @@ function App() {
                   }
                 />
                 <Route path="profile" element={<ProfilePage />} />
+                <Route path="account" element={<AccountPage />} />
+                <Route path="help" element={<HelpPage />} />
+                <Route path="feedback" element={<FeedbackPage />} />
                 <Route
                   path="organizations"
                   element={
