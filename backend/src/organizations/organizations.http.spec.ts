@@ -158,6 +158,22 @@ describe('organizations API over HTTP', () => {
       expect(response.body.data.settings).toMatchObject({ timezone: 'Asia/Ulaanbaatar' });
     });
 
+    it('merges settings so a save of one key keeps the others', async () => {
+      repository.findOne.mockResolvedValue({
+        id: 'org-1',
+        name: 'MPC',
+        isActive: true,
+        settings: { timezone: 'Asia/Ulaanbaatar', monthCloseDay: 7 },
+      });
+
+      const response = await request(app.getHttpServer())
+        .patch('/api/organizations/my-organization')
+        .send({ settings: { monthCloseDay: 8 } })
+        .expect(200);
+
+      expect(response.body.data.settings).toEqual({ timezone: 'Asia/Ulaanbaatar', monthCloseDay: 8 });
+    });
+
     it('refuses a name another organization already has', async () => {
       repository.findOne
         .mockResolvedValueOnce({ id: 'org-1', name: 'MPC' })

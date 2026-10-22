@@ -89,6 +89,12 @@ export class OrganizationsService {
 
     // What these fields held before they are overwritten. The record is
     // already loaded, so the trail gets its other half for nothing.
+    // Settings are merged key by key, so two admins saving different
+    // settings at once do not wipe each other's change.
+    if (changes.settings) {
+      changes = { ...changes, settings: { ...(organization.settings ?? {}), ...changes.settings } };
+    }
+
     noteAuditBefore(organization, Object.keys(changes));
     Object.assign(organization, changes);
 
