@@ -99,6 +99,9 @@ cd backend
 npm install
 npm run build
 npm test -- --runInBand
+npm run test:uc      # UC-01..UC-22 against PostgreSQL (DB_* settings)
+npm run bench        # latency on 50 users / 10k records; throwaway database
+npm run results      # regenerates docs/RESULTS.md
 ```
 
 For PostgreSQL-backed local smoke testing, see:
@@ -328,29 +331,15 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-As of 2026-09-30, on branch `codex/productivity-core-integrity`:
+As of 2026-10-22, on branch `feat/finish-core`. The numbers below come from [docs/RESULTS.md](docs/RESULTS.md), which `npm run results` (in `backend`) generates from each suite's own output:
 
-- Backend: **927 tests passing in 65 suites**; lint and build clean. All 38
-  runtime/operations migrations pass the PostgreSQL WebAssembly schema check and
-  are also applied to fresh Docker PostgreSQL 16 by the live runner.
-- Frontend: **1,033 tests passing in 107 files**; lint and production build pass.
-  The existing large-bundle warning remains (main chunk about 846 kB).
-- Browser: **39 checks passing, none skipped**: 18 demo and 21 live checks,
-  including owner/operator navigation, accessibility, and a completed task's
-  project, blocker and single paired time entry persisted through a reload.
-- Mobile: **125 local tests passing**, one environment-gated live test skipped in
-  that run; `flutter analyze` clean. The live test was then run separately and
-  **passed** against the disposable API, checking login/refresh, projects, tasks,
-  canonical daily work links, persisted hours and inbox.
-- Android: production-flavor release APK builds successfully (55.9 MB). This
-  verification build uses `https://example.invalid/api` and the local debug key;
-  set the deployment API URL and production signing key before distribution.
-- Live API: read/write smoke passes against disposable Docker PostgreSQL 16,
-  including inferred task/project links and rejected mismatches. Test API,
-  database and web endpoints bind to loopback; test processes/database are
-  cleaned up. Logs are retained under `tmp/`.
-- Dependency audits: **0 vulnerabilities** in both npm projects. Production
-  Docker Compose configuration passes for default/cache/backup/monitoring.
+- Backend: **983 unit and HTTP tests passing**, plus **44 use-case acceptance tests** (UC-01 … UC-22, each with a main flow and a refused or alternative flow) on a real PostgreSQL 16 (`npm run test:uc`). Lint and build are clean. Migrations run up, down and up again against PostgreSQL 16, and `npm run migration:check` passes.
+- Frontend: **1,075 tests passing**. Lint and production build pass.
+- Browser: **39 Playwright checks passing**: 18 in demo mode and 21 against a live API.
+- Mobile: **131 tests passing**, with one environment-gated live test skipped. `flutter analyze` is clean.
+- Performance: on 50 users and 10,000 records, every measured endpoint has p95 under 200 ms (NFR-06 allows 2 s). Before a fix in this branch, the monthly report's p95 was 1.75 s. Both measurements are in RESULTS.md.
+- Measures K1–K6: see [docs/measurements.md](docs/measurements.md). Usability (SUS) has **not** been measured; it needs real users in the pilot.
+- Deployment in short: [docs/DEPLOY.md](docs/DEPLOY.md).
 
 CI defines these checks for pull requests and pushes to `main`/`master`; a remote
 CI run has not been claimed for these local changes. Earlier production-compose
