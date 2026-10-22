@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Card from '../common/Card';
+import { scrollArea } from '../common/scrollArea';
 import { localDay } from '../progress/progressBoard';
 import { operationsService } from '../../services/operations.service';
 import type { MonthHistory } from '../../types/operations.types';
@@ -91,7 +92,7 @@ const MonthHistoryCard: React.FC<MonthHistoryCardProps> = ({ month, refreshKey, 
           ))}
         </ol>
 
-        <div className="overflow-x-auto">
+        <div className={scrollArea} tabIndex={0} role="region" aria-labelledby="month-history-title">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-400">
