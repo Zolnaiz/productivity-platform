@@ -78,6 +78,8 @@ const viewer = [
   'account:request-deletion',
   // And may tell the administrators what is wrong with the product.
   'feedback:create',
+  // Their own notes, which nobody else reads.
+  'notes:own',
 ];
 
 const user = [

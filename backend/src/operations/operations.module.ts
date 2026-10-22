@@ -20,6 +20,9 @@ import { GembaController } from './gemba.controller';
 import { FeedbackController } from './feedback.controller';
 import { FeedbackService } from './feedback.service';
 import { FeedbackMessage } from './entities/feedback.entity';
+import { PersonalNote } from './entities/personal-note.entity';
+import { NotesController } from './notes.controller';
+import { NotesService } from './notes.service';
 import { AccountController } from './account.controller';
 import { GembaService } from './gemba.service';
 import { MonthlySummaryService } from './monthly-summary.service';
@@ -75,6 +78,7 @@ import { NotificationsService } from './notifications.service';
       MonthlySummary,
       GembaWalk,
       FeedbackMessage,
+      PersonalNote,
       FiveSLayout,
       Department,
       FiveSGuideline,
@@ -88,7 +92,7 @@ import { NotificationsService } from './notifications.service';
       Notification,
     ]),
   ],
-  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController, IdeasController, CheckinsController, GembaController, AccountController, FeedbackController],
+  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController, IdeasController, CheckinsController, GembaController, AccountController, FeedbackController, NotesController],
   providers: [
     OperationsService,
     IdeasService,
@@ -96,6 +100,7 @@ import { NotificationsService } from './notifications.service';
     MonthlySummaryService,
     GembaService,
     FeedbackService,
+    NotesService,
     AttachmentsService,
     /*
       Where attachment bytes live, decided once at startup from the

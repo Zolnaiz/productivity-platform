@@ -1388,6 +1388,9 @@ const en = {
     unknown: 'Something went wrong. Try again.',
   },
   notes: {
+    delete: 'Delete',
+    deleteNamed: 'Delete the note “{{title}}”',
+    confirmDelete: 'Delete the note “{{title}}”?',
     title: 'Notes',
     subtitle: 'Keep work notes, meeting notes, report ideas and blockers.',
     newNote: 'New note',

@@ -51,6 +51,7 @@ export const liveTables = [
   'monthly_summaries',
   'gemba_walks',
   'feedback_messages',
+  'personal_notes',
 ];
 
 /** Declared by `BaseEntity` rather than by the entity, so they are counted separately below. */

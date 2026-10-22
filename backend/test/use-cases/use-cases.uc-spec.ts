@@ -140,6 +140,15 @@ describe('UC-07 Хувийн бүртгэлээ удирдах (manage own accou
     expect(login.status).toBe(200);
   });
 
+  it('main: keeps personal notes on the server and deletes own records; another person’s is not found', async () => {
+    const note = await team.manager.post('/notes', { title: 'Huddle points', content: 'Ask about line 2' });
+    expect(note.status).toBe(201);
+    expect((await team.owner.del(`/notes/${data(note).id}`)).status).toBe(404);
+    expect(data<any[]>(await team.owner.get('/notes')).some((item) => item.id === data(note).id)).toBe(false);
+    expect((await team.manager.del(`/notes/${data(note).id}`)).status).toBe(200);
+    expect(data<any[]>(await team.manager.get('/notes'))).toEqual([]);
+  });
+
   it('refused: a wrong current password, and a forgot-password answer that reveals nothing', async () => {
     const wrong = await team.employee.post('/auth/change-password', { currentPassword: 'nope-nope', newPassword: 'Whatever123' });
     expect(wrong.status).toBe(400);
