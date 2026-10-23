@@ -192,6 +192,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Every migration is applied to a real PostgreSQL on each verification run and the resulting schema is inspected: every live table present, every mapped column present, the schema writable, and the partial unique index behind one-task-per-finding actually refusing a second. PGlite runs PostgreSQL in process, so this needs no Docker, daemon or virtualisation.
 - Production requires `JWT_SECRET`.
 - Production rejects known weak JWT and refresh-token secrets.
+- The web app keeps its refresh token in an HttpOnly, `SameSite=Strict` cookie limited to `/api/auth` (`Secure` in production), never in browser storage, so a script on the page can carry off at most the one-hour access token. The phone app keeps its tokens in the device's secure storage. Logging out removes the cookie. A password change or reset ends every other session: each refresh token carries the account's token version, and both move it on.
 - Production rejects `DB_SYNCHRONIZE=true`.
 - Swagger is disabled in production unless `ENABLE_SWAGGER=true`.
 - Public operations access is disabled by default.
@@ -331,12 +332,12 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-As of 2026-10-22, on branch `feat/finish-core`. The numbers below come from [docs/RESULTS.md](docs/RESULTS.md), which `npm run results` (in `backend`) generates from each suite's own output:
+As of 2026-10-22, on branch `feat/next-improvements`. The numbers below come from [docs/RESULTS.md](docs/RESULTS.md), which `npm run results` (in `backend`) generates from each suite's own output:
 
-- Backend: **983 unit and HTTP tests passing**, plus **44 use-case acceptance tests** (UC-01 … UC-22, each with a main flow and a refused or alternative flow) on a real PostgreSQL 16 (`npm run test:uc`). Lint and build are clean. Migrations run up, down and up again against PostgreSQL 16, and `npm run migration:check` passes.
-- Frontend: **1,075 tests passing**. Lint and production build pass.
-- Browser: **39 Playwright checks passing**: 18 in demo mode and 21 against a live API.
-- Mobile: **131 tests passing**, with one environment-gated live test skipped. `flutter analyze` is clean.
+- Backend: **1,038 unit and HTTP tests passing**, plus **52 use-case acceptance tests** (UC-01 … UC-22, each with a main flow and a refused or alternative flow) on a real PostgreSQL 16 (`npm run test:uc`). Lint and build are clean. Migrations run up, down and up again against PostgreSQL 16, and `npm run migration:check` passes.
+- Frontend: **1,095 tests passing**. Lint and production build pass.
+- Browser: **40 Playwright checks passing**: 18 in demo mode and 22 against a live API.
+- Mobile: **135 tests passing**, with one environment-gated live test skipped. `flutter analyze` is clean.
 - Performance: on 50 users and 10,000 records, every measured endpoint has p95 under 200 ms (NFR-06 allows 2 s). Before a fix in this branch, the monthly report's p95 was 1.75 s. Both measurements are in RESULTS.md.
 - Measures K1–K6: see [docs/measurements.md](docs/measurements.md). Usability (SUS) has **not** been measured; it needs real users in the pilot.
 - Deployment in short: [docs/DEPLOY.md](docs/DEPLOY.md).

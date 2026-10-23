@@ -13,6 +13,8 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { MailModule } from './shared/mail/mail.module';
 import { AuditModule } from './audit/audit.module';
 import { AuditLogInterceptor } from './audit/audit-log.interceptor';
+import { IdempotencyModule } from './shared/idempotency/idempotency.module';
+import { IdempotencyInterceptor } from './shared/idempotency/idempotency.interceptor';
 import { envValidationSchema } from './shared/config/env.validation';
 import { MetricsService } from './shared/metrics/metrics.service';
 
@@ -40,6 +42,7 @@ import { MetricsService } from './shared/metrics/metrics.service';
     // `operations` go out through the same configured transport.
     MailModule,
     AuditModule,
+    IdempotencyModule,
     AuthModule,
     UsersModule,
     OrganizationsModule,
@@ -52,6 +55,11 @@ import { MetricsService } from './shared/metrics/metrics.service';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      // Before the audit trail, so a replayed write is not recorded twice.
+      provide: APP_INTERCEPTOR,
+      useClass: IdempotencyInterceptor,
     },
     {
       // Registered once, for every route. An audit trail assembled by

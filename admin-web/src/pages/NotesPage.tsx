@@ -41,6 +41,17 @@ const NotesPage: React.FC = () => {
     setCreateOpen(false);
   };
 
+  const deleteNote = async (note: Note) => {
+    if (!window.confirm(t('notes.confirmDelete', { title: note.title }))) return;
+    try {
+      await productivityService.deleteNote(note.id);
+    } catch (error) {
+      saveFailed(error);
+      return;
+    }
+    setNotes((current) => current.filter((candidate) => candidate.id !== note.id));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -92,7 +103,17 @@ const NotesPage: React.FC = () => {
                 </div>
                 <span className="w-fit rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">{note.tag}</span>
               </div>
-              <div className="mt-3 text-xs text-gray-500">{note.createdAt}</div>
+              <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                <span>{note.createdAt}</span>
+                <button
+                  type="button"
+                  className="rounded px-2 py-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+                  aria-label={t('notes.deleteNamed', { title: note.title })}
+                  onClick={() => deleteNote(note)}
+                >
+                  {t('notes.delete')}
+                </button>
+              </div>
             </Card>
           ))}
         </div>

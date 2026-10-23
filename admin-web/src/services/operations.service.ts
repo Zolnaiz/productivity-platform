@@ -2,8 +2,11 @@ import { del, get, isDemoMode, localId, patch, post, shouldUseDemoFallback } fro
 import { planHoldingZone, readDemoPlans, replaceDemoPlan, writeDemoPlans } from './demoPlanStore';
 import {
   AuditTemplate,
+  ImprovementVerification,
   AuditRun,
   ClosedMonth,
+  MonthHistory,
+  MonthVersion,
   OperationsMonthlyReport,
   OperationsSummary,
   PeriodReport,
@@ -16,6 +19,7 @@ import { DailyGoal } from '../types/productivity.types';
 import { summarisePeople } from '../components/reports/monthlyPeople';
 import { completionAfter, completionMonth, doneByEndOf, plannedMonth } from '../components/reports/taskCompletion';
 import { combineMonths, monthsBetween } from '../components/reports/periodReport';
+import { headlineFigures } from '../components/reports/monthHistory';
 import { localDay } from '../components/progress/progressBoard';
 import { daysFromToday, localMonth } from '../utils/localDay';
 
@@ -775,10 +779,59 @@ const closeDemoMonth = (month: string) => {
   return demoMonthlyReport(month);
 };
 
-const reopenDemoMonth = (month: string) => {
+const demoReopenedKey = 'demo-monthly-reopened';
+
+type DemoReopened = MonthVersion & { period: string };
+
+const readDemoReopened = (): DemoReopened[] => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(demoReopenedKey) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+/** Mirrors `ReportArchiveService.reopenMonth`: the closed copy is kept, with who and why. */
+const reopenDemoMonth = (month: string, reason: string) => {
+  const closed = readDemoCloses().find((entry) => entry.period === month);
   writeDemoCloses(readDemoCloses().filter((entry) => entry.period !== month));
 
+  if (closed) {
+    try {
+      localStorage.setItem(
+        demoReopenedKey,
+        JSON.stringify([
+          ...readDemoReopened(),
+          {
+            period: month,
+            closedAt: closed.closedAt,
+            closedBy: closed.closedBy,
+            reopenedAt: new Date().toISOString(),
+            reopenedBy: 'u1',
+            reopenReason: reason,
+            figures: headlineFigures(closed.report),
+          },
+        ]),
+      );
+    } catch {
+      // A demo that cannot store the history still reopens the month.
+    }
+  }
+
   return demoMonthlyReport(month);
+};
+
+const demoMonthHistory = (month: string): MonthHistory => {
+  const current = demoMonthlyReport(month);
+
+  return {
+    period: month,
+    versions: readDemoReopened()
+      .filter((version) => version.period === month)
+      .map(({ period: _period, ...version }) => version),
+    current: { closed: current.closed ?? null, figures: headlineFigures(current) },
+  };
 };
 
 export const operationsService = {
@@ -802,10 +855,12 @@ export const operationsService = {
     isDemoMode()
       ? Promise.resolve().then(() => closeDemoMonth(month))
       : post<OperationsMonthlyReport>('/operations/monthly-closes', { month }),
-  reopenMonth: (month: string) =>
+  reopenMonth: (month: string, reason: string) =>
     isDemoMode()
-      ? Promise.resolve(reopenDemoMonth(month))
-      : del<OperationsMonthlyReport>(`/operations/monthly-closes/${month}`),
+      ? Promise.resolve().then(() => reopenDemoMonth(month, reason))
+      : post<OperationsMonthlyReport>(`/operations/monthly-closes/${month}/reopen`, { reason }),
+  getMonthHistory: (month: string) =>
+    fallback<MonthHistory>(() => get(`/operations/monthly-closes/${month}/history`), demoMonthHistory(month)),
   getProjects: () => fallback<Project[]>(() => get('/projects'), readDemo<Project>('projects')),
   createProject: (data: Partial<Project>) =>
     isDemoMode()
@@ -880,6 +935,18 @@ export const operationsService = {
     isDemoMode()
       ? Promise.resolve(createDemo<AuditTemplate>('auditTemplates', data))
       : post<AuditTemplate>('/audit-templates', withoutClientScopedFields(data)),
+  /** PDCA check: each audit-raised fix and what the next audit of its area found. */
+  /** A manager's check that a finished 5S fix was done properly. */
+  signOffFix: (taskId: string) =>
+    isDemoMode() ? Promise.resolve(null) : post<WorkTask>(`/tasks/${taskId}/sign-off`),
+  getImprovementVerification: () =>
+    fallback<ImprovementVerification>(() => get('/operations/improvement-verification'), {
+      standard: 85,
+      counts: { open: 0, doneUndated: 0, awaitingReaudit: 0, verified: 0, improved: 0, notImproved: 0 },
+      verificationRate: { value: null, numerator: 0, denominator: 0, excluded: 0 },
+      fixes: [],
+    }),
+
   getAuditRuns: (zoneId?: string) =>
     fallback<AuditRun[]>(
       () => get('/audit-runs', zoneId ? { zoneId } : undefined),

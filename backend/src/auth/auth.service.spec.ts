@@ -176,7 +176,7 @@ describe('AuthService', () => {
     );
     expect(jwtService.sign).toHaveBeenNthCalledWith(
       2,
-      { sub: 'user-1' },
+      { sub: 'user-1', ver: 0 },
       expect.objectContaining({ secret: 'refresh-secret', expiresIn: '14d' }),
     );
     expect(response.expires_in).toBe(900);
@@ -189,6 +189,23 @@ describe('AuthService', () => {
 
     expect(usersService.changePassword).toHaveBeenCalledWith('user-1', 'old-password', 'new-password');
     expect(usersService.update).not.toHaveBeenCalled();
-    expect(response).toEqual({ message: 'Password changed successfully' });
+    // A new session for the device that changed it: every other one ended.
+    expect(response).toMatchObject({ message: 'Password changed successfully', access_token: expect.any(String) });
+  });
+
+  it('refuses a refresh token issued before the last password change', async () => {
+    jwtService.verify.mockReturnValue({ sub: 'user-1', ver: 1 });
+    usersService.findById.mockResolvedValue({ ...mockUser, tokenVersion: 2 });
+
+    await expect(service.refreshToken('old-refresh')).rejects.toMatchObject({
+      response: expect.objectContaining({ errorCode: 'AUTH_SESSION_EXPIRED' }),
+    });
+  });
+
+  it('takes a token from before versions existed while the account is on the first', async () => {
+    jwtService.verify.mockReturnValue({ sub: 'user-1' });
+    usersService.findById.mockResolvedValue({ ...mockUser, tokenVersion: 0 });
+
+    await expect(service.refreshToken('legacy-refresh')).resolves.toMatchObject({ access_token: expect.any(String) });
   });
 });

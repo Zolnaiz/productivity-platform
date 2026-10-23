@@ -53,6 +53,8 @@ export interface WorkTask extends RaisedTitle {
   actualHours?: number;
   /** When it was moved to done; set by the server, cleared on reopening. */
   completedAt?: string | null;
+  /** Why the area fell short, for a fix an audit raised. */
+  rootCause?: string | null;
 }
 
 export interface WorkLog {
@@ -191,6 +193,35 @@ export interface ClosedMonth {
   closedBy: string | null;
 }
 
+/** What one version of a month is compared on. Null where nothing was counted. */
+export interface MonthFigures {
+  onTimeDelivery: number | null;
+  lateWork: number | null;
+  zoneAuditScore: number | null;
+  fixClosureDays: number | null;
+  checkinRate: number | null;
+  completedTasks: number;
+  totalHours: number;
+}
+
+/** A closed copy of a month that was later reopened. */
+export interface MonthVersion {
+  closedAt: string;
+  /** Nobody, when the scheduled close did it. */
+  closedBy: string | null;
+  reopenedAt: string;
+  reopenedBy: string | null;
+  reopenReason: string | null;
+  figures: MonthFigures;
+}
+
+/** Every version of a month anybody was shown, oldest first, and the month now. */
+export interface MonthHistory {
+  period: string;
+  versions: MonthVersion[];
+  current: { closed: { at: string; by: string | null } | null; figures: MonthFigures } | null;
+}
+
 export interface ReportMeasurement {
   /** Null means there were no eligible records, not zero performance. */
   value: number | null;
@@ -298,5 +329,43 @@ export interface OperationsMonthlyReport {
     expenseDate: string;
     submittedBy?: string;
     note?: string;
+  }>;
+}
+
+export type VerificationStatus = 'open' | 'done_undated' | 'awaiting_reaudit' | 'verified' | 'improved' | 'not_improved';
+
+/** GET /operations/improvement-verification: did the work an audit raised bring the area back? */
+export interface ImprovementVerification {
+  standard: number;
+  counts: {
+    open: number;
+    doneUndated: number;
+    awaitingReaudit: number;
+    verified: number;
+    improved: number;
+    notImproved: number;
+    /** Absent on servers older than the root cause and sign-off. */
+    rootCauseRecorded?: number;
+    signedOff?: number;
+  };
+  verificationRate: ReportMeasurement;
+  fixes: Array<{
+    taskId: string;
+    title?: string;
+    titleKey?: string;
+    titleParams?: Record<string, string | number>;
+    assigneeId?: string;
+    zoneId?: string;
+    status: VerificationStatus;
+    triggerRunId: string;
+    triggerScore: number | null;
+    triggerAt?: string;
+    reauditRunId?: string;
+    reauditScore?: number;
+    reauditAt?: string;
+    delta?: number;
+    rootCause?: string;
+    signedOffBy?: string;
+    signedOffAt?: string;
   }>;
 }

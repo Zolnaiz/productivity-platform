@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
@@ -17,9 +18,14 @@ class PendingWrite {
     required this.kind,
     this.data,
     required this.createdAt,
-  });
+    String? key,
+  }) : key = key ?? id;
 
   final String id;
+
+  /// Sent as `Idempotency-Key`, so the server writes it once however many
+  /// times it is sent.
+  final String key;
   final String method;
   final String path;
 
@@ -35,6 +41,7 @@ class PendingWrite {
         'kind': kind,
         'data': data,
         'createdAt': createdAt.toIso8601String(),
+        'key': key,
       };
 
   factory PendingWrite.fromJson(Map<String, dynamic> json) => PendingWrite(
@@ -45,6 +52,7 @@ class PendingWrite {
         data: (json['data'] as Map?)?.cast<String, dynamic>(),
         createdAt:
             DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+        key: json['key'] as String?,
       );
 }
 
@@ -56,6 +64,28 @@ bool neverSent(Object error) =>
     error is DioException &&
     error.response == null &&
     error.type == DioExceptionType.connectionError;
+
+/// Whether a request that carried an `Idempotency-Key` can be kept and sent
+/// again: no answer came back, whether or not it arrived. The server writes
+/// a key once, so a timeout is as safe to retry as no network at all.
+bool unanswered(Object error) =>
+    error is DioException && error.response == null && error.type != DioExceptionType.cancel;
+
+/// The API's error code in a refusal, wherever its error filter put it.
+String? errorCodeOf(DioException error) {
+  final body = error.response?.data;
+  if (body is! Map) return null;
+  final nested = body['error'];
+  return (body['errorCode'] ?? (nested is Map ? nested['errorCode'] : null))
+      as String?;
+}
+
+final _random = Random.secure();
+
+/// A fresh `Idempotency-Key`: the moment and 64 random bits.
+String newIdempotencyKey() =>
+    '${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}-'
+    '${_random.nextInt(1 << 32).toRadixString(36)}${_random.nextInt(1 << 32).toRadixString(36)}';
 
 /// Changes kept on the phone until the server can take them.
 ///
@@ -120,7 +150,8 @@ class Outbox extends ChangeNotifier {
       {required String method,
       required String path,
       required String kind,
-      Map<String, dynamic>? data}) async {
+      Map<String, dynamic>? data,
+      String? key}) async {
     pending = [
       ...pending,
       PendingWrite(
@@ -130,6 +161,7 @@ class Outbox extends ChangeNotifier {
         kind: kind,
         data: data,
         createdAt: DateTime.now(),
+        key: key ?? newIdempotencyKey(),
       ),
     ];
     await _save();
@@ -148,13 +180,19 @@ class Outbox extends ChangeNotifier {
       while (pending.isNotEmpty) {
         final next = pending.first;
         try {
-          await _api.send(next.method, next.path, next.data);
+          await _api.send(next.method, next.path, next.data,
+              idempotencyKey: next.key);
           sent++;
         } on DioException catch (error) {
           final status = error.response?.statusCode;
-          // Still offline, the server failing, or the session over: keep it
-          // and try again later.
-          if (status == null || status >= 500 || status == 401) break;
+          // Still offline, the server failing, the session over, or the
+          // first copy of it still being saved: keep it and try again later.
+          if (status == null ||
+              status >= 500 ||
+              status == 401 ||
+              errorCodeOf(error) == 'REQUEST_IN_PROGRESS') {
+            break;
+          }
           // Refused for what it says: sending it again would be refused again.
           refused++;
         }

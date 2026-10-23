@@ -31,8 +31,17 @@ for (const email of accounts) {
     await page.locator('input[type="password"]').press('Enter');
     await expect(page).toHaveURL(/\/dashboard$/);
 
-    // The 5S page's other tabs are on the same address.
-    const pages = [...(await everyMenuPage(page)), '/fives?view=areas', '/fives?view=registers'];
+    // The 5S page's other tabs are on the same address. Last month's report
+    // is the one that gets closed and reopened, with its earlier versions.
+    const now = new Date();
+    const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonth = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}`;
+    const pages = [
+      ...(await everyMenuPage(page)),
+      '/fives?view=areas',
+      '/fives?view=registers',
+      `/reports?month=${lastMonth}`,
+    ];
 
     const problems: string[] = [];
     for (const path of pages) {

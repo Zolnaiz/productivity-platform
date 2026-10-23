@@ -26,6 +26,7 @@ const createService = () => {
     create: jest.fn((value) => value),
     save: jest.fn((value) => Promise.resolve({ id: 'close-1', createdAt: new Date('2026-04-05'), ...value })),
     softRemove: jest.fn((value) => Promise.resolve(value)),
+    update: jest.fn().mockResolvedValue({ affected: 1 }),
   };
   const organizations = {
     find: jest.fn().mockResolvedValue([{ id: 'org-1' }]),
@@ -161,23 +162,74 @@ describe('a month that has been closed', () => {
     expect(report.closed).toMatchObject({ by: 'someone-else' });
   });
 
-  it('keeps the closed copy when a month is reopened', async () => {
+  it('keeps the closed copy when a month is reopened, with who reopened it and why', async () => {
     // Soft-removed, so what people were shown before the correction can still
     // be found.
     const { service, closes } = createService();
     const closed = { id: 'close-1', period: '2026-03', records: march };
     closes.findOne.mockResolvedValueOnce(closed).mockResolvedValue(null);
 
-    const report = await service.reopenMonth(manager, '2026-03');
+    const report = await service.reopenMonth(manager, '2026-03', 'Two tasks were closed twice', aprilTenth);
 
-    expect(closes.softRemove).toHaveBeenCalledWith(closed);
+    expect(closes.update).toHaveBeenCalledWith(
+      { id: 'close-1', deletedAt: expect.anything() },
+      { reopenedBy: 'manager-1', reopenReason: 'Two tasks were closed twice', deletedAt: aprilTenth },
+    );
     expect(report).toMatchObject({ closed: null });
   });
 
   it('refuses to reopen a month that was never closed', async () => {
     const { service } = createService();
 
-    await expect(service.reopenMonth(manager, '2026-03')).rejects.toBeDefined();
+    await expect(service.reopenMonth(manager, '2026-03', 'reason')).rejects.toBeDefined();
+  });
+
+  it('refuses the second of two reopens of the same close', async () => {
+    const { service, closes } = createService();
+    closes.findOne.mockResolvedValueOnce({ id: 'close-1', period: '2026-03', records: march });
+    closes.update.mockResolvedValueOnce({ affected: 0 });
+
+    await expect(service.reopenMonth(manager, '2026-03', 'reason')).rejects.toMatchObject({
+      response: expect.objectContaining({ errorCode: 'RESOURCE_NOT_FOUND' }),
+    });
+  });
+
+  it('shows every closed version of a month next to the month as it reads now', async () => {
+    const { service, closes, operations } = createService();
+    closes.find.mockResolvedValue([
+      {
+        id: 'close-1',
+        period: '2026-03',
+        records: march,
+        closedBy: null,
+        createdAt: new Date('2026-04-05'),
+        deletedAt: new Date('2026-04-10'),
+        reopenedBy: 'manager-1',
+        reopenReason: 'Task t2 was not finished',
+      },
+      // The close that stands now is the current version, not history.
+      { id: 'close-2', period: '2026-03', records: march, createdAt: new Date('2026-04-11'), deletedAt: null },
+    ]);
+    // Since then t2 was reopened, so the month now counts one task done.
+    operations.monthRecords.mockResolvedValue({ ...march, tasks: [march.tasks[0]] });
+
+    const history = await service.monthHistory(manager, '2026-03');
+
+    expect(closes.find).toHaveBeenCalledWith(expect.objectContaining({ withDeleted: true }));
+    expect(history.versions).toHaveLength(1);
+    expect(history.versions[0]).toMatchObject({
+      closedBy: null,
+      reopenedBy: 'manager-1',
+      reopenReason: 'Task t2 was not finished',
+      figures: { completedTasks: 2, onTimeDelivery: 100 },
+    });
+    expect(history.current?.figures).toMatchObject({ completedTasks: 1 });
+  });
+
+  it('refuses a history for something that is not a month', async () => {
+    const { service } = createService();
+
+    await expect(service.monthHistory(manager, 'March')).rejects.toBeDefined();
   });
 
   it('lists the closed months without their records', async () => {
@@ -255,17 +307,20 @@ describe('the report routes', () => {
       closeMonth: jest.fn(),
       reopenMonth: jest.fn(),
       listClosed: jest.fn(),
+      monthHistory: jest.fn(),
     };
     const controller = new ReportsController(archive as never, {} as never);
     const req = { user: manager };
 
     controller.monthlyReport(req, '2026-06');
     controller.closeMonth(req, { month: '2026-06' });
-    controller.reopenMonth(req, '2026-06');
+    controller.reopenMonth(req, '2026-06', { reason: 'Late entries' });
+    controller.monthHistory(req, '2026-06');
 
     expect(archive.monthlyReport).toHaveBeenCalledWith(manager, '2026-06');
     expect(archive.closeMonth).toHaveBeenCalledWith(manager, '2026-06');
-    expect(archive.reopenMonth).toHaveBeenCalledWith(manager, '2026-06');
+    expect(archive.reopenMonth).toHaveBeenCalledWith(manager, '2026-06', 'Late entries');
+    expect(archive.monthHistory).toHaveBeenCalledWith(manager, '2026-06');
   });
 });
 

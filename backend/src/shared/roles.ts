@@ -78,6 +78,10 @@ const viewer = [
   'account:request-deletion',
   // And may tell the administrators what is wrong with the product.
   'feedback:create',
+  // Their own notes, which nobody else reads.
+  'notes:own',
+  // Their own focus sessions and the badges their own records earn.
+  'personal:own',
 ];
 
 const user = [
@@ -137,6 +141,9 @@ const manager = [
   'checkins:team',
   // Walking the floor, and the week's walks against the target.
   'gemba:walk',
+  // Checking that a finished 5S fix was done properly, before the area is
+  // audited again.
+  'fixes:signoff',
 ];
 
 const admin = [

@@ -321,9 +321,13 @@ class ApiService {
 
   /// Records a day's work and the time it took, as one act: the server saves
   /// the note and its clock entry together, so the hours are counted once.
-  Future<Map<String, dynamic>> createDailyWorkLog(
-      Map<String, dynamic> entry) async {
-    final response = await _dio.post('/work-logs/daily', data: entry);
+  Future<Map<String, dynamic>> createDailyWorkLog(Map<String, dynamic> entry,
+      {String? idempotencyKey}) async {
+    final response = await _dio.post('/work-logs/daily',
+        data: entry,
+        options: Options(headers: {
+          if (idempotencyKey != null) 'Idempotency-Key': idempotencyKey
+        }));
     return (response.data as Map).cast<String, dynamic>();
   }
 
@@ -380,11 +384,20 @@ class ApiService {
     await getCurrentUser();
   }
 
+  /// Changes the password. The server ends every other session and answers
+  /// this one with new tokens, which are kept so the phone stays signed in.
   Future<void> changePassword(String currentPassword, String newPassword) async {
-    await _dio.post('/auth/change-password', data: {
+    final response = await _dio.post('/auth/change-password', data: {
       'currentPassword': currentPassword,
       'newPassword': newPassword,
     });
+    final data = response.data;
+    if (data is Map && data['access_token'] is String) {
+      await _writeToken('access_token', data['access_token'] as String);
+      if (data['refresh_token'] is String) {
+        await _writeToken('refresh_token', data['refresh_token'] as String);
+      }
+    }
   }
 
   Future<Map<String, dynamic>> getCurrentUser() async {
@@ -517,9 +530,15 @@ class ApiService {
   }
 
   /// Sends a change kept on the phone while it was offline, as it was made.
-  Future<dynamic> send(String method, String path, Map<String, dynamic>? data) async {
-    final response =
-        await _dio.request(path, data: data, options: Options(method: method));
+  Future<dynamic> send(String method, String path, Map<String, dynamic>? data,
+      {String? idempotencyKey}) async {
+    final response = await _dio.request(path,
+        data: data,
+        options: Options(
+            method: method,
+            headers: {
+              if (idempotencyKey != null) 'Idempotency-Key': idempotencyKey
+            }));
     return response.data;
   }
 

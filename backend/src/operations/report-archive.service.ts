@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { MonthlyReportClose } from './entities/monthly-report-close.entity';
 import { Organization } from '../organizations/entities/organization.entity';
 import { OperationsService } from './operations.service';
-import { buildMonthlyReport, MonthRecords, selectMonthRecords } from './monthly-report';
+import { buildMonthlyReport, MonthlyReport, MonthRecords, selectMonthRecords } from './monthly-report';
 import { combineMonths, monthsBetween, PeriodMonth } from './period-report';
 import { dayIn, organizationTimeZone } from './task-completion';
 import { CLOSE_AFTER_DAY, clockFrom, OrganizationClock } from './organization-clock';
@@ -19,6 +19,17 @@ const isUniqueViolation = (error: unknown) =>
   typeof error === 'object' && error !== null && (error as { code?: string }).code === '23505';
 
 const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** What a version of a month is compared on: the measures and the main totals. */
+export const headlineFigures = (report: Pick<MonthlyReport, 'measurements' | 'totals'>) => ({
+  onTimeDelivery: report.measurements.onTimeDelivery?.value ?? null,
+  lateWork: report.measurements.lateWork?.value ?? null,
+  zoneAuditScore: report.measurements.zoneAuditScore?.value ?? null,
+  fixClosureDays: report.measurements.fixClosureDays?.value ?? null,
+  checkinRate: report.measurements.checkinRate?.value ?? null,
+  completedTasks: report.totals.completedTasks,
+  totalHours: report.totals.totalHours,
+});
 
 /** YYYY-MM of the month before the one `today` is in, on a time zone's calendar. */
 export const previousMonth = (today: Date, timeZone = organizationTimeZone()) => {
@@ -173,16 +184,61 @@ export class ReportArchiveService {
    * soft-deleted, so what people were shown before the correction can still
    * be found.
    */
-  async reopenMonth(user: CurrentUser, month: string) {
+  async reopenMonth(user: CurrentUser, month: string, reason: string, now = new Date()) {
     const closed = await this.findClose(user?.organizationId, month);
 
     if (!closed) {
       throw apiError(ErrorCode.ResourceNotFound, 'Closed month');
     }
 
-    await this.closes.softRemove(closed);
+    // One statement, and only while it is still closed: two people pressing
+    // reopen at once leave one reason, not the second overwriting the first.
+    const result = await this.closes.update(
+      { id: closed.id, deletedAt: IsNull() },
+      { reopenedBy: user?.id, reopenReason: reason, deletedAt: now },
+    );
+    if (!result.affected) {
+      throw apiError(ErrorCode.ResourceNotFound, 'Closed month');
+    }
 
     return this.monthlyReport(user, month);
+  }
+
+  /**
+   * Every version of a month anybody was shown: each close, who reopened it
+   * and why, and the figures it held, oldest first, then the month as it
+   * reads now. Each person sees the figures counted from their own part.
+   */
+  async monthHistory(user: CurrentUser, month: string) {
+    if (!monthPattern.test(month || '')) {
+      throw apiError(ErrorCode.ValidationFailed, 'month');
+    }
+
+    const organizationId = user?.organizationId;
+    if (!organizationId) return { period: month, versions: [], current: null };
+
+    const { timeZone } = await this.clockOf(organizationId);
+    const viewer = { id: user?.id, ownOnly: user?.role === 'user' };
+    const rows = await this.closes.find({
+      where: { organizationId, period: month },
+      withDeleted: true,
+      order: { createdAt: 'ASC' },
+    });
+
+    const versions = rows
+      .filter((row) => row.deletedAt)
+      .map((row) => ({
+        closedAt: row.createdAt,
+        closedBy: row.closedBy ?? null,
+        reopenedAt: row.deletedAt,
+        reopenedBy: row.reopenedBy ?? null,
+        reopenReason: row.reopenReason ?? null,
+        figures: headlineFigures(buildMonthlyReport(row.records as unknown as MonthRecords, month, viewer, timeZone)),
+      }));
+
+    const current = await this.monthlyReport(user, month);
+
+    return { period: month, versions, current: { closed: current.closed, figures: headlineFigures(current) } };
   }
 
   private async freeze(organizationId: string, period: string, timeZone: string, closedBy?: string) {

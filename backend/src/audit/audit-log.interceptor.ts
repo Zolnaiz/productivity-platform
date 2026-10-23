@@ -53,7 +53,7 @@ export const describeRoute = (method: string, routePath: string) => {
 
 /** Deleting something is the entry a reader scans for. */
 export const severityFor = (method: string, action: string): AuditLogEntry['severity'] =>
-  method === 'DELETE' || action === 'deleted' || action === 'deactivate' ? 'warning' : 'info';
+  method === 'DELETE' || action === 'deleted' || action === 'deactivate' || action === 'reopen' ? 'warning' : 'info';
 
 /**
  * Records every change the API accepts.

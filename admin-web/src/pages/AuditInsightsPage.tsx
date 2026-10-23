@@ -10,6 +10,10 @@ import { monthlyTrend, shortfallPareto } from '../components/fives/auditInsights
 import { localDay } from '../components/progress/progressBoard';
 import { fiveSLayoutService } from '../services/fiveSLayout.service';
 import { operationsService } from '../services/operations.service';
+import FixVerificationCard from '../components/fives/FixVerificationCard';
+import { useAuth } from '../contexts/AuthContext';
+import { peopleService } from '../services/people.service';
+import { memberName, TeamUser } from '../types/people.types';
 import { FiveSZone } from '../types/fiveS.types';
 import { AuditRun, AuditTemplate } from '../types/operations.types';
 
@@ -28,6 +32,16 @@ const AuditInsightsPage: React.FC = () => {
   const [zones, setZones] = useState<FiveSZone[]>([]);
   const [zoneId, setZoneId] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const { user, hasPermission } = useAuth();
+  const [members, setMembers] = useState<TeamUser[]>([]);
+
+  // Who signed a fix off. An employee cannot list the team, and reads "a manager".
+  useEffect(() => {
+    peopleService
+      .getMembers()
+      .then((value) => setMembers(value ?? []))
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -154,6 +168,17 @@ const AuditInsightsPage: React.FC = () => {
           </div>
         )}
       </Card>
+
+      <FixVerificationCard
+        zones={zones}
+        currentUserId={user?.id}
+        canEditAll={hasPermission('tasks:create')}
+        canSignOff={hasPermission('fixes:signoff')}
+        nameOf={(userId) => {
+          const member = members.find((candidate) => candidate.id === userId);
+          return member ? memberName(member) : t('fixCheck.aManager');
+        }}
+      />
     </div>
   );
 };

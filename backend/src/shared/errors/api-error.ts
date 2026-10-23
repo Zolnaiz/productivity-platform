@@ -44,6 +44,9 @@ export const ErrorCode = {
   MetricsDisabled: 'METRICS_DISABLED',
   ReportMonthNotEnded: 'REPORT_MONTH_NOT_ENDED',
   RegisterChanged: 'REGISTER_CHANGED',
+  RequestInProgress: 'REQUEST_IN_PROGRESS',
+  FixNotDone: 'FIX_NOT_DONE',
+  IdempotencyKeyReused: 'IDEMPOTENCY_KEY_REUSED',
   AiNotConfigured: 'AI_NOT_CONFIGURED',
   AiFailed: 'AI_FAILED',
   InternalError: 'INTERNAL_ERROR',
@@ -155,6 +158,18 @@ const definitions: Record<ErrorCode, ErrorDefinition> = {
   [ErrorCode.RegisterChanged]: {
     exception: ConflictException,
     message: 'The register was changed by somebody else since it was read',
+  },
+  [ErrorCode.FixNotDone]: {
+    exception: ConflictException,
+    message: 'Only a finished fix raised by an audit can be signed off',
+  },
+  [ErrorCode.RequestInProgress]: {
+    exception: ConflictException,
+    message: 'The same request is still being handled; try again in a moment',
+  },
+  [ErrorCode.IdempotencyKeyReused]: {
+    exception: ConflictException,
+    message: 'This Idempotency-Key was already used for a different request',
   },
   [ErrorCode.AiNotConfigured]: {
     exception: ServiceUnavailableException,

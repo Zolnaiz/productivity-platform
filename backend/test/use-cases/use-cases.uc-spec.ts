@@ -75,6 +75,27 @@ describe('UC-02 Өдрийн ажлын бүртгэл хөтлөх (keep the da
     const response = await team.employee.post('/work-logs/daily', { hours: 2 });
     expect(response.status).toBe(400);
   });
+
+  it('alternative: a phone that lost the answer sends the log again and it is saved once', async () => {
+    const key = `uc02-${Date.now()}-retry`;
+    const summary = `Packed 12 crates ${key}`;
+    const body = { summary, hours: 3, logDate: today() };
+
+    const first = await team.employee.post('/work-logs/daily', body).set('Idempotency-Key', key);
+    const again = await team.employee.post('/work-logs/daily', body).set('Idempotency-Key', key);
+    expect(first.status).toBe(201);
+    expect(again.status).toBe(201);
+    expect(again.headers['idempotent-replayed']).toBe('true');
+    expect(data(again)).toEqual(data(first));
+
+    const logs = data<any[]>(await team.employee.get('/work-logs'));
+    expect(logs.filter((log) => log.summary === summary)).toHaveLength(1);
+
+    // The key is the employee's: the same key on another request is refused, not replayed.
+    const reused = await team.employee.post('/ideas', { title: 'x', description: 'y' }).set('Idempotency-Key', key);
+    expect(reused.status).toBe(409);
+    expect(errorCode(reused)).toBe('IDEMPOTENCY_KEY_REUSED');
+  });
 });
 
 describe('UC-03 Долоо хоногийн тайлан бичих (write the weekly check-in)', () => {
@@ -138,6 +159,74 @@ describe('UC-07 Хувийн бүртгэлээ удирдах (manage own accou
     const me = data(await team.employee.get('/auth/me'));
     const login = await team.anonymous.post('/auth/login', { email: me.email, password: 'NewPassword123' });
     expect(login.status).toBe(200);
+  });
+
+  it('main: keeps personal notes on the server and deletes own records; another person’s is not found', async () => {
+    const note = await team.manager.post('/notes', { title: 'Huddle points', content: 'Ask about line 2' });
+    expect(note.status).toBe(201);
+    expect((await team.owner.del(`/notes/${data(note).id}`)).status).toBe(404);
+    expect(data<any[]>(await team.owner.get('/notes')).some((item) => item.id === data(note).id)).toBe(false);
+    expect((await team.manager.del(`/notes/${data(note).id}`)).status).toBe(200);
+    expect(data<any[]>(await team.manager.get('/notes'))).toEqual([]);
+  });
+
+  it('main: focus sessions are kept on the server and badges come from the person’s own records', async () => {
+    expect((await team.employee.post('/focus-sessions', { title: 'Write up line 2', minutes: 25 })).status).toBe(201);
+    expect(data<any[]>(await team.employee.get('/focus-sessions')).map((item) => item.title)).toContain('Write up line 2');
+    const badges = data<any[]>(await team.employee.get('/badges'));
+    expect(badges.find((badge) => badge.id === 'firstWorkLog')).toMatchObject({ earned: true });
+    // The owner logged no work: nothing is handed out for free.
+    const ownerBadges = data<any[]>(await team.owner.get('/badges'));
+    expect(ownerBadges.find((badge) => badge.id === 'firstWorkLog')).toMatchObject({ earned: false, current: 0 });
+  });
+
+  it('main: a browser keeps its session in an HttpOnly cookie that no script can read', async () => {
+    const me = data(await team.manager.get('/auth/me'));
+    const login = await team.anonymous
+      .post('/auth/login', { email: me.email, password: 'Password123' })
+      .set('X-Session-Cookie', 'true');
+    expect(login.status).toBe(200);
+    expect(data(login).refresh_token).toBeUndefined();
+    const cookie = String(login.headers['set-cookie']?.[0] ?? '');
+    expect(cookie).toMatch(/^pp_refresh=[^;]+/);
+    expect(cookie).toMatch(/HttpOnly/);
+    expect(cookie).toMatch(/SameSite=Strict/);
+    expect(cookie).toMatch(/Path=\/api\/auth/);
+
+    // The cookie alone is enough to get a new access token.
+    const refreshed = await team.anonymous.post('/auth/refresh', {}).set('X-Session-Cookie', 'true').set('Cookie', cookie.split(';')[0]);
+    expect(refreshed.status).toBe(200);
+    expect(data(refreshed).access_token).toEqual(expect.any(String));
+
+    const out = await team.anonymous
+      .post('/auth/logout', {})
+      .set('Authorization', `Bearer ${data(refreshed).access_token}`)
+      .set('Cookie', cookie.split(';')[0]);
+    expect(String(out.headers['set-cookie']?.[0] ?? '')).toMatch(/^pp_refresh=;/);
+    expect((await team.anonymous.post('/auth/refresh', {}).set('X-Session-Cookie', 'true')).status).toBe(401);
+  });
+
+  it('alternative: a password change ends every other session, and keeps the one that made it', async () => {
+    const me = data(await team.manager.get('/auth/me'));
+    const signIn = async () => data(await team.anonymous.post('/auth/login', { email: me.email, password: 'Password123' }));
+    const phone = await signIn();
+    const laptop = await signIn();
+
+    const changed = await team.anonymous
+      .post('/auth/change-password', { currentPassword: 'Password123', newPassword: 'Password123x' })
+      .set('Authorization', `Bearer ${laptop.access_token}`);
+    expect(changed.status).toBe(201);
+
+    // The phone's week-long token is no good any more; the laptop's new one is.
+    const stale = await team.anonymous.post('/auth/refresh', { refreshToken: phone.refresh_token });
+    expect(stale.status).toBe(401);
+    expect(errorCode(stale)).toBe('AUTH_SESSION_EXPIRED');
+    expect((await team.anonymous.post('/auth/refresh', { refreshToken: data(changed).refresh_token })).status).toBe(200);
+
+    // Put back, for the tests after this one.
+    await team.anonymous
+      .post('/auth/change-password', { currentPassword: 'Password123x', newPassword: 'Password123' })
+      .set('Authorization', `Bearer ${data(changed).access_token}`);
   });
 
   it('refused: a wrong current password, and a forgot-password answer that reveals nothing', async () => {
@@ -259,6 +348,49 @@ describe('UC-14 Багийн бүтээмжийг дүгнэх (review team prod
     expect(report.people.some((person: any) => person.userId === team.employeeId)).toBe(true);
   });
 
+  it('main (PDCA check): an audit-raised fix is verified by the next audit of its area', async () => {
+    const failing = data(await team.employee.post('/audit-runs', {
+      templateId, zoneId, status: 'submitted', score: 40,
+      answers: [{ questionId: 'q1', value: 1 }, { questionId: 'q2', value: 1 }],
+    }));
+    const fix = data<any[]>(await team.manager.get('/tasks')).find((task) => task.sourceType === 'audit_run' && task.sourceId === failing.id);
+    expect(fix).toBeTruthy();
+    await team.manager.patch(`/tasks/${fix.id}`, { status: 'done' });
+    await team.employee.post('/audit-runs', { templateId, zoneId, status: 'submitted', score: 95, answers: [{ questionId: 'q1', value: 5 }, { questionId: 'q2', value: 5 }] });
+    const check = data(await team.manager.get('/operations/improvement-verification'));
+    expect(check.fixes.find((item: any) => item.taskId === fix.id)).toMatchObject({ status: 'verified', triggerScore: 40, reauditScore: 95 });
+  });
+
+  it('main (PDCA loop): the fixer records the root cause and a manager signs the finished fix off', async () => {
+    const failing = data(await team.employee.post('/audit-runs', {
+      templateId, zoneId, status: 'submitted', score: 30,
+      answers: [{ questionId: 'q1', value: 1 }, { questionId: 'q2', value: 1 }],
+    }));
+    const fix = data<any[]>(await team.manager.get('/tasks')).find((task) => task.sourceType === 'audit_run' && task.sourceId === failing.id);
+    expect(fix.assigneeId).toBe(team.employeeId);
+
+    expect((await team.employee.patch(`/tasks/${fix.id}`, { rootCause: 'Tools have no marked place' })).status).toBe(200);
+    // Not before the work is finished, and never by the person who did it.
+    const early = await team.manager.post(`/tasks/${fix.id}/sign-off`);
+    expect(early.status).toBe(409);
+    expect(errorCode(early)).toBe('FIX_NOT_DONE');
+    await team.employee.patch(`/tasks/${fix.id}`, { status: 'done' });
+    expect((await team.employee.post(`/tasks/${fix.id}/sign-off`)).status).toBe(403);
+
+    const signed = await team.manager.post(`/tasks/${fix.id}/sign-off`);
+    expect(signed.status).toBe(201);
+    const check = data(await team.manager.get('/operations/improvement-verification'));
+    expect(check.fixes.find((item: any) => item.taskId === fix.id)).toMatchObject({
+      rootCause: 'Tools have no marked place',
+      signedOffBy: team.managerId,
+    });
+
+    // Reopened, it is no longer the fix that was signed off.
+    await team.employee.patch(`/tasks/${fix.id}`, { status: 'in_progress' });
+    const after = data(await team.manager.get('/operations/improvement-verification'));
+    expect(after.fixes.find((item: any) => item.taskId === fix.id).signedOffBy).toBeUndefined();
+  });
+
   it('alternative: an employee sees only their own figures, not the team’s', async () => {
     const report = data(await team.employee.get(`/operations/monthly-report?month=${today().slice(0, 7)}`));
     expect(report.people.every((person: any) => person.userId === team.employeeId)).toBe(true);
@@ -286,6 +418,20 @@ describe('UC-16 Сарын тайланг хааж батлах (close the month
     expect(closed.status).toBe(201);
     const list = data<any[]>(await team.manager.get('/operations/monthly-closes'));
     expect(list.some((close) => close.period === previousMonth())).toBe(true);
+  });
+
+  it('alternative: reopening needs a reason, and the history keeps who reopened it and why', async () => {
+    const month = previousMonth();
+    expect((await team.owner.post(`/operations/monthly-closes/${month}/reopen`, {})).status).toBe(400);
+    expect((await team.manager.post(`/operations/monthly-closes/${month}/reopen`, { reason: 'Late entries' })).status).toBe(403);
+
+    const reopened = await team.owner.post(`/operations/monthly-closes/${month}/reopen`, { reason: 'Late entries' });
+    expect(reopened.status).toBe(201);
+    expect(data(reopened).closed).toBeNull();
+
+    const history = data(await team.manager.get(`/operations/monthly-closes/${month}/history`));
+    expect(history.versions.at(-1)).toMatchObject({ reopenedBy: team.ownerId, reopenReason: 'Late entries' });
+    expect(history.current.closed).toBeNull();
   });
 
   it('refused: the running month cannot be closed, and the AI draft says it is not configured', async () => {

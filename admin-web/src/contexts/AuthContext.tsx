@@ -145,9 +145,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const signedIn = { ...response.user, permissions: await fetchPermissions() };
       setUser(signedIn);
       localStorage.setItem('user', JSON.stringify(signedIn));
-      if (response.refreshToken) {
-        localStorage.setItem('refreshToken', response.refreshToken);
-      }
+      // The refresh token is in an HttpOnly cookie now; a copy left in
+      // storage from before is one a script could read.
+      localStorage.removeItem('refreshToken');
       
       addNotification({
         type: 'success',

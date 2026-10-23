@@ -284,6 +284,22 @@ test('a daily goal added is still there after a reload', async ({ page }) => {
   await expect(page.getByText(title)).toBeVisible();
 });
 
+test('a session outlives its access token through a cookie no script can read', async ({ page }) => {
+  await signIn(page);
+
+  // Nothing a script on the page could carry off for longer than an hour.
+  expect(await page.evaluate(() => localStorage.getItem('refreshToken'))).toBeNull();
+  expect(await page.evaluate(() => document.cookie)).not.toContain('pp_refresh');
+  const cookie = (await page.context().cookies()).find((item) => item.name === 'pp_refresh');
+  expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'Strict', path: '/api/auth' });
+
+  // The access token expired (here: spoiled); the next request renews it from the cookie.
+  await page.evaluate(() => localStorage.setItem('token', 'expired.access.token'));
+  await page.reload();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('token'))).not.toBe('expired.access.token');
+});
+
 test('a month closed stays closed after a reload, and reopens', async ({ page }) => {
   await signIn(page);
 
@@ -294,9 +310,15 @@ test('a month closed stays closed after a reload, and reopens', async ({ page })
 
   // Whichever way it stands, bring it to open first - once the report is in.
   await expect(page.getByRole('button', { name: /^(Close|Reopen) month$/ })).toBeVisible();
-  const reopen = page.getByRole('button', { name: 'Reopen month' });
-  if (await reopen.isVisible()) await reopen.click();
-  await expect(page.getByRole('button', { name: 'Close month' })).toBeVisible();
+  // Reopening asks why, and the reason is kept with the copy that was closed.
+  const reopenWith = async (reason: string) => {
+    await page.getByRole('button', { name: 'Reopen month' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Why does it need to change?').fill(reason);
+    await dialog.getByRole('button', { name: 'Reopen month' }).click();
+    await expect(page.getByRole('button', { name: 'Close month' })).toBeVisible();
+  };
+  if (await page.getByRole('button', { name: 'Reopen month' }).isVisible()) await reopenWith('Opened by the browser test');
 
   await page.getByRole('button', { name: 'Close month' }).click();
   await expect(page.getByText(/^Closed on /)).toBeVisible();
@@ -304,8 +326,10 @@ test('a month closed stays closed after a reload, and reopens', async ({ page })
   await page.reload();
   await expect(page.getByText(/^Closed on /)).toBeVisible();
 
-  await page.getByRole('button', { name: 'Reopen month' }).click();
-  await expect(page.getByRole('button', { name: 'Close month' })).toBeVisible();
+  const reason = `Late entries ${Date.now()}`;
+  await reopenWith(reason);
+  await page.reload();
+  await expect(page.getByTestId('month-history')).toContainText(reason);
 });
 
 test('a questionnaire template built is still there after a reload', async ({ page }) => {

@@ -1,10 +1,10 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query, Request, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post, Put, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
 import { PermissionsGuard } from '../shared/guards/permissions.guard';
 import { RequirePermission } from '../shared/decorators/permissions.decorator';
 import { ReportArchiveService } from './report-archive.service';
-import { CloseMonthDto } from './dto/operations.dto';
+import { CloseMonthDto, ReopenMonthDto } from './dto/operations.dto';
 import { DraftSummaryDto, SaveSummaryDto } from './dto/monthly-summary.dto';
 import { MonthlySummaryService } from './monthly-summary.service';
 
@@ -72,10 +72,20 @@ export class ReportsController {
     return this.archive.closeMonth(req.user, body.month);
   }
 
-  /** `id` is the month, YYYY-MM, so the audit trail names it. */
-  @Delete('operations/monthly-closes/:id')
+  /**
+   * `id` is the month, YYYY-MM, so the audit trail names it. A reason is
+   * required: a report that changes after it was handed in has to say why.
+   */
+  @Post('operations/monthly-closes/:id/reopen')
   @RequirePermission('reports:reopen')
-  reopenMonth(@Request() req, @Param('id') month: string) {
-    return this.archive.reopenMonth(req.user, month);
+  reopenMonth(@Request() req, @Param('id') month: string, @Body() body: ReopenMonthDto) {
+    return this.archive.reopenMonth(req.user, month, body.reason);
+  }
+
+  /** Every closed version of the month, who reopened it and why, and the month now. */
+  @Get('operations/monthly-closes/:id/history')
+  @RequirePermission('reports:read')
+  monthHistory(@Request() req, @Param('id') month: string) {
+    return this.archive.monthHistory(req.user, month);
   }
 }

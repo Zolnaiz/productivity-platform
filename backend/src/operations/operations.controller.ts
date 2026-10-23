@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OperationsService } from './operations.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
 import {
@@ -59,6 +59,13 @@ export class OperationsController {
     return this.operationsService.dashboardSummary(req.user);
   }
 
+  @Get('operations/improvement-verification')
+  @RequirePermission('reports:read')
+  @ApiOperation({ summary: 'Audit-raised fixes and whether the next audit of the area confirmed them' })
+  improvementVerification(@Request() req) {
+    return this.operationsService.improvementVerification(req.user);
+  }
+
   @Get('projects')
   @RequirePermission('projects:read')
   findProjects(@Request() req) {
@@ -112,6 +119,13 @@ export class OperationsController {
   @RequirePermission('tasks:update')
   updateTask(@Param('id') id: string, @Body() body: UpdateTaskDto, @Request() req) {
     return this.operationsService.updateTask(id, body, req.user);
+  }
+
+  @Post('tasks/:id/sign-off')
+  @RequirePermission('fixes:signoff')
+  @ApiOperation({ summary: 'A manager confirms a finished audit-raised fix was done properly' })
+  signOffFix(@Param('id') id: string, @Request() req) {
+    return this.operationsService.signOffFix(id, req.user);
   }
 
   @Get('work-logs')

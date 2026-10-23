@@ -1,7 +1,10 @@
 import axios from 'axios';
 
 // API суурь URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Same origin by default: the dev server and the production nginx both pass
+// /api to the API. The session cookie is SameSite=Strict, so an API on another
+// site would never receive it.
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const isDemoEnabled = () => import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
 
@@ -77,14 +80,47 @@ export const createRequestId = () => {
   return `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 };
 
+/**
+ * Asks the server to keep the refresh token in an HttpOnly cookie instead of
+ * handing it to this page, where any script could read it. The phone app does
+ * not send this and keeps its token in the device's secure storage.
+ */
+const SESSION_COOKIE_HEADER = { 'X-Session-Cookie': 'true' };
+
 // Axios instance үүсгэх
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    ...SESSION_COOKIE_HEADER,
   },
+  withCredentials: true,
   timeout: 30000,
 });
+
+/**
+ * A new access token, from the HttpOnly refresh cookie.
+ *
+ * A browser signed in before the cookie existed still holds its refresh token
+ * in storage: it is sent once, the server answers with the cookie, and the
+ * stored copy is removed.
+ */
+export const refreshSession = async (): Promise<string> => {
+  const legacy = localStorage.getItem('refreshToken');
+  const response = await axios.post(`${API_BASE_URL}/auth/refresh`, legacy ? { refreshToken: legacy } : {}, {
+    headers: SESSION_COOKIE_HEADER,
+    withCredentials: true,
+  });
+  const { token } = normalizeTokenResponse(response.data);
+
+  if (!token) {
+    throw new Error('Refresh response did not include an access token');
+  }
+
+  localStorage.setItem('token', token);
+  localStorage.removeItem('refreshToken');
+  return token;
+};
 
 // Request интерсептор
 api.interceptors.request.use(
@@ -127,26 +163,8 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          throw new Error('No refresh token');
-        }
+        const token = await refreshSession();
 
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-          refreshToken,
-        });
-
-        const { token, refreshToken: newRefreshToken } = normalizeTokenResponse(response.data);
-
-        if (!token) {
-          throw new Error('Refresh response did not include an access token');
-        }
-        
-        localStorage.setItem('token', token);
-        if (newRefreshToken) {
-          localStorage.setItem('refreshToken', newRefreshToken);
-        }
-        
         originalRequest.headers.Authorization = `Bearer ${token}`;
         return api(originalRequest);
       } catch (refreshError) {

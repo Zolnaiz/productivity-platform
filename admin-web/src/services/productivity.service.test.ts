@@ -4,6 +4,7 @@ const apiMocks = vi.hoisted(() => ({
   get: vi.fn(),
   post: vi.fn(),
   patch: vi.fn(),
+  del: vi.fn(),
 }));
 
 vi.mock('./api', async () => {
@@ -13,6 +14,7 @@ vi.mock('./api', async () => {
     get: apiMocks.get,
     post: apiMocks.post,
     patch: apiMocks.patch,
+    del: apiMocks.del,
   };
 });
 
@@ -22,7 +24,51 @@ describe('productivityService demo storage', () => {
     apiMocks.get.mockReset();
     apiMocks.post.mockReset();
     apiMocks.patch.mockReset();
+    apiMocks.del.mockReset();
     localStorage.clear();
+  });
+
+  it('keeps notes on the server once signed in, moving this browser’s own notes up once', async () => {
+    localStorage.setItem('token', 'real-token');
+    localStorage.setItem('productivity-demo-notes', JSON.stringify([{ id: 'local-1', title: 'Written offline', content: 'keep me', tag: 'work', createdAt: '2026-10-01' }]));
+    apiMocks.post.mockResolvedValue({ id: 'server-1' });
+    apiMocks.get.mockResolvedValue([{ id: 'server-1', title: 'Written offline', content: 'keep me', tag: 'work', createdAt: '2026-10-01T03:00:00Z' }]);
+    const { productivityService } = await import('./productivity.service');
+
+    const notes = await productivityService.getNotes();
+    await productivityService.getNotes();
+
+    expect(apiMocks.post).toHaveBeenCalledTimes(1);
+    expect(apiMocks.post).toHaveBeenCalledWith('/notes', { title: 'Written offline', content: 'keep me', tag: 'work' });
+    expect(notes).toEqual([{ id: 'server-1', title: 'Written offline', content: 'keep me', tag: 'work', createdAt: '2026-10-01' }]);
+  });
+
+  it('reads focus sessions and badges from the server when signed in, and saves sessions there', async () => {
+    localStorage.setItem('token', 'real-token');
+    apiMocks.get.mockImplementation(async (url: string) =>
+      url === '/badges'
+        ? [{ id: 'firstWorkLog', earned: false, current: 0, target: 1 }]
+        : [{ id: 'f1', title: 'Deep work', minutes: 25, date: '2026-10-22' }],
+    );
+    apiMocks.post.mockResolvedValue({ id: 'f2', title: 'Next', minutes: 50, date: '2026-10-22' });
+    const { productivityService } = await import('./productivity.service');
+
+    expect(await productivityService.getBadges()).toEqual([{ id: 'firstWorkLog', earned: false, current: 0, target: 1 }]);
+    expect((await productivityService.getFocusSessions())[0].title).toBe('Deep work');
+    await productivityService.createFocusSession({ title: 'Next', minutes: 50, date: '2026-10-22' });
+    expect(apiMocks.post).toHaveBeenCalledWith('/focus-sessions', { title: 'Next', minutes: 50, date: '2026-10-22' });
+  });
+
+  it('creates and deletes notes through the API when signed in', async () => {
+    localStorage.setItem('token', 'real-token');
+    apiMocks.post.mockResolvedValue({ id: 'n9', title: 'New', content: 'x', tag: '', createdAt: '2026-10-22T00:00:00Z' });
+    const { productivityService } = await import('./productivity.service');
+
+    const created = await productivityService.createNote({ title: 'New', content: 'x', tag: '', createdAt: '2026-10-22' });
+    await productivityService.deleteNote('n9');
+
+    expect(created.id).toBe('n9');
+    expect(apiMocks.del).toHaveBeenCalledWith('/notes/n9');
   });
 
   it('recovers default notes when stored demo data is invalid JSON', async () => {

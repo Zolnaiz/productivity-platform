@@ -22,6 +22,7 @@ import { mergeFloorFacts } from './layout-merge';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { projectProgressPercent, sumRecordedHours } from './monthly-people';
 import { WeeklyCheckin } from './entities/weekly-checkin.entity';
+import { verifyImprovements } from './improvement-verification';
 import { buildMonthlyReport, MonthRecords, OrganizationRecords, selectMonthRecords } from './monthly-report';
 import { NotificationsService } from './notifications.service';
 import { noteAuditBefore } from '../audit/audit-context';
@@ -407,7 +408,8 @@ export class OperationsService {
       if (task.assigneeId !== user.id) {
         throw apiError(ErrorCode.ResourceNotFound, 'Task');
       }
-      if (Object.keys(payload).some((field) => field !== 'status')) {
+      // Moving it along, and saying why the area fell short when it is a fix.
+      if (Object.keys(payload).some((field) => field !== 'status' && field !== 'rootCause')) {
         throw apiError(ErrorCode.AccessDenied);
       }
     }
@@ -416,8 +418,14 @@ export class OperationsService {
     if ('assigneeId' in payload) {
       await this.assertAssignable(payload.assigneeId, task.organizationId);
     }
-    this.assignWithoutOrganizationChange(task, withoutStaleWording(task, withoutCompletionDate(payload)));
+    const { fixSignedOffBy: _by, fixSignedOffAt: _at, ...editable } = payload;
+    this.assignWithoutOrganizationChange(task, withoutStaleWording(task, withoutCompletionDate(editable)));
     stampCompletion(task, statusBefore);
+    // A fix reopened is not the fix that was signed off.
+    if (task.status !== TaskStatus.DONE) {
+      task.fixSignedOffBy = null;
+      task.fixSignedOffAt = null;
+    }
 
     const saved = await this.tasks.save(task);
     await this.closeFindingForCompletedTask(saved, user);
@@ -1496,6 +1504,41 @@ export class OperationsService {
       weeklyCheckins,
       members: members?.map((member) => ({ id: member.id, role: member.role, isActive: member.isActive })),
     };
+  }
+
+  /**
+   * PDCA "Check": each audit-raised fix with what the next audit of its area
+   * found. An employee sees the fixes given to them; a manager the team's.
+   */
+  /**
+   * A manager's check that a finished, audit-raised fix was done properly.
+   *
+   * Not by whoever did it: the point of the check is a second pair of eyes.
+   * The next audit of the area still decides whether it worked.
+   */
+  async signOffFix(id: string, user: CurrentUser, now = new Date()) {
+    const task = await this.findOneScoped(this.tasks, id, user, 'Task');
+    if (task.sourceType !== TaskSource.AUDIT_RUN || task.status !== TaskStatus.DONE) {
+      throw apiError(ErrorCode.FixNotDone);
+    }
+    if (task.assigneeId && task.assigneeId === user?.id) {
+      throw apiError(ErrorCode.AccessDenied);
+    }
+
+    noteAuditBefore(task, ['fixSignedOffBy', 'fixSignedOffAt']);
+    task.fixSignedOffBy = user?.id ?? null;
+    task.fixSignedOffAt = now;
+    return this.tasks.save(task);
+  }
+
+  async improvementVerification(user: CurrentUser) {
+    const organization = this.organizationWhere(user);
+    const [tasks, runs] = await Promise.all([
+      this.tasks.find({ where: { ...organization, sourceType: TaskSource.AUDIT_RUN } }),
+      this.auditRuns.find({ where: organization }),
+    ]);
+    const mine = user?.role === 'user' ? tasks.filter((task) => task.assigneeId === user.id) : tasks;
+    return verifyImprovements(mine, runs);
   }
 
   resolveReportMonth(month?: string) {

@@ -459,8 +459,8 @@ async function main() {
     const last = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
     await write('write: close last month', '/operations/monthly-closes', 'POST', { month: last },
       (status, data) => (status === 201 || status === 200) && Boolean(data?.closed) && data?.measurements?.version === 2);
-    await write('write: reopen it', `/operations/monthly-closes/${last}`, 'DELETE', undefined,
-      (status, data) => status === 200 && data?.closed === null);
+    await write('write: reopen it', `/operations/monthly-closes/${last}/reopen`, 'POST', { reason: 'Smoke test' },
+      (status, data) => (status === 201 || status === 200) && data?.closed === null);
   }
 
   // A user record must never carry what would let somebody else into the account.

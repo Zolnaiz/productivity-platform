@@ -16,6 +16,7 @@ import {
   Matches,
   MaxLength,
   Min,
+  MinLength,
   ValidateNested,
 } from 'class-validator';
 import { AssessmentResponseStatus } from '../entities/assessment-response.entity';
@@ -379,6 +380,12 @@ export class CreateTaskDto extends OrganizationScopedDto {
   @IsNumber()
   @Min(0)
   actualHours?: number;
+
+  /** Why the area fell short, for a fix an audit raised. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  rootCause?: string;
 }
 
 export class UpdateTaskDto extends PartialType(CreateTaskDto) {}
@@ -1013,4 +1020,13 @@ export class UpdateExpenseDto extends PartialType(CreateExpenseDto) {}
 export class CloseMonthDto {
   @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
   month: string;
+}
+
+/** Why a closed month is opened again. Kept with the copy that was closed. */
+export class ReopenMonthDto {
+  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MinLength(3)
+  @MaxLength(500)
+  reason: string;
 }

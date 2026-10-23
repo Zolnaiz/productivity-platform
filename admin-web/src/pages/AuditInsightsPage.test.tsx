@@ -5,9 +5,15 @@ import AuditInsightsPage from './AuditInsightsPage';
 const mocks = vi.hoisted(() => ({ getAuditRuns: vi.fn(), getAuditTemplates: vi.fn(), getPlans: vi.fn() }));
 
 vi.mock('../services/operations.service', () => ({
-  operationsService: { getAuditRuns: mocks.getAuditRuns, getAuditTemplates: mocks.getAuditTemplates },
+  operationsService: {
+    getAuditRuns: mocks.getAuditRuns,
+    getAuditTemplates: mocks.getAuditTemplates,
+    getImprovementVerification: async () => ({ standard: 85, counts: {}, verificationRate: { value: null, numerator: 0, denominator: 0, excluded: 0 }, fixes: [] }),
+  },
 }));
 vi.mock('../services/fiveSLayout.service', () => ({ fiveSLayoutService: { getPlans: mocks.getPlans } }));
+vi.mock('../services/people.service', () => ({ peopleService: { getMembers: async () => [] } }));
+vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1' }, hasPermission: () => false }) }));
 // The chart needs a laid-out page; what it draws is tested with the numbers.
 vi.mock('../components/charts/MonthlyScoreChart', () => ({ default: () => <div data-testid="trend" /> }));
 vi.mock('../components/charts/HorizontalBarChart', () => ({ default: () => <div data-testid="pareto" /> }));

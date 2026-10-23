@@ -1,5 +1,5 @@
 import { Badge, DailyGoal, FocusSession, Note } from '../types/productivity.types';
-import { get, getStoredAccessToken, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
+import { del, get, getStoredAccessToken, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
 import { localDay } from '../utils/localDay';
 
 type ProductivityKey = 'notes' | 'goals' | 'focusSessions' | 'badges';
@@ -26,24 +26,10 @@ const defaults = {
     { id: 'f2', title: 'Audit UI flow', minutes: 25, date: today() },
   ] as FocusSession[],
   badges: [
-    {
-      id: 'b1',
-      title: 'First work log',
-      description: 'Submitted at least one daily work log.',
-      earned: true,
-    },
-    {
-      id: 'b2',
-      title: 'Audit starter',
-      description: 'Completed an operational audit.',
-      earned: true,
-    },
-    {
-      id: 'b3',
-      title: 'Focus streak',
-      description: 'Log three focus sessions in a day.',
-      earned: false,
-    },
+    // Demo only: a signed-in account's badges come from its own records on the server.
+    { id: 'firstWorkLog', earned: true, current: 1, target: 1 },
+    { id: 'auditStarter', earned: true, current: 1, target: 1 },
+    { id: 'focusStreak', earned: false, current: 2, target: 3 },
   ] as Badge[],
 };
 
@@ -126,9 +112,47 @@ const fallback = async <T>(request: () => Promise<ApiEnvelope<T>>, demoData: T |
   }
 };
 
+/** Set once this browser's own notes have been copied to the server. */
+const notesMovedKey = 'productivity-notes-moved-to-server';
+
+const fromServer = (note: Note & { createdAt?: string }) => ({ ...note, createdAt: String(note.createdAt ?? '').slice(0, 10) });
+
+/**
+ * Notes written in this browser before they were kept on the server, copied
+ * up once so nobody loses what they wrote. The demo's sample notes stay behind.
+ */
+const moveLocalNotes = async () => {
+  if (localStorage.getItem(notesMovedKey)) return;
+  const stored = localStorage.getItem(storageKey('notes'));
+  const sampleIds = new Set((defaults.notes as Note[]).map((note) => note.id));
+  const own = stored ? (JSON.parse(stored) as Note[]).filter((note) => !sampleIds.has(note.id)) : [];
+  for (const note of own) {
+    await post('/notes', { title: note.title, content: note.content, ...(note.tag ? { tag: note.tag } : {}) });
+  }
+  localStorage.setItem(notesMovedKey, new Date().toISOString());
+};
+
 export const productivityService = {
-  getNotes: () => Promise.resolve(read<Note>('notes')),
-  createNote: (data: Omit<Note, 'id'>) => Promise.resolve(create<Note>('notes', data)),
+  getNotes: async () => {
+    if (!hasRealAccessToken()) return read<Note>('notes');
+    try {
+      await moveLocalNotes();
+    } catch {
+      // Left for the next visit; the server's notes are still shown.
+    }
+    return fallback<Note[]>(async () => unwrap(await get<Note[]>('/notes')).map(fromServer), () => read<Note>('notes'));
+  },
+  createNote: async (data: Omit<Note, 'id'>) => {
+    if (!hasRealAccessToken()) return create<Note>('notes', data);
+    return fromServer(unwrap(await post<Note>('/notes', { title: data.title, content: data.content, ...(data.tag ? { tag: data.tag } : {}) })));
+  },
+  deleteNote: async (id: string) => {
+    if (!hasRealAccessToken()) {
+      write<Note>('notes', read<Note>('notes').filter((note) => note.id !== id));
+      return;
+    }
+    await del(`/notes/${id}`);
+  },
   getGoals: (date?: string) =>
     fallback<DailyGoal[]>(
       () => get('/daily-goals', date ? { date } : undefined),
@@ -154,8 +178,11 @@ export const productivityService = {
       () => update<DailyGoal>('goals', id, data),
     );
   },
-  getFocusSessions: () => Promise.resolve(read<FocusSession>('focusSessions')),
-  createFocusSession: (data: Omit<FocusSession, 'id'>) =>
-    Promise.resolve(create<FocusSession>('focusSessions', data)),
-  getBadges: () => Promise.resolve(read<Badge>('badges')),
+  getFocusSessions: () =>
+    fallback<FocusSession[]>(() => get('/focus-sessions'), () => read<FocusSession>('focusSessions')),
+  createFocusSession: async (data: Omit<FocusSession, 'id'>) => {
+    if (!hasRealAccessToken()) return create<FocusSession>('focusSessions', data);
+    return unwrap(await post<FocusSession>('/focus-sessions', { title: data.title, minutes: data.minutes, date: data.date }));
+  },
+  getBadges: () => fallback<Badge[]>(() => get('/badges'), () => read<Badge>('badges')),
 };

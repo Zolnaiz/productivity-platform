@@ -18,7 +18,7 @@ node -e "console.log(require('crypto').randomBytes(36).toString('base64url'))"
 |---|---|---|
 | `DB_PASSWORD`, `JWT_SECRET`, `JWT_REFRESH_SECRET` | yes | Long, random and different from each other. In production the API refuses to start with a weak or short `JWT_SECRET` (it must be at least 32 characters). |
 | `DB_PORT` | yes | The host port for PostgreSQL. It is bound to loopback only. Choose another port if 5432 is already in use. |
-| `VITE_API_URL` | yes | Normally `/api`. It is built into the web bundle, so changing it means rebuilding `admin-web`. |
+| `VITE_API_URL` | yes | Normally `/api`. It is built into the web bundle, so changing it means rebuilding `admin-web`. The web app keeps its session in a `SameSite=Strict` cookie, so the API must be on the same site as the web app (the `/api` proxy does this); on another site, people would be signed out every hour. |
 | `CORS_ORIGINS` | yes | The origin the web app is served from. It only matters when the app and the API are on different hostnames. |
 | `APP_BASE_URL` | for email links | For example `https://app.example.com`. Invitation and password-reset emails carry links built from it. Without it, the email contains only a bare code. |
 | `MAIL_TRANSPORT` | no | `log` (the default) only logs the recipient and subject and sends nothing. `smtp` sends real email. |

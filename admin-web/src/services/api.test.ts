@@ -8,8 +8,10 @@ import {
   isDemoMode,
   normalizeTokenResponse,
   post,
+  refreshSession,
   unwrapApiResponse,
 } from './api';
+import axios from 'axios';
 
 describe('api demo mode guard', () => {
   afterEach(() => {
@@ -196,5 +198,46 @@ describe('localId', () => {
     } finally {
       globalThis.crypto.randomUUID = original;
     }
+  });
+});
+
+describe('the session cookie', () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  it('asks every request to keep the refresh token in an HttpOnly cookie', () => {
+    expect(api.defaults.headers['X-Session-Cookie']).toBe('true');
+    expect(api.defaults.withCredentials).toBe(true);
+  });
+
+  it('refreshes from the cookie, keeping only the access token', async () => {
+    const posted = vi.spyOn(axios, 'post').mockResolvedValue({ data: { data: { access_token: 'fresh' } } });
+
+    await expect(refreshSession()).resolves.toBe('fresh');
+
+    expect(posted).toHaveBeenCalledWith(
+      expect.stringMatching(/\/auth\/refresh$/),
+      {},
+      expect.objectContaining({ withCredentials: true, headers: { 'X-Session-Cookie': 'true' } }),
+    );
+    expect(localStorage.getItem('token')).toBe('fresh');
+  });
+
+  it('hands over a refresh token left in storage once, then forgets it', async () => {
+    localStorage.setItem('refreshToken', 'from-before');
+    const posted = vi.spyOn(axios, 'post').mockResolvedValue({ data: { access_token: 'fresh' } });
+
+    await refreshSession();
+
+    expect(posted.mock.calls[0][1]).toEqual({ refreshToken: 'from-before' });
+    expect(localStorage.getItem('refreshToken')).toBeNull();
+  });
+
+  it('fails when the server sends no access token', async () => {
+    vi.spyOn(axios, 'post').mockResolvedValue({ data: {} });
+
+    await expect(refreshSession()).rejects.toThrow(/access token/);
   });
 });

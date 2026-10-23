@@ -174,6 +174,74 @@ void main() {
     expect(sent.data, payload);
   });
 
+  test(
+      'a write-up whose answer timed out is kept, and sent again under the same key',
+      () async {
+    // The server may have saved it before the answer was lost; the key is
+    // what keeps the retry from saving the day twice.
+    var timedOut = true;
+    final (api, adapter, _) = await makeApi((request) {
+      if (request.method == 'GET') return jsonReply(envelope([]));
+      if (timedOut) {
+        throw DioException(
+            requestOptions: request, type: DioExceptionType.receiveTimeout);
+      }
+      return jsonReply(envelope({'workLog': {'id': 'saved'}}), status: 201);
+    });
+    final outbox = Outbox(api);
+    final logs = WorkLogProvider(api,
+        outbox: outbox, clock: () => DateTime(2026, 9, 28, 17));
+
+    expect(await logs.submit(summary: 'Cleared the dock', hours: 2), isTrue);
+    expect(logs.lastKept, isTrue);
+    final first = adapter.requests
+        .lastWhere((request) => request.path == '/work-logs/daily');
+    final key = first.headers['Idempotency-Key'] as String;
+    expect(key, matches(RegExp(r'^[A-Za-z0-9_.:-]{8,100}$')));
+    expect(outbox.pending.single.key, key);
+
+    // Kept across a restart with its key.
+    final reopened = Outbox(api);
+    await reopened.restore();
+    timedOut = false;
+    expect(await reopened.flush(), 1);
+    final retry = adapter.requests
+        .lastWhere((request) => request.path == '/work-logs/daily');
+    expect(retry.headers['Idempotency-Key'], key);
+  });
+
+  test('keeps a change whose first copy is still being saved', () async {
+    var inProgress = true;
+    final (api, _, _) = await makeApi((request) {
+      if (inProgress) {
+        return jsonReply(
+            {'success': false, 'errorCode': 'REQUEST_IN_PROGRESS'},
+            status: 409);
+      }
+      return jsonReply(envelope({'id': 'saved'}), status: 201);
+    });
+    final outbox = Outbox(api);
+    await outbox.keep(method: 'POST', path: '/ideas', kind: 'idea');
+
+    expect(await outbox.flush(), 0);
+    expect(outbox.pending, hasLength(1));
+    expect(outbox.refused, 0);
+
+    inProgress = false;
+    expect(await outbox.flush(), 1);
+    expect(outbox.pending, isEmpty);
+  });
+
+  test('every kept change carries a key of its own', () async {
+    final network = Network();
+    final (api, _, _) = await makeApi(network.reply);
+    final outbox = Outbox(api);
+    await outbox.keep(method: 'POST', path: '/ideas', kind: 'idea');
+    await outbox.keep(method: 'POST', path: '/ideas', kind: 'idea');
+
+    expect(outbox.pending[0].key, isNot(outbox.pending[1].key));
+  });
+
   test('without an outbox, an offline change fails as before', () async {
     final network = Network();
     final (api, _, _) = await makeApi(network.reply);

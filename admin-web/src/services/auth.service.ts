@@ -88,10 +88,10 @@ export const authService = {
 
   // Гарах
   logout: async (): Promise<void> => {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (refreshToken) {
+    // Signed in, so the server can drop the refresh cookie it set.
+    if (localStorage.getItem('token') && localStorage.getItem('token') !== 'demo-token') {
       try {
-        await post('/auth/logout', { refreshToken });
+        await post('/auth/logout', {});
       } catch (error) {
         console.error('Logout error:', error);
       }

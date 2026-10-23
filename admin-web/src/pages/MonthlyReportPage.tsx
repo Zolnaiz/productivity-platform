@@ -16,6 +16,9 @@ import { localDay, localMonth } from '../utils/localDay';
 import { scrollArea } from '../components/common/scrollArea';
 import MonthSummaryCard from '../components/reports/MonthSummaryCard';
 import MonthlyMeasurementsCard from '../components/reports/MonthlyMeasurementsCard';
+import MonthHistoryCard from '../components/reports/MonthHistoryCard';
+import Modal from '../components/common/Modal';
+import Textarea from '../components/common/Textarea';
 import { measurementCsvRows } from '../components/reports/monthlyMeasurements';
 
 const formatMnt = (value: number) =>
@@ -67,6 +70,8 @@ const MonthlyReportPage: React.FC = () => {
   */
   const [permissions, setPermissions] = useState<string[]>([]);
   const [changingClose, setChangingClose] = useState(false);
+  // The reason asked for before a closed month is opened again; null while nobody is asking.
+  const [reopenReason, setReopenReason] = useState<string | null>(null);
   const may = (permission: string) => permissions.includes('*') || permissions.includes(permission);
 
   useEffect(() => {
@@ -337,7 +342,8 @@ const MonthlyReportPage: React.FC = () => {
       const next =
         action === 'close'
           ? await operationsService.closeMonth(selectedMonth)
-          : await operationsService.reopenMonth(selectedMonth);
+          : await operationsService.reopenMonth(selectedMonth, (reopenReason ?? '').trim());
+      setReopenReason(null);
       setReport(next);
     } catch (closeError) {
       setError(apiErrorMessage(closeError, t));
@@ -414,7 +420,7 @@ const MonthlyReportPage: React.FC = () => {
           </span>
           {report.closed
             ? may('reports:reopen') && (
-                <Button variant="outline" type="button" onClick={() => changeClose('reopen')} disabled={changingClose}>
+                <Button variant="outline" type="button" onClick={() => setReopenReason('')} disabled={changingClose}>
                   {t('monthlyReport.reopenMonth')}
                 </Button>
               )
@@ -426,6 +432,36 @@ const MonthlyReportPage: React.FC = () => {
               )}
         </div>
       )}
+
+      <Modal
+        isOpen={reopenReason !== null}
+        onClose={() => setReopenReason(null)}
+        title={t('monthlyReport.reopenTitle', { month: selectedMonth })}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => setReopenReason(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => changeClose('reopen')}
+              disabled={changingClose || (reopenReason ?? '').trim().length < 3}
+            >
+              {t('monthlyReport.reopenMonth')}
+            </Button>
+          </div>
+        }
+      >
+        <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">{t('monthlyReport.reopenExplain')}</p>
+        <Textarea
+          label={t('monthlyReport.reopenReason')}
+          value={reopenReason ?? ''}
+          onChange={(event) => setReopenReason(event.target.value)}
+          maxLength={500}
+          rows={3}
+          required
+        />
+      </Modal>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
@@ -448,6 +484,16 @@ const MonthlyReportPage: React.FC = () => {
           <MonthlyMeasurementsCard
             measurements={report.measurements}
             nameOf={(userId) => {
+              const member = members.find((candidate) => candidate.id === userId);
+              return member ? memberName(member) : userId;
+            }}
+          />
+
+          <MonthHistoryCard
+            month={selectedMonth}
+            refreshKey={report.closed ? String(report.closed.at) : 'open'}
+            nameOf={(userId) => {
+              if (!userId) return null;
               const member = members.find((candidate) => candidate.id === userId);
               return member ? memberName(member) : userId;
             }}

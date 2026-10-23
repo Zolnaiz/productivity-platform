@@ -99,20 +99,24 @@ class WorkLogProvider extends ChangeNotifier {
       if (blockers != null && blockers.isNotEmpty) 'blockers': blockers,
       if (nextSteps != null && nextSteps.isNotEmpty) 'nextSteps': nextSteps,
     };
+    // One key for this write-up, on the first try and on every retry after
+    // it, so an answer lost on the way back cannot save the day twice.
+    final key = newIdempotencyKey();
     try {
-      final saved = await _api.createDailyWorkLog(entry);
+      final saved = await _api.createDailyWorkLog(entry, idempotencyKey: key);
       final raw = saved['workLog'];
       final log =
           WorkLog.fromJson(raw is Map ? raw.cast<String, dynamic>() : saved);
       today = [log, ...today];
       return true;
     } catch (e) {
-      if (outbox != null && neverSent(e)) {
+      if (outbox != null && unanswered(e)) {
         await outbox!.keep(
             method: 'POST',
             path: '/work-logs/daily',
             kind: 'workLog',
-            data: entry);
+            data: entry,
+            key: key);
         // On today's list at once, so the hours add up; the server's copy
         // replaces it when the list is read again.
         today = [

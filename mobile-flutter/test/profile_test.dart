@@ -78,4 +78,18 @@ void main() {
 
     expect(find.text('The current password is incorrect.'), findsOneWidget);
   });
+
+  test('keeps the new session the server answers a password change with',
+      () async {
+    // Every other session ends on a password change; this phone stays in.
+    final (api, _, tokens) = await makeApi((request) => jsonReply(
+        envelope({'access_token': 'new-access', 'refresh_token': 'new-refresh'}),
+        status: 201));
+    tokens.values['refresh_token'] = 'old-refresh';
+
+    await api.changePassword('old-password', 'Secret123');
+
+    expect(tokens.values['access_token'], 'new-access');
+    expect(tokens.values['refresh_token'], 'new-refresh');
+  });
 }

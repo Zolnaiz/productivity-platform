@@ -58,6 +58,8 @@ async function bootstrap() {
       'X-App-Version',
       'X-Platform',
       'X-Request-Id',
+      'X-Session-Cookie',
+      'Idempotency-Key',
     ],
     exposedHeaders: ['Content-Disposition', 'X-Request-Id'],
   });

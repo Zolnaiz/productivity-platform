@@ -223,6 +223,9 @@ export class UsersService {
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
+    // Every other session ends: the reason to change a password is often
+    // that somebody else may have it.
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     return this.usersRepository.save(user);
   }
 
@@ -252,6 +255,7 @@ export class UsersService {
         password: await bcrypt.hash(newPassword, 10),
         resetPasswordToken: null as unknown as undefined,
         resetPasswordExpires: null as unknown as undefined,
+        tokenVersion: () => 'token_version + 1',
       },
     );
 
