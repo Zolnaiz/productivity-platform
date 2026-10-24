@@ -8,7 +8,7 @@
 |---|---|
 | `latex/` | Дипломын бичвэр (MUST-Thesis загвар). Overleaf-ийн төсөлтэй ижил. `main.tex`-ээс эхэлнэ. |
 | `latex/Figures/` | Бүх зураг, диаграм — скриптээр үүсгэсэн ба дэлгэцийн зургууд. Бичвэр, илтгэл хоёулаа эндээс авна. |
-| `scripts/` | Диаграм (`make_figures.py`, `make_uml.py`), туршилт ба хэмжилтийн график (`make_charts.py`), илтгэл (`build_slides.py`, `build_slides2.py`, нийтлэг загвар `slides_kit.py`), даалгаврын маягт (`fill_task_form.py`). |
+| `scripts/` | Диаграм (`make_figures.py`, `make_uml.py`), туршилт ба хэмжилтийн график (`make_charts.py`), судалгаа ба SUS асуулгын хавсралт, маягт, үр дүн (`make_survey.py`), илтгэл (`build_slides.py`, `build_slides2.py`, нийтлэг загвар `slides_kit.py`), даалгаврын маягт (`fill_task_form.py`). |
 | `output/` | Гаралт: `Uzleg1_iltgel.pptx/.pdf`, `Uzleg2_iltgel.pptx/.pdf`, `Diplom_daalgavar.docx/.pdf`. Git-д ордоггүй. |
 | `Uzleg2_beltgel.md` | II үзлэгийн бэлтгэл: одоогийн төлөв, үзлэгээс өмнө хийх ажил, демо, гарч болох асуулт. |
 | `materials/` | Сургуулийн материал: журам А/55, үзлэгийн хуваарь, LaTeX загвар, даалгаврын маягт, жишээ диплом, жишээ илтгэл. Git-д ордоггүй. |
@@ -32,6 +32,8 @@ python scripts/make_uml.py
 python scripts/build_slides.py
 python scripts/make_charts.py
 python scripts/build_slides2.py
+python scripts/make_survey.py appendix
+python scripts/make_survey.py form
 python scripts/fill_task_form.py
 ```
 
@@ -40,7 +42,7 @@ python scripts/fill_task_form.py
 ## Үлдсэн ажил
 
 - Зөвлөгч, шүүмжлэгч багшийн нэр (`latex/main.tex`)
-- Хэрэглэгчийн судалгаа (1.3) — Google Forms, 10-р сар
+- Хэрэглэгчийн судалгаа (1.4) — асуулга бэлэн (Хавсралт A, `output/survey_form.txt`); Google Forms-оор илгээж, хариуг `python scripts/make_survey.py results хариу.csv`-ээр нэгтгэнэ
 - Үзлэг 2-ын бэлтгэлийн үлдсэн ажил (судалгаа, демо, шинэ дэлгэцийн зураг) — `Uzleg2_beltgel.md`
 - Эдийн засгийн тооцооны таамаглалыг бодит тоогоор солих (4-р бүлэг)
 - Үзлэг 3: туршилтын ажиллагаа, SUS үнэлгээ, дүгнэлт
