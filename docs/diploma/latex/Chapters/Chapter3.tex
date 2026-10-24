@@ -1,6 +1,6 @@
 % Бүлэг 3
 
-\chapter{Системийн зохиомж}
+\chapter{Системийн зохиомж, хэрэгжүүлэлт ба туршилт}
 \label{Chapter3}
 
 %-------------------------------------------------------------------------------
@@ -74,7 +74,7 @@ Backend нь давхаргат бүтэцтэй:
 
 %-------------------------------------------------------------------------------
 \section{Өгөгдлийн сангийн ерөнхий схем}
-Өгөгдлийн сан 25 хүснэгтээс бүрдэх бөгөөд одоогийн схемийг 38 runtime/operations migration-оор байгуулна. Бүх хүснэгт organizationId-аар байгууллагад харьяалагдаж, хүсэлт бүр хэрэглэгчийн байгууллагаар шүүгдэнэ. Зураг~\ref{fig:erd}-д гол хүснэгтүүд ба холбоосыг харуулав.
+Өгөгдлийн сан 29 хүснэгтээс бүрдэх бөгөөд одоогийн схемийг 49 migration-оор байгуулна. Бүх хүснэгт organizationId-аар байгууллагад харьяалагдаж, хүсэлт бүр хэрэглэгчийн байгууллагаар шүүгдэнэ. Зураг~\ref{fig:erd}-д гол хүснэгтүүд ба холбоосыг харуулав.
 
 \begin{figure}[H]
 \centering
@@ -86,7 +86,8 @@ Backend нь давхаргат бүтэцтэй:
 \begin{itemize}
     \item \textbf{tasks} хүснэгт sourceType, sourceId талбараар ажил хаанаас үүссэнийг (аудит, Gemba, санаа, гараар) хадгална. Ингэснээр нэг эх сурвалжаас ажил давхар үүсэхээс сэргийлж, тайланд гарал үүслээр ангилна.
     \item \textbf{five\_s\_layouts} хүснэгт талбайн бүсүүдийг JSONB хэлбэрээр хадгалж, өөрчлөлт бүрийг five\_s\_layout\_versions-д архивлана.
-    \item \textbf{monthly\_report\_closes} хүснэгт хаагдсан сарын бүртгэлүүдийн хуулбарыг хадгалж, дараа нь өгөгдөл өөрчлөгдсөн ч тайлан тогтвортой үлдэнэ.
+    \item \textbf{monthly\_report\_closes} хүснэгт хаагдсан сарын бүртгэлүүдийн хуулбарыг хадгалж, дараа нь өгөгдөл өөрчлөгдсөн ч тайлан тогтвортой үлдэнэ. Сарыг дахин нээхэд хэн, хэзээ, яагаад нээснийг өмнөх хувилбарын хамт хадгална.
+    \item \textbf{idempotency\_keys} хүснэгт (хэрэглэгч, түлхүүр) хосоор давтагдашгүй бөгөөд дахин илгээсэн бичих хүсэлтийн анхны хариуг 24 цаг хадгална (\ref{sec:idempotency}-р хэсэг).
 \end{itemize}
 
 %-------------------------------------------------------------------------------
@@ -131,7 +132,7 @@ function correctiveWork(run):
                       source = (audit_run, run.id))   // one task per run
 \end{lstlisting}
 
-Алгоритмын хугацааны төвөгшил асуултын тоо $n$-ээр $O(n)$. createTask нь (sourceType, sourceId) хосоор давхардлыг шалгадаг тул нэг аудитыг дахин илгээхэд ажил давхардахгүй.
+Алгоритмын хугацааны төвөгшил асуултын тоо $n$-ээр $O(n)$. createTask нь (sourceType, sourceId) хосоор тухайн эх сурвалжаас үүссэн нээлттэй ажил байгаа эсэхийг шалгадаг тул нэг аудитыг дахин илгээхэд ажил давхардахгүй.
 
 \begin{figure}[H]
 \centering
@@ -141,7 +142,7 @@ function correctiveWork(run):
 \end{figure}
 
 \subsection{Сүлжээгүй горимын дараалал (outbox)}
-5S аудит хийгддэг агуулах, цех, подвал зэрэг газарт сүлжээ тасалдах нь элбэг. Гар утасны апп илгээж чадаагүй бичилтийг хийсэн дарааллаар нь утасны санах ойд хадгалж, сүлжээ сэргэх, апп дахин нээгдэх эсвэл хэрэглэгч ``Одоо илгээх'' дарах үед илгээнэ (Зураг~\ref{fig:outbox}). Гол асуудал нь давхар бүртгэл: хариу ирээгүй хүсэлт серверт хүрсэн байж болно. Иймд зөвхөн серверт огт хүрээгүй нь тодорхой (холболт тогтоогдоогүй) хүсэлтийг дараалалд хийнэ; timeout-ыг дахин илгээхгүй. Дарааллыг илгээх үед сервер 4xx хариугаар татгалзвал тэр бичилтийг хасч хэрэглэгчид мэдэгдэнэ; сервер алдаатай (5xx) эсвэл нэвтрэлт дууссан бол хадгалаад дараа дахин оролдоно.
+5S аудит хийгддэг агуулах, цех, подвал зэрэг газарт сүлжээ тасалдах нь элбэг. Гар утасны апп илгээж чадаагүй бичилтийг хийсэн дарааллаар нь утасны санах ойд хадгалж, сүлжээ сэргэх, апп дахин нээгдэх эсвэл хэрэглэгч ``Одоо илгээх'' дарах үед илгээнэ (Зураг~\ref{fig:outbox}). Гол асуудал нь давхар бүртгэл: хариу ирээгүй хүсэлт серверт хүрч бичигдсэн байж болно. Эхний хувилбарт зөвхөн серверт огт хүрээгүй нь тодорхой (холболт тогтоогдоогүй) хүсэлтийг дараалалд хийж, timeout-ыг дахин илгээдэггүй байв. Ингэхэд хариу нь алдагдсан өдрийн бүртгэл утсанд алга болдгийг тест илрүүлсэн тул дараалалд хадгалах өөрчлөлт бүрд түлхүүр өгч, сервер нэг түлхүүрээр нэг л удаа бичдэг болгов (\ref{sec:idempotency}-р хэсэг). Өдрийн бүртгэл анхны илгээлтээсээ түлхүүртэй явдаг тул хариу ирээгүй бүх тохиолдолд (холболтгүй, timeout) хадгалагдана; бусад бичилт холболтгүй үед хадгалагдаж, хадгалагдахдаа түлхүүр авна. Дарааллыг илгээх үед сервер 4xx хариугаар татгалзвал тэр бичилтийг хасч хэрэглэгчид мэдэгдэнэ; сервер алдаатай (5xx), нэвтрэлт дууссан (401) эсвэл ижил түлхүүртэй анхны хүсэлт боловсруулагдаж байгаа бол хадгалаад дараа дахин оролдоно (Эх код~\ref{lst:outbox}).
 
 \begin{figure}[H]
 \centering
@@ -151,18 +152,49 @@ function correctiveWork(run):
 \end{figure}
 
 \begin{lstlisting}[caption={Outbox дараалал},label={lst:outbox}]
-function save(write):
-    try: api.send(write)
+function save(write):                       // a daily log carries its key from the first send
+    try: api.send(write, idempotencyKey = write.key)
     catch error:
-        if neverSent(error): outbox.append(write)    // no connection
-        else: throw error                           // timeout, 4xx, 5xx
+        if neverSent(error) or (write.key and unanswered(error)):
+            outbox.append(write with key = write.key or newKey())
+        else: throw error                   // 4xx, 5xx: shown to the person
 
-function flush():                                   // network back / app opened
+function flush():                           // network back / app opened / "send now"
     for write in outbox (in order):
-        try: api.send(write); outbox.remove(write)
+        try: api.send(write, idempotencyKey = write.key); outbox.remove(write)
         catch error:
-            if no response or status >= 500 or status == 401: break   // retry later
-            outbox.remove(write); refused += 1       // 4xx: final answer
+            if no response or status >= 500 or status == 401
+               or error.code == REQUEST_IN_PROGRESS: break   // retry later
+            outbox.remove(write); refused += 1               // 4xx: final answer
+\end{lstlisting}
+
+\subsection{Давхар бичилтээс сэргийлэх (Idempotency-Key)}
+\label{sec:idempotency}
+Клиент бичих (POST) хүсэлтдээ \texttt{Idempotency-Key} толгой хавсаргавал сервер (хэрэглэгч, түлхүүр) хосыг \texttt{idempotency\_keys} хүснэгтийн давтагдашгүй индексээр эзэлнэ (Зураг~\ref{fig:idempotency}). Эхний хүсэлт бичилтээ хийж, хариугаа түлхүүрийн хамт хадгална. Ижил түлхүүрээр дахин ирсэн хүсэлт шинээр бичигдэхгүй, анхны хариугаа \texttt{Idempotent-Replayed: true} толгойтой авна. Анхны хүсэлт дуусаагүй байхад ирсэн хуулбар 409 (REQUEST\_IN\_PROGRESS), өөр хүсэлтэд ашигласан түлхүүр 409 (IDEMPOTENCY\_KEY\_REUSED) хариу авна. Амжилтгүй болсон хүсэлт түлхүүрээ суллаж, дахин оролдох боломж үлдээнэ (Эх код~\ref{lst:idempotency}). Түлхүүр 24 цаг хадгалагдаж, дараа нь цагийн хуваариар устгагдана. Түлхүүр хэрэглэгч бүрт тусдаа тул бусдын хариуг таах боломжгүй, давтагдсан хүсэлт үйл ажиллагааны түүхэнд дахин бичигдэхгүй. Ингэснээр NFR-05-ийн ``давхар илгээлтээс сэргийлнэ'' шаардлага сервер талдаа баталгаажна.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{Figures/idempotency.png}
+\caption{Хариугаа алдсан бичилтийг ижил түлхүүрээр дахин илгээх}
+\label{fig:idempotency}
+\end{figure}
+
+\begin{lstlisting}[caption={Idempotency-Key-ийг эзлэх},label={lst:idempotency}]
+function intercept(request):
+    if request.method != POST or no request.key: return handle(request)
+    claim = claimKey(user, request.key, "POST " + request.path)
+    if claim.replay: return claim.response with header Idempotent-Replayed: true
+    try: response = handle(request); complete(claim, response); return response
+    catch error: release(claim); throw error            // a failed write keeps nothing
+
+function claimKey(user, key, target):
+    try: insert (user, key, target) into idempotency_keys; return new claim
+    catch uniqueViolation:                              // the unique index decides who is first
+        row = find(user, key)
+        if age(row) > 24 hours: delete row; try again once
+        if row.target != target: fail 409 IDEMPOTENCY_KEY_REUSED
+        if row.response is empty: fail 409 REQUEST_IN_PROGRESS
+        return replay(row.statusCode, row.response)
 \end{lstlisting}
 
 \subsection{Өдрийн сануулга}
@@ -172,7 +204,7 @@ function flush():                                   // network back / app opened
 every hour:
     for org in organizations:
         tz = org.timeZone; hour = localHour(tz, now)
-        if hour < org.reminderHour or hour >= 12: continue
+        if hour < REMINDER_HOUR or hour >= 12: continue
         day = localDate(tz, now)
         for person in org.activeUsers:
             due  = tasks(person) where status not in {done, backlog} and dueDate == day
@@ -186,23 +218,92 @@ every hour:
 \begin{equation}
 C = \frac{\left|\{t \in P_m : t.\mathrm{completedAt} \le \mathrm{end}(m)\}\right|}{|P_m|}
 \end{equation}
-энд $P_m$ -- $m$ сард төлөвлөгдсөн ажлын олонлог. Хагас жил, жилийн тайлан хаагдсан сарын тайлангуудын нийлбэр тул батлагдсан сарын тайлантай үргэлж тохирно. Тайлангийн тойм бичвэрийг менежер хүсвэл Claude хэлний загвар ноороглоно~\cite{anthropic}; загвар руу зөвхөн нэгдсэн тоо, нэргүй саад бэрхшээл илгээгдэх ба ноорог менежер батлахаас нааш албан ёсны бичвэр болохгүй.
+энд $P_m$ -- $m$ сард төлөвлөгдсөн ажлын олонлог. Хагас жил, жилийн тайлан хаагдсан сарын тайлангуудын нийлбэр тул батлагдсан сарын тайлантай үргэлж тохирно. Хаасан сарыг зөвхөн админ шалтгаан (3--500 тэмдэгт) бичиж дахин нээх ба хэн, хэзээ, яагаад нээснийг хаасан хувилбарын хамт хадгалдаг тул тайлангийн өмнөх хувилбаруудыг одоогийн дүнтэй харьцуулж болно. Тайлангийн тойм бичвэрийг менежер хүсвэл Claude хэлний загвар ноороглоно~\cite{anthropic}; загвар руу зөвхөн нэгдсэн тоо, нэргүй саад бэрхшээл илгээгдэх ба ноорог менежер батлахаас нааш албан ёсны бичвэр болохгүй.
 
 \subsection{Бүтээмжийн үзүүлэлт тооцох}
-Хүснэгт~\ref{table:kpi}-ийн K1--K4 үзүүлэлтийг ажлын болон аудитын бүртгэлээс нэг дамжилтаар тооцно (Эх код~\ref{lst:kpi}). Бүх огноог байгууллагын цагийн бүсээр хөрвүүлж, хугацаа нь тухайн үед дуусах ёстой ажлыг л хуваарьт тооцно; хэн ч амлаагүй (backlog) ажлыг хасна. Тооцоо нь ажлын тоо $n$, аудитын тоо $m$-ээр $O(n + m)$ хугацаатай. Одоогийн хувилбарт K1, K3 ба ажлын бүртгэлийн төсөл, даалгавартай холбогдсон хувь сарын тайланд тооцогдоно; үр дүн бүр тоологч, хуваарь, тооцооноос хасагдсан бүртгэлийн тоо, хэрэглэсэн цагийн бүсээ хадгална. Тоолох бүртгэл байхгүй бол утга нь 0 биш, ``өгөгдөлгүй'' гэж харагдана.
+\label{sec:kpialgo}
+Хүснэгт~\ref{table:kpi}-ийн K1--K4, K6-г сарын тайлан бүрдэх үед ажил, аудит, долоо хоногийн тайлангийн бүртгэлээс цэвэр функцээр тооцно (Эх код~\ref{lst:kpi}). Үр дүн бүр ижил хэлбэртэй: утга (value), тоологч (numerator), хуваарь (denominator), тооцооноос хасагдсан бүртгэлийн тоо (excluded). Тоолох бүртгэл байхгүй бол утга 0 биш null буюу ``өгөгдөлгүй'' болно, учир нь хэмжээгүй зүйлийг хэмжсэн 0 гэж харуулбал тайлан төөрөгдүүлнэ. Бүх огноог байгууллагын цагийн бүсээр хөрвүүлж харьцуулна; огноо нь хүчингүй бүртгэлийг (жишээ нь 2-р сарын 30) тоолохгүй, хасагдсанд тооцно. K2, K4, K6-д тоологдсон бичлэгүүдийг тайлан болон CSV-д нотолгоо болгон жагсаадаг тул тоо бүрийг эх бүртгэл хүртэл мөрдөж болно. Ажилтан өөрийн, менежер багийн бүртгэлээс тоологдсон дүнг харна. Тооцоо нь ажлын тоо $n$, аудитын тоо $m$, хүлээгдэх хүн $p$, сарын долоо хоног $w$-ээр $O(n + m + p \cdot w)$ хугацаатай.
 
-\begin{lstlisting}[caption={Бүтээмжийн үзүүлэлт (K1--K4)},label={lst:kpi}]
-function kpis(tasks, audits, period, tz, today):
-    due = [t for t in tasks if t.status != backlog and t.dueDate in period]
-    onTime = [t for t in due if t.completedAt and localDate(t.completedAt, tz) <= t.dueDate]
-    K1 = 100 * len(onTime) / len(due)                     // if due is empty: none
-    late = [t for t in tasks if t.status not in {done, backlog} and t.dueDate < today]
-    K2 = (len(late), mean(today - t.dueDate for t in late))
-    runs = [a for a in audits if a.status == done and a.date in period]
-    K3 = (mean(a.score for a in runs), share of zones whose last score >= 85)
-    fixes = [t for t in tasks if t.sourceType == audit_run and t.completedAt in period]
-    K4 = mean(days(t.completedAt - t.createdAt) for t in fixes)
-    return K1, K2, K3, K4
+\begin{lstlisting}[caption={Бүтээмжийн үзүүлэлт (K1--K4, K6)},label={lst:kpi}]
+function monthlyMeasurements(records, month, tz, refDay):   // refDay: month end, or today
+    // K1: share of the tasks finished this month that were finished on time
+    done = [t in records.completed where localDate(t.completedAt, tz) in month
+                                     and t.dueDate is a valid date]
+    K1 = measure(count(t in done where localDate(t.completedAt, tz) <= t.dueDate), len(done))
+    // K2: committed tasks that are late at the reference day
+    late = [t in records.lateCandidates where t.status != backlog
+            and t.dueDate < refDay and not finishedBy(t, refDay)]
+    K2 = meanDays(sum(refDay - t.dueDate for t in late), len(late))
+    // K3: mean score of submitted audits of a zone
+    K3 = mean(a.score for a in records.audits where a.zoneId and a.submitted
+                                              and 0 <= a.score <= 100)
+    // K4: elapsed days from creation to completion of audit-raised fixes
+    K4 = meanDays(sum(t.completedAt - t.createdAt for t in done
+                      where t.sourceType == audit_run), ...)
+    // K6: person-weeks with a check-in / expected person-weeks
+    K6 = measure(count(written(person, week)), len(people) * len(weeksStarted(month, refDay)))
+    return each as {value or null, numerator, denominator, excluded}
+\end{lstlisting}
+
+Дипломд K2, K4, K6-ийн томьёо ерөнхий байсан тул кодлохдоо Хүснэгт~\ref{table:kpidecisions}-д заасан шийдвэрүүдийг гаргав. Эдгээрийг удирдагч багштай баталгаажуулна.
+
+\begin{table}[H]
+\centering
+\caption{Үзүүлэлтийг кодлохдоо гаргасан шийдвэр}
+\label{table:kpidecisions}
+\begin{tabular}{|L{3.4cm}|p{11.0cm}|}
+\hline
+\textbf{Шийдвэр} & \textbf{Тайлбар} \\ \hline
+K2 -- жишиг өдөр & Дууссан сарыг сүүлийн өдрөөр, үргэлжилж буй сарыг өнөөдрөөр тооцно; сар дууссаны дараа тоо өөрчлөгдөхгүй. \\ \hline
+K2 -- өмнөх сарын ажил & Өмнөх сард хугацаа нь болсон ч одоо хүртэл нээлттэй ажил тухайн сард хоцорсонд тооцогдоно. \\ \hline
+K4 -- яг өнгөрсөн хугацаа & createdAt-аас completedAt хүртэлх хугацааг бутархай хоногоор (нэг орны нарийвчлалтай) тооцно; зөвхөн аудитаас үүссэн ажил, улаан шошгын ажил тусдаа. \\ \hline
+K6 -- хүн-долоо хоног & Тайлан бичсэн (хүн, долоо хоног) хосын хүлээгдэх хосод эзлэх хувь; долоо хоног Даваа гарагаараа сардаа хамаарна; идэвхтэй ажилтан, менежерийг хүлээж, админыг хүлээхгүй. \\ \hline
+Хуучин тайлан & Энэ өөрчлөлтөөс өмнө хаагдсан тайланд K2, K6 ``өгөгдөлгүй'' бөгөөд амьд өгөгдлөөс дахин тооцохгүй. \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Засварын үр дүнг шалгах (PDCA ``Шалгах'')}
+\label{sec:pdcacheck}
+Аудитаас үүссэн засах ажил хаагдсан нь ажил хийгдсэн гэсэн үг боловч асуудал арилсныг батлахгүй. PDCA мөчлөгийн ``Шалгах'' алхмын нотолгоо нь тухайн бүсийн дараагийн аудит юм~\cite{deming}. Алгоритм илгээсэн, оноотой аудитуудыг бүсээр бүлэглэж цагаар эрэмбэлээд, аудитаас үүссэн засвар бүрийг Зураг~\ref{fig:fixverify}-д заасан зургаан төлөвийн аль нэгэнд ангилна (Эх код~\ref{lst:pdca}). Баталгаажуулалтын хувь нь verified засварын дахин аудитлагдсан (verified, improved, not\_improved) засварт эзлэх хувь бөгөөд үзүүлэлтүүдийн адил тоологч, хуваарь, хасагдсан тоотой. Хасагдсанд үүсгэсэн аудит нь устсан болон дууссан мөч нь бүртгэгдээгүй (done\_undated) засвар орно. Төвөгшил нь аудитын тоо $r$, засварын тоо $t$, бүсийн аудитын тоо $k$-аар $O(r \log r + t \cdot k)$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{Figures/fix_verification.png}
+\caption{Аудитаас үүссэн засварыг дараагийн аудитаар ангилах}
+\label{fig:fixverify}
+\end{figure}
+
+\begin{lstlisting}[caption={Засварын үр дүнг шалгах},label={lst:pdca}]
+function verifyImprovements(tasks, runs):
+    byZone = submitted runs with a score, grouped by zoneId and sorted by time
+    for task in tasks where task.sourceType == audit_run:
+        trigger = runs[task.sourceId]
+        if task.status != done:          status = open
+        else if no task.completedAt:     status = done_undated
+        else:
+            next = first run of byZone[trigger.zoneId] after task.completedAt
+            if no next:                  status = awaiting_reaudit
+            else if next.score >= 85:    status = verified
+            else if next.score > trigger.score: status = improved
+            else:                        status = not_improved
+    rate = verified / (verified + improved + not_improved)    // null when none re-audited
+\end{lstlisting}
+
+Залруулах үйлдлийн гогцоог бүрэн болгохын тулд засварт ``үндсэн шалтгаан'' талбар нэмэв: түүнийг засвар хийсэн ажилтан эсвэл менежер бичнэ. Менежер дууссан засварыг баталгаажуулна (fixes:signoff эрх); дуусаагүй засварыг (FIX\_NOT\_DONE) болон өөрийнхөө хийсэн засварыг баталгаажуулахыг татгалзана, засварыг дахин нээвэл баталгаажуулалт цуцлагдана. Үндсэн шалтгаан, баталгаажуулалт нь баталгаажуулалтын хувийг өөрчлөхгүй: засвар ажилласан эсэхийг зөвхөн дараагийн аудит шийднэ.
+
+\subsection{Нууц үг сэргээх ба session дуусгах}
+Нууц үг сэргээх токены зөвхөн hash-ийг хадгалж, токеныг нэг удаа, нөхцөлтэй UPDATE-ээр атомаар хэрэглэнэ: токен хэвээр, хугацаа нь дуусаагүй мөрийг л шинэчилдэг тул нэг токентой зэрэг ирсэн хоёр хүсэлтээс нэг л амжина (Эх код~\ref{lst:reset}). ``Нууц үгээ мартсан'' хүсэлтэд бүртгэлтэй, бүртгэлгүй, идэвхгүй хаягт ижил хариуг мэйл илгээхээс өмнө буцаадаг тул хариуны агуулга, хугацаагаар бүртгэл байгаа эсэхийг тандах боломжгүй. Хэрэглэгч бүр token\_version-тэй; refresh токен үүсэхдээ тухайн хувилбарыг агуулах ба нууц үг солих эсвэл сэргээхэд хувилбар нэмэгдэж өмнөх бүх refresh токен хүчингүй болно~\cite{jwt}. Нууц үгээ сольсон төхөөрөмж хариундаа шинэ session авна. Вэб refresh токеныг HttpOnly, SameSite=Strict cookie-д хадгалдаг тул хөтөч дээрх script уншиж чадахгүй.
+
+\begin{lstlisting}[caption={Сэргээх токеныг атомаар хэрэглэх},label={lst:reset}]
+function completePasswordReset(userId, tokenHash, newPassword):
+    affected = UPDATE users
+               SET password = bcrypt(newPassword), resetToken = null,
+                   resetExpires = null, tokenVersion = tokenVersion + 1
+               WHERE id = userId and resetToken = tokenHash and resetExpires > now()
+    return affected == 1               // of two concurrent requests only one wins
+
+function refresh(token):
+    if token.version != user.tokenVersion: fail 401 AUTH_SESSION_EXPIRED
 \end{lstlisting}
 
 \subsection{Ажлыг ач холбогдлоор бүлэглэх}
@@ -268,32 +369,263 @@ function kpis(tasks, audits, period, tz, today):
 \end{figure}
 
 %-------------------------------------------------------------------------------
-\section{Системийн туршилтын загвар боловсруулах}
-Системийг гурван түвшинд автоматаар туршина (Хүснэгт~\ref{table:tests}). Өөрчлөлт бүрийн дараа бүх тест ажиллаж, амжилтгүй тест байвал өөрчлөлтийг нэгтгэхгүй.
+\section{Алгоритмын хэрэгжүүлэлт}
+\label{sec:implementation}
+Систем TypeScript (NestJS backend, React вэб) ба Dart (Flutter гар утас) хэлээр хэрэгжсэн. Тест ба migration-ийг оруулалгүй backend 17\,324, вэб 40\,557, гар утас 7\,164 мөр кодтой; өгөгдлийн сан 29 хүснэгт, 49 migration-оос бүрдэнэ. \ref{sec:algorithms}-р хэсгийн алгоритм бүр кодын тодорхой нэг газарт цэвэр функц эсвэл үйлчилгээ болж хэрэгжсэн (Хүснэгт~\ref{table:algocode}). Тооцоог өгөгдлийн сан, HTTP-ээс тусгаарласан цэвэр функцэд хийсэн тул өгөгдлийн сангүйгээр unit тестээр шалгагдана.
+
+\begin{table}[H]
+\centering
+\caption{Алгоритм ба түүнийг хэрэгжүүлсэн код}
+\label{table:algocode}
+\begin{tabular}{|L{3.6cm}|L{6.6cm}|L{4.2cm}|}
+\hline
+\textbf{Алгоритм} & \textbf{Файл} & \textbf{Функц} \\ \hline
+Аудитын оноо & admin-web/src/components/fives/ auditAnswers.ts; mobile-flutter/lib/models/ five\_s\_model.dart & scoreAnswers \\ \hline
+Засах ажил үүсгэх & backend/src/operations/ operations.service.ts & correctiveWorkFor, createTask \\ \hline
+Сүлжээгүй дараалал & mobile-flutter/lib/services/outbox.dart & Outbox.keep, Outbox.flush \\ \hline
+Idempotency-Key & backend/src/shared/idempotency/ & Idempotency\-Interceptor, Idempotency\-Service.claim \\ \hline
+Өдрийн сануулга & backend/src/operations/ daily-reminder.service.ts & remind \\ \hline
+K1--K4, K6 & backend/src/operations/ monthly-measurements.ts & monthlyMeasurements, lateWork, fixClosure, checkinRate \\ \hline
+PDCA ``Шалгах'' & backend/src/operations/ improvement-verification.ts & verifyImprovements \\ \hline
+Нууц үг сэргээх & backend/src/auth/auth.service.ts; backend/src/users/users.service.ts & resetPassword, complete\-Password\-Reset \\ \hline
+\end{tabular}
+\end{table}
+
+Эх код~\ref{lst:scorecode}-д аудитын оноо тооцох функцийн бодит кодыг харуулав. Вэб ба гар утас ижил дүрмийг (утсанд Dart хувилбар) хэрэглэдэг тул аудитыг аль клиентээс хийсэн нь оноонд нөлөөлөхгүй. Сервер илгээгдсэн оноог хадгалж, засах ажлын шийдвэрт ашигладаг; оноог хадгалсан хариултаас сервер дээр дахин тооцож шалгах нь цаашдын сайжруулалт юм.
+
+\begin{lstlisting}[caption={Аудитын оноо тооцох функц (TypeScript)},label={lst:scorecode}]
+export const scoreAnswers = (
+  template: Pick<AuditTemplate, 'questions'> | undefined,
+  answers: AuditAnswers,
+): number => {
+  if (!template) return 0;
+
+  let earned = 0;
+  let possible = 0;
+
+  template.questions.forEach((question) => {
+    if (question.type === 'score') {
+      possible += question.maxScore || DEFAULT_MAX_SCORE;
+      earned += Number(answers[question.id] || 0);
+    }
+
+    if (question.type === 'yes_no') {
+      possible += 1;
+      earned += answers[question.id] === 'yes' ? 1 : 0;
+    }
+  });
+
+  return possible ? Math.round((earned / possible) * 100) : 0;
+};
+\end{lstlisting}
+
+%-------------------------------------------------------------------------------
+\section{Системийн туршилтын загвар}
+Системийг зургаан түвшинд автоматаар туршина (Хүснэгт~\ref{table:tests})~\cite{beck}. Өөрчлөлт бүрийн дараа GitHub Actions бүх тестийг ажиллуулж, амжилтгүй тест байвал өөрчлөлтийг нэгтгэхгүй. Үр дүнгийн хүснэгтийг backend-ийн \texttt{npm run results} команд бодит тестийн гаралтаас автоматаар үүсгэдэг тул гараар бичсэн тоо байхгүй.
 
 \begin{table}[H]
 \centering
 \caption{Туршилтын түвшин}
 \label{table:tests}
-\begin{tabular}{|p{3.2cm}|p{6.4cm}|p{4.6cm}|}
+\begin{tabular}{|L{3.0cm}|L{6.2cm}|L{5.2cm}|}
 \hline
-\textbf{Түвшин} & \textbf{Юуг шалгах} & \textbf{Хэрэгсэл, тоо} \\ \hline
-Unit & Оноо тооцох, бүлэглэх, эрх шалгах зэрэг функц & Jest, Vitest, flutter\_test \\ \hline
-Integration & API маршрут, өгөгдлийн сан, эрхийн guard & Jest (backend 927 тест) \\ \hline
-Component & Вэб хуудас, компонент, орчуулга & Vitest (1033 тест) \\ \hline
-End-to-end & Хөтөч дээр бүтэн урсгал, WCAG хүртээмж & Playwright + axe (39 тест) \\ \hline
-Гар утас & Дэлгэц, outbox, том үсэг, хүртээмж & flutter\_test (125 тест) \\ \hline
+\textbf{Түвшин} & \textbf{Юуг шалгах} & \textbf{Хэрэгсэл} \\ \hline
+Unit & Оноо, K1--K6, PDCA, бүлэглэлт, эрх зэрэг цэвэр функц & Jest, Vitest, flutter\_test \\ \hline
+HTTP (integration) & API маршрут, guard, validation, алдааны хариу & Jest + supertest \\ \hline
+Use-case хүлээн авах & 22 use-case-ийн үндсэн ба өөр урсгал, бодит PostgreSQL дээр & Jest + supertest + PostgreSQL \\ \hline
+Component & Вэб хуудас, компонент, орчуулга & Vitest + Testing Library \\ \hline
+End-to-end & Хөтөч дээр бүтэн урсгал, WCAG 2.1 AA хүртээмж & Playwright + axe \\ \hline
+Гар утас & Дэлгэц, outbox, том үсэг, хүртээмж & flutter\_test \\ \hline
 \end{tabular}
 \end{table}
 
 Гол туршилтын тохиолдлууд:
 \begin{enumerate}[label=(\alph*)]
-    \item Нэвтрэх -- зөв, буруу нууц үг, идэвхгүй бүртгэл.
+    \item Нэвтрэлт -- зөв, буруу нууц үг; нууц үг солиход бусад session дуусах; сэргээх токены халдлага.
     \item 5S аудит -- оноо 85\%-иас доош бол засах ажил нэг удаа үүсэх; дахин илгээхэд давхардахгүй.
-    \item Сүлжээгүй горим -- сүлжээгүй үед хадгалагдаж, сүлжээ сэргэхэд илгээгдэх; 4xx хариуг дахин илгээхгүй.
-    \item Эрх -- ажиглагч ажил устгах хүсэлт илгээхэд 403 буцах.
-    \item Сарын тайлан -- хаагдсан сарын тайлан дараа нь өгөгдөл өөрчлөгдсөн ч хэвээр байх.
+    \item Сүлжээгүй горим -- сүлжээгүй үед хадгалагдаж, сүлжээ сэргэхэд илгээгдэх; хариугаа алдсан бичилт нэг л удаа хадгалагдах; 4xx хариуг дахин илгээхгүй.
+    \item Эрх -- дүрд нь зөвшөөрөгдөөгүй үйлдлийг сервер татгалзах.
+    \item Сарын тайлан -- хаагдсан сарын тайлан дараа нь өгөгдөл өөрчлөгдсөн ч хэвээр байх; дахин нээхэд шалтгаан, түүх хадгалагдах.
 \end{enumerate}
 
+%-------------------------------------------------------------------------------
+\section{Туршилтын үр дүн}
+\label{sec:testresults}
+Тестийг 2026 оны 10-р сарын 22-нд (commit 6646550) бүтэн ажиллуулахад 2\,360 тест давж, нэг ч тест унаагүй (Хүснэгт~\ref{table:testresults}). Backend ба вэбийн lint алдаагүй. Гар утасны алгассан нэг тест нь ажиллаж буй сервер шаарддаг тул сервергүй орчинд алгасагдана. I үзлэгээс хойш тестийн тоо 2\,124-өөс 2\,360 болж, use-case-ийн хүлээн авах тест шинээр нэмэгдсэн (Зураг~\ref{fig:testsbysuite}).
+
+\begin{table}[H]
+\centering
+\caption{Тестийн үр дүн}
+\label{table:testresults}
+\begin{tabular}{|L{5.4cm}|L{3.4cm}|r|r|r|}
+\hline
+\textbf{Suite} & \textbf{Хэрэгсэл} & \textbf{Давсан} & \textbf{Унасан} & \textbf{Алгассан} \\ \hline
+Backend unit ба HTTP & Jest & 1\,038 & 0 & 0 \\ \hline
+Use-case хүлээн авах & Jest + PostgreSQL & 52 & 0 & 0 \\ \hline
+Вэб & Vitest & 1\,095 & 0 & 0 \\ \hline
+Гар утас & flutter\_test & 135 & 0 & 1 \\ \hline
+Хөтчийн e2e & Playwright & 40 & 0 & 0 \\ \hline
+\textbf{Нийт} & & \textbf{2\,360} & \textbf{0} & 1 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\linewidth]{Figures/tests_by_suite.png}
+\caption{I ба II үзлэгийн хоорондох тестийн тоо}
+\label{fig:testsbysuite}
+\end{figure}
+
+\subsection{Use-case-ийн хүлээн авах тест}
+\label{sec:uctests}
+Use-case бүрт хүлээн авах тест бичсэн. Тест бүр жинхэнэ аппликейшныг бүх модуль, guard, validation-тай нь бодит PostgreSQL дээр асааж, HTTP API-аар шалгана: үндсэн урсгал, мөн дор хаяж нэг өөр эсвэл татгалзсан урсгал (Хүснэгт~\ref{table:uctests}). 22 use-case-ийн 52 тест бүгд давсан.
+
+\begin{longtable}{|p{1.3cm}|L{4.4cm}|c|L{6.0cm}|c|}
+\caption{Use-case-ийн хүлээн авах тестийн үр дүн}\label{table:uctests}\\ \hline
+\textbf{UC} & \textbf{Use-case} & \textbf{Тест} & \textbf{Шалгасан урсгал} & \textbf{Үр дүн} \\ \hline
+\endfirsthead
+\hline
+\textbf{UC} & \textbf{Use-case} & \textbf{Тест} & \textbf{Шалгасан урсгал} & \textbf{Үр дүн} \\ \hline
+\endhead
+UC-01 & Оноосон ажлаа гүйцэтгэх & 2 & ажлыг дуусгаж дууссан мөч бүртгэгдэх; бусдын ажлыг өөрчлөхийг татгалзах & \yes \\ \hline
+UC-02 & Өдрийн ажлын бүртгэл хөтлөх & 3 & бүртгэл хадгалагдах; тайлбаргүй бол татгалзах; хариугаа алдсан бүртгэл нэг л удаа хадгалагдах & \yes \\ \hline
+UC-03 & Долоо хоногийн тайлан бичих & 2 & тайлан хадгалагдах; ажилтан багийн тайланг уншихыг татгалзах & \yes \\ \hline
+UC-04 & Сарын тайлангаа өөрийн бүртгэлээс бэлтгэх & 2 & өөрийн бүртгэл, үзүүлэлт тоологдох; багийн тойм ноороглохыг татгалзах & \yes \\ \hline
+UC-05 & Улаан шошгоор дутагдал бүртгэх & 2 & улаан шошго бүртгэгдэх; байхгүй бүсэд татгалзах & \yes \\ \hline
+UC-06 & Сайжруулалтын санаа гаргах & 2 & санаа ``илгээсэн'' төлөвтэй хадгалагдах; богино гарчгийг татгалзах & \yes \\ \hline
+UC-07 & Хувийн бүртгэлээ удирдах & 6 & профайл, нууц үг солих; тэмдэглэл, төвлөрлийн session, тэмдэг; HttpOnly cookie; бусад session дуусах; буруу нууц үг, сэргээлтийн хариу & \yes \\ \hline
+UC-08 & 5S аудит хийх & 2 & аудит оноотой хадгалагдаж засах ажил оноогдох; байхгүй шалгах хуудсыг татгалзах & \yes \\ \hline
+UC-09 & Төсөл үүсгэж, ажил оноож хянах & 2 & төсөл, ажил үүсч хариуцагчид мэдэгдэх; ажилтан төсөл үүсгэхийг татгалзах & \yes \\ \hline
+UC-10 & Сарын төлөвлөгөө гаргах & 2 & дараагийн сарын ажил хариуцагч, огноотой хадгалагдах; ажилтан бусдад төлөвлөхийг татгалзах & \yes \\ \hline
+UC-11 & Өглөөний хурал хөтлөх & 2 & багийн долоо хоног, нээлттэй ажил уншигдах; буруу огноог татгалзах & \yes \\ \hline
+UC-12 & Gemba явалт хийх & 2 & явалтын алхам хариуцагчийн ажил болох; ажилтан бүртгэхийг татгалзах & \yes \\ \hline
+UC-13 & Санааг хянаж шийдвэрлэх & 2 & батлахад хэрэгжүүлэх ажил үүсэх; ажилтан шийдвэрлэхийг татгалзах & \yes \\ \hline
+UC-14 & Багийн бүтээмжийг дүгнэх & 4 & K1--K6 ба хүн бүрийн мөр; засвар дараагийн аудитаар verified болох; үндсэн шалтгаан, баталгаажуулалт; ажилтан зөвхөн өөрийн дүнг харах & \yes \\ \hline
+UC-15 & Хагас жил, жилийн тайлан гаргах & 2 & зургаан сарын тайлан; буруу хугацааг татгалзах & \yes \\ \hline
+UC-16 & Сарын тайланг хааж батлах & 3 & өмнөх сарыг хаах; шалтгаантай дахин нээж түүх хадгалагдах; үргэлжилж буй сарыг хаахыг татгалзах, AI тохируулаагүйг мэдэгдэх & \yes \\ \hline
+UC-17 & Хэрэглэгч урьж, эрх олгох & 2 & урилга, хүснэгтээс урихыг урьдчилан харах; ажилтан урихыг татгалзах & \yes \\ \hline
+UC-18 & Хэлтэс, байгууллагын тохиргоо хийх & 2 & хэлтэс нэмэх, байгууллага засах; ажилтан өөрчлөхийг татгалзах & \yes \\ \hline
+UC-19 & 5S талбай, стандарт тохируулах & 2 & бүсийг талбай, стандарттай нэмэх; ажилтан төлөвлөгөө үүсгэхийг татгалзах & \yes \\ \hline
+UC-20 & Аудитын шалгах хуудас боловсруулах & 2 & шалгах хуудас үүсч жагсаалтад орох; ажилтан үүсгэхийг татгалзах & \yes \\ \hline
+UC-21 & Үйл ажиллагааны түүх шалгах & 2 & админ түүх унших; менежер, ажилтан уншихыг татгалзах & \yes \\ \hline
+UC-22 & Сануулга илгээх, аудит товлох & 2 & өглөөний сануулга нэг л удаа очих; орой юу ч илгээхгүй & \yes \\ \hline
+\end{longtable}
+
+\subsection{Аюулгүй байдал ба найдвартай байдлын тест}
+Use-case-ийн тестийн татгалзсан урсгалуудаас эрхийн матрицыг гаргахад дүрд нь зөвшөөрөгдөөгүй 15 үйлдлийн бүгдийг сервер татгалзсан. Ажилтанд бусдын ажил ``олдсонгүй'' гэж харагддаг тул байгаа эсэхийг нь ч задруулахгүй. Нууц үг сэргээлтийн 13 халдлагын тохиолдол бүгд давсан: токены зөвхөн hash хадгалагдах, бүртгэлтэй, бүртгэлгүй, идэвхгүй хаягт ижил хариу өгөх, токен нэг л удаа, хугацаандаа хүчинтэй байх, зэрэг ирсэн хоёр хүсэлтээс нэг л амжих, хариу мэйлээс өмнө буцах, хүсэлтийн тоо хязгаарлагдах зэрэг. Гар утасны outbox-ийн 11 тест (сүлжээгүй үед хадгалах, апп хаагдсан ч үлдэх, дарааллаар илгээх, татгалзсан бичилтийг нэг удаа мэдэгдэх, timeout болсон бичилтийг ижил түлхүүрээр дахин илгээх, бичилт бүр өөрийн түлхүүртэй байх г.м.) бүгд давсан.
+
+\subsection{Тестээр олдсон алдаа}
+Тест ба хэмжилт хэрэглэгчид хүрэхээс өмнө долоон алдааг илрүүлсэн (Хүснэгт~\ref{table:bugs}).
+
+\begin{table}[H]
+\centering
+\caption{Тест ба хэмжилтээр олдож засагдсан алдаа}
+\label{table:bugs}
+\begin{tabular}{|L{5.8cm}|L{3.4cm}|L{5.2cm}|}
+\hline
+\textbf{Алдаа} & \textbf{Хэрхэн олдсон} & \textbf{Засвар} \\ \hline
+Сарын тайлангийн p95 1.75 с, хамгийн удаан нь 2.3 с (NFR-06-д ойр) & Гүйцэтгэлийн хэмжилт & Огнооны formatter-ийг цагийн бүсээр кэшлэв (\ref{sec:bottleneck}-р хэсэг) \\ \hline
+Үл мэдэгдэх шалгах хуудсаар аудит хийхэд 500 алдаа & UC-08-ийн татгалзсан урсгал & ``Олдсонгүй'' (404) гэж хариулдаг болгов \\ \hline
+Нэг тохиргоо хадгалахад байгууллагын бусад тохиргоо дарагдах & Үе үе унадаг e2e тест & Тохиргоог түлхүүр тус бүрээр нийлүүлдэг болгов \\ \hline
+Хариу нь timeout болсон өдрийн бүртгэл утсанд алдагдах & Outbox тест & Idempotency-Key, outbox-д хадгалах \\ \hline
+Огноогүй дууссан засвар ``нээлттэй'' гэж тоологдох & PDCA-ийн unit тест & done\_undated төлөв, хувьд оруулахгүй \\ \hline
+Бараан горимд товч уншигдахгүй; хүснэгт гараар гүйлгэгдэхгүй & axe (Playwright) & Контраст ба гараар удирдах боломжийг засав \\ \hline
+Шинэ migration-ий нэр хайлтын загварт таарахгүй & Бодит PostgreSQL дээрх тест & Нэрийг засав \\ \hline
+\end{tabular}
+\end{table}
+
+%-------------------------------------------------------------------------------
+\section{Гүйцэтгэлийн хэмжилт}
+\label{sec:benchmark}
+NFR-06-ийн ``гол хуудас 2 секундээс бага хугацаанд ачаална'' шаардлагыг шалгахын тулд 50 хэрэглэгч, 10\,000 бүртгэл (4\,000 ажил, 4\,000 ажлын бүртгэл, 2\,000 аудит), 20 бүстэй сан үүсгэж хэмжив. Endpoint бүрт 20 халаах, дараа нь 200 дараалсан хүсэлтийг 127.0.0.1 хаягаар keep-alive HTTP холболтоор илгээж хугацааг хэмжсэн. Хэмжилтийг Intel Xeon 2.10 GHz, 4 цөм, 16 GB санах ойтой Linux машин дээр Node 22, ижил машин дахь PostgreSQL-тэй 2026 оны 10-р сарын 21-нд хийв (\texttt{npm run bench}). Үр дүнг Хүснэгт~\ref{table:bench}, Зураг~\ref{fig:benchp95}-д харуулав.
+
+\begin{table}[H]
+\centering
+\caption{Endpoint-ийн хариу өгөх хугацаа (мс, 200 хүсэлт)}
+\label{table:bench}
+\begin{tabular}{|L{6.4cm}|r|r|r|r|}
+\hline
+\textbf{Endpoint} & \textbf{p50} & \textbf{p95} & \textbf{Дундаж} & \textbf{Max} \\ \hline
+Нэвтрэх (POST /auth/login) & 70.95 & 76.77 & 71.29 & 107.59 \\ \hline
+Ажлын жагсаалт, бүх байгууллага (GET /tasks) & 140.88 & 182.19 & 145.16 & 284.12 \\ \hline
+Өдрийн бүртгэл хадгалах (POST /work-logs/daily) & 5.44 & 8.21 & 5.80 & 20.87 \\ \hline
+5S аудит илгээх (POST /audit-runs) & 15.27 & 19.19 & 15.48 & 23.12 \\ \hline
+Сарын тайлан, K1--K6 (GET /operations/monthly-report) & 146.87 & 184.78 & 148.77 & 211.83 \\ \hline
+Тайлан CSV татах & 152.15 & 196.85 & 156.11 & 230.27 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{Figures/bench_p95.png}
+\caption{Endpoint-ийн p50, p95 хугацаа ба NFR-06-ийн босго}
+\label{fig:benchp95}
+\end{figure}
+
+Хамгийн удаан endpoint (тайлан CSV) p95 нь 197 мс бөгөөд босгоос арав дахин бага, зургаан endpoint бүгд NFR-06-ийг хангасан. Алгоритмыг HTTP-гүйгээр процесс дотор 50 давталтаар тусад нь хэмжихэд 10\,000 бүртгэл дээр K1, K3-ыг тооцох p95 18.57 мс, 10\,000 аудитыг 10 асуулттайгаар оноолох p95 2.41 мс байв.
+
+\subsection{Хэмжилтээр олдсон гацаа ба засвар}
+\label{sec:bottleneck}
+Эхний хэмжилтээр сарын тайлангийн p95 1\,753 мс, хамгийн удаан нь 2\,304 мс байсан нь NFR-06-ийн босгод ойртож, заримдаа давж байв. Алгоритмыг тусад нь хэмжихэд K1, K3-ын тооцоо 10\,000 бүртгэлд 1\,278 мс зарцуулж байсан. Шалтгаан нь огноог байгууллагын цагийн бүсээр хөрвүүлдэг dayIn() функц дуудагдах бүртээ шинэ Intl.DateTimeFormat объект үүсгэдэг байсан явдал: алгоритм $O(n)$ хэвээр боловч нэг алхмын өртөг өндөр байв. Formatter-ийг цагийн бүс бүрт нэг удаа үүсгэж кэшлэхэд (Эх код~\ref{lst:daycache}) ижил өгөгдөл дээр сарын тайлан 9 дахин, тооцоо 69 дахин хурдассан (Хүснэгт~\ref{table:beforeafter}, Зураг~\ref{fig:beforeafter}). Бусад endpoint-ийн хугацаа хэмжилтийн хэлбэлзлийн хүрээнд үлдсэн.
+
+\begin{lstlisting}[caption={Огнооны formatter-ийг цагийн бүсээр кэшлэх},label={lst:daycache}]
+const dayFormatters = new Map<string, Intl.DateTimeFormat>();
+
+export const dayIn = (timeZone: string, moment: Date) => {
+  let formatter = dayFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
+    dayFormatters.set(timeZone, formatter);
+  }
+  return formatter.format(moment);
+};
+\end{lstlisting}
+
+\begin{table}[H]
+\centering
+\caption{Кэшлэхийн өмнө ба дараах p95 хугацаа (мс)}
+\label{table:beforeafter}
+\begin{tabular}{|L{6.6cm}|r|r|r|}
+\hline
+\textbf{Хэмжилт} & \textbf{Өмнө} & \textbf{Дараа} & \textbf{Хурдсан} \\ \hline
+Сарын тайлан, K1--K6 & 1\,753.36 & 184.78 & $\times 9$ \\ \hline
+Тайлан CSV татах & 1\,853.97 & 196.85 & $\times 9$ \\ \hline
+K1 + K3 тооцоо, 10\,000 бүртгэл & 1\,278.20 & 18.57 & $\times 69$ \\ \hline
+Аудитын оноо, 10\,000 $\times$ 10 асуулт & 2.35 & 2.41 & -- \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{Figures/bench_before_after.png}
+\caption{Кэшлэхийн өмнө ба дараах p95 хугацаа}
+\label{fig:beforeafter}
+\end{figure}
+
+Хэмжилтийн хязгаарлалт: клиент, сервер, өгөгдлийн сан нэг машин дээр байсан тул сүлжээний саатал ороогүй, хүсэлтүүд зэрэг бус дараалан илгээгдсэн. Олон хэрэглэгчийн зэрэг ачаалал, бодит сүлжээн дэх хугацааг гуравдугаар үзлэгийн туршилтын ажиллагаанд хэмжинэ.
+
+%-------------------------------------------------------------------------------
+\section{Чанарын үнэлгээ (ISO/IEC 25010)}
+\label{sec:iso25010}
+Системийн чанарыг ISO/IEC 25010 стандартын шинж чанараар үнэлж, юуг хэмжсэн, юуг хараахан хэмжээгүйг ялгав (Хүснэгт~\ref{table:iso})~\cite{iso25010}.
+
+\begin{longtable}{|L{3.4cm}|L{5.0cm}|L{4.6cm}|c|}
+\caption{ISO/IEC 25010-ын дагуух үнэлгээ}\label{table:iso}\\ \hline
+\textbf{Шинж чанар} & \textbf{Юугаар шалгасан} & \textbf{Үр дүн} & \textbf{Төлөв} \\ \hline
+\endfirsthead
+\hline
+\textbf{Шинж чанар} & \textbf{Юугаар шалгасан} & \textbf{Үр дүн} & \textbf{Төлөв} \\ \hline
+\endhead
+Үйл ажиллагааны тохирох байдал & 22 use-case-ийн хүлээн авах тест; K1--K6-ийн unit тест & 22/22 use-case давсан & \yes \\ \hline
+Гүйцэтгэлийн үр ашиг & 6 endpoint-ийн p50/p95; 10\,000 бүртгэл дээрх алгоритм & Хамгийн удаан p95 197 мс $<$ 2\,000 мс & \yes \\ \hline
+Аюулгүй байдал & Эрхийн матриц; нууц үг сэргээлтийн халдлагын тохиолдол & 15/15 татгалзалт; 13/13 тохиолдол & \yes \\ \hline
+Засвар үйлчилгээ & Тестийн тоо, lint & 2\,360 тест; lint алдаагүй & \yes \\ \hline
+Найдвартай байдал & Outbox, дахин илгээлт, Idempotency-Key & 11/11 тест; бодит сүлжээний тасалдал хэмжээгүй & $\sim$ \\ \hline
+Нийцтэй байдал & Chromium дээрх e2e, Android, нэг API & 40/40 e2e; бусад хөтөч, бодит төхөөрөмж хэмжээгүй & $\sim$ \\ \hline
+Ашиглахад хялбар байдал & SUS асуулга; axe, Flutter-ийн хүртээмжийн автомат шалгалт & Хүртээмжийн шалгалт давсан; SUS хэмжээгүй & $\sim$ \\ \hline
+\end{longtable}
+
+Ашиглахад хялбар байдлыг SUS асуулгаар бодит хэрэглэгчид системийг хэрэглэсний дараа үнэлэх ёстой тул туршилтын ажиллагааны төгсгөлд хэмжинэ (K7)~\cite{brooke,bangor}. Найдвартай байдал, нийцтэй байдлын үлдсэн хэсгийг мөн туршилтын ажиллагааны үеэр бодит сүлжээ, төхөөрөмж дээр шалгана.
+
 \section*{Бүлгийн дүгнэлт}
-Энэ бүлэгт системийн давхаргат архитектур, зохиомжийн класс, дарааллын диаграмм, өгөгдлийн сангийн схем, эрхийн загварыг боловсруулав. Аудитын оноо ба засах ажил, сүлжээгүй горимын дараалал, өдрийн сануулга, сарын тайлан, бүтээмжийн үзүүлэлт, ажлын бүлэглэлт гэсэн зургаан алгоритмыг зохиомжилж, байршуулалтын диаграмм болон туршилтын загварыг тодорхойлов.
+Энэ бүлэгт системийн давхаргат архитектур, зохиомжийн класс, дарааллын диаграмм, өгөгдлийн сангийн схем, эрхийн загварыг боловсруулав. Аудитын оноо ба засах ажил, сүлжээгүй горимын дараалал, давхар бичилтээс сэргийлэх Idempotency-Key, өдрийн сануулга, сарын тайлан, бүтээмжийн үзүүлэлт, засварын үр дүнг шалгах PDCA алхам, нууц үг сэргээх, ажлын бүлэглэлт гэсэн алгоритмуудыг зохиомжилж хэрэгжүүлэв. Системийг зургаан түвшинд 2\,360 автомат тестээр шалгаж, 22 use-case бүгд хүлээн авах тестээ давсан. Гүйцэтгэлийн хэмжилтээр сарын тайлангийн гацааг илрүүлж 9 дахин хурдасгасан бөгөөд бүх endpoint NFR-06-ийг хангасан. ISO/IEC 25010-ын долоон шинж чанараас дөрөв нь бүрэн хэмжигдсэн, ашиглахад хялбар байдал, найдвартай байдал, нийцтэй байдлын үлдсэн хэсгийг туршилтын ажиллагаанд хэмжинэ.

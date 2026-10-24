@@ -60,58 +60,77 @@ def usecase(ax, x, y, text, w=2.7, h=0.52):
     ax.text(x, y, text, ha='center', va='center', fontsize=8.4)
 
 
-# 1. Use-case диаграм
+# 1. Use-case диаграм: 22 use-case, дугаар нь хүлээн авах тесттэй ижил (backend/test/use-cases)
+EMPLOYEE_CASES = [('UC-01', 'Оноосон ажлаа гүйцэтгэх'), ('UC-02', 'Өдрийн ажлын бүртгэл хөтлөх'),
+                  ('UC-03', 'Долоо хоногийн тайлан бичих'), ('UC-04', 'Сарын тайлангаа өөрийн\nбүртгэлээс бэлтгэх'),
+                  ('UC-05', 'Улаан шошгоор дутагдал бүртгэх'), ('UC-06', 'Сайжруулалтын санаа гаргах'),
+                  ('UC-07', 'Хувийн бүртгэлээ удирдах'), ('UC-08', '5S аудит хийх')]
+MANAGER_CASES = [('UC-09', 'Төсөл үүсгэж, ажил оноож хянах'), ('UC-10', 'Сарын төлөвлөгөө гаргах'),
+                 ('UC-11', 'Өглөөний хурал хөтлөх'), ('UC-12', 'Gemba явалт хийх'),
+                 ('UC-13', 'Санааг хянаж шийдвэрлэх'), ('UC-14', 'Багийн бүтээмжийг дүгнэх'),
+                 ('UC-15', 'Хагас жил, жилийн тайлан гаргах'), ('UC-16', 'Сарын тайланг хааж батлах')]
+ADMIN_CASES = [('UC-17', 'Хэрэглэгч урьж, эрх олгох'), ('UC-18', 'Хэлтэс, байгууллагын\nтохиргоо хийх'),
+               ('UC-19', '5S талбай, стандарт тохируулах'), ('UC-20', 'Аудитын шалгах хуудас\nболовсруулах'),
+               ('UC-21', 'Үйл ажиллагааны түүх шалгах')]
+
+
 def usecase_diagram():
-    fig, ax = canvas(11, 9.4)
-    ax.add_patch(Rectangle((2.2, 0.2), 6.6, 9.0, fc='white', ec=INK, lw=1.4))
-    ax.text(5.5, 9.0, 'Бүтээмжийн платформ', ha='center', fontsize=11, fontweight='bold')
-    cases = {
-        'login': (5.5, 8.45, 'Нэвтрэх'),
-        'tasks': (4.0, 7.75, 'Өөрийн ажлыг харах, дуусгах'),
-        'worklog': (4.0, 7.05, 'Өдрийн бүртгэл хөтлөх'),
-        'checkin': (4.0, 6.35, 'Долоо хоногийн тайлан бичих'),
-        'audit': (4.0, 5.65, '5S аудит хийх (QR)'),
-        'redtag': (4.0, 4.95, 'Улаан шошго бүртгэх'),
-        'idea': (4.0, 4.25, 'Сайжруулалтын санаа илгээх'),
-        'inbox': (4.0, 3.55, 'Мэдэгдэл унших'),
-        'archive': (4.0, 2.05, 'Тайлан, архив үзэх'),
-        'assign': (7.0, 7.4, 'Ажил оноох, хянах'),
-        'huddle': (7.0, 6.7, 'Өглөөний хурал хөтлөх'),
-        'gemba': (7.0, 6.0, 'Gemba явалт бүртгэх'),
-        'review': (7.0, 5.3, 'Санаа хянах'),
-        'report': (7.0, 4.6, 'Сарын тайлан хаах, батлах'),
-        'layout': (7.0, 3.9, '5S талбайн зураг, стандарт'),
-        'users': (7.0, 2.4, 'Хэрэглэгч урих, эрх олгох'),
-        'org': (7.0, 1.7, 'Байгууллагын тохиргоо'),
-        'remind': (5.5, 0.75, 'Сануулга, аудит төлөвлөх'),
-    }
-    for x, y, t in cases.values():
-        usecase(ax, x, y, t)
-    actor(ax, 0.9, 6.2, 'Ажилтан')
-    actor(ax, 0.9, 2.6, 'Ажиглагч')
-    actor(ax, 10.1, 6.2, 'Менежер')
-    actor(ax, 10.1, 2.4, 'Админ')
-    actor(ax, 10.1, 0.5, 'Цагийн хуваарь')
+    fig, ax = canvas(14.2, 17.2)
+    ax.add_patch(Rectangle((1.9, 0.5), 10.4, 16.3, fc='white', ec=INK, lw=1.4))
+    ax.text(7.1, 16.45, 'Бүтээмжийн платформ', ha='center', fontsize=12, fontweight='bold')
+    w, h = 3.5, 1.0
+    pos = {}
+
+    def case(uc, name, x, y):
+        pos[uc] = (x, y)
+        two_lines = '\n' in name
+        ax.add_patch(Ellipse((x, y), w, h, fc=BLUE, ec=BLUE_E, lw=1.1))
+        ax.text(x, y + (0.28 if two_lines else 0.2), uc, ha='center', va='center', fontsize=8, fontweight='bold',
+                color=BLUE_E)
+        ax.text(x, y - (0.13 if two_lines else 0.12), name, ha='center', va='center', fontsize=8.2, linespacing=1.05)
+
+    rows = [15.6 - i * 1.15 for i in range(8)]
+    for (uc, name), y in zip(EMPLOYEE_CASES, rows):
+        case(uc, name, 3.9, y)
+    for (uc, name), y in zip(MANAGER_CASES, rows):
+        case(uc, name, 10.25, y)
+    for i, (uc, name) in enumerate(ADMIN_CASES):
+        case(uc, name, 10.25, 5.95 - i * 1.15)
+    case('UC-22', 'Сануулга илгээх, аудит товлох', 3.9, 4.2)
+
+    # «include» ба «extend»: 22-т тоологдохгүй, бусад use-case-ийн хэсэг
+    for key, name, x, y in (('notify', 'Ажил үүсгэж мэдэгдэх', 7.07, 10.4), ('ai', 'AI-аар тойм ноороглох', 7.07, 6.6)):
+        pos[key] = (x, y)
+        ax.add_patch(Ellipse((x, y), 2.35, 0.7, fc='white', ec=BLUE_E, lw=1.0, ls='--'))
+        ax.text(x, y, name, ha='center', va='center', fontsize=7.8)
+    dashed = dict(arrowstyle='-|>', color=INK, lw=0.9, ls='--')
+    for uc in ('UC-08', 'UC-09', 'UC-12', 'UC-13'):
+        x, y = pos[uc]
+        side = 1 if x < 7 else -1
+        ax.annotate('', xy=(7.07 - side * 1.17, 10.4), xytext=(x + side * w / 2, y), arrowprops=dashed)
+    ax.text(7.07, 10.95, '«include»', ha='center', fontsize=7.6, color='#374151')
+    x, y = pos['UC-16']
+    ax.annotate('', xy=(x - w / 2, y), xytext=(7.07 + 1.17, 6.6), arrowprops=dashed)
+    ax.text(7.07, 7.1, '«extend»', ha='center', fontsize=7.6, color='#374151')
+
+    actor(ax, 0.8, 11.3, 'Ажилтан')
+    actor(ax, 13.4, 11.3, 'Менежер')
+    actor(ax, 13.4, 3.6, 'Админ')
+    actor(ax, 0.8, 3.0, 'Цагийн\nхуваарь')
     line = dict(color='#6b7280', lw=0.8)
-    for k in ['tasks', 'worklog', 'checkin', 'audit', 'redtag', 'idea', 'inbox', 'login']:
-        x, y, _ = cases[k]
-        ax.plot([1.15, x - 1.35], [6.35, y], **line)
-    for k in ['archive', 'inbox']:
-        x, y, _ = cases[k]
-        ax.plot([1.15, x - 1.35], [2.75, y], **line)
-    for k in ['assign', 'huddle', 'gemba', 'review', 'report', 'layout']:
-        x, y, _ = cases[k]
-        ax.plot([9.85, x + 1.35], [6.35, y], **line)
-    for k in ['users', 'org']:
-        x, y, _ = cases[k]
-        ax.plot([9.85, x + 1.35], [2.55, y], **line)
-    x, y, _ = cases['remind']
-    ax.plot([9.85, x + 1.25], [0.65, y], **line)
-    # Эрхийн удамшил: админ ⊃ менежер ⊃ ажилтан ⊃ ажиглагч
-    ax.annotate('', xy=(10.1, 5.3), xytext=(10.1, 3.4), arrowprops=dict(arrowstyle='-|>', color=INK, lw=1, ls='--'))
-    ax.text(10.3, 4.35, 'өвлөнө', fontsize=8, rotation=90, va='center')
-    ax.annotate('', xy=(0.9, 3.7), xytext=(0.9, 5.3), arrowprops=dict(arrowstyle='-|>', color=INK, lw=1, ls='--'))
-    ax.text(0.55, 4.5, 'өвлөнө', fontsize=8, rotation=90, va='center')
+
+    def link(fx, fy, keys, side):
+        for key in keys:
+            x, y = pos[key]
+            ax.plot([fx, x + side * w / 2], [fy, y], **line)
+
+    link(1.05, 11.45, [uc for uc, _ in EMPLOYEE_CASES], -1)
+    link(13.15, 11.45, [uc for uc, _ in MANAGER_CASES], 1)
+    link(13.15, 3.75, [uc for uc, _ in ADMIN_CASES], 1)
+    link(1.05, 3.15, ['UC-22'], -1)
+    # Эрхийн удамшил: админ менежерийн, менежер ажилтны бүх use-case-ийг өвлөнө
+    ax.annotate('', xy=(13.4, 10.4), xytext=(13.4, 4.45), arrowprops=dict(arrowstyle='-|>', color=INK, lw=1, ls='--'))
+    ax.text(13.62, 7.4, 'өвлөнө', fontsize=8, rotation=90, va='center')
     save(fig, 'usecase.png')
 
 
