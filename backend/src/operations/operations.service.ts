@@ -23,6 +23,7 @@ import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { projectProgressPercent, sumRecordedHours } from './monthly-people';
 import { WeeklyCheckin } from './entities/weekly-checkin.entity';
 import { verifyImprovements } from './improvement-verification';
+import { scoreFromAnswers } from './audit-score';
 import { buildMonthlyReport, MonthRecords, OrganizationRecords, selectMonthRecords } from './monthly-report';
 import { NotificationsService } from './notifications.service';
 import { noteAuditBefore } from '../audit/audit-context';
@@ -1098,11 +1099,18 @@ export class OperationsService {
     // rather than matched to one afterwards by somebody's memory.
     const version = await this.versionWalkedAgainst(payload, user);
 
+    // The score that decides corrective work and goes into K3 is the server's,
+    // worked out from the answers; one sent by the client stands only for a
+    // checklist that has nothing to score.
+    const answers = payload.answers || [];
+    const score = scoreFromAnswers(template.questions, answers) ?? payload.score;
+
     const run = this.auditRuns.create({
       ...payload,
       organizationId: this.resolveOrganizationId(user, payload.organizationId),
       auditorId: payload.auditorId || user?.id,
-      answers: payload.answers || [],
+      answers,
+      score,
       layoutVersionId: version?.id,
       layoutVersionOn: version?.takenOn,
     });

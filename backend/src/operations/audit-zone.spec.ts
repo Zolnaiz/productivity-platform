@@ -320,6 +320,30 @@ describe('a failing audit raises the work it calls for', () => {
     expect(ordinary.priority).toBe('medium');
   });
 
+  it('decides on the score worked out from the answers, not the one the client sent', async () => {
+    // A run that claims 95 but answered 1 of 5 and 1 of 5 scored 20: the area
+    // gets its corrective work and the zone shows what the walk found.
+    const { service, repositories } = createService();
+    repositories.auditTemplates.findOne.mockResolvedValue({
+      id: 't-1',
+      questions: [
+        { id: 'q1', text: 'Sorted', type: 'score', maxScore: 5 },
+        { id: 'q2', text: 'Labelled', type: 'score', maxScore: 5 },
+      ],
+    } as never);
+    repositories.fiveSLayouts.find.mockResolvedValue([layoutWith([zone()])]);
+    withRunId(repositories);
+
+    const saved = await service.createAuditRun(
+      failingRun({ score: 95, answers: [{ questionId: 'q1', value: 1 }, { questionId: 'q2', value: 1 }] }) as any,
+      user,
+    );
+
+    expect(saved.score).toBe(20);
+    expect(repositories.tasks.save).toHaveBeenCalledTimes(1);
+    expect(repositories.tasks.save.mock.calls[0][0].priority).toBe('high');
+  });
+
   it('still records the audit when the follow-up cannot be raised', async () => {
     // The run is the measurement. Losing it because a task could not be saved
     // would lose the one thing the walk was for.
