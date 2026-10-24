@@ -168,6 +168,8 @@ function flush():                           // network back / app opened / "send
             outbox.remove(write); refused += 1               // 4xx: final answer
 \end{lstlisting}
 
+Унших тал нь мөн адил хамгаалагдсан. Утас ажил, 5S талбай ба шалгах хуудас, санаа, мэдэгдэл, өдрийн бүртгэлийг серверээс амжилттай уншсан бүртээ санах ойдоо хадгална (readThrough). Дараагийн уншилт сүлжээгүйн улмаас (холболтгүй эсвэл хариу ирээгүй) бүтэлгүйтвэл хадгалсан хувилбарыг харуулж, дэлгэцийн дээд хэсэгт хэдэн цагт уншсаныг заана, ингэснээр хэрэглэгч хуучин мэдээллийг одоогийн гэж андуурахгүй. Сервер татгалзсан (жишээ нь 401) бол хуучин өгөгдлөөр нуухгүй. Нэг утсыг ээлжээр хэрэглэж болох тул зөвхөн тухайн хүний өөрийн ажлыг хадгалж, хэрэглэгч гарах, session дуусах эсвэл шинээр нэвтрэхэд санах ойг цэвэрлэнэ. Зураг хавсаргахад л сүлжээ шаардлагатай хэвээр.
+
 \subsection{Давхар бичилтээс сэргийлэх (Idempotency-Key)}
 \label{sec:idempotency}
 Клиент бичих (POST) хүсэлтдээ \texttt{Idempotency-Key} толгой хавсаргавал сервер (хэрэглэгч, түлхүүр) хосыг \texttt{idempotency\_keys} хүснэгтийн давтагдашгүй индексээр эзэлнэ (Зураг~\ref{fig:idempotency}). Эхний хүсэлт бичилтээ хийж, хариугаа түлхүүрийн хамт хадгална. Ижил түлхүүрээр дахин ирсэн хүсэлт шинээр бичигдэхгүй, анхны хариугаа \texttt{Idempotent-Replayed: true} толгойтой авна. Анхны хүсэлт дуусаагүй байхад ирсэн хуулбар 409 (REQUEST\_IN\_PROGRESS), өөр хүсэлтэд ашигласан түлхүүр 409 (IDEMPOTENCY\_KEY\_REUSED) хариу авна. Амжилтгүй болсон хүсэлт түлхүүрээ суллаж, дахин оролдох боломж үлдээнэ (Эх код~\ref{lst:idempotency}). Түлхүүр 24 цаг хадгалагдаж, дараа нь цагийн хуваариар устгагдана. Түлхүүр хэрэглэгч бүрт тусдаа тул бусдын хариуг таах боломжгүй, давтагдсан хүсэлт үйл ажиллагааны түүхэнд дахин бичигдэхгүй. Ингэснээр NFR-05-ийн ``давхар илгээлтээс сэргийлнэ'' шаардлага сервер талдаа баталгаажна.
@@ -399,6 +401,7 @@ function refresh(token):
 Аудитын оноо & backend/src/operations/ audit-score.ts; admin-web/src/components/fives/ auditAnswers.ts; mobile-flutter/lib/models/ five\_s\_model.dart & scoreFromAnswers (сервер), scoreAnswers (клиент) \\ \hline
 Засах ажил үүсгэх & backend/src/operations/ operations.service.ts & correctiveWorkFor, createTask \\ \hline
 Сүлжээгүй дараалал & mobile-flutter/lib/services/outbox.dart & Outbox.keep, Outbox.flush \\ \hline
+Офлайн унших кэш & mobile-flutter/lib/services/ read\_cache.dart & readThrough, ReadCache \\ \hline
 Idempotency-Key & backend/src/shared/idempotency/ & Idempotency\-Interceptor, Idempotency\-Service.claim \\ \hline
 Өдрийн сануулга & backend/src/operations/ daily-reminder.service.ts & remind \\ \hline
 K1--K4, K6 & backend/src/operations/ monthly-measurements.ts & monthlyMeasurements, lateWork, fixClosure, checkinRate \\ \hline
@@ -467,7 +470,7 @@ End-to-end & Хөтөч дээр бүтэн урсгал, WCAG 2.1 AA хүртэ
 %-------------------------------------------------------------------------------
 \section{Туршилтын үр дүн}
 \label{sec:testresults}
-Тестийг 2026 оны 10-р сарын 22-нд (commit 6646550) бүтэн ажиллуулахад 2\,360 тест давж, нэг ч тест унаагүй (Хүснэгт~\ref{table:testresults}). Backend ба вэбийн lint алдаагүй. Гар утасны алгассан нэг тест нь ажиллаж буй сервер шаарддаг тул сервергүй орчинд алгасагдана. I үзлэгээс хойш тестийн тоо 2\,124-өөс 2\,360 болж, use-case-ийн хүлээн авах тест шинээр нэмэгдсэн (Зураг~\ref{fig:testsbysuite}).
+Тестийг 2026 оны 10-р сарын 22-нд (commit 6646550) бүтэн ажиллуулахад 2\,360 тест давж, нэг ч тест унаагүй (Хүснэгт~\ref{table:testresults}). Backend ба вэбийн lint алдаагүй. Гар утасны алгассан нэг тест нь ажиллаж буй сервер шаарддаг тул сервергүй орчинд алгасагдана. I үзлэгээс хойш тестийн тоо 2\,124-өөс 2\,360 болж, use-case-ийн хүлээн авах тест шинээр нэмэгдсэн (Зураг~\ref{fig:testsbysuite}). Энэ ажиллалтаас хойш 10-р сарын 24--25-нд хийсэн өөрчлөлтүүдийн (серверийн аудитын оноо, утасны офлайн унших кэш) тестийг тус тусад нь ажиллуулахад backend-ийн 1\,049, use-case-ийн 53, гар утасны 143 тест бүгд давсан.
 
 \begin{table}[H]
 \centering
