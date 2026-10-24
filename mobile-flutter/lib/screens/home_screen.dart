@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../providers/five_s_provider.dart';
+import '../providers/idea_provider.dart';
 import '../providers/inbox_provider.dart';
 import '../providers/task_provider.dart';
+import '../providers/work_log_provider.dart';
 import '../services/outbox.dart';
 import '../utils/phase_one_strings.dart';
 import 'five_s_screen.dart';
@@ -93,6 +96,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// The earliest time a tab is showing a kept copy from, or null when
+  /// every tab is fresh. Each provider is optional, as the outbox is.
+  DateTime? _offlineSince() {
+    final times = <DateTime?>[];
+    void add<T extends ChangeNotifier>(DateTime? Function(T provider) since) {
+      try {
+        times.add(since(context.watch<T>()));
+      } catch (_) {}
+    }
+
+    add<TaskProvider>((provider) => provider.offlineSince);
+    add<WorkLogProvider>((provider) => provider.offlineSince);
+    add<FiveSProvider>((provider) => provider.offlineSince);
+    add<IdeaProvider>((provider) => provider.offlineSince);
+    add<InboxProvider>((provider) => provider.offlineSince);
+    final kept = times.whereType<DateTime>().toList()..sort();
+    return kept.isEmpty ? null : kept.first;
+  }
+
   // Optional, so a screen tested without one still draws.
   Outbox? get _outbox {
     try {
@@ -106,8 +128,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final strings = PhaseOneStrings(Localizations.localeOf(context));
     final kept = _outbox == null ? 0 : context.watch<Outbox>().pending.length;
+    final readAt = _offlineSince();
     return Scaffold(
       body: Column(children: [
+        // Said while any tab shows what it read earlier, with when: a list
+        // read yesterday is not to be taken for what stands now.
+        if (readAt != null)
+          Material(
+            key: const Key('offline-banner'),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: Row(children: [
+                  const Icon(Icons.wifi_off),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(strings.readOffline(readAt, DateTime.now()))),
+                ]),
+              ),
+            ),
+          ),
         // Said at the top of every tab while anything is waiting: somebody
         // who walked an audit in the basement should not have to wonder
         // whether it counted.
@@ -117,6 +158,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             color: Theme.of(context).colorScheme.tertiaryContainer,
             child: SafeArea(
               bottom: false,
+              // The offline notice above already keeps clear of the status bar.
+              top: readAt == null,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
                 child: Row(children: [

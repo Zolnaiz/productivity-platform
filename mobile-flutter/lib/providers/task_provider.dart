@@ -3,11 +3,19 @@ import 'package:flutter/foundation.dart';
 import '../models/task_model.dart';
 import '../services/api_service.dart';
 import '../services/outbox.dart';
+import '../services/read_cache.dart';
 
 class TaskProvider extends ChangeNotifier {
-  TaskProvider(this._api, {this.outbox});
+  TaskProvider(this._api, {this.outbox, this.cache});
   final ApiService _api;
   final Outbox? outbox;
+
+  /// Where the list is kept for when the phone is offline.
+  final ReadCache? cache;
+
+  /// When the list on screen was read, while the phone cannot reach the
+  /// server and shows the copy it kept; null when it is fresh.
+  DateTime? offlineSince;
 
   /// The connection this screen's work goes through, for the account actions beside it.
   ApiService get api => _api;
@@ -28,15 +36,19 @@ class TaskProvider extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      final organizationTasks =
-          (await _api.getTasks()).map(Task.fromJson).toList();
       // The API scopes this endpoint to an organization, so keep other people's
-      // work out of an operator's list on a phone they may share on shift.
-      tasks = assigneeId == null
-          ? []
-          : organizationTasks
-              .where((task) => task.assigneeId == assigneeId)
-              .toList();
+      // work out of an operator's list - and out of what the phone keeps -
+      // on a phone they may share on shift.
+      final (mine, savedAt) = await readThrough(cache, 'tasks', () async {
+        if (assigneeId == null) return [];
+        return (await _api.getTasks())
+            .where((task) => task['assigneeId'] == assigneeId)
+            .toList();
+      });
+      tasks = [
+        for (final task in mine) Task.fromJson(Map<String, dynamic>.from(task as Map))
+      ];
+      offlineSince = savedAt;
     } catch (e) {
       error = e;
     } finally {
