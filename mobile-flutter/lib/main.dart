@@ -19,6 +19,7 @@ import 'utils/phase_one_strings.dart';
 // Services
 import 'services/api_service.dart';
 import 'services/outbox.dart';
+import 'services/read_cache.dart';
 import 'services/storage_service.dart';
 
 void main() async {
@@ -48,30 +49,33 @@ void main() async {
 
   // No pending font initialization required; fonts loaded when used.
 
-  runApp(ProductivityApp(outbox: outbox));
+  runApp(ProductivityApp(outbox: outbox, readCache: ReadCache()));
 }
 
 class ProductivityApp extends StatelessWidget {
-  const ProductivityApp({super.key, required this.outbox});
+  const ProductivityApp({super.key, required this.outbox, required this.readCache});
 
   final Outbox outbox;
+
+  /// What the tabs last read, for when the phone is offline.
+  final ReadCache readCache;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider(readCache: readCache)),
         ChangeNotifierProvider.value(value: outbox),
         ChangeNotifierProvider(
-            create: (_) => TaskProvider(ApiService(), outbox: outbox)),
+            create: (_) => TaskProvider(ApiService(), outbox: outbox, cache: readCache)),
         ChangeNotifierProvider(
-            create: (_) => WorkLogProvider(ApiService(), outbox: outbox)),
-        ChangeNotifierProvider(create: (_) => InboxProvider(ApiService())),
+            create: (_) => WorkLogProvider(ApiService(), outbox: outbox, cache: readCache)),
+        ChangeNotifierProvider(create: (_) => InboxProvider(ApiService(), cache: readCache)),
         ChangeNotifierProvider(
-            create: (_) => IdeaProvider(ApiService(), outbox: outbox)),
+            create: (_) => IdeaProvider(ApiService(), outbox: outbox, cache: readCache)),
         ChangeNotifierProvider(
-            create: (_) => FiveSProvider(ApiService(), outbox: outbox)),
+            create: (_) => FiveSProvider(ApiService(), outbox: outbox, cache: readCache)),
       ],
       child: Consumer<ThemeProvider>(
         builder:

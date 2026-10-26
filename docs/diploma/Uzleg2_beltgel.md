@@ -97,6 +97,28 @@ cd backend; $env:DB_DATABASE = 'pp_demo'; npm run start:dev
 
 Сүлжээ эсвэл төхөөрөмж ажиллахгүй бол урьдчилан бичсэн бичлэгээр үзүүлнэ.
 
+### Нийтэд нээх (жинхэнэ утаснаас демо хийх)
+
+Production стек компьютер дээр ажиллаж, Cloudflare Tunnel-ээр HTTPS хаягтай болно. Сервер түрээслэх, порт нээх шаардлагагүй.
+
+1. Стекийг асаах (Docker Desktop асаалттай):
+   ```
+   docker compose --env-file .env.production -f docker-compose.prod.yml -p productivity-prod up -d --wait
+   ```
+2. Тунел асаах. Гарсан `https://….trycloudflare.com` хаягийг тэмдэглэнэ:
+   ```
+   & 'C:\Program Files (x86)\cloudflared\cloudflared.exe' tunnel --no-autoupdate --url http://localhost:3101
+   ```
+3. Хаяг өөрчлөгдсөн бол `.env.production`-ийн `APP_BASE_URL`, `CORS_ORIGINS`-ийг шинэ хаягаар сольж backend-ийг дахин асаана (1-р алхмын тушаалын төгсгөлд `backend` гэж нэмнэ).
+4. Апп: `mobile-flutter` дотор
+   ```
+   flutter build apk --release --flavor production --dart-define=API_BASE_URL=<хаяг>/api
+   ```
+   Гарсан `build/app/outputs/flutter-apk/app-production-release.apk`-г утсанд суулгана. Хаяг өөрчлөгдвөл APK-г дахин build хийнэ.
+5. Production сан хоосон тул эхлээд `<хаяг>/register` хуудсаар байгууллага, админ бүртгэл үүсгэж, ажилтнуудаа вэбээс урина.
+
+Quick tunnel-ийн хаяг cloudflared-ийг дахин асаах бүрт өөрчлөгдөнө. Пилот туршилтад тогтмол хаяг (нэрлэсэн tunnel эсвэл өөрийн домэйн) хэрэгтэй.
+
 ## 7. Гарч болох асуулт
 
 - **«O(n)» гэдэгт n нь юу вэ?** Аудитын оноонд шалгах хуудасны асуултын тоо. K1–K6-д ажил, аудит, тайлангийн бичлэгийн тоо. K6 нь хүн × долоо хоногоор тооцогдоно (O(p·w)). PDCA-д аудитуудыг бүсээр эрэмбэлэх нь O(r log r).

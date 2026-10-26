@@ -132,6 +132,11 @@ class PhaseOneStrings {
       ? 'Утсанд $count зүйл хадгалагдсан. Сүлжээ ормогц илгээнэ.'
       : '$count kept on this phone, sent when the network is back.';
 
+  /// Said while a tab shows what it read earlier because the phone is offline.
+  String readOffline(DateTime at, DateTime now) => mn
+      ? 'Сүлжээгүй. ${sentAt(at, now)}-д уншсан мэдээллийг харуулж байна.'
+      : 'Offline. Showing what was read ${sentAt(at, now).toLowerCase()}.';
+
   String keptRefused(int count) => mn
       ? 'Хадгалсан $count зүйлийг сервер хүлээж авсангүй.'
       : 'The server did not take $count kept change${count == 1 ? '' : 's'}.';

@@ -6,13 +6,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/organization_model.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
+import '../services/read_cache.dart';
 
 class AuthProvider with ChangeNotifier {
-  AuthProvider({ApiService? apiService})
-      : _apiService = apiService ?? ApiService() {
+  AuthProvider({ApiService? apiService, ReadCache? readCache})
+      : _apiService = apiService ?? ApiService(),
+        _readCache = readCache ?? ReadCache() {
     _prefsFuture.then(_loadUserFromStorage);
   }
   final ApiService _apiService;
+
+  /// What the tabs kept for offline reading: one person's view, emptied
+  /// whenever who is signed in changes.
+  final ReadCache _readCache;
   final Future<SharedPreferences> _prefsFuture =
       SharedPreferences.getInstance();
 
@@ -70,6 +76,8 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final result = await _apiService.login(email, password);
+      // Whatever an earlier session left for offline reading is not this one's.
+      await _readCache.clear();
 
       _user = User.fromJson(result['user'] as Map<String, dynamic>);
       _organization = result['user']['organization'] != null
@@ -163,6 +171,7 @@ class AuthProvider with ChangeNotifier {
 
       final prefs = await _prefsFuture;
       await prefs.remove('user');
+      await _readCache.clear();
       debugPrint('User logged out successfully');
 
       notifyListeners();
@@ -176,6 +185,7 @@ class AuthProvider with ChangeNotifier {
     _error = 'error.AUTH_SESSION_EXPIRED';
     final prefs = await _prefsFuture;
     await prefs.remove('user');
+    await _readCache.clear();
     notifyListeners();
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../services/api_service.dart';
 import '../services/outbox.dart';
+import '../services/read_cache.dart';
 
 /// One idea in the organization's idea box.
 class Idea {
@@ -48,10 +49,16 @@ class Idea {
 /// be better. Putting it in has to take less time than forgetting it: a line,
 /// where, and a photograph of how it is now.
 class IdeaProvider extends ChangeNotifier {
-  IdeaProvider(this._api, {this.outbox});
+  IdeaProvider(this._api, {this.outbox, this.cache});
 
   final ApiService _api;
   final Outbox? outbox;
+
+  /// Where the list is kept for when the phone is offline.
+  final ReadCache? cache;
+
+  /// When the list on screen was read, while showing the kept copy.
+  DateTime? offlineSince;
 
   List<Idea> ideas = [];
   bool loading = false;
@@ -64,7 +71,9 @@ class IdeaProvider extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      ideas = (await _api.getIdeas()).map(Idea.fromJson).toList();
+      final (read, savedAt) = await readThrough(cache, 'ideas', _api.getIdeas);
+      ideas = [for (final idea in read) Idea.fromJson(Map<String, dynamic>.from(idea as Map))];
+      offlineSince = savedAt;
     } catch (e) {
       error = e;
     } finally {

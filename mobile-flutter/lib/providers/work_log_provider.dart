@@ -4,6 +4,7 @@ import '../models/project_model.dart';
 import '../models/work_log_model.dart';
 import '../services/api_service.dart';
 import '../services/outbox.dart';
+import '../services/read_cache.dart';
 
 /// Today's record of work, for the person holding the phone.
 ///
@@ -11,11 +12,18 @@ import '../services/outbox.dart';
 /// could only do at a desk — so it was written from memory on Friday, or not
 /// at all, and the monthly report counted whatever survived.
 class WorkLogProvider extends ChangeNotifier {
-  WorkLogProvider(this._api, {DateTime Function()? clock, this.outbox})
+  WorkLogProvider(this._api, {DateTime Function()? clock, this.outbox, this.cache})
       : _clock = clock ?? DateTime.now;
 
   final ApiService _api;
   final Outbox? outbox;
+
+  /// Where the day's entries and the projects are kept for when the phone
+  /// is offline.
+  final ReadCache? cache;
+
+  /// When the entries on screen were read, while showing the kept copy.
+  DateTime? offlineSince;
 
   /// Whether the last entry was kept on the phone rather than sent.
   bool lastKept = false;
@@ -57,9 +65,11 @@ class WorkLogProvider extends ChangeNotifier {
 
   Future<void> _loadLogs() async {
     try {
-      final logs = (await _api.getWorkLogs()).map(WorkLog.fromJson);
+      final (read, savedAt) = await readThrough(cache, 'workLogs', _api.getWorkLogs);
+      final logs = read.map((log) => WorkLog.fromJson(Map<String, dynamic>.from(log as Map)));
       final date = day;
       today = logs.where((log) => log.logDate == date).toList();
+      offlineSince = savedAt;
     } catch (e) {
       error = e;
     }
@@ -67,7 +77,8 @@ class WorkLogProvider extends ChangeNotifier {
 
   Future<void> _loadProjects() async {
     try {
-      projects = (await _api.getProjects()).map(Project.fromJson).toList();
+      final (read, _) = await readThrough(cache, 'projects', _api.getProjects);
+      projects = [for (final project in read) Project.fromJson(Map<String, dynamic>.from(project as Map))];
     } catch (e) {
       // A missing connection must not discard the last usable choices or
       // prevent a general work log from being written.

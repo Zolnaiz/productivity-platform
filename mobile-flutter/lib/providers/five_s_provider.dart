@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/five_s_model.dart';
 import '../services/api_service.dart';
 import '../services/outbox.dart';
+import '../services/read_cache.dart';
 
 /// The 5S walk on the phone: the areas to check and the checklists to check
 /// them against.
@@ -11,12 +12,19 @@ import '../services/outbox.dart';
 /// phone, not at a desk. Until this, the check could be walked only in a
 /// browser, so it was walked from memory afterwards or not at all.
 class FiveSProvider extends ChangeNotifier {
-  FiveSProvider(this._api, {this.outbox});
+  FiveSProvider(this._api, {this.outbox, this.cache});
   final ApiService _api;
 
   /// Where a change goes when the phone is offline. Without one, an
   /// offline change fails as any other would.
   final Outbox? outbox;
+
+  /// Where the areas and checklists are kept, so an area can still be found
+  /// and walked where there is no signal - which is where most of them are.
+  final ReadCache? cache;
+
+  /// When the areas on screen were read, while showing the kept copy.
+  DateTime? offlineSince;
 
   /// The connection this screen's work goes through, for the screens it opens.
   ApiService get api => _api;
@@ -44,15 +52,22 @@ class FiveSProvider extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      final results =
-          await Future.wait([_api.getFiveSPlans(), _api.getAuditTemplates()]);
-      plans = results[0].map(FiveSPlan.fromJson).toList();
+      final results = await Future.wait([
+        readThrough(cache, 'fiveSPlans', _api.getFiveSPlans),
+        readThrough(cache, 'auditTemplates', _api.getAuditTemplates),
+      ]);
+      Map<String, dynamic> json(dynamic item) => Map<String, dynamic>.from(item as Map);
+      plans = results[0].$1.map((item) => FiveSPlan.fromJson(json(item))).toList();
       // Only the 5S checklists that are in use: a retired checklist is kept
       // for the runs made against it, not for new ones.
       templates = results[1]
-          .map(AuditTemplate.fromJson)
+          .$1
+          .map((item) => AuditTemplate.fromJson(json(item)))
           .where((template) => template.isActive && template.category == '5s')
           .toList();
+      // The older of the two, if either is a kept copy.
+      final saved = [results[0].$2, results[1].$2].whereType<DateTime>().toList()..sort();
+      offlineSince = saved.isEmpty ? null : saved.first;
     } catch (e) {
       error = e;
     } finally {
