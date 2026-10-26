@@ -247,11 +247,23 @@ describe('UC-08 5S аудит хийх (run a 5S audit) «include» create and n
       answers: [{ questionId: 'q1', value: 5 }, { questionId: 'q2', value: 2 }],
     });
     expect(run.status).toBe(201);
-    expect(Number(data(run).score)).toBeGreaterThanOrEqual(0);
+    // Worked out by the server from the answers: 5 + 2 of 5 + 5.
+    expect(Number(data(run).score)).toBe(70);
     const followUp = await team.manager.post(`/audit-runs/${data(run).id}/follow-up`, { title: 'Label the shelves', assigneeId: team.employeeId });
     expect([200, 201]).toContain(followUp.status);
     const inbox = data<any[]>(await team.employee.get('/notifications'));
     expect(inbox.length).toBeGreaterThan(0);
+  });
+
+  it('alternative: a score the answers do not earn is not kept', async () => {
+    const run = await team.employee.post('/audit-runs', {
+      templateId, zoneId, status: 'submitted', score: 100,
+      answers: [{ questionId: 'q1', value: 1 }, { questionId: 'q2', value: 1 }],
+    });
+    expect(run.status).toBe(201);
+    expect(Number(data(run).score)).toBe(20);
+    const tasks = data<any[]>(await team.manager.get('/tasks'));
+    expect(tasks.some((task) => task.sourceType === 'audit_run' && task.sourceId === data(run).id)).toBe(true);
   });
 
   it('refused: an audit against a template that does not exist', async () => {
@@ -350,20 +362,20 @@ describe('UC-14 Багийн бүтээмжийг дүгнэх (review team prod
 
   it('main (PDCA check): an audit-raised fix is verified by the next audit of its area', async () => {
     const failing = data(await team.employee.post('/audit-runs', {
-      templateId, zoneId, status: 'submitted', score: 40,
+      templateId, zoneId, status: 'submitted',
       answers: [{ questionId: 'q1', value: 1 }, { questionId: 'q2', value: 1 }],
     }));
     const fix = data<any[]>(await team.manager.get('/tasks')).find((task) => task.sourceType === 'audit_run' && task.sourceId === failing.id);
     expect(fix).toBeTruthy();
     await team.manager.patch(`/tasks/${fix.id}`, { status: 'done' });
-    await team.employee.post('/audit-runs', { templateId, zoneId, status: 'submitted', score: 95, answers: [{ questionId: 'q1', value: 5 }, { questionId: 'q2', value: 5 }] });
+    await team.employee.post('/audit-runs', { templateId, zoneId, status: 'submitted', answers: [{ questionId: 'q1', value: 5 }, { questionId: 'q2', value: 5 }] });
     const check = data(await team.manager.get('/operations/improvement-verification'));
-    expect(check.fixes.find((item: any) => item.taskId === fix.id)).toMatchObject({ status: 'verified', triggerScore: 40, reauditScore: 95 });
+    expect(check.fixes.find((item: any) => item.taskId === fix.id)).toMatchObject({ status: 'verified', triggerScore: 20, reauditScore: 100 });
   });
 
   it('main (PDCA loop): the fixer records the root cause and a manager signs the finished fix off', async () => {
     const failing = data(await team.employee.post('/audit-runs', {
-      templateId, zoneId, status: 'submitted', score: 30,
+      templateId, zoneId, status: 'submitted',
       answers: [{ questionId: 'q1', value: 1 }, { questionId: 'q2', value: 1 }],
     }));
     const fix = data<any[]>(await team.manager.get('/tasks')).find((task) => task.sourceType === 'audit_run' && task.sourceId === failing.id);

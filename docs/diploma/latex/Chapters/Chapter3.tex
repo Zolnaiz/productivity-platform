@@ -352,6 +352,22 @@ function refresh(token):
 \label{fig:reportui}
 \end{figure}
 
+Сарын тайлангийн ``Ажлын үр дүн ба бүртгэлийн чанар'' хэсэг K1--K4, K6 болон ажлын бүртгэлийн холбоосыг тоологч, хуваарь, тооцоонд ороогүй бүртгэлийн тоотой нь харуулж, K2, K4, K6-д тоологдсон ажлыг дэлгэж үзэх боломж олгоно (Зураг~\ref{fig:kpiui}). ``Аудитын үр дүн'' хуудасны ``Засах ажлын баталгаажуулалт'' картад аудитаас үүссэн засвар бүрийн өмнөх ба дараагийн аудитын оноо, дүгнэлт, үндсэн шалтгаан, менежерийн баталгаажуулалт харагдана (Зураг~\ref{fig:fixesui}). Хоёр зургийг демо өгөгдөл дээр авсан.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{Figures/ui_kpi.png}
+\caption{Сарын тайлангийн K1--K6 үзүүлэлт}
+\label{fig:kpiui}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{Figures/ui_fixes.png}
+\caption{Засах ажлын баталгаажуулалт (PDCA ``Шалгах'')}
+\label{fig:fixesui}
+\end{figure}
+
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{Figures/ui_gemba.png}
@@ -380,7 +396,7 @@ function refresh(token):
 \begin{tabular}{|L{3.6cm}|L{6.6cm}|L{4.2cm}|}
 \hline
 \textbf{Алгоритм} & \textbf{Файл} & \textbf{Функц} \\ \hline
-Аудитын оноо & admin-web/src/components/fives/ auditAnswers.ts; mobile-flutter/lib/models/ five\_s\_model.dart & scoreAnswers \\ \hline
+Аудитын оноо & backend/src/operations/ audit-score.ts; admin-web/src/components/fives/ auditAnswers.ts; mobile-flutter/lib/models/ five\_s\_model.dart & scoreFromAnswers (сервер), scoreAnswers (клиент) \\ \hline
 Засах ажил үүсгэх & backend/src/operations/ operations.service.ts & correctiveWorkFor, createTask \\ \hline
 Сүлжээгүй дараалал & mobile-flutter/lib/services/outbox.dart & Outbox.keep, Outbox.flush \\ \hline
 Idempotency-Key & backend/src/shared/idempotency/ & Idempotency\-Interceptor, Idempotency\-Service.claim \\ \hline
@@ -391,7 +407,7 @@ PDCA ``Шалгах'' & backend/src/operations/ improvement-verification.ts & ve
 \end{tabular}
 \end{table}
 
-Эх код~\ref{lst:scorecode}-д аудитын оноо тооцох функцийн бодит кодыг харуулав. Вэб ба гар утас ижил дүрмийг (утсанд Dart хувилбар) хэрэглэдэг тул аудитыг аль клиентээс хийсэн нь оноонд нөлөөлөхгүй. Сервер илгээгдсэн оноог хадгалж, засах ажлын шийдвэрт ашигладаг; оноог хадгалсан хариултаас сервер дээр дахин тооцож шалгах нь цаашдын сайжруулалт юм.
+Эх код~\ref{lst:scorecode}-д аудитын оноо тооцох функцийн бодит кодыг харуулав. Вэб ба гар утас ижил дүрмийг (утсанд Dart хувилбар) хэрэглэж, аудитыг бөглөх явцад оноог харуулдаг. Харин засах ажлын шийдвэр гаргаж, K3-т тоологдох оноог сервер илгээсэн хариултаас ижил дүрмээр дахин тооцно (scoreFromAnswers): асуултын хүрээнээс гарсан утгыг хүрээнд нь барьж, клиентээс ирсэн оноог тооцохгүй. Тооцох асуултгүй шалгах хуудсанд л илгээсэн оноо хэвээр үлдэнэ. Ингэснээр клиент оноог хуурамчаар илгээж засах ажлаас зайлсхийх боломжгүй болсон.
 
 \begin{lstlisting}[caption={Аудитын оноо тооцох функц (TypeScript)},label={lst:scorecode}]
 export const scoreAnswers = (
@@ -478,7 +494,7 @@ Use-case хүлээн авах & Jest + PostgreSQL & 52 & 0 & 0 \\ \hline
 
 \subsection{Use-case-ийн хүлээн авах тест}
 \label{sec:uctests}
-Use-case бүрт хүлээн авах тест бичсэн. Тест бүр жинхэнэ аппликейшныг бүх модуль, guard, validation-тай нь бодит PostgreSQL дээр асааж, HTTP API-аар шалгана: үндсэн урсгал, мөн дор хаяж нэг өөр эсвэл татгалзсан урсгал (Хүснэгт~\ref{table:uctests}). 22 use-case-ийн 52 тест бүгд давсан.
+Use-case бүрт хүлээн авах тест бичсэн. Тест бүр жинхэнэ аппликейшныг бүх модуль, guard, validation-тай нь бодит PostgreSQL дээр асааж, HTTP API-аар шалгана: үндсэн урсгал, мөн дор хаяж нэг өөр эсвэл татгалзсан урсгал (Хүснэгт~\ref{table:uctests}). 22 use-case-ийн 52 тест бүгд давсан. Хүснэгтийн тоо 10-р сарын 22-ны бүтэн ажиллалтынх; 10-р сарын 24-нд аудитын оноог серверт дахин тооцдог болгоход backend-д 11 unit тест, UC-08-д ``клиентийн илгээсэн, хариултаар үл дэмжигдэх оноог хадгалахгүй'' гэсэн нэг тест нэмэгдэж, backend-ийн 1\,049, use-case-ийн 53 тест бүгд давсан.
 
 \begin{longtable}{|p{1.3cm}|L{4.4cm}|c|L{6.0cm}|c|}
 \caption{Use-case-ийн хүлээн авах тестийн үр дүн}\label{table:uctests}\\ \hline
