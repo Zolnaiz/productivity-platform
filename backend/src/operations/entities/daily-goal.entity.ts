@@ -1,3 +1,6 @@
+/**
+ * A personal goal for one day.
+ */
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
 

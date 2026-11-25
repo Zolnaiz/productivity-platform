@@ -1,4 +1,9 @@
+/**
+ * Photo evidence: upload check, download and delete of attachments (red tags, ideas, fixes). Files live in the
+ * attachment store; the database keeps only metadata. attachmentTooLarge maps the upload limit to an ApiError.
+ */
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -15,7 +20,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Body } from '@nestjs/common';
 import type { Response } from 'express';
 import { AttachmentsService, UploadedAttachment } from './attachments.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';

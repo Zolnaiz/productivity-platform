@@ -1,3 +1,4 @@
+/** Unit test for operations.module.ts: OperationsModule wiring. */
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { getRepositoryToken } from '@nestjs/typeorm';

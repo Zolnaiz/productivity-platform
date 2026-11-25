@@ -1,3 +1,6 @@
+/**
+ * Collects the actions waiting for the user (tasks, reviews, approvals) from the other services into one list.
+ */
 import { assessmentService } from './assessment.service';
 import { financeService } from './finance.service';
 import { operationsService } from './operations.service';

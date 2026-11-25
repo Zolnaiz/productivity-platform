@@ -8,6 +8,119 @@ Newest first.
 
 ---
 
+## 2026-11-25 — Every file explains itself; code nothing uses is deleted, not kept
+
+**Decision.** Every source and test file in `backend/src`, `backend/scripts`, `admin-web/src`, `admin-web/e2e`,
+`mobile-flutter/lib` and `mobile-flutter/test` opens with a comment saying what it is for and what it connects
+to (a page names its route). Files that no production code imports are deleted. Documents that no longer
+describe the system move to `docs/archive/`. `docs/README.md` is the one list of documents and
+`docs/ARCHITECTURE.md` the one map of the code.
+
+**Why.** A full review found 208 source files and 180 test files with no explanation, and 28 files left from the
+original questionnaire template that nothing used: a passport-local strategy and guard no route applied, a
+roles guard, a second config service, middlewares and a validation pipe never registered, scoring utilities for
+tables that no longer exist, a `DatabaseService` with a "backup" method that backed nothing up, Flutter
+extension and validator libraries only their own tests imported, and three backend compose files that started
+Redis for an app that has none. Each one is something a newcomer would read, believe and maintain. Two
+migrations (`1700000000000*`) are kept but marked legacy: neither the app nor the CLI runs them.
+
+**Consequences.** `passport-local` is no longer a dependency. Deleted files are in git history if one is ever
+wanted. Headers were checked against the code; four first drafts were wrong (the JWT strategy, the outbox on
+sign-out, `/version`, `AppService`) and were corrected, which is the reason to read the code before writing
+a header rather than after.
+
+**Rules out.** A new file without a header. Keeping code "in case": unused code is deleted and found again in
+history. A second list of documents.
+
+---
+
+## 2026-11-25 — Big files are split along their seams, behind the same entry points
+
+**Decision.** The three largest files were split without changing how anything
+reaches them:
+
+- `operations.dto.ts` became a barrel over domain files (`shared`, `work`,
+  `five-s`, `audit`, `department`, `month-close`); importers are unchanged.
+- `OperationsService` keeps its constructor and public methods. The scoping
+  rules moved to `OrganizationScope` and the 5S records (plans, red tags,
+  versions, guideline) to `FiveSRecords` - plain classes the constructor
+  builds from the repositories it already receives. Its 5S methods are now
+  one-line delegates.
+- `FiveSFloorPlanSetup.tsx` keeps its state and handlers; the panels with
+  clear edges became components that receive what they show and call back to
+  change it (`FloorPlanZoneInspector`, `FloorPlanObjectInspector`,
+  `FloorPlanPalette`, `FloorPlanAreaTables`), with the fixed choices in
+  `floorPlanPresets.ts`, the furniture drawings in `floorPlanArtwork.tsx` and
+  the shared shapes in `floorPlanEditorTypes.ts`.
+
+**Why.** Five specs hand-build `OperationsService` with nineteen positional
+arguments, and the controller, gemba, ideas, the report archive and the audit
+scheduler call it. Making the 5S records a Nest provider of its own would
+have meant rewiring all of them in the same change as moving the code - two
+risks at once. Plain classes keep the move a move: the 761 operations tests
+and the floor plan editor's 564 ran unchanged and passed.
+
+**What it rules out, for now.** The editor's canvas and the handlers it uses
+(pointer, selection, walls, routes) are still one component of about 4 700
+lines: they share most of the editor's state, so splitting them means first
+moving that state into a hook. The audit and task logic in `OperationsService`
+(about 1 150 lines) is the next seam: it calls `createTask` and the 5S records,
+so it moves best once `FiveSRecords` is a provider of its own.
+
+---
+
+## 2026-11-17 — The SUS questionnaire shows totals only, from three answers up
+
+**Decision.** K7 is collected in the system (`backend/src/operations/sus*.ts`,
+`/usability` on the web, a Today card on the phone). Answers are stored per
+person and round - one set each, replaced if answered again - but the
+results route returns totals only, and no scores at all below three
+respondents (`SUS_MIN_RESPONDENTS`). The score is computed from the answers
+each time, never stored.
+
+**Why.** SUS works when people answer honestly, and they answer honestly
+when nobody can read their answer. With one or two respondents an average is
+a person's own score, readable by an administrator who knows who has
+answered. Storing the score beside the answers would let the two disagree
+after a change to the arithmetic; computing it cannot.
+
+**What it rules out.** An export of individual responses, and a per-person
+view - for anybody, administrators included. One open round at a time is a
+partial unique index, not a check in code, so two administrators opening one
+at once get one. The web's demo workspace mirrors the arithmetic
+(`admin-web/src/components/usability/sus.ts`), held to the server's worked
+examples by its own test.
+
+---
+
+## 2026-11-17 — The web's access token lives in memory only
+
+**Decision.** `admin-web/src/services/api.ts` keeps the access token in a
+module variable. Nothing writes it to `localStorage` or `sessionStorage`. A
+page load with a session to restore calls `/auth/refresh`, which answers from
+the HttpOnly cookie; requests refused with 401 at the same moment share one
+refresh. The demo workspace is a separate flag in storage (`demoSession`),
+because it is a setting of the browser and unlocks nothing on a server.
+
+**Why.** Storage is readable by every script on the page, so one
+cross-site-scripting slip would hand over a token usable for its whole hour,
+from anywhere. Memory goes with the tab. The refresh token was already in an
+HttpOnly cookie; this closes the other half before real employee data goes in.
+
+**What it rules out.** Reading the token from the page, in code or in tests:
+the end-to-end tests that called the API directly now sign in for their own
+token (`e2e/support/session.ts`), and unit tests stand a session up with
+`src/test/session.ts`. A memo that used the token as its `sessionStorage`
+value (the staff list refusal in `people.service.ts`) is a plain marker now.
+`sessionStorage` holds what belongs to one sign-in and never a credential: it
+outlives a reload, as the sign-in does, and `startSession` and `clearSession`
+empty it. (Kept in memory instead, the memo reset on every page load and the
+refused list was asked for on each - the live operator test caught it.) Each
+tab makes one refresh request when it opens; the server does not rotate
+refresh tokens, so tabs refreshing at once do not sign each other out.
+
+---
+
 ## 2026-09-11 — A mapped column without a migration is a test failure
 
 **Decision.** `migrations/schema-coverage.spec.ts` fails when an entity maps a

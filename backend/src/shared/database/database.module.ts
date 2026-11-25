@@ -1,7 +1,10 @@
+/**
+ * Global TypeORM connection built from the environment. Loads only *Runtime* and *Operations* migrations (the
+ * same rule as migrations/data-source.ts).
+ */
 import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { DatabaseService } from './database.service';
 
 const toBoolean = (value: unknown, defaultValue = false) => {
   if (value === undefined || value === null || value === '') return defaultValue;
@@ -50,7 +53,6 @@ const toBoolean = (value: unknown, defaultValue = false) => {
       }),
     }),
   ],
-  providers: [DatabaseService],
-  exports: [DatabaseService, TypeOrmModule],
+  exports: [TypeOrmModule],
 })
 export class DatabaseModule {}

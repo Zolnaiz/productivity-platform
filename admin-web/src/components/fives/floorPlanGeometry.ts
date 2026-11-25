@@ -1,3 +1,6 @@
+/**
+ * Geometry helpers for the floor-plan editor: pointer to canvas coordinates, grid snapping, resize handles.
+ */
 import React from 'react';
 
 const CANVAS_WIDTH = 900;

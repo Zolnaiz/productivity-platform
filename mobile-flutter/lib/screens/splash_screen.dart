@@ -1,3 +1,5 @@
+// Shown while the session is restored at start-up.
+
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatelessWidget {

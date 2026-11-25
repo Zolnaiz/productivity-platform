@@ -1,3 +1,6 @@
+/**
+ * Weekly check-ins: one per person per week, keyed by the week's Monday (mondayOf). Feeds K6 in the reports.
+ */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';

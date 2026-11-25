@@ -1,3 +1,4 @@
+/** Unit test for account.controller.ts: asking for an account to be deleted. */
 import { AccountController } from './account.controller';
 
 describe('asking for an account to be deleted', () => {

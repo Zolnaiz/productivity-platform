@@ -1,3 +1,6 @@
+/**
+ * Toast messages (success, error, info) shown at the corner of the screen.
+ */
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 

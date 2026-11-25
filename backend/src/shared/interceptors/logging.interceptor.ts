@@ -1,3 +1,6 @@
+/**
+ * Request log line per call, with a request id and sensitive fields (passwords, tokens) redacted.
+ */
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';

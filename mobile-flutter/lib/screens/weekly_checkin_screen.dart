@@ -69,7 +69,9 @@ class _WeeklyCheckinScreenState extends State<WeeklyCheckinScreen> {
       messenger.showSnackBar(SnackBar(content: Text(strings.text('weekSaved'))));
       navigator.pop();
     } catch (e) {
-      if (widget.outbox != null && neverSent(e)) {
+      // The week's one check-in, replaced whole: a copy sent again after a
+      // lost answer leaves it as it was, so it is kept without a key.
+      if (widget.outbox != null && unanswered(e)) {
         await widget.outbox!.keep(method: 'PUT', path: '/checkins/mine', kind: 'checkin', data: body);
         messenger.showSnackBar(SnackBar(content: Text(strings.text('keptNow'))));
         navigator.pop();

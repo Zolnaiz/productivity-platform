@@ -1,3 +1,6 @@
+/**
+ * /assessments - checklists and questionnaires: build templates and fill them in.
+ */
 import React, { useEffect, useMemo, useState } from "react";
 import { ClipboardList, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";

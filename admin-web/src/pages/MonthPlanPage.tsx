@@ -1,3 +1,6 @@
+/**
+ * /plan - the month's plan: tasks due this month by person and status.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';

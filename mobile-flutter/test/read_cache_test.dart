@@ -9,6 +9,7 @@ import 'package:productivity_mobile/providers/inbox_provider.dart';
 import 'package:productivity_mobile/providers/task_provider.dart';
 import 'package:productivity_mobile/providers/work_log_provider.dart';
 import 'package:productivity_mobile/screens/home_screen.dart';
+import 'package:productivity_mobile/services/outbox.dart';
 import 'package:productivity_mobile/services/read_cache.dart';
 
 import 'support/fake_api.dart';
@@ -176,5 +177,59 @@ void main() {
     expect(find.textContaining('Offline. Showing what was read today'), findsOneWidget);
     // The home screen opens on Today; the kept list is what the Tasks tab shows.
     expect(tasks.tasks.map((t) => t.id), ['t1']);
+  });
+
+  // Seen on an emulator: airplane mode off, the kept write-up sent within
+  // seconds, and the banner still saying "Offline" over the phone's own copy
+  // until the app was next brought to the front.
+  testWidgets('reads again a tab showing its offline copy once the network is back',
+      (tester) async {
+    final server = Server()
+      ..lists['/work-logs'] = [
+        {'id': 'w1', 'summary': 'Morning', 'hours': 1, 'logDate': '2026-11-14'}
+      ];
+    final (api, adapter, _) = await makeApi(server.reply);
+    final cache = ReadCache();
+    final auth = AuthProvider(apiService: api, readCache: cache);
+    await auth.fromJson({
+      'user': {'id': 'u1', 'email': 'op@example.com', 'fullName': 'Operator'},
+      'isAuthenticated': true
+    });
+    final logs = WorkLogProvider(api, cache: cache);
+    final outbox = Outbox(api);
+    await tester.runAsync(logs.load);
+    server.online = false;
+    await tester.runAsync(logs.load);
+    expect(logs.offlineSince, isNotNull);
+
+    await tester.pumpWidget(MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: auth),
+        ChangeNotifierProvider.value(value: TaskProvider(api, cache: cache)),
+        ChangeNotifierProvider.value(value: logs),
+        ChangeNotifierProvider.value(value: InboxProvider(api, cache: cache)),
+        ChangeNotifierProvider.value(value: IdeaProvider(api, cache: cache)),
+        ChangeNotifierProvider.value(value: FiveSProvider(api, cache: cache)),
+        ChangeNotifierProvider.value(value: outbox),
+      ],
+      child: const MaterialApp(
+        locale: Locale('en'),
+        supportedLocales: [Locale('en'), Locale('mn')],
+        localizationsDelegates: testDelegates,
+        home: HomeScreen(),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('offline-banner')), findsOneWidget);
+
+    // What the outbox does when the phone reports a network: send, then say so.
+    server.online = true;
+    adapter.requests.clear();
+    outbox.reconnected.value++;
+    await settleUntil(tester, () => logs.offlineSince == null);
+
+    expect(adapter.requests.map((request) => request.path), contains('/work-logs'));
+    expect(logs.offlineSince, isNull);
+    expect(find.byKey(const Key('offline-banner')), findsNothing);
   });
 }

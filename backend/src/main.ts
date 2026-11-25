@@ -1,3 +1,7 @@
+/**
+ * Process entry point: builds the Nest app from AppModule, applies app-config (CORS, cookies, validation, security
+ * headers, global prefix) and starts listening. Everything configurable lives in app-config.ts so tests share it.
+ */
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';

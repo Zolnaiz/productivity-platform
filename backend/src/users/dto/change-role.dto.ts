@@ -1,3 +1,6 @@
+/**
+ * Body of a role change.
+ */
 import { IsEnum } from 'class-validator';
 import { UserRole } from '../../shared/constants';
 

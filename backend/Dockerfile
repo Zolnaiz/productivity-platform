@@ -1,11 +1,12 @@
-# Node 20, because NestJS 11 needs it. On Node 18 there is no global `crypto`,
-# and @nestjs/typeorm reaches for `crypto.randomUUID()` while the database
-# module is still being loaded: the container dies with `ReferenceError: crypto
-# is not defined` before it opens a port, so the health check never passes and
-# admin-web never starts. CI and the admin-web image are on 20 already.
+# Node 22, the maintained LTS line. Node 20 left support in April 2026, so it
+# no longer gets security fixes. NestJS 11 needs at least 20: on Node 18 there
+# is no global `crypto`, and @nestjs/typeorm reaches for `crypto.randomUUID()`
+# while the database module is still being loaded; the container died with
+# `ReferenceError: crypto is not defined` before it opened a port. CI, the
+# admin-web image and the full test run of 2026-10-28 are on 22 as well.
 #
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -24,7 +25,7 @@ COPY src ./src
 RUN npm run build
 
 # Production stage
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 

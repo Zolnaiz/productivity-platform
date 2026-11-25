@@ -1,3 +1,6 @@
+/**
+ * /history - the organisation's history timeline (history.ts), filterable by kind.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Award, CalendarCheck, ClipboardCheck, FolderCheck, Lightbulb, Printer } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';

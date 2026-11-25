@@ -1,3 +1,4 @@
+/** Unit test for operations.controller.ts: OperationsController payload normalization. */
 import { OperationsController } from './operations.controller';
 
 describe('OperationsController payload normalization', () => {

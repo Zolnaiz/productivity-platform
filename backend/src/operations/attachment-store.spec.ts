@@ -1,3 +1,4 @@
+/** Unit test for attachment-store.ts: keeping attachment bytes on a local disk. */
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';

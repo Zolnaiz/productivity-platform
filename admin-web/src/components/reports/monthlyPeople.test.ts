@@ -1,3 +1,4 @@
+/** Unit test for monthlyPeople.ts: the demo month, person by person. */
 import { describe, expect, it } from 'vitest';
 import { AuditRun, TimeEntry, WorkLog, WorkTask } from '../../types/operations.types';
 import { summarisePeople } from './monthlyPeople';

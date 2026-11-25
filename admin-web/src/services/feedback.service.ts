@@ -1,3 +1,6 @@
+/**
+ * API client for feedback messages.
+ */
 import { get, isDemoMode, patch, post } from './api';
 
 export type FeedbackKind = 'bug' | 'suggestion' | 'question';

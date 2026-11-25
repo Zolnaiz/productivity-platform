@@ -1,3 +1,4 @@
+/** Unit test for api-error.ts: apiError. */
 import {
   BadRequestException,
   ConflictException,

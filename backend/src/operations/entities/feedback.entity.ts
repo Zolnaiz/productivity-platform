@@ -1,3 +1,6 @@
+/**
+ * A feedback message to administrators.
+ */
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
 

@@ -1,3 +1,7 @@
+/**
+ * 5S guideline registers (sort, set, shine, standardise, sustain): the organisation's written standards, their
+ * items and tasks, edited by administrators.
+ */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookOpen,

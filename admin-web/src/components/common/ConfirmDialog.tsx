@@ -1,3 +1,6 @@
+/**
+ * Yes/no confirmation in a Modal, used before every delete or irreversible action.
+ */
 import React from 'react';
 import Button from './Button';
 import Modal from './Modal';

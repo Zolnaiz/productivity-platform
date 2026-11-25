@@ -65,7 +65,8 @@ class ProductivityApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => AuthProvider(readCache: readCache)),
+        ChangeNotifierProvider(
+            create: (_) => AuthProvider(readCache: readCache, outbox: outbox)),
         ChangeNotifierProvider.value(value: outbox),
         ChangeNotifierProvider(
             create: (_) => TaskProvider(ApiService(), outbox: outbox, cache: readCache)),
@@ -81,7 +82,9 @@ class ProductivityApp extends StatelessWidget {
         builder:
             (BuildContext context, ThemeProvider themeProvider, Widget? child) {
           return MaterialApp.router(
-            title: 'Productivity Platform',
+            // What Android shows in the recent-apps list: the same name as
+            // under the launcher icon (app_name in android/app/build.gradle).
+            title: 'Бүтээмж',
             supportedLocales: const [Locale('en'), Locale('mn')],
             localizationsDelegates: const [
               MongolianMaterialDelegate(),

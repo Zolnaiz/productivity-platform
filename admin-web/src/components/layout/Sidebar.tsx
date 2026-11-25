@@ -1,3 +1,6 @@
+/**
+ * Left navigation built from navigation.ts, showing only the entries the user's permissions allow.
+ */
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";

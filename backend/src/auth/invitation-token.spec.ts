@@ -1,3 +1,4 @@
+/** Unit test for invitation-token.ts: createInvitationToken. */
 import {
   createInvitationToken,
   hashInvitationToken,

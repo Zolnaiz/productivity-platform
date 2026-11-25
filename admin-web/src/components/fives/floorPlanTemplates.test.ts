@@ -1,3 +1,4 @@
+/** Unit test for floorPlanTemplates.ts: the starting templates. */
 import { describe, expect, it } from 'vitest';
 import { detectRooms } from './floorPlanWalls';
 import { DEFAULT_METRES_PER_UNIT, areaInMetres } from './floorPlanScale';

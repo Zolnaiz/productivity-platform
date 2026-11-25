@@ -1,3 +1,4 @@
+/** Unit test for ZoneAuditWalk.tsx: walking a checklist in the area it is about. */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ZoneAuditWalk from './ZoneAuditWalk';

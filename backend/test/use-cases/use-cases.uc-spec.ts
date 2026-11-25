@@ -238,6 +238,37 @@ describe('UC-07 Хувийн бүртгэлээ удирдах (manage own accou
     expect(data(unknown).message).toMatch(/If this email is registered/);
     expect((await team.anonymous.post('/auth/reset-password', { token: 'forged', password: 'Whatever123' })).status).toBe(400);
   });
+
+  // The pilot server sends no mail: the reset link the email would carry is
+  // handed over by an administrator instead. A member of its own, so a new
+  // password here signs nobody else out of the tests that follow.
+  it('alternative: with no mail, an administrator hands over a reset link that works once', async () => {
+    const email = `forgot.${Date.now()}@uc.test`;
+    const { token: invitation } = data(await team.owner.post('/auth/invitations', { email, role: 'user' }));
+    await team.anonymous.post(`/auth/invitations/token/${invitation}/accept`, { firstName: 'Forgot', lastName: 'Test', password: 'Password123' });
+    const memberId = data(await team.anonymous.post('/auth/login', { email, password: 'Password123' })).user.id;
+
+    const issued = await team.owner.post(`/users/${memberId}/password-reset`, {});
+    expect(issued.status).toBe(201);
+    const { token } = data(issued);
+    expect(token).toEqual(expect.any(String));
+
+    expect((await team.anonymous.post('/auth/reset-password', { token, password: 'HandedOver123' })).status).toBeLessThan(300);
+    expect((await team.anonymous.post('/auth/login', { email, password: 'HandedOver123' })).status).toBe(200);
+    expect((await team.anonymous.post('/auth/login', { email, password: 'Password123' })).status).not.toBe(200);
+    // Once only.
+    expect((await team.anonymous.post('/auth/reset-password', { token, password: 'AgainAgain123' })).status).toBe(400);
+  });
+
+  it('refused: an employee cannot issue a reset link, and nobody issues one for themselves', async () => {
+    const manager = data(await team.manager.get('/auth/me'));
+    expect((await team.employee.post(`/users/${manager.id}/password-reset`, {})).status).toBe(403);
+
+    const owner = data(await team.owner.get('/auth/me'));
+    const self = await team.owner.post(`/users/${owner.id}/password-reset`, {});
+    expect(self.status).toBe(400);
+    expect(errorCode(self)).toBe('VALIDATION_FAILED');
+  });
 });
 
 describe('UC-08 5S аудит хийх (run a 5S audit) «include» create and notify a task', () => {
@@ -549,5 +580,87 @@ describe('UC-22 Сануулга илгээх, аудит товлох (send rem
     const { DailyReminderService } = await import('../../src/operations/daily-reminder.service');
     const evening = new Date(`${today()}T13:00:00Z`);
     expect(await app.get(DailyReminderService).remind(evening)).toBe(0);
+  });
+});
+
+/**
+ * The SUS questionnaire is how K7 (Chapter 1) is measured rather than a use
+ * case of its own, so it has no UC number; it is here because two of its
+ * rules live in PostgreSQL and only a real database can show them holding.
+ */
+describe('K7 Хэрэглэхэд хялбар байдлын асуулга (SUS questionnaire, the measure K7)', () => {
+  const best = [5, 1, 5, 1, 5, 1, 5, 1, 5, 1]; // 100
+  const good = [4, 2, 4, 2, 4, 2, 4, 2, 4, 2]; // 75
+  const neutral = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]; // 50
+
+  // Each test starts with no open round, whatever one before it left behind:
+  // a failure in one must not show up as a second, unrelated one.
+  beforeEach(async () => {
+    for (const round of data(await team.owner.get('/sus/rounds'))) {
+      if (!round.closedAt) await team.owner.post(`/sus/rounds/${round.id}/close`);
+    }
+  });
+
+  it('main: an administrator opens a round, all three answer, and the totals come back; a closed round takes no more', async () => {
+    const opened = await team.owner.post('/sus/rounds', { title: 'End of pilot' });
+    expect(opened.status).toBe(201);
+    const roundId = data(opened).id;
+
+    const before = data(await team.employee.get('/sus/current'));
+    expect(before.round.id).toBe(roundId);
+    expect(before.mine).toBeNull();
+
+    const answer = (client: typeof team.owner, answers: number[]) =>
+      client.put(`/sus/rounds/${roundId}/answers/mine`, { answers });
+    expect((await answer(team.owner, best)).status).toBe(200);
+    expect((await answer(team.manager, good)).status).toBe(200);
+    expect((await answer(team.employee, good)).status).toBe(200);
+    // Changed their mind while the round was open: still one response.
+    expect(data(await answer(team.employee, neutral)).score).toBe(50);
+    expect(data(await team.employee.get('/sus/current')).mine).toMatchObject({ answers: neutral, score: 50 });
+
+    const results = data(await team.owner.get(`/sus/rounds/${roundId}/results`));
+    // Members are the organization's active accounts now, which other use
+    // cases in this suite add to; the rate is three of however many there are.
+    const { members } = results.summary;
+    expect(members).toBeGreaterThanOrEqual(3);
+    expect(results.summary).toMatchObject({ respondents: 3, responseRate: Math.round((3 / members) * 1000) / 10 });
+    expect(results.summary.figures).toMatchObject({ mean: 75, median: 75, atOrAboveBenchmark: 2 });
+
+    expect((await team.owner.post(`/sus/rounds/${roundId}/close`)).status).toBe(201);
+    const late = await answer(team.manager, neutral);
+    expect(late.status).toBe(409);
+    expect(errorCode(late)).toBe('SURVEY_ROUND_CLOSED');
+    expect(data(await team.employee.get('/sus/current')).round).toBeNull();
+  });
+
+  it('alternative: the database keeps one open round and ten answers of 1-5, whatever the code in front of it does', async () => {
+    const opened = await team.owner.post('/sus/rounds', { title: 'Baseline' });
+    expect(opened.status).toBe(201);
+    const second = await team.owner.post('/sus/rounds', { title: 'Another' });
+    expect(second.status).toBe(409);
+    expect(errorCode(second)).toBe('SURVEY_ROUND_OPEN');
+    expect((await team.employee.put(`/sus/rounds/${data(opened).id}/answers/mine`, { answers: [3, 3, 3] })).status).toBe(400);
+    expect((await team.employee.put(`/sus/rounds/${data(opened).id}/answers/mine`, { answers: [6, 3, 3, 3, 3, 3, 3, 3, 3, 3] })).status).toBe(400);
+
+    // Past the service, straight at the tables.
+    const { DataSource } = await import('typeorm');
+    const db = app.get(DataSource);
+    const [{ organization_id: organizationId }] = await db.query(`SELECT organization_id FROM sus_rounds WHERE id = $1`, [data(opened).id]);
+    await expect(
+      db.query(`INSERT INTO sus_rounds (organization_id, title, opened_by) VALUES ($1, 'Raced in', 'x')`, [organizationId]),
+    ).rejects.toMatchObject({ code: '23505' });
+    await expect(
+      db.query(`INSERT INTO sus_responses (organization_id, round_id, user_id, answers) VALUES ($1, $2, 'x', '{3,3,3}')`, [
+        organizationId,
+        data(opened).id,
+      ]),
+    ).rejects.toMatchObject({ code: '23514' });
+    expect((await team.owner.post(`/sus/rounds/${data(opened).id}/close`)).status).toBe(201);
+  });
+
+  it('refused: an employee can answer but cannot open a round or read the totals', async () => {
+    expect((await team.employee.post('/sus/rounds', { title: 'Mine' })).status).toBe(403);
+    expect((await team.employee.get('/sus/rounds')).status).toBe(403);
   });
 });

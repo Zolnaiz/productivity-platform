@@ -1,3 +1,6 @@
+/**
+ * /expenses - project expenses, their approval status and budget impact.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Landmark } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

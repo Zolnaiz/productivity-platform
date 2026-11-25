@@ -1,3 +1,6 @@
+# Base stack for development: PostgreSQL and the API; pgAdmin with --profile tools.
+# Combine with docker-compose.dev.yml for reload on change. Production uses docker-compose.prod.yml.
+
 services:
   postgres:
     image: postgres:15-alpine

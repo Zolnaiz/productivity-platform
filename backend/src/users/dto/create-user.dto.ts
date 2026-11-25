@@ -1,3 +1,6 @@
+/**
+ * Fields of a new team member created by an administrator.
+ */
 import {
   IsEmail,
   IsString,

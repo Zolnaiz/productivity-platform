@@ -1,3 +1,4 @@
+/** Unit test for audit-scheduler.service.ts: the daily audit scheduler. */
 import { todayIn } from './task-completion';
 import { Logger } from '@nestjs/common';
 import { AuditSchedulerService } from './audit-scheduler.service';

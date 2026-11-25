@@ -136,7 +136,7 @@ class FiveSProvider extends ChangeNotifier {
       'title': title,
       if (disposition.isNotEmpty) 'disposition': disposition,
     };
-    return _write(() => _api.addRedTag(plan.id, zone.id, body),
+    return _write((key) => _api.addRedTag(plan.id, zone.id, body, idempotencyKey: key),
         kind: 'redTag',
         path: '/five-s-layouts/${plan.id}/zones/${zone.id}/red-tags',
         data: body);
@@ -144,13 +144,14 @@ class FiveSProvider extends ChangeNotifier {
 
   /// Records that an area was cleaned today. Returns whether it was saved.
   Future<bool> markCleaned(FiveSPlan plan, FiveSZone zone) =>
-      _write(() => _api.markZoneCleaned(plan.id, zone.id),
+      _write((key) => _api.markZoneCleaned(plan.id, zone.id, idempotencyKey: key),
           kind: 'cleaned',
           path: '/five-s-layouts/${plan.id}/zones/${zone.id}/cleaned');
 
   /// Sends one change, then reads the plans again rather than guess at what
-  /// the server made of it.
-  Future<bool> _write(Future<Object?> Function() send,
+  /// the server made of it. [send] is given the change's key, which it sends
+  /// on the first try and the outbox keeps for every try after.
+  Future<bool> _write(Future<Object?> Function(String key) send,
       {required String kind,
       required String path,
       Map<String, dynamic>? data}) async {
@@ -158,14 +159,16 @@ class FiveSProvider extends ChangeNotifier {
     error = null;
     lastKept = false;
     notifyListeners();
+    final key = newIdempotencyKey();
     try {
-      await send();
+      await send(key);
       saving = false;
       await load();
       return true;
     } catch (e) {
-      if (outbox != null && neverSent(e)) {
-        await outbox!.keep(method: 'POST', path: path, kind: kind, data: data);
+      if (outbox != null && unanswered(e)) {
+        await outbox!
+            .keep(method: 'POST', path: path, kind: kind, data: data, key: key);
         lastKept = true;
         return true;
       }
@@ -200,8 +203,11 @@ class FiveSProvider extends ChangeNotifier {
       'status': 'submitted',
       'answers': answersForRun(template, answers),
     };
+    // A walk is recorded once however often it is sent: a second run would
+    // move the area's score again and raise its follow-up work twice.
+    final key = newIdempotencyKey();
     try {
-      final run = await _api.createAuditRun(body);
+      final run = await _api.createAuditRun(body, idempotencyKey: key);
       // The area's score has moved on the server; read it back rather than
       // guess at how the server rounds and stores it.
       saving = false;
@@ -210,9 +216,9 @@ class FiveSProvider extends ChangeNotifier {
     } catch (e) {
       // Walked where there is no signal: kept, and sent once there is. No run
       // id yet, so no photographs of the shortfalls until then.
-      if (outbox != null && neverSent(e)) {
-        await outbox!
-            .keep(method: 'POST', path: '/audit-runs', kind: 'audit', data: body);
+      if (outbox != null && unanswered(e)) {
+        await outbox!.keep(
+            method: 'POST', path: '/audit-runs', kind: 'audit', data: body, key: key);
         lastKept = true;
         return (score: score, runId: '');
       }

@@ -1,4 +1,6 @@
+/** Unit test for operations.service.ts: operationsService fallback behavior. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { signInWithToken } from '../test/session';
 
 const apiMocks = vi.hoisted(() => ({
   del: vi.fn(),
@@ -29,7 +31,7 @@ describe('operationsService fallback behavior', () => {
   });
 
   it('does not call the backend in demo-token mode', async () => {
-    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('demoSession', 'true');
     const { operationsService } = await import('./operations.service');
 
     const projects = await operationsService.getProjects();
@@ -40,7 +42,7 @@ describe('operationsService fallback behavior', () => {
   });
 
   it('recovers demo operations data when stored projects are invalid JSON', async () => {
-    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('demoSession', 'true');
     localStorage.setItem('productivity-demo-projects', '{broken-json');
     const { operationsService } = await import('./operations.service');
 
@@ -52,7 +54,7 @@ describe('operationsService fallback behavior', () => {
   });
 
   it('uses backend data when a real token succeeds', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.get.mockResolvedValueOnce([
       {
         id: 'real-project',
@@ -74,7 +76,7 @@ describe('operationsService fallback behavior', () => {
   });
 
   it('falls back to demo data in development when backend fails', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.get.mockRejectedValueOnce(new Error('backend unavailable'));
     const { operationsService } = await import('./operations.service');
 
@@ -86,7 +88,7 @@ describe('operationsService fallback behavior', () => {
   });
 
   it('strips optimistic client ids and organization scope from real backend create payloads', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.post.mockResolvedValueOnce({
       id: 'server-project-id',
       name: 'Server project',
@@ -112,7 +114,7 @@ describe('operationsService fallback behavior', () => {
   });
 
   it('strips organization scope from real backend update payloads', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.patch.mockResolvedValueOnce({
       id: 'server-project-id',
       organizationId: 'server-org',
@@ -136,7 +138,7 @@ describe('operationsService fallback behavior', () => {
   });
 
   it('deletes real backend projects through the API', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.del.mockResolvedValueOnce({ id: 'server-project-id', deleted: true });
     const { operationsService } = await import('./operations.service');
 
@@ -147,7 +149,7 @@ describe('operationsService fallback behavior', () => {
   });
 
   it('passes the selected month to the backend monthly report endpoint', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.get.mockResolvedValueOnce({
       period: '2026-06',
       totals: {
@@ -183,7 +185,7 @@ describe('operationsService fallback behavior', () => {
   });
 
   it('builds a demo monthly report without calling the backend', async () => {
-    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('demoSession', 'true');
     const { operationsService } = await import('./operations.service');
 
     const report = await operationsService.getMonthlyReport('2026-06');
@@ -206,7 +208,7 @@ describe('tasks raised from a finding, in demo mode', () => {
     );
   beforeEach(() => {
     localStorage.clear();
-    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('demoSession', 'true');
   });
 
   const redTag = {
@@ -282,7 +284,7 @@ describe('finishing a task closes its red tag, in demo mode', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('demoSession', 'true');
     localStorage.setItem(layoutKey, JSON.stringify(plansWith('open')));
   });
 
@@ -342,7 +344,7 @@ describe('submitting an audit updates the zone, in demo mode', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('demoSession', 'true');
     localStorage.setItem(
       layoutKey,
       JSON.stringify([
@@ -407,7 +409,7 @@ describe('the calendar', () => {
   beforeEach(() => {
     vi.resetModules();
     localStorage.clear();
-    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('demoSession', 'true');
   });
 
   it('puts an audit on the day it was walked, not on today', async () => {

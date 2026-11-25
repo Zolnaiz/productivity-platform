@@ -1,3 +1,4 @@
+/** Unit test for attachment.service.ts: the attachment client against the real server. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));

@@ -1,3 +1,7 @@
+/**
+ * First-run checklist for administrators: which setup steps (setupSteps) are done, from live data
+ * (loadSetupFacts).
+ */
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

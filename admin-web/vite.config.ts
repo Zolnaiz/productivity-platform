@@ -44,5 +44,11 @@ export default defineConfig(({ mode }) => ({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
+    // Vitest's 5-second default is too tight for whole pages in jsdom. Alone,
+    // the floor-plan editor renders in about a second and the sign-up form is
+    // typed out in less. With the full suite's workers sharing a busy laptop,
+    // each took over 6 seconds, and a different one failed on each run. That
+    // said nothing about the code. 15 seconds still stops a test that hangs.
+    testTimeout: 15_000,
   },
 }));

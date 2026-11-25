@@ -1,3 +1,4 @@
+/** Unit test for task-source.ts: tasks created from a finding. */
 import { OperationsService } from './operations.service';
 import { TaskSource, TaskStatus } from './entities/task.entity';
 

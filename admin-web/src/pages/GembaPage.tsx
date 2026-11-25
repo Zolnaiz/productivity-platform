@@ -1,3 +1,6 @@
+/**
+ * /gemba - record a gemba walk: where, what was seen, follow-ups that become tasks.
+ */
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, ChevronLeft, ChevronRight, Footprints, Plus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

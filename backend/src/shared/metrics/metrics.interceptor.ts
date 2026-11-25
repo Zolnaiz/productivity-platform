@@ -1,3 +1,6 @@
+/**
+ * Times every request and reports it to MetricsService.
+ */
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';

@@ -1,3 +1,7 @@
+/**
+ * Gemba walks: saves a walk, turns each follow-up into a task, and counts walks per week against
+ * DEFAULT_WALKS_PER_WEEK in the organisation's time zone.
+ */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, In, Repository } from 'typeorm';

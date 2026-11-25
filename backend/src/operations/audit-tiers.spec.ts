@@ -1,3 +1,4 @@
+/** Unit test for audit-tiers.ts: readAuditTiers. */
 import {
   defaultAuditTiers,
   isTierDue,

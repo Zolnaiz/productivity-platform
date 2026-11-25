@@ -99,13 +99,17 @@ class IdeaProvider extends ChangeNotifier {
       if (area.isNotEmpty) 'area': area,
       if (benefit.isNotEmpty) 'benefit': benefit,
     };
+    // One key from the first try on, so a copy sent after a lost answer is
+    // the same idea to the server, not a second one.
+    final key = newIdempotencyKey();
     try {
-      final idea = Idea.fromJson(await _api.createIdea(body));
+      final idea = Idea.fromJson(await _api.createIdea(body, idempotencyKey: key));
       ideas = [idea, ...ideas];
       return idea;
     } catch (e) {
-      if (outbox != null && neverSent(e)) {
-        await outbox!.keep(method: 'POST', path: '/ideas', kind: 'idea', data: body);
+      if (outbox != null && unanswered(e)) {
+        await outbox!
+            .keep(method: 'POST', path: '/ideas', kind: 'idea', data: body, key: key);
         lastKept = true;
         final kept = Idea(
             id: '', title: title, description: description, area: area, benefit: benefit);

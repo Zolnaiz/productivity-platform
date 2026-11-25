@@ -1,3 +1,6 @@
+/**
+ * Refresh-token and password-reset tables used by AuthService.
+ */
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateRuntimeAuthTables1781260500000 implements MigrationInterface {

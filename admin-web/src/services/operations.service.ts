@@ -1,3 +1,7 @@
+/**
+ * API client for operations: projects, tasks, work logs, audits, reports. Report figures are computed by the
+ * pure modules it imports (taskCompletion, weeklyMeasurements, periodReport...).
+ */
 import { del, get, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
 import { planHoldingZone, readDemoPlans, replaceDemoPlan, writeDemoPlans } from './demoPlanStore';
 import {
@@ -12,6 +16,7 @@ import {
   PeriodReport,
   Project,
   TimeEntry,
+  WeeklyMeasurements,
   WorkLog,
   WorkTask,
 } from '../types/operations.types';
@@ -19,9 +24,10 @@ import { DailyGoal } from '../types/productivity.types';
 import { summarisePeople } from '../components/reports/monthlyPeople';
 import { completionAfter, completionMonth, doneByEndOf, plannedMonth } from '../components/reports/taskCompletion';
 import { combineMonths, monthsBetween } from '../components/reports/periodReport';
+import { demoWeeklyMeasurements } from '../components/reports/weeklyMeasurements';
 import { headlineFigures } from '../components/reports/monthHistory';
 import { localDay } from '../components/progress/progressBoard';
-import { daysFromToday, localMonth } from '../utils/localDay';
+import { daysFromToday, localDay as todayLocal, localMonth } from '../utils/localDay';
 
 type ApiEnvelope<T> = T | { data: T; success?: boolean };
 type DemoKey = 'projects' | 'tasks' | 'workLogs' | 'timeEntries' | 'auditTemplates' | 'auditRuns' | 'goals';
@@ -840,6 +846,12 @@ export const operationsService = {
     fallback<OperationsMonthlyReport>(
       () => get('/operations/monthly-report', month ? { month } : undefined),
       demoMonthlyReport(month),
+    ),
+  /** The pilot's weekly table: K1–K6 for each Monday-to-Sunday week, from and to as YYYY-MM-DD. */
+  getWeeklyMeasurements: (from: string, to: string) =>
+    fallback<WeeklyMeasurements>(
+      () => get('/operations/weekly-measurements', { from, to }),
+      demoWeeklyMeasurements(from, to, todayLocal(), (month) => demoMonthlyReport(month).measurements),
     ),
   getPeriodReport: (from: string, to: string) =>
     fallback<PeriodReport>(

@@ -1,3 +1,4 @@
+/** Unit test for zoneTable.ts: the 5S area table rules. */
 import { describe, expect, it } from 'vitest';
 import type { FiveSZone } from '../../types/fiveS.types';
 import { newZone, nextCode, zoneProblems } from './zoneTable';

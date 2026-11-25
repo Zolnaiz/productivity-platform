@@ -1,3 +1,6 @@
+/**
+ * Body of the change-password request: current and new password.
+ */
 import { IsString, MinLength } from 'class-validator';
 
 export class ChangePasswordDto {

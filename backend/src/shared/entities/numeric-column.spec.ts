@@ -1,3 +1,4 @@
+/** Unit test for numeric-column.ts: a numeric column. */
 import { numericColumn } from './numeric-column';
 
 describe('a numeric column', () => {

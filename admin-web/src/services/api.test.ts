@@ -1,14 +1,19 @@
+/** Unit test for api.ts: api demo mode guard. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   api,
   createRequestId,
   localId,
-  getStoredAccessToken,
+  clearSession,
+  getAccessToken,
   isDemoEnabled,
   isDemoMode,
   normalizeTokenResponse,
   post,
   refreshSession,
+  setAccessToken,
+  startDemoSession,
+  startSession,
   unwrapApiResponse,
 } from './api';
 import axios from 'axios';
@@ -20,16 +25,16 @@ describe('api demo mode guard', () => {
   });
 
   it('allows demo mode during development', () => {
-    localStorage.setItem('token', 'demo-token');
+    startDemoSession();
 
     expect(isDemoEnabled()).toBe(true);
     expect(isDemoMode()).toBe(true);
   });
 
-  it('blocks demo-token mode in production unless explicitly enabled', () => {
+  it('blocks demo mode in production unless explicitly enabled', () => {
     vi.stubEnv('DEV', false);
     vi.stubEnv('VITE_ENABLE_DEMO_MODE', '');
-    localStorage.setItem('token', 'demo-token');
+    startDemoSession();
 
     expect(isDemoEnabled()).toBe(false);
     expect(isDemoMode()).toBe(false);
@@ -38,23 +43,35 @@ describe('api demo mode guard', () => {
   it('allows explicit production demo builds', () => {
     vi.stubEnv('DEV', false);
     vi.stubEnv('VITE_ENABLE_DEMO_MODE', 'true');
-    localStorage.setItem('token', 'demo-token');
+    startDemoSession();
 
     expect(isDemoEnabled()).toBe(true);
     expect(isDemoMode()).toBe(true);
   });
 
-  it('clears and blocks stale demo tokens in production API calls', () => {
-    vi.stubEnv('DEV', false);
-    vi.stubEnv('VITE_ENABLE_DEMO_MODE', '');
-    localStorage.setItem('token', 'demo-token');
-    localStorage.setItem('refreshToken', 'refresh-token');
+  it('signs out of everything at once, including credentials an earlier version stored', () => {
+    startDemoSession();
+    setAccessToken('in-memory');
+    localStorage.setItem('token', 'from-before');
+    localStorage.setItem('refreshToken', 'from-before');
     localStorage.setItem('user', '{"id":"demo"}');
 
-    expect(getStoredAccessToken()).toBeNull();
+    clearSession();
+
+    expect(getAccessToken()).toBeNull();
+    expect(isDemoMode()).toBe(false);
+    expect(localStorage.length).toBe(0);
+  });
+
+  it('starts a sign-in with its token in memory and nothing remembered from the last one', () => {
+    sessionStorage.setItem('staffListRefused', 'true');
+    localStorage.setItem('token', 'from-before');
+
+    startSession('issued');
+
+    expect(getAccessToken()).toBe('issued');
+    expect(sessionStorage.length).toBe(0);
     expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('refreshToken')).toBeNull();
-    expect(localStorage.getItem('user')).toBeNull();
   });
 });
 
@@ -163,11 +180,11 @@ describe('401 handling', () => {
   });
 
   it('still clears auth and returns to login when a real session expires', async () => {
-    localStorage.setItem('token', 'stale-token');
+    setAccessToken('stale-token');
     (api.defaults as { adapter?: unknown }).adapter = () => unauthorized('/operations/projects');
 
     await expect(post('/operations/projects', {})).rejects.toBeTruthy();
-    expect(localStorage.getItem('token')).toBeNull();
+    expect(getAccessToken()).toBeNull();
     expect(navigatedTo).toBe('/login');
   });
 });
@@ -203,7 +220,7 @@ describe('localId', () => {
 
 describe('the session cookie', () => {
   afterEach(() => {
-    localStorage.clear();
+    clearSession();
     vi.restoreAllMocks();
   });
 
@@ -212,7 +229,7 @@ describe('the session cookie', () => {
     expect(api.defaults.withCredentials).toBe(true);
   });
 
-  it('refreshes from the cookie, keeping only the access token', async () => {
+  it('refreshes from the cookie, keeping the access token in memory and nowhere a script could read it', async () => {
     const posted = vi.spyOn(axios, 'post').mockResolvedValue({ data: { data: { access_token: 'fresh' } } });
 
     await expect(refreshSession()).resolves.toBe('fresh');
@@ -222,7 +239,34 @@ describe('the session cookie', () => {
       {},
       expect.objectContaining({ withCredentials: true, headers: { 'X-Session-Cookie': 'true' } }),
     );
-    expect(localStorage.getItem('token')).toBe('fresh');
+    expect(getAccessToken()).toBe('fresh');
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it('sends the token it holds in memory with each request', async () => {
+    setAccessToken('held');
+    let sent: string | undefined;
+    (api.defaults as { adapter?: unknown }).adapter = (config: { headers: Record<string, string> }) => {
+      sent = config.headers.Authorization;
+      return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+    };
+
+    try {
+      await post('/operations/projects', {});
+    } finally {
+      delete (api.defaults as { adapter?: unknown }).adapter;
+    }
+    expect(sent).toBe('Bearer held');
+  });
+
+  it('shares one refresh among requests refused at the same time', async () => {
+    const posted = vi.spyOn(axios, 'post').mockResolvedValue({ data: { access_token: 'fresh' } });
+
+    const tokens = await Promise.all([refreshSession(), refreshSession(), refreshSession()]);
+
+    expect(tokens).toEqual(['fresh', 'fresh', 'fresh']);
+    expect(posted).toHaveBeenCalledTimes(1);
   });
 
   it('hands over a refresh token left in storage once, then forgets it', async () => {

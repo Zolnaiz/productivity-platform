@@ -82,6 +82,10 @@ const viewer = [
   'notes:own',
   // Their own focus sessions and the badges their own records earn.
   'personal:own',
+  // Saying how usable the system is (SUS, measure K7). Everybody who uses it
+  // is asked, the viewer included: an answer from only those who can change
+  // things would measure the wrong people.
+  'sus:answer',
 ];
 
 const user = [
@@ -175,6 +179,9 @@ const admin = [
   'attachments:check',
   // Reading what members have reported about the product.
   'feedback:read',
+  // Opening and closing a round of the SUS questionnaire, and reading what it
+  // comes to - totals only, never one person's answers.
+  'sus:manage',
 ];
 
 const organizationAdmin = [...admin, 'organization:update', 'auditlog:read'];

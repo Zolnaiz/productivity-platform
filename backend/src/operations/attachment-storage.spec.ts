@@ -1,3 +1,4 @@
+/** Unit test for attachment-storage.ts: sniffMimeType. */
 import {
   buildStorageKey,
   isAllowedMimeType,

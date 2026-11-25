@@ -1,3 +1,5 @@
+// Widget/unit test: scoring, as the web scores.
+
 import 'package:dio/dio.dart';
 import 'dart:convert';
 
@@ -468,8 +470,8 @@ void main() {
     await tester.tap(find.text('A1 - Tool wall'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('zone-walk')));
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pumpAndSettle();
+    await settleUntil(
+        tester, () => find.byKey(const Key('standard-photo')).evaluate().isNotEmpty);
 
     expect(find.byKey(const Key('standard-photo')), findsOneWidget);
     expect(find.text('As it should look - compare the area with this.'), findsOneWidget);

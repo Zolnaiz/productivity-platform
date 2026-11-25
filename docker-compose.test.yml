@@ -1,3 +1,6 @@
+# A throwaway PostgreSQL on port 5433 for running tests by hand next to a development database.
+# Nothing starts it automatically; CI uses its own service container.
+
 services:
   postgres:
     image: postgres:15-alpine

@@ -1,3 +1,7 @@
+/**
+ * npm run seed - fills a database with a demo organisation: people, projects, tasks, 5S zones, audits and
+ * guidelines. For development and the demo only.
+ */
 import dataSource from '../src/migrations/data-source';
 import * as bcrypt from 'bcrypt';
 import { defaultGuidelineContent } from '../src/operations/five-s-guideline-content';

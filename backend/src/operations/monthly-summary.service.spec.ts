@@ -1,3 +1,4 @@
+/** Unit test for monthly-summary.service.ts: the month in facts. */
 import { IdeaStatus } from './entities/idea.entity';
 import { MonthlySummaryService, monthFacts } from './monthly-summary.service';
 

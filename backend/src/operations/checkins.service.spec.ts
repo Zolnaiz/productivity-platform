@@ -1,3 +1,4 @@
+/** Unit test for checkins.service.ts: the week a day falls in. */
 import { CheckinsService, mondayOf } from './checkins.service';
 
 const operator = { id: 'op-1', organizationId: 'org-1' };

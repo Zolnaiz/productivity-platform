@@ -1,3 +1,4 @@
+/** Unit test for audit-score.ts: scoring an audit run on the server. */
 import { scoreFromAnswers } from './audit-score';
 
 const questions = [

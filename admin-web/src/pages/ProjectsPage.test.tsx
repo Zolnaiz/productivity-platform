@@ -1,3 +1,4 @@
+/** Unit test for ProjectsPage.tsx: ProjectsPage. */
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

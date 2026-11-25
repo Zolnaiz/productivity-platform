@@ -1,3 +1,5 @@
+// Widget/unit test.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:productivity_mobile/screens/profile_screen.dart';
@@ -10,12 +12,16 @@ void main() {
   Future<MockAdapter> pump(WidgetTester tester,
       {int passwordStatus = 201}) async {
     final (api, adapter, _) = await makeApi((request) {
+      // Shaped as the server's /auth/me answers (AuthService.toAuthUser):
+      // the number comes as `phoneNumber`. This fake once said `phone`,
+      // which the server never sends, and the screen passed here while
+      // showing an empty field - and erasing the number - on a real phone.
       if (request.path == '/auth/me') {
         return jsonReply(envelope({
           'id': 'u1',
           'firstName': 'Bat',
           'lastName': 'Dorj',
-          'phone': '99112233',
+          'phoneNumber': '99112233',
           'language': 'mn'
         }));
       }
@@ -49,6 +55,17 @@ void main() {
     expect(patch.path, '/users/profile/me');
     expect((patch.data as Map)['phone'], '88001122');
     expect(find.text('Saved'), findsOneWidget);
+  });
+
+  testWidgets('keeps the stored phone when only the language is changed',
+      (tester) async {
+    final adapter = await pump(tester);
+
+    await tester.tap(find.byKey(const Key('profile-save')));
+    await tester.pumpAndSettle();
+
+    final patch = adapter.requests.firstWhere((r) => r.method == 'PATCH');
+    expect((patch.data as Map)['phone'], '99112233');
   });
 
   testWidgets('refuses a short new password without asking the server',

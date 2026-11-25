@@ -1,3 +1,4 @@
+/** Unit test for list-users-query.dto.ts: ListUsersQueryDto. */
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { UserRole } from '../../shared/constants';

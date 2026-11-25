@@ -1,3 +1,6 @@
+/**
+ * GET/PUT /checkins/mine: the signed-in person's weekly check-in (K6).
+ */
 import { BadRequestException, Body, Controller, Get, Put, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../shared/decorators/permissions.decorator';

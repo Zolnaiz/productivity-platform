@@ -1,3 +1,6 @@
+/**
+ * API client for the written monthly summary (draft and save).
+ */
 import i18n from '../i18n';
 import { get, isDemoMode, post, put } from './api';
 

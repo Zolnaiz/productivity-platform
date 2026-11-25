@@ -1,3 +1,5 @@
+// Light/dark theme choice.
+
 import 'package:flutter/material.dart';
 
 class ThemeProvider with ChangeNotifier {

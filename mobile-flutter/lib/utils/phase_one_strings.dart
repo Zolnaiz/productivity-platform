@@ -1,3 +1,6 @@
+// All user-visible text of the mobile app (Mongolian and English) and the Mongolian Material/Cupertino
+// localisation delegates.
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -70,6 +73,15 @@ class PhaseOneStrings {
 
   String todayAllTasks(int open) =>
       mn ? 'Бүх ажил ($open нээлттэй)' : 'All tasks ($open open)';
+
+  /// After answering the questionnaire: what the ten answers come to.
+  String susThanks(num score) {
+    final shown = score == score.roundToDouble() ? score.toInt().toString() : '$score';
+    return mn ? 'Баярлалаа. Таны хариулт 100-аас $shown оноо.' : 'Thank you. Your answers come to $shown out of 100.';
+  }
+
+  /// What a screen reader says for one of the five answers to a statement.
+  String susChoice(int item, int value) => mn ? 'S$item өгүүлбэрт $value' : '$value for statement S$item';
 
   String hoursValue(double hours) {
     final shown =
@@ -310,9 +322,33 @@ const _en = {
   'labelUnknown': 'This label names an area that is not on your organization’s plans.',
   'cameraUnavailable': 'The camera could not be opened. Allow it in the phone’s settings.',
   'keptNow': 'No network. Kept on this phone to send later.',
+  'susTitle': 'Usability questionnaire',
+  'susReminder': 'The usability questionnaire is open: ten statements, about two minutes.',
+  'susAnswer': 'Answer',
+  'susScaleHint': 'For each statement, choose from 1 (strongly disagree) to 5 (strongly agree).',
+  'susDisagree': 'Strongly disagree',
+  'susAgree': 'Strongly agree',
+  'susAnswerAll': 'Answer all ten statements to send.',
+  'susSend': 'Send answers',
+  'sus.s1': 'I think that I would like to use this system frequently.',
+  'sus.s2': 'I found the system unnecessarily complex.',
+  'sus.s3': 'I thought the system was easy to use.',
+  'sus.s4': 'I think that I would need the support of a technical person to be able to use this system.',
+  'sus.s5': 'I found the various functions in this system were well integrated.',
+  'sus.s6': 'I thought there was too much inconsistency in this system.',
+  'sus.s7': 'I would imagine that most people would learn to use this system very quickly.',
+  'sus.s8': 'I found the system very cumbersome to use.',
+  'sus.s9': 'I felt very confident using the system.',
+  'sus.s10': 'I needed to learn a lot of things before I could get going with this system.',
   'signIn': 'Sign in',
   'appName': 'Бүтээмж',
   'signInHint': 'Sign in with your organization account',
+  'server': 'Server',
+  'serverChange': 'Change',
+  'serverAddress': 'Your organization’s server',
+  'serverAddressHint': 'The address your organization gave you, e.g. work.example.com',
+  'serverUse': 'Use',
+  'serverUnreachable': 'No Productivity Platform server answered at this address. Check it and the network, and try again.',
   'logout': 'Sign out',
   'todayTitle': 'Today',
   'todayScan': 'Check an area by QR',
@@ -482,9 +518,33 @@ const _mn = {
   'labelUnknown': 'Энэ шошгоны талбай танай байгууллагын зураг дээр алга.',
   'cameraUnavailable': 'Камер нээгдсэнгүй. Утасны тохиргооноос зөвшөөрнө үү.',
   'keptNow': 'Сүлжээ алга. Утсанд хадгаллаа, дараа нь илгээнэ.',
+  'susTitle': 'Хэрэглэхэд хялбар байдлын асуулга',
+  'susReminder': 'Хэрэглэхэд хялбар байдлын асуулга нээлттэй байна: арван өгүүлбэр, 2 минут орчим.',
+  'susAnswer': 'Хариулах',
+  'susScaleHint': 'Өгүүлбэр бүрт 1 (огт санал нийлэхгүй)-ээс 5 (бүрэн санал нийлнэ) хүртэл сонгоно уу.',
+  'susDisagree': 'Огт санал нийлэхгүй',
+  'susAgree': 'Бүрэн санал нийлнэ',
+  'susAnswerAll': 'Илгээхийн тулд арван өгүүлбэрт бүгдэд нь хариулна уу.',
+  'susSend': 'Хариулт илгээх',
+  'sus.s1': 'Би энэ системийг байнга ашиглах хүсэлтэй байна гэж бодож байна.',
+  'sus.s2': 'Систем шаардлагагүй төвөгтэй санагдсан.',
+  'sus.s3': 'Системийг ашиглахад хялбар гэж бодсон.',
+  'sus.s4': 'Энэ системийг ашиглахын тулд техникийн хүний тусламж хэрэгтэй болно гэж бодож байна.',
+  'sus.s5': 'Системийн янз бүрийн боломжууд хоорондоо сайн уялдсан санагдсан.',
+  'sus.s6': 'Системд нэг мөр бус, зөрүүтэй зүйл хэт олон байна гэж бодсон.',
+  'sus.s7': 'Ихэнх хүн энэ системийг маш хурдан сурна гэж бодож байна.',
+  'sus.s8': 'Системийг ашиглахад их төвөгтэй, болхи санагдсан.',
+  'sus.s9': 'Системийг ашиглахдаа өөртөө итгэлтэй байсан.',
+  'sus.s10': 'Энэ системийг ашиглаж эхлэхээс өмнө их зүйл сурах шаардлагатай байсан.',
   'signIn': 'Нэвтрэх',
   'appName': 'Бүтээмж',
   'signInHint': 'Байгууллагынхаа бүртгэлээр нэвтэрнэ үү',
+  'server': 'Сервер',
+  'serverChange': 'Солих',
+  'serverAddress': 'Байгууллагын сервер',
+  'serverAddressHint': 'Байгууллагаас өгсөн хаяг, жишээ нь work.example.com',
+  'serverUse': 'Ашиглах',
+  'serverUnreachable': 'Энэ хаяг дээр платформын сервер хариу өгсөнгүй. Хаяг болон сүлжээгээ шалгаад дахин оролдоно уу.',
   'logout': 'Гарах',
   'todayTitle': 'Өнөөдөр',
   'todayScan': 'QR-аар 5S аудит хийх',

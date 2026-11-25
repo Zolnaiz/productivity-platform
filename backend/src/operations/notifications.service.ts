@@ -1,3 +1,7 @@
+/**
+ * In-app notifications (and optional e-mail) for assignments, reviews and reminders. Other services call
+ * notify(); wording comes from raised-wording so web and mail say the same thing.
+ */
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';

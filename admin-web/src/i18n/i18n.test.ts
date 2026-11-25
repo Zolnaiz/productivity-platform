@@ -1,3 +1,4 @@
+/** Unit test for i18n.ts: translations. */
 import { beforeEach, describe, expect, it } from 'vitest';
 import i18n, { changeLanguage, languageStorageKey, normalizeLanguage, supportedLanguages } from './index';
 import en from './locales/en';

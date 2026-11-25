@@ -1,3 +1,6 @@
+/**
+ * Monthly report card: the last months' headline figures side by side (monthHistory).
+ */
 import React, { useEffect, useState } from 'react';
 import { History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

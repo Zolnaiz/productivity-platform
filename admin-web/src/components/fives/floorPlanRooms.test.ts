@@ -1,3 +1,4 @@
+/** Unit test for floorPlanRooms.ts: naming a room. */
 import { describe, expect, it } from 'vitest';
 import { Room } from './floorPlanWalls';
 import { RoomLabel, labelIn, moveLabel, nameRoom, strandedLabels } from './floorPlanRooms';

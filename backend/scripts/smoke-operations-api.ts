@@ -1,3 +1,7 @@
+/**
+ * Smoke test against a running API: walks the main routes with a real token and fails on the first unexpected
+ * answer. Used after a deploy.
+ */
 import { createHmac } from 'crypto';
 import { config } from 'dotenv';
 

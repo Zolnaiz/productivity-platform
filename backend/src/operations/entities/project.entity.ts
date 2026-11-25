@@ -1,3 +1,6 @@
+/**
+ * A project that groups tasks, with status and budget.
+ */
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
 import { numericColumn } from '../../shared/entities/numeric-column';

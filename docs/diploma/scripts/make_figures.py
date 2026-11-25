@@ -207,13 +207,13 @@ def architecture():
     layers = [
         ('JWT нэвтрэлт · PermissionsGuard\n(эрхийн хүснэгт)', 5.05),
         ('Controller-ууд (REST, /api)', 4.15),
-        ('Service-үүд: ажил, 5S, аудит,\nтайлан, Gemba, санаа, мэдэгдэл', 3.2),
+        ('Service-үүд: ажил, 5S, аудит, тайлан,\nGemba, санаа, SUS, мэдэгдэл', 3.2),
         ('TypeORM repository · migration', 2.25),
         ('Cron: сануулга, аудит, сар хаах', 1.3),
     ]
     for text, y in layers:
         box(ax, 4.35, y, 3.1, 0.72, text, GREY, '#9ca3af', 8.5)
-    box(ax, 8.6, 3.5, 2.2, 1.4, 'PostgreSQL\n25 хүснэгт\n38 migration', AMBER, '#b45309', 9.5)
+    box(ax, 8.6, 3.5, 2.2, 1.4, 'PostgreSQL\n31 хүснэгт\n46 migration', AMBER, '#b45309', 9.5)
     box(ax, 8.6, 1.6, 2.2, 1.2, 'Файл хадгалалт\n(зураг, хавсралт)', AMBER, '#b45309', 9)
     box(ax, 8.6, 5.3, 2.2, 1.0, 'Anthropic API\n(сарын тойм, сонголтоор)', GREEN, '#15803d', 8.5)
     arrow(ax, 3.3, 5.4, 4.1, 5.4, 'HTTPS/JSON', both=True)
@@ -233,7 +233,7 @@ def er_diagram():
         'dept': (0.3, 6.2, 'departments', 'id, name\norganizationId'),
         'proj': (8.4, 6.2, 'projects', 'id, name, status\nprogress, dueDate'),
         'user': (0.3, 4.2, 'users', 'id, email, role\norganizationId\ndepartmentId'),
-        'task': (4.4, 4.2, 'tasks', 'id, title, status\nassigneeId, dueDate\nsourceType, sourceId'),
+        'task': (4.4, 4.2, 'work_tasks', 'id, title, status\nassigneeId, dueDate\nsourceType, sourceId'),
         'layout': (8.4, 4.2, 'five_s_layouts', 'id, zones (jsonb)\nownerId, version'),
         'worklog': (0.3, 2.2, 'work_logs', 'id, userId, day\ndone, next'),
         'run': (4.4, 2.2, 'audit_runs', 'id, zoneId, score\nanswers, status'),
@@ -261,9 +261,12 @@ def er_diagram():
                         ('tmpl', 'run', '1 : N'), ('run', 'task', 'үүсгэнэ'), ('user', 'worklog', '1 : N'),
                         ('layout', 'run', 'бүс'), ('worklog', 'checkin', '')]:
         rel(a, b, label)
+    # Зурагт ороогүй 19 хүснэгт; дээрх 12-той нийлээд 31 (@Entity-ийн тоо).
     ax.text(5.5, -0.2, 'Бусад хүснэгт: notifications, attachments, expenses, time_entries, daily_goals, '
-            'monthly_report_closes,\nmonthly_summaries, assessment_templates, assessment_responses, '
-            'five_s_guidelines, five_s_layout_versions, invitations, audit_log',
+            'focus_sessions, personal_notes,\nmonthly_report_closes, monthly_summaries, '
+            'assessment_templates, assessment_responses, feedback_messages, invitations,\n'
+            'five_s_guidelines, five_s_layout_versions, sus_rounds, sus_responses, idempotency_keys, '
+            'audit_log_entries',
             ha='center', va='top', fontsize=8, color='#374151')
     save(fig, 'er.png')
 
@@ -307,8 +310,11 @@ def outbox():
     box(ax, 0.2, 1.6, 1.9, 1.0, 'Хэрэглэгч\nхадгална', GREEN, INK, 9)
     box(ax, 2.8, 1.6, 1.9, 1.0, 'Сервер рүү\nилгээнэ', GREY, INK, 9)
     box(ax, 5.5, 2.95, 2.0, 0.9, 'Амжилттай', GREEN, INK, 9)
-    box(ax, 5.5, 1.65, 2.0, 0.9, 'Огт хүрээгүй\n(сүлжээгүй)', AMBER, INK, 9)
-    box(ax, 5.5, 0.35, 2.0, 0.9, 'Сервер татгалзсан\nэсвэл timeout', '#fee2e2', '#b91c1c', 8.5)
+    # The phone cannot tell a request that never left from one whose answer
+    # was lost, so every unanswered write is kept, under the key it was first
+    # sent with (network_drop_live_test.dart, 11.14).
+    box(ax, 5.5, 1.65, 2.0, 0.9, 'Хариу ирээгүй\n(сүлжээгүй, timeout)', AMBER, INK, 8.5)
+    box(ax, 5.5, 0.35, 2.0, 0.9, 'Сервер алдаагаар\nхариулсан (4xx, 5xx)', '#fee2e2', '#b91c1c', 8.5)
     box(ax, 8.1, 1.65, 1.7, 0.9, 'Outbox дараалал\n(утсанд)', AMBER, INK, 9)
     arrow(ax, 2.1, 2.1, 2.8, 2.1)
     arrow(ax, 4.7, 2.3, 5.5, 3.35)
@@ -318,6 +324,7 @@ def outbox():
     ax.plot([8.95, 8.95, 3.75], [2.55, 4.1, 4.1], color=BLUE_E, lw=1.1)
     ax.annotate('', xy=(3.75, 2.6), xytext=(3.75, 4.1), arrowprops=dict(arrowstyle='-|>', color=BLUE_E, lw=1.1))
     ax.text(6.4, 4.2, 'сүлжээ сэргэх · апп дахин нээгдэх · «Одоо илгээх»', fontsize=8, ha='center', color=BLUE_E)
+    ax.text(3.75, 1.35, 'Idempotency-Key\nэхний илгээлтээс', fontsize=7.5, ha='center', va='top', color=BLUE_E)
     ax.text(7.65, 0.55, 'хэрэглэгчид хэлнэ;\nдахин илгээхгүй', fontsize=8)
     save(fig, 'outbox.png')
 

@@ -1,3 +1,6 @@
+// The user's tasks: loads them (falling back to the read cache offline) and keeps status changes in the outbox
+// when there is no network.
+
 import 'package:flutter/foundation.dart';
 
 import '../models/task_model.dart';
@@ -72,8 +75,10 @@ class TaskProvider extends ChangeNotifier {
       ];
       error = null;
     } catch (e) {
-      if (outbox != null && neverSent(e)) {
+      if (outbox != null && unanswered(e)) {
         // Moved on screen and kept: it goes to the server with the network.
+        // It sets a status rather than adding a record, so a copy arriving
+        // after one the server already saved changes nothing.
         await outbox!.keep(
             method: 'PATCH',
             path: '/tasks/${task.id}',

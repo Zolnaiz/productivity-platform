@@ -1,10 +1,16 @@
+/**
+ * Team members of an organisation: list, create, update, change role (only to roles the actor may assign,
+ * roles.ts), disable, and issue an admin password-reset link when mail is not available.
+ */
 import {
   Injectable,
   NotFoundException,
   ForbiddenException,
   ConflictException,
   BadRequestException,
+  Optional,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -14,12 +20,18 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole, PaginationParams } from '../shared/constants';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
 import { canAssignRole, permissionsFor } from '../shared/roles';
+import { createInvitationToken, hashInvitationToken } from '../auth/invitation-token';
+import { PASSWORD_RESET_TTL_MS } from '../auth/password-reset-mail';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    // For APP_BASE_URL, so a reset link points at the address people reach
+    // the system by, as the reset mail's does. Optional so a unit test can
+    // build the service from a repository alone.
+    @Optional() private readonly config?: ConfigService,
   ) {}
 
   async create(createUserDto: CreateUserDto, organizationId?: string) {
@@ -367,6 +379,45 @@ export class UsersService {
 
     user.role = role;
     return this.usersRepository.save(user);
+  }
+
+  /**
+   * A password reset link an administrator hands over in person.
+   *
+   * The sign-in page's "forgot password" mails the link, and where mail is not
+   * set up (MAIL_TRANSPORT=log, as on the pilot server) it reaches nobody:
+   * somebody who forgot their password was locked out for good. This issues
+   * the same token the mail would carry (AuthService.forgotPassword): only its
+   * hash is stored, it lasts PASSWORD_RESET_TTL_MS, it works once, and a newer
+   * one replaces it. The raw token is returned here, once, for the
+   * administrator to pass on; it is never logged, and the audit trail records
+   * request bodies, not answers.
+   *
+   * Not for yourself (your account page changes your password), not for an
+   * inactive account, and not for anyone whose role you could not assign: an
+   * administrator must not be able to take over the account above them.
+   */
+  async issuePasswordResetLink(id: string, currentUser: any) {
+    const user = await this.findOne(id, currentUser);
+
+    if (user.id === currentUser.id) {
+      throw apiError(ErrorCode.ValidationFailed, 'id');
+    }
+    if (!canAssignRole(currentUser.role, user.role)) {
+      throw apiError(ErrorCode.AccessDenied);
+    }
+    if (!user.isActive) {
+      throw apiError(ErrorCode.AuthAccountInactive);
+    }
+
+    const token = createInvitationToken();
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+    await this.setResetToken(user.id, hashInvitationToken(token), expiresAt);
+
+    // The link the mail would carry (passwordResetMail); null where no public
+    // address is configured, and the web then builds it from its own.
+    const base = (this.config?.get<string>('APP_BASE_URL') ?? '').replace(/\/$/, '');
+    return { token, expiresAt, link: base ? `${base}/reset-password/${token}` : null };
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {

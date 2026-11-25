@@ -1,3 +1,6 @@
+/**
+ * Personal productivity shapes: notes, daily goals, focus sessions, badges.
+ */
 export interface Note {
   id: string;
   title: string;

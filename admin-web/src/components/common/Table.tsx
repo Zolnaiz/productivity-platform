@@ -1,3 +1,6 @@
+/**
+ * Simple data table driven by a Column list; scrolls horizontally on narrow screens.
+ */
 import React from 'react';
 import { scrollArea } from './scrollArea';
 

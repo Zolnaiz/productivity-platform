@@ -1,3 +1,6 @@
+/**
+ * Body of POST /auth/register: the owner's account and the new organisation's name.
+ */
 import {
   IsEmail,
   IsString,

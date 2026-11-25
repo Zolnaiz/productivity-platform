@@ -1,3 +1,6 @@
+/**
+ * Prints a short-lived access token for the smoke test (scripts/smoke-operations-api.ts).
+ */
 import { createHmac } from 'crypto';
 import { config } from 'dotenv';
 

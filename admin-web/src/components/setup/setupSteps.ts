@@ -1,3 +1,6 @@
+/**
+ * The setup steps and how each is judged done from SetupFacts. Pure; SetupChecklist renders it.
+ */
 export interface SetupFacts {
   profileComplete: boolean;
   departments: number;

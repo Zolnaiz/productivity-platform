@@ -19,9 +19,17 @@ class PendingWrite {
     this.data,
     required this.createdAt,
     String? key,
+    this.owner,
   }) : key = key ?? id;
 
   final String id;
+
+  /// The id of the person who made it. A phone handed between shifts may
+  /// hold several people's changes, and only the session of the one who made
+  /// a change sends it, so one worker's audit never reaches the server under
+  /// another's name. Null on changes kept before this was recorded; those go
+  /// with whoever is signed in, as they always did.
+  final String? owner;
 
   /// Sent as `Idempotency-Key`, so the server writes it once however many
   /// times it is sent.
@@ -42,6 +50,7 @@ class PendingWrite {
         'data': data,
         'createdAt': createdAt.toIso8601String(),
         'key': key,
+        'owner': owner,
       };
 
   factory PendingWrite.fromJson(Map<String, dynamic> json) => PendingWrite(
@@ -53,21 +62,22 @@ class PendingWrite {
         createdAt:
             DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
         key: json['key'] as String?,
+        owner: json['owner'] as String?,
       );
 }
 
-/// Whether a request failed without ever reaching the server: no network,
-/// or the connection refused. Only these are safe to send again later. A
-/// timeout may have been recorded before the answer was lost, and sending
-/// it twice would count an audit twice.
-bool neverSent(Object error) =>
-    error is DioException &&
-    error.response == null &&
-    error.type == DioExceptionType.connectionError;
-
-/// Whether a request that carried an `Idempotency-Key` can be kept and sent
-/// again: no answer came back, whether or not it arrived. The server writes
-/// a key once, so a timeout is as safe to retry as no network at all.
+/// Whether a change can be kept and sent again: no answer came back.
+///
+/// The phone cannot tell whether such a change reached the server. Dio calls
+/// a line that dropped after the request went out a "connection error", the
+/// same as no signal at all, so a rule that kept only changes "never sent"
+/// kept changes the server had already saved; sent again later, they were
+/// saved twice (test/network_drop_live_test.dart shows it on a real server).
+/// So a change is kept whenever its answer is missing, and every POST that
+/// can be kept carries its `Idempotency-Key` from the first try: the server
+/// writes a key once, and a second copy of a saved change gets the first
+/// answer back. A PATCH or PUT sets a value, which arriving twice does not
+/// change.
 bool unanswered(Object error) =>
     error is DioException && error.response == null && error.type != DioExceptionType.cancel;
 
@@ -105,8 +115,27 @@ class Outbox extends ChangeNotifier {
   final Future<SharedPreferences> Function() _prefs;
   StreamSubscription<List<ConnectivityResult>>? _connectivity;
 
+  /// Every kept change, everyone's, in the order they were made. What the
+  /// signed-in person can send is [ownPending].
   List<PendingWrite> pending = [];
   bool sending = false;
+
+  /// The id of the person signed in, as [AuthProvider] last said through
+  /// [signedIn]. Null while nobody is.
+  String? _owner;
+
+  /// The kept changes the signed-in person can send: their own, and any kept
+  /// before owners were recorded. What the home screen counts.
+  List<PendingWrite> get ownPending => pending.where(_isOwn).toList();
+
+  bool _isOwn(PendingWrite item) => item.owner == null || item.owner == _owner;
+
+  PendingWrite? _firstOwn() {
+    for (final item in pending) {
+      if (_isOwn(item)) return item;
+    }
+    return null;
+  }
 
   /// How many kept changes the server refused when they were sent - a tag
   /// on an area deleted in the meantime, say. Said once, then cleared.
@@ -127,17 +156,45 @@ class Outbox extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Counts each return of the network, after what was kept has been sent.
+  /// The home screen listens: tabs that read a kept copy while offline read
+  /// again, so their lists show the server's records and the banner saying
+  /// the phone is offline goes. Sending alone left both until the app was
+  /// next brought back to the front (seen on an emulator, 11.14).
+  final reconnected = ValueNotifier<int>(0);
+
   /// Sends what is kept whenever the phone comes back online.
   void start() {
     _connectivity ??= Connectivity().onConnectivityChanged.listen((results) {
-      if (results.any((result) => result != ConnectivityResult.none)) flush();
+      if (results.any((result) => result != ConnectivityResult.none)) {
+        _backOnline();
+      }
     });
+  }
+
+  Future<void> _backOnline() async {
+    await flush();
+    reconnected.value++;
   }
 
   @override
   void dispose() {
     _connectivity?.cancel();
+    reconnected.dispose();
     super.dispose();
+  }
+
+  /// Told by [AuthProvider] whenever who is signed in changes: an id on
+  /// sign-in or when a session is read back at start-up, null on sign-out or
+  /// when the session expires. Someone signing in may have changes kept from
+  /// before, so theirs are sent straight away. Returns how many reached the
+  /// server, for whoever wants to wait for it; the provider does not.
+  Future<int> signedIn(String? userId) async {
+    if (userId == _owner) return 0;
+    _owner = userId;
+    notifyListeners();
+    if (userId == null) return 0;
+    return flush();
   }
 
   Future<void> _save() async {
@@ -162,23 +219,34 @@ class Outbox extends ChangeNotifier {
         data: data,
         createdAt: DateTime.now(),
         key: key ?? newIdempotencyKey(),
+        owner: _owner,
       ),
     ];
     await _save();
     notifyListeners();
   }
 
-  /// Sends what is kept, oldest first, and stops at the first that still
-  /// cannot get through, so the order they were made in is kept. Returns how
-  /// many reached the server.
-  Future<int> flush() async {
-    if (sending || pending.isEmpty) return 0;
+  /// Sends the signed-in person's kept changes, oldest first, and stops at
+  /// the first that still cannot get through, so the order they were made in
+  /// is kept. Other people's stay where they are until their owner signs in.
+  /// Returns how many reached the server.
+  ///
+  /// Asked while a send is already going - the network back and the app
+  /// brought to the front at once - it waits for that send and returns its
+  /// count, so whoever reads the lists next reads them with the change in.
+  Future<int> flush() => _flushing ??= _flush().whenComplete(() => _flushing = null);
+
+  Future<int>? _flushing;
+
+  Future<int> _flush() async {
+    if (_firstOwn() == null) return 0;
     sending = true;
     notifyListeners();
     var sent = 0;
     try {
-      while (pending.isNotEmpty) {
-        final next = pending.first;
+      while (true) {
+        final next = _firstOwn();
+        if (next == null) break;
         try {
           await _api.send(next.method, next.path, next.data,
               idempotencyKey: next.key);
@@ -196,7 +264,7 @@ class Outbox extends ChangeNotifier {
           // Refused for what it says: sending it again would be refused again.
           refused++;
         }
-        pending = pending.sublist(1);
+        pending = List.of(pending)..remove(next);
         await _save();
         notifyListeners();
       }

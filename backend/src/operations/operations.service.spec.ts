@@ -1,3 +1,4 @@
+/** Unit test for operations.service.ts: OperationsService organization scoping. */
 import { todayIn } from './task-completion';
 import { UnauthorizedException } from '@nestjs/common';
 import { OperationsService } from './operations.service';

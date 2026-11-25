@@ -1,3 +1,4 @@
+/** Unit test for auth.controller.ts: AuthController. */
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 

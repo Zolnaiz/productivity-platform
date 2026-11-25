@@ -1,3 +1,6 @@
+/**
+ * Operations feature module: every operations controller, service, entity and scheduler.
+ */
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -14,6 +17,7 @@ import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { Idea } from './entities/idea.entity';
 import { WeeklyCheckin } from './entities/weekly-checkin.entity';
+import { SusResponse, SusRound } from './entities/sus.entity';
 import { MonthlySummary } from './entities/monthly-summary.entity';
 import { GembaWalk } from './entities/gemba-walk.entity';
 import { GembaController } from './gemba.controller';
@@ -31,6 +35,8 @@ import { GembaService } from './gemba.service';
 import { MonthlySummaryService } from './monthly-summary.service';
 import { CheckinsController } from './checkins.controller';
 import { CheckinsService } from './checkins.service';
+import { SusController } from './sus.controller';
+import { SusService } from './sus.service';
 import { IdeasController } from './ideas.controller';
 import { IdeasService } from './ideas.service';
 import { FiveSLayout } from './entities/five-s-layout.entity';
@@ -78,6 +84,8 @@ import { NotificationsService } from './notifications.service';
       DailyGoal,
       Idea,
       WeeklyCheckin,
+      SusRound,
+      SusResponse,
       MonthlySummary,
       GembaWalk,
       FeedbackMessage,
@@ -96,11 +104,12 @@ import { NotificationsService } from './notifications.service';
       Notification,
     ]),
   ],
-  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController, IdeasController, CheckinsController, GembaController, AccountController, FeedbackController, NotesController, PersonalController],
+  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController, IdeasController, CheckinsController, SusController, GembaController, AccountController, FeedbackController, NotesController, PersonalController],
   providers: [
     OperationsService,
     IdeasService,
     CheckinsService,
+    SusService,
     MonthlySummaryService,
     GembaService,
     FeedbackService,

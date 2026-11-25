@@ -1,3 +1,4 @@
+/** Unit test for floorPlanSelection.ts: building a selection. */
 import { describe, expect, it } from 'vitest';
 import {
   Box,

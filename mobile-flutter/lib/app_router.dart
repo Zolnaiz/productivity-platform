@@ -1,3 +1,5 @@
+// Routes of the mobile app (go_router): splash, login, home. Redirects to login while signed out.
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 

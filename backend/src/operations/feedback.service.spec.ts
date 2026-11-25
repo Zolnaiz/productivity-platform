@@ -1,3 +1,4 @@
+/** Unit test for feedback.service.ts: FeedbackService. */
 import { FeedbackService } from './feedback.service';
 import { FeedbackKind } from './entities/feedback.entity';
 

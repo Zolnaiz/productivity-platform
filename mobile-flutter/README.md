@@ -63,6 +63,13 @@ Studio's SDK Manager installs them.
 flutter build apk --release --flavor production --dart-define=API_BASE_URL=https://your-server/api
 ```
 
+A release build talks to its server over HTTPS only: passwords and session
+tokens cross that connection. Android refuses plain `http://` to any host but
+the emulator's `10.0.2.2` and loopback
+(`android/app/src/main/res/xml/network_security_config.xml`), so a server
+typed into the sign-in screen as `http://` fails its check there. Debug builds
+also allow a LAN address, for testing against a computer on the same Wi-Fi.
+
 The APK is in `build/app/outputs/flutter-apk/app-production-release.apk`. To
 sign it with the organization's own key rather than the debug key, create
 `android/key.properties` (git ignores it, and the keystore):

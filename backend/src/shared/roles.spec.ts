@@ -1,3 +1,4 @@
+/** Unit test for roles.ts: role hierarchy. */
 import { UserRole } from './constants';
 import { canAssignRole, hasPermission, permissionsFor, rolesAssignableBy } from './roles';
 

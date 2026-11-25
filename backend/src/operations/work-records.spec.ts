@@ -1,3 +1,4 @@
+/** Unit test for work-records.ts: paired daily work. */
 import { ConfigService } from '@nestjs/config';
 import { IsNull } from 'typeorm';
 import { OperationsService } from './operations.service';

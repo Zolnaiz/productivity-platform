@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:productivity_mobile/services/api_service.dart';
 import 'package:productivity_mobile/utils/phase_one_strings.dart';
@@ -57,6 +58,23 @@ ResponseBody jsonReply(Object body, {int status = 200}) =>
     );
 
 Map<String, dynamic> envelope(Object data) => {'success': true, 'data': data};
+
+/// Lets real time pass until [done] holds, pumping a frame each time.
+///
+/// For work a widget test's fake clock cannot move: replies from the mock
+/// adapter and shared preferences complete in real time. A fixed 50 ms wait
+/// passed on a quiet machine and failed on a busy one (the full results run,
+/// 11.14), so this waits as long as the work takes, up to [timeout], and
+/// leaves the test's own expectations to say what never happened.
+Future<void> settleUntil(WidgetTester tester, bool Function() done,
+    {Duration timeout = const Duration(seconds: 5)}) async {
+  const step = Duration(milliseconds: 20);
+  for (var waited = Duration.zero; !done() && waited < timeout; waited += step) {
+    await tester.runAsync(() => Future<void>.delayed(step));
+    await tester.pump();
+  }
+  await tester.pumpAndSettle();
+}
 
 Future<(ApiService, MockAdapter, MemoryTokens)> makeApi(Reply reply) async {
   dotenv.loadFromString(envString: 'APP_VERSION=1.0.0');

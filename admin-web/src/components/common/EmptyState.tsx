@@ -1,3 +1,6 @@
+/**
+ * What a list shows when it has nothing yet: a short message and an optional action.
+ */
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
 

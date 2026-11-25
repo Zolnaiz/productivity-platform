@@ -1,3 +1,5 @@
+// The signed-in user's organisation as the API returns it.
+
 
 class Organization {
   final String id;

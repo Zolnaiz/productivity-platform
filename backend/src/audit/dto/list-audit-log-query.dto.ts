@@ -1,3 +1,6 @@
+/**
+ * Query parameters of GET /audit-log: optional action/severity filters and paging.
+ */
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';

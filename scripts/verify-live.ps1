@@ -149,8 +149,13 @@ try {
     Invoke-Check 'Browser tests including the live API' (Join-Path $root 'admin-web') 'npx.cmd' @('playwright', 'test', '--workers=2')
   }
   if ($IncludeMobile) {
+    # The database is this run's own, so the writing tests run too: the
+    # password change, the deletion request, and the network-drop test that
+    # cuts the line mid-request and counts what the server saved. One file at
+    # a time, because they share an account and one changes its password.
     Invoke-Check 'Flutter client against the live API' (Join-Path $root 'mobile-flutter') 'flutter' @(
-      'test', 'test/phase_one_live_backend_test.dart', "--dart-define=API_BASE_URL=$apiUrl",
+      'test', '--concurrency=1', 'test/phase_one_live_backend_test.dart', 'test/network_drop_live_test.dart',
+      "--dart-define=API_BASE_URL=$apiUrl", '--dart-define=LIVE_WRITES=true',
       '--dart-define=MOBILE_TEST_EMAIL=owner@example.com', '--dart-define=MOBILE_TEST_PASSWORD=Password123'
     )
   }

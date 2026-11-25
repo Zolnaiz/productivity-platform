@@ -1,3 +1,4 @@
+/** Unit test for auditInsights.ts: the audit trend. */
 import { describe, expect, it } from 'vitest';
 import { lastMonths, monthlyTrend, shortfallPareto } from './auditInsights';
 

@@ -1,3 +1,4 @@
+/** Unit test for permissions.guard.ts: PermissionsGuard. */
 import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '../constants';

@@ -1,3 +1,5 @@
+// Small wrapper over SharedPreferences for keys the app remembers (server address, tokens, settings).
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';

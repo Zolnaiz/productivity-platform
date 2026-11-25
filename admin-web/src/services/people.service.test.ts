@@ -1,3 +1,4 @@
+/** Unit test for people.service.ts: peopleService. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const get = vi.fn();
@@ -23,6 +24,7 @@ describe('peopleService', () => {
     vi.resetModules();
     vi.clearAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
     demoMode = false;
   });
 
@@ -38,6 +40,29 @@ describe('peopleService', () => {
       const members = await (await load()).getMembers();
 
       expect(members).toEqual([{ id: 'u1', firstName: 'Bat', lastName: 'Erdene', role: 'user', isActive: true, email: '' }]);
+    });
+
+    it('asks for the staff list once a sign-in after a refusal, across reloads, and again after a new sign-in', async () => {
+      get.mockImplementation(async (path: string) => {
+        if (path === '/users/directory') return [];
+        throw { response: { status: 403, data: { errorCode: 'ACCESS_DENIED' } } };
+      });
+      const staffListAsks = () => get.mock.calls.filter(([path]) => path === '/users').length;
+
+      await (await load()).getMembers();
+      await (await load()).getMembers();
+      expect(staffListAsks()).toBe(1);
+
+      // A reload: every module starts afresh, the sign-in goes on.
+      vi.resetModules();
+      await (await load()).getMembers();
+      expect(staffListAsks()).toBe(1);
+
+      // Signed in again, perhaps as a manager now. Starting a session empties
+      // what belonged to the last one (api.ts), so the list is asked for again.
+      sessionStorage.clear();
+      await (await load()).getMembers();
+      expect(staffListAsks()).toBe(2);
     });
 
     it('gathers every page of members, not only the first twenty', async () => {

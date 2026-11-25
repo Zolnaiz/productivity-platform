@@ -1,3 +1,6 @@
+/**
+ * Enums shared across modules: user roles and statuses, expense and questionnaire states, paging defaults.
+ */
 export enum UserRole {
   SUPER_ADMIN = 'super_admin',
   ADMIN = 'admin',

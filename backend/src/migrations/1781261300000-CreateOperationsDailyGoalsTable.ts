@@ -1,3 +1,6 @@
+/**
+ * daily_goals table (personal goals per day).
+ */
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateOperationsDailyGoalsTable1781261300000 implements MigrationInterface {

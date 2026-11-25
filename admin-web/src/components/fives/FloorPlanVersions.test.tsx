@@ -1,3 +1,4 @@
+/** Unit test for FloorPlanVersions.tsx: what a plan looked like on a given day. */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FloorPlanVersions from './FloorPlanVersions';

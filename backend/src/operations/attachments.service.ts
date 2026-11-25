@@ -1,3 +1,7 @@
+/**
+ * Saves, reads and deletes attachments for one organisation: metadata in PostgreSQL, bytes in the attachment
+ * store (disk or object storage), each checked against size and type limits.
+ */
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';

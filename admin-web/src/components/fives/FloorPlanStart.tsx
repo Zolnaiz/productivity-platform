@@ -1,3 +1,6 @@
+/**
+ * First step of a new floor plan: pick a template or draw the outer walls at a chosen scale.
+ */
 import React, { useRef } from 'react';
 import { FileImage, PencilRuler } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

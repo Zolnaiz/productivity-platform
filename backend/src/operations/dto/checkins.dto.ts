@@ -1,3 +1,6 @@
+/**
+ * Body of PUT /checkins/mine.
+ */
 import { IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 
 const WEEK = /^\d{4}-\d{2}-\d{2}$/;

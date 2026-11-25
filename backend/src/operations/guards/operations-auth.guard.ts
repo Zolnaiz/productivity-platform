@@ -1,3 +1,8 @@
+/**
+ * Guard for operations routes: verifies the bearer token and puts its user (id, role, organisation) on the
+ * request; a token without an organisation is refused. ALLOW_PUBLIC_OPERATIONS (development only) lets requests
+ * without a token through as anonymous, which PermissionsGuard then interprets.
+ */
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';

@@ -1,3 +1,6 @@
+/**
+ * /admin - workspace health for administrators: people, work in flight, audit quality, configuration.
+ */
 import React, { useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

@@ -1,3 +1,6 @@
+/**
+ * In-process request counters and latency histogram, exposed as Prometheus text on /metrics.
+ */
 import { Injectable } from '@nestjs/common';
 
 type RequestMetricKey = `${string}|${string}|${number}`;

@@ -277,3 +277,32 @@ def add_dark_slide(prs, notes):
     rect(s, 0, 0, W, H, NAVY)
     s.notes_slide.notes_text_frame.text = notes
     return s
+
+
+# Shared by the review decks (build_slides2.py, build_slides3.py).
+
+def num(value):
+    """Мянгатыг зайгаар: 2360 -> '2 360'."""
+    return f'{value:,}'.replace(',', ' ')
+
+
+def path(s, x, y, w, value):
+    """Кодын файлын зам: жижиг, бүдэг, тогтмол өргөнтэй үсгээр."""
+    return text(s, x, y, w, Cm(0.5), value, size=9.5, color=MUTED, font=MONO)
+
+
+def tile(s, x, y, w, h, value, caption, dark=False, value_size=22):
+    rect(s, x, y, w, h, NAVY if dark else CARD, radius=Cm(0.2))
+    text(s, x + Cm(0.45), y + Cm(0.3), w - Cm(0.9), Cm(1.1), value, size=value_size, bold=True,
+         color=YELLOW if dark else NAVY)
+    text(s, x + Cm(0.45), y + Cm(0.3) + Cm(value_size * 0.05), w - Cm(0.9), h - Cm(1.5), caption, size=10.5,
+         color=PALE if dark else MUTED, line=1.0)
+
+
+def tiles(s, y, h, items, x=M, w=CW, gap=Cm(0.4), value_size=22):
+    """Нэг мөрөнд тэнцүү өргөнтэй хавтангууд; items: (утга, тайлбар[, бараан])."""
+    tw = (w - gap * (len(items) - 1)) / len(items)
+    for i, item in enumerate(items):
+        value, caption = item[:2]
+        dark = len(item) > 2 and item[2]
+        tile(s, x + int(i * (tw + gap)), y, int(tw), h, value, caption, dark=dark, value_size=value_size)

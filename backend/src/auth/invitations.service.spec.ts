@@ -1,3 +1,4 @@
+/** Unit test for invitations.service.ts: creating an invitation. */
 import { Logger } from '@nestjs/common';
 import { InvitationsService } from './invitations.service';
 import { UserRole } from '../shared/constants';

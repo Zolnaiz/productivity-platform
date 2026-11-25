@@ -46,6 +46,8 @@ export const ErrorCode = {
   RegisterChanged: 'REGISTER_CHANGED',
   RequestInProgress: 'REQUEST_IN_PROGRESS',
   FixNotDone: 'FIX_NOT_DONE',
+  SurveyRoundClosed: 'SURVEY_ROUND_CLOSED',
+  SurveyRoundOpen: 'SURVEY_ROUND_OPEN',
   IdempotencyKeyReused: 'IDEMPOTENCY_KEY_REUSED',
   AiNotConfigured: 'AI_NOT_CONFIGURED',
   AiFailed: 'AI_FAILED',
@@ -162,6 +164,14 @@ const definitions: Record<ErrorCode, ErrorDefinition> = {
   [ErrorCode.FixNotDone]: {
     exception: ConflictException,
     message: 'Only a finished fix raised by an audit can be signed off',
+  },
+  [ErrorCode.SurveyRoundClosed]: {
+    exception: ConflictException,
+    message: 'This questionnaire is closed and takes no more answers',
+  },
+  [ErrorCode.SurveyRoundOpen]: {
+    exception: ConflictException,
+    message: 'A questionnaire is already open; close it before opening another',
   },
   [ErrorCode.RequestInProgress]: {
     exception: ConflictException,

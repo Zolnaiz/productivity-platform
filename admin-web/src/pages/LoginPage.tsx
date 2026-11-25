@@ -1,3 +1,6 @@
+/**
+ * /login - sign in, or open the demo workspace (demo data, no server writes).
+ */
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';

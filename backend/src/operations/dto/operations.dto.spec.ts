@@ -1,3 +1,4 @@
+/** Unit test for operations.dto.ts: Operations DTO validation. */
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import {

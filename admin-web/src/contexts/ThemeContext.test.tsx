@@ -1,3 +1,4 @@
+/** Unit test for ThemeContext.tsx: ThemeContext storage recovery. */
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider, useTheme } from './ThemeContext';

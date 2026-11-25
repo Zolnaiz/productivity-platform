@@ -1,3 +1,7 @@
+/**
+ * Pure calculations for the audit-insights page: monthly score trend and a Pareto of the most frequent
+ * shortfalls.
+ */
 import { AuditRun, AuditTemplate } from '../../types/operations.types';
 import { fellShort } from './auditAnswers';
 

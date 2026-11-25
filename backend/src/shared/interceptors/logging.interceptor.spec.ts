@@ -1,3 +1,4 @@
+/** Unit test for logging.interceptor.ts: redactSensitiveData. */
 import { redactSensitiveData, resolveRequestId } from './logging.interceptor';
 
 describe('redactSensitiveData', () => {

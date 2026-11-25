@@ -1,3 +1,6 @@
+/**
+ * API client for improvement ideas.
+ */
 import { Idea, IdeaDecision, NewIdea } from '../types/idea.types';
 import { get, isDemoMode, localId, patch, post } from './api';
 import { operationsService } from './operations.service';

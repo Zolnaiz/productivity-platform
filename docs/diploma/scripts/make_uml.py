@@ -77,49 +77,6 @@ def assoc(ax, a, sa, b, sb, m1='', m2='', label='', dashed=False, arrow=None):
                 bbox=dict(fc='white', ec='none', pad=0.5))
 
 
-def class_analysis():
-    fig, ax = canvas(13, 10)
-    org = uml_class(ax, 5.2, 9.8, 'Organization', ['- id: UUID', '- name: string', '- code: string',
-                                                   '- settings: JSON'], ['+ clock(): TimeZone'])
-    dept = uml_class(ax, 0.3, 9.8, 'Department', ['- id: UUID', '- name: string'])
-    user = uml_class(ax, 0.3, 7.4, 'User', ['- id: UUID', '- email: string', '- role: UserRole',
-                                             '- departmentId', '- isActive: bool'],
-                     ['+ can(permission): bool'])
-    proj = uml_class(ax, 10.2, 9.8, 'Project', ['- id: UUID', '- name: string', '- status', '- progress: int',
-                                                '- dueDate: date'])
-    task = uml_class(ax, 5.2, 7.0, 'Task', ['- id: UUID', '- title: string', '- status: TaskStatus',
-                                            '- priority', '- dueDate: date', '- sourceType, sourceId',
-                                            '- completedAt'], ['+ isLate(today): bool', '+ complete()'])
-    layout = uml_class(ax, 10.2, 7.2, 'FiveSLayout', ['- id: UUID', '- zones: Zone[]', '- auditTiers',
-                                                     '- version'], ['+ zoneOf(id): Zone'])
-    tmpl = uml_class(ax, 10.2, 4.6, 'AuditTemplate', ['- id: UUID', '- title: string', '- questions: Question[]'],
-                     ['+ score(answers): int'])
-    run = uml_class(ax, 5.2, 3.9, 'AuditRun', ['- id: UUID', '- zoneId', '- answers: Answer[]', '- score: int',
-                                               '- status'], ['+ needsFollowUp(): bool'])
-    worklog = uml_class(ax, 0.3, 4.7, 'WorkLog', ['- userId', '- day: date', '- done, next: text'])
-    checkin = uml_class(ax, 0.3, 3.0, 'WeeklyCheckin', ['- userId', '- week: date', '- plans, problems'])
-    idea = uml_class(ax, 5.2, 1.2, 'Idea', ['- authorId', '- title', '- status', '- reviewNote'])
-    gemba = uml_class(ax, 10.2, 2.2, 'GembaWalk', ['- walkerId', '- walkedOn: date', '- observations',
-                                                  '- followUps[]'])
-    notif = uml_class(ax, 0.3, 1.2, 'Notification', ['- userId', '- title, body', '- link', '- readAt'])
-    assoc(ax, org, 'l', dept, 'r', '1', '*')
-    assoc(ax, org, 'b', task, 't', '1', '*')
-    assoc(ax, org, 'r', proj, 'l', '1', '*')
-    assoc(ax, dept, 'b', user, 't', '1', '*')
-    assoc(ax, user, 'r', task, 'l', '1', '*', 'хариуцна')
-    assoc(ax, proj, 'b', layout, 't', '', '', '')
-    assoc(ax, proj, 'l', task, 'r', '0..1', '*')
-    assoc(ax, layout, 'l', run, 'r', '1', '*', 'бүс')
-    assoc(ax, tmpl, 'l', run, 'r', '1', '*')
-    assoc(ax, run, 't', task, 'b', '1', '0..1', 'үүсгэнэ', arrow='-|>')
-    assoc(ax, user, 'b', worklog, 't', '1', '*')
-    assoc(ax, worklog, 'b', checkin, 't', '', '', 'нэгтгэнэ', dashed=True)
-    assoc(ax, idea, 't', run, 'b', '', '', '')
-    assoc(ax, gemba, 'l', run, 'r', '', '', '')
-    assoc(ax, user, 'b', notif, 't', '', '', '')
-    save(fig, 'class_analysis.png')
-
-
 def class_analysis_clean():
     """Шинжилгээний класс диаграмм, илүүц холбоосгүй."""
     fig, ax = canvas(13, 10.4)

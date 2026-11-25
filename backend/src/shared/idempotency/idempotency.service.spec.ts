@@ -1,3 +1,4 @@
+/** Unit test for idempotency.service.ts: an Idempotency-Key. */
 import { IDEMPOTENCY_TTL_MS, IdempotencyService } from './idempotency.service';
 
 const unique = Object.assign(new Error('duplicate key'), { code: '23505' });

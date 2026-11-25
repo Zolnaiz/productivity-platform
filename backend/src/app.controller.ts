@@ -1,3 +1,7 @@
+/**
+ * Unauthenticated service endpoints: /health (Docker and watchdog probe), /version (package name, version and
+ * environment) and /metrics (Prometheus text from MetricsService, only when ENABLE_METRICS is true).
+ */
 import { Controller, Get, Header } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppService } from './app.service';

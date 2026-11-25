@@ -1,3 +1,6 @@
+/**
+ * Editor for a zone's audit tiers: who audits and at what interval.
+ */
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

@@ -1,3 +1,6 @@
+/**
+ * The plain greeting and liveness payload AppController returns.
+ */
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

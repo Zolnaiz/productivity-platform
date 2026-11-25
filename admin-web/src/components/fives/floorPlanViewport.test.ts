@@ -1,3 +1,4 @@
+/** Unit test for floorPlanViewport.ts: what the pane is showing. */
 import { describe, expect, it } from 'vitest';
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from './floorPlanGeometry';
 import {

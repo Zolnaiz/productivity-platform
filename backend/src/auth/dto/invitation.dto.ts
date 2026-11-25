@@ -1,3 +1,6 @@
+/**
+ * Request bodies for invitations: a single invite, a bulk (CSV) import and accepting an invitation.
+ */
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,

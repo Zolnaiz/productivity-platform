@@ -1,3 +1,4 @@
+/** Unit test for daily-reminder.service.ts: what each person is reminded of. */
 import { DailyReminderService, dayIn, digestsFor, hourIn, teamDigestFor } from './daily-reminder.service';
 
 const task = (over: Record<string, unknown>) =>

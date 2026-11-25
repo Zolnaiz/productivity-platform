@@ -1,3 +1,6 @@
+/**
+ * Operations shapes: projects, tasks, work logs, audits, report figures.
+ */
 import type { DailyGoal } from './productivity.types';
 
 export interface Project {
@@ -254,6 +257,27 @@ export interface MonthlyMeasurements {
     fixClosureDays: MeasurementEvidence[];
     checkinMissing: Array<{ userId: string; week: string }>;
   };
+}
+
+/**
+ * One row of the pilot's weekly table: a Monday-to-Sunday week and K1–K6
+ * counted over it by the monthly report's own rules
+ * (GET /operations/weekly-measurements, backend weekly-measurements.ts).
+ */
+export interface WeekMeasurements {
+  from: string;
+  to: string;
+  /** False for the week still running, which is counted as of today. */
+  complete: boolean;
+  measurements: Omit<MonthlyMeasurements, 'version' | 'evidence'>;
+}
+
+export interface WeeklyMeasurements {
+  from: string;
+  to: string;
+  timeZone: string;
+  /** Only the weeks that have begun; none after today. */
+  weeks: WeekMeasurements[];
 }
 
 export interface OperationsMonthlyReport {

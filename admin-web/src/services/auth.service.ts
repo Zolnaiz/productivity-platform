@@ -1,4 +1,7 @@
-import { post, get, patch } from './api';
+/**
+ * API client for sign-in, registration, password reset and the profile; the token itself is handled in api.ts.
+ */
+import { clearSession, get, getAccessToken, isDemoMode, patch, post } from './api';
 import { User, LoginCredentials, RegisterData, AuthResponse } from '../types/user.types';
 
 type BackendUser = Partial<User> & {
@@ -88,18 +91,17 @@ export const authService = {
 
   // Гарах
   logout: async (): Promise<void> => {
-    // Signed in, so the server can drop the refresh cookie it set.
-    if (localStorage.getItem('token') && localStorage.getItem('token') !== 'demo-token') {
+    // Signed in to a real server, so it can drop the refresh cookie it set.
+    // The demo workspace has nothing on a server to end.
+    if (getAccessToken() && !isDemoMode()) {
       try {
         await post('/auth/logout', {});
       } catch (error) {
         console.error('Logout error:', error);
       }
     }
-    
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
+
+    clearSession();
   },
 
   // Token шинэчлэх
@@ -154,6 +156,17 @@ export const authService = {
     language?: string;
   }): Promise<void> => {
     return await patch('/users/profile/me', data);
+  },
+
+  /**
+   * FR-21: asks the organization's administrators to delete the signed-in
+   * person's account (backend/src/operations/account.controller.ts). Nothing
+   * is deleted here; each administrator gets a notification that links to the
+   * user list. `administratorsTold` is 0 when there is nobody else to ask -
+   * the only administrator asking about their own account.
+   */
+  requestAccountDeletion: async (): Promise<{ requested: boolean; administratorsTold: number }> => {
+    return await post('/account/deletion-request');
   },
 
   // Session шалгах

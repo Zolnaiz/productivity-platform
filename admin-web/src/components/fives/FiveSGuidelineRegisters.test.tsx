@@ -1,3 +1,4 @@
+/** Unit test for FiveSGuidelineRegisters.tsx: FiveSGuidelineRegisters row removal. */
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -40,7 +41,7 @@ describe('FiveSGuidelineRegisters row removal', () => {
     localStorage.clear();
     // Demo mode, so the component reads the local register rather than
     // reaching for an API that is not there.
-    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('demoSession', 'true');
     localStorage.setItem(
       storageKey,
       JSON.stringify({

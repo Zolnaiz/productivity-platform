@@ -1,4 +1,5 @@
 import { expect, Page, test } from '@playwright/test';
+import { apiHeaders, apiUrl, firstZone } from './support/session';
 
 /**
  * What the editor saves, read back from a real server.
@@ -147,18 +148,12 @@ test('a task added on the board is there after a reload, and gone once deleted',
   await expect(page.getByText(title)).toHaveCount(0);
 });
 
+/** Headers for this test's own API calls, as the account it signed in with. */
+const asOwner = (page: Page) => apiHeaders(page, email, password);
+
 /** Deletes a record the test made, through the API it was made on. */
-const removeThrough = (page: Page, path: string) =>
-  page.evaluate(
-    async ({ api, path }) =>
-      (
-        await fetch(`${api}${path}`, {
-          method: 'DELETE',
-          headers: { authorization: `Bearer ${localStorage.getItem('token')}` },
-        })
-      ).status,
-    { api: process.env.E2E_API_URL || 'http://localhost:3000/api', path },
-  );
+const removeThrough = async (page: Page, path: string) =>
+  (await page.request.delete(`${apiUrl}${path}`, { headers: await asOwner(page) })).status();
 
 test('a project added is still there after a reload', async ({ page }) => {
   await signIn(page);
@@ -204,9 +199,8 @@ test('a department added is still there after a reload', async ({ page }) => {
 
 test('a completed task is written up with its project, blocker and one clock entry after a reload', async ({ page }) => {
   await signIn(page);
-  const api = process.env.E2E_API_URL || 'http://localhost:3000/api';
-  const token = await page.evaluate(() => localStorage.getItem('token'));
-  const headers = { authorization: `Bearer ${token}` };
+  const api = apiUrl;
+  const headers = await asOwner(page);
   const marker = Date.now();
   const projectResponse = await page.request.post(`${api}/projects`, {
     headers, data: { name: `Daily work project ${marker}` },
@@ -284,20 +278,23 @@ test('a daily goal added is still there after a reload', async ({ page }) => {
   await expect(page.getByText(title)).toBeVisible();
 });
 
-test('a session outlives its access token through a cookie no script can read', async ({ page }) => {
+test('a session outlives the page through a cookie no script can read', async ({ page }) => {
   await signIn(page);
 
-  // Nothing a script on the page could carry off for longer than an hour.
-  expect(await page.evaluate(() => localStorage.getItem('refreshToken'))).toBeNull();
+  // Nothing a script on the page could carry off: no token in either storage,
+  // and the refresh token in a cookie that scripts cannot see.
+  const storedKeys = await page.evaluate(() => [...Object.keys(localStorage), ...Object.keys(sessionStorage)]);
+  expect(storedKeys.filter((key) => /token/i.test(key))).toEqual([]);
   expect(await page.evaluate(() => document.cookie)).not.toContain('pp_refresh');
   const cookie = (await page.context().cookies()).find((item) => item.name === 'pp_refresh');
   expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'Strict', path: '/api/auth' });
 
-  // The access token expired (here: spoiled); the next request renews it from the cookie.
-  await page.evaluate(() => localStorage.setItem('token', 'expired.access.token'));
+  // A reload loses the access token, which lived in the page's memory; the
+  // session comes back from the cookie.
+  const refreshed = page.waitForResponse((response) => new URL(response.url()).pathname.endsWith('/auth/refresh'));
   await page.reload();
+  expect((await refreshed).ok()).toBe(true);
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('token'))).not.toBe('expired.access.token');
 });
 
 test('a month closed stays closed after a reload, and reopens', async ({ page }) => {
@@ -383,13 +380,7 @@ test('a red tag raised on a zone page is still there after a reload', async ({ p
   await page.goto('/dashboard');
 
   // The first zone of the first plan, as a QR code on its label would open it.
-  const { planId, zoneId } = await page.evaluate(async (api) => {
-    const res = await fetch(`${api}/five-s-layouts`, {
-      headers: { authorization: `Bearer ${localStorage.getItem('token')}` },
-    });
-    const plan = (await res.json()).data[0];
-    return { planId: plan.id as string, zoneId: plan.zones[0].id as string };
-  }, process.env.E2E_API_URL || 'http://localhost:3000/api');
+  const { planId, zoneId } = await firstZone(page, await asOwner(page));
   await page.goto(`/zone/${planId}/${zoneId}`);
 
   const title = `Live check tag ${Date.now()}`;
@@ -405,25 +396,18 @@ test('a red tag raised on a zone page is still there after a reload', async ({ p
   await expect(page.getByText(title)).toBeVisible();
 
   // Taken off the plan again, with the plan's own save.
-  const status = await page.evaluate(
-    async ({ api, planId, zoneId, title }) => {
-      const headers = { authorization: `Bearer ${localStorage.getItem('token')}`, 'content-type': 'application/json' };
-      const plan = (await (await fetch(`${api}/five-s-layouts`, { headers })).json()).data.find(
-        (item: { id: string }) => item.id === planId,
-      );
-      const zones = plan.zones.map((zone: { id: string; redTags?: Array<{ title: string }> }) =>
-        zone.id === zoneId ? { ...zone, redTags: (zone.redTags ?? []).filter((tag) => tag.title !== title) } : zone,
-      );
-      const res = await fetch(`${api}/five-s-layouts/${planId}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ name: plan.name, site: plan.site, scale: plan.scale, zones, objects: plan.objects, baseUpdatedAt: plan.updatedAt }),
-      });
-      return res.status;
-    },
-    { api: process.env.E2E_API_URL || 'http://localhost:3000/api', planId, zoneId, title },
+  const headers = await asOwner(page);
+  const plan = (await (await page.request.get(`${apiUrl}/five-s-layouts`, { headers })).json()).data.find(
+    (item: { id: string }) => item.id === planId,
   );
-  expect(status).toBe(200);
+  const zones = plan.zones.map((zone: { id: string; redTags?: Array<{ title: string }> }) =>
+    zone.id === zoneId ? { ...zone, redTags: (zone.redTags ?? []).filter((tag) => tag.title !== title) } : zone,
+  );
+  const saved = await page.request.patch(`${apiUrl}/five-s-layouts/${planId}`, {
+    headers,
+    data: { name: plan.name, site: plan.site, scale: plan.scale, zones, objects: plan.objects, baseUpdatedAt: plan.updatedAt },
+  });
+  expect(saved.status()).toBe(200);
 });
 
 test('an idea put in and taken up is still taken up after a reload, with its task', async ({ page }) => {

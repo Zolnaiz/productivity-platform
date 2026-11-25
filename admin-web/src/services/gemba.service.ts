@@ -1,3 +1,6 @@
+/**
+ * API client for gemba walks and the weekly target.
+ */
 import { get, isDemoMode, localId, post } from './api';
 import { mondayOf } from './checkin.service';
 

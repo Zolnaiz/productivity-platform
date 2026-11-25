@@ -1,7 +1,11 @@
+/**
+ * API client for team members, departments and invitations (including CSV import).
+ */
 import { del, get, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
 import {
   Department,
   IssuedInvitation,
+  IssuedPasswordReset,
   MemberRole,
   PendingInvitation,
   TeamUser,
@@ -181,18 +185,27 @@ const fallback = async <T>(request: () => Promise<T>, demoData: T): Promise<T> =
 
 const membersInFlight = new Map<string, Promise<TeamUser[]>>();
 
-/** The sign-in the staff list was refused to, so it is not asked for again. */
-const refusedKey = 'staff-list-refused-for';
-const refusedFor = () => {
+/**
+ * Whether this sign-in was refused the staff list, so it is not asked for
+ * again on every screen that names people. A marker in sessionStorage, which
+ * belongs to one sign-in (api.ts): it outlives a reload, as the sign-in does,
+ * and is emptied when a session starts or ends - so somebody signing in next,
+ * or the same person as a manager now, is asked once more. The token itself
+ * is never stored, not even as this marker's value.
+ */
+const STAFF_LIST_REFUSED_KEY = 'staffListRefused';
+
+const staffListRefused = () => {
   try {
-    return sessionStorage.getItem(refusedKey);
+    return sessionStorage.getItem(STAFF_LIST_REFUSED_KEY) === 'true';
   } catch {
-    return null;
+    return false;
   }
 };
-const rememberRefusal = (token: string | null) => {
+
+const rememberStaffListRefused = () => {
   try {
-    if (token) sessionStorage.setItem(refusedKey, token);
+    sessionStorage.setItem(STAFF_LIST_REFUSED_KEY, 'true');
   } catch {
     // Asked again next time; no harm beyond the round trip.
   }
@@ -247,15 +260,14 @@ export const peopleService = {
 
     // Refused once for this sign-in, asked no more: every screen that names
     // people would otherwise be refused again first.
-    const token = localStorage.getItem('token');
-    if (token && refusedFor() === token) return readDirectory();
+    if (staffListRefused()) return readDirectory();
 
     try {
       return await peopleService.getStaffList(query);
     } catch (error) {
       if ((error as { response?: { status?: number } })?.response?.status !== 403) throw error;
 
-      rememberRefusal(token);
+      rememberStaffListRefused();
       return readDirectory();
     }
   },
@@ -309,6 +321,20 @@ export const peopleService = {
     isDemoMode()
       ? Promise.resolve(updateDemo(id, { role }))
       : post<TeamUser>(`/users/${id}/change-role`, { role }),
+
+  /**
+   * A password reset link for a member, to hand over in person when the
+   * sign-in page's mailed link cannot reach them (no mail set up). The server
+   * decides who may issue one for whom.
+   */
+  issuePasswordReset: (id: string) =>
+    isDemoMode()
+      ? Promise.resolve<IssuedPasswordReset>({
+          token: 'demo-reset-token',
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          link: null,
+        })
+      : post<IssuedPasswordReset>(`/users/${id}/password-reset`),
 
   removeMember: (id: string) =>
     isDemoMode()

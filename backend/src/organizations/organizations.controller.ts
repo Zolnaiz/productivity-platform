@@ -1,3 +1,6 @@
+/**
+ * GET/PATCH /organizations/my-organization: the caller's organisation settings (name, language, time zone).
+ */
 import { Body, Controller, Get, Patch, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OrganizationsService } from './organizations.service';

@@ -1,4 +1,6 @@
+/** Unit test for fiveSLayout.service.ts: fiveSLayoutService demo storage. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { signInWithToken } from '../test/session';
 
 const apiMocks = vi.hoisted(() => ({
   get: vi.fn(),
@@ -210,7 +212,7 @@ describe('fiveSLayoutService demo storage', () => {
   });
 
   it('loads real backend 5S layout when a real token succeeds', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.get.mockResolvedValueOnce({
       id: 'server-layout',
       organizationId: 'server-org',
@@ -236,7 +238,7 @@ describe('fiveSLayoutService demo storage', () => {
     // Workstations, and their first job was working out none of it was real.
     // An empty plan is what a new workspace *is*; the editor asks how to
     // begin rather than pretending the question is answered.
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.get.mockResolvedValueOnce({
       id: 'empty-server-layout',
       organizationId: 'server-org',
@@ -257,7 +259,7 @@ describe('fiveSLayoutService demo storage', () => {
   });
 
   it('saves real backend 5S layout without client-only fields', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.patch.mockResolvedValueOnce({
       id: 'server-layout',
       organizationId: 'server-org',
@@ -302,7 +304,7 @@ describe('fiveSLayoutService demo storage', () => {
   it('sends the audit layers, the routes and the drawing switches', async () => {
     // Edited on the plan and never sent: against a real server a renamed
     // layer or a drawn route was gone on the next reload.
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.patch.mockResolvedValue({ id: 'client-layout', zones: [], objects: [], updatedAt: '2026-09-28T02:10:00.000Z' });
     const { fiveSLayoutService } = await import('./fiveSLayout.service');
 
@@ -334,7 +336,7 @@ describe('fiveSLayoutService demo storage', () => {
   it('tells the server when its copy was read, not when it was last edited', async () => {
     // The editor restamps `updatedAt` on every change; sent as the base, it
     // would claim to have seen a red tag raised from a phone a minute ago.
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.patch.mockResolvedValue({ id: 'client-layout', zones: [], objects: [], updatedAt: '2026-09-28T02:10:00.000Z' });
     const { fiveSLayoutService } = await import('./fiveSLayout.service');
 
@@ -359,7 +361,7 @@ describe('fiveSLayoutService demo storage', () => {
     // These were left out of the payload for as long as walls existed, so a
     // plan drawn against a real backend was complete on screen and empty again
     // after a reload — dropped on the way out rather than refused.
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.patch.mockResolvedValueOnce({ id: 'server-layout', zones: [], objects: [], updatedAt: '' });
     const { fiveSLayoutService } = await import('./fiveSLayout.service');
 
@@ -397,7 +399,7 @@ describe('fiveSLayoutService demo storage', () => {
   it('saves a plan that has no id of its own through the organization route', async () => {
     // A workspace whose plan was made by the server's default has the id the
     // browser gave it, and that names nothing the server knows.
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.patch.mockResolvedValueOnce({ id: 'server-layout', zones: [], objects: [], updatedAt: '' });
     const { fiveSLayoutService } = await import('./fiveSLayout.service');
 
@@ -415,7 +417,7 @@ describe('fiveSLayoutService demo storage', () => {
   });
 
   it('asks for every plan the organization has', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.get.mockResolvedValueOnce([
       { id: 'l1', name: 'Machine shop', site: 'Plant', floor: '1st floor', zones: [], objects: [], updatedAt: '' },
       { id: 'l2', name: 'Offices', site: 'Plant', floor: '2nd floor', zones: [], objects: [], updatedAt: '' },
@@ -429,7 +431,7 @@ describe('fiveSLayoutService demo storage', () => {
   });
 
   it('reads the walls back from the server', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.get.mockResolvedValueOnce({
       id: 'server-layout',
       name: 'Server 5S map',
@@ -455,7 +457,7 @@ describe('fiveSLayoutService demo storage', () => {
   it('drops a door whose wall is gone', async () => {
     // Otherwise the plan keeps an entrance that draws nowhere and can never be
     // reached to delete.
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.get.mockResolvedValueOnce({
       id: 'server-layout',
       name: 'Server 5S map',

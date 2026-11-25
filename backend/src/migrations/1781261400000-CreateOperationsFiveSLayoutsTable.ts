@@ -1,3 +1,6 @@
+/**
+ * five_s_layouts table: one floor plan (zones, objects, walls) per organisation.
+ */
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateFiveSLayoutsTable1781261400000 implements MigrationInterface {

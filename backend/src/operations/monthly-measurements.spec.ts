@@ -1,3 +1,4 @@
+/** Unit test for monthly-measurements.ts: monthly measurement evidence. */
 import { monthlyMeasurements, weeksOf } from './monthly-measurements';
 
 type Records = Parameters<typeof monthlyMeasurements>[0];

@@ -1,3 +1,4 @@
+/** Unit test for notes.service.ts: NotesService. */
 import { NotesService } from './notes.service';
 
 describe('NotesService', () => {

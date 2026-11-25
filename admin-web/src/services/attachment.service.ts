@@ -1,3 +1,6 @@
+/**
+ * API client for photo attachments: upload, list, download, delete, store check.
+ */
 import { api, isDemoMode, localId, unwrapApiResponse } from './api';
 
 export type AttachmentOwner =

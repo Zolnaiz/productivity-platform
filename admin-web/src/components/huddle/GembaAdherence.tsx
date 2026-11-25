@@ -1,3 +1,6 @@
+/**
+ * Huddle board card: gemba walks this week against the weekly target.
+ */
 import React, { useEffect, useState } from 'react';
 import { Footprints } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

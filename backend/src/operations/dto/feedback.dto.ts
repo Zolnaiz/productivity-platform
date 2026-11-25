@@ -1,3 +1,6 @@
+/**
+ * Body of a new feedback message.
+ */
 import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { FeedbackKind } from '../entities/feedback.entity';
 

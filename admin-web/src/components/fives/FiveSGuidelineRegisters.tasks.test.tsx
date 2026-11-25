@@ -1,3 +1,4 @@
+/** Unit test for FiveSGuidelineRegisters.tasks.tsx: raising work from an improvement. */
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -65,7 +66,7 @@ const renderRegisters = () =>
 describe('raising work from an improvement', () => {
   beforeEach(() => {
     localStorage.clear();
-    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('demoSession', 'true');
     mocks.permissions = ['guidelines:update', 'tasks:read', 'tasks:create'];
     mocks.getTasks.mockReset();
     mocks.createTask.mockReset();
@@ -119,7 +120,7 @@ describe('raising work from an improvement', () => {
 describe('a register left open while its work finishes', () => {
   beforeEach(() => {
     localStorage.clear();
-    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('demoSession', 'true');
     mocks.permissions = ['guidelines:update', 'tasks:read', 'tasks:create'];
     mocks.getTasks.mockReset();
     mocks.getTasks.mockResolvedValue([]);

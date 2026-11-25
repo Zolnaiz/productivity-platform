@@ -1,4 +1,4 @@
-import { isDemoMode, patch } from './api';
+import { getAccessToken, isDemoMode, patch } from './api';
 
 /**
  * Tells the server which language this person reads in.
@@ -9,7 +9,7 @@ import { isDemoMode, patch } from './api';
  */
 export const rememberLanguage = async (language: string) => {
   try {
-    if (isDemoMode() || !localStorage.getItem('token')) return;
+    if (isDemoMode() || !getAccessToken()) return;
     await patch('/users/profile/me', { language: language.split('-')[0].toLowerCase() });
   } catch {
     // The next choice will try again.

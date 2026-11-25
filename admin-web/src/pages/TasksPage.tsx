@@ -1,3 +1,6 @@
+/**
+ * /tasks - the task board: filter, create, assign, move through statuses; shows where each task came from.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Columns3, List, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

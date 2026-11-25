@@ -1,3 +1,6 @@
+/**
+ * /fives - 5S setup in three tabs: floor plan editor, zone table, guideline registers.
+ */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';

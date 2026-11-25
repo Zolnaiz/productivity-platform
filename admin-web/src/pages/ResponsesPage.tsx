@@ -1,3 +1,6 @@
+/**
+ * /responses - submitted checklists and questionnaires; turn low scores into tasks.
+ */
 import React, { useEffect, useMemo, useState } from "react";
 import { FileCheck2 } from "lucide-react";
 import { useTranslation } from "react-i18next";

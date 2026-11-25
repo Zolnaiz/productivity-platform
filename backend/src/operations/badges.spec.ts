@@ -1,3 +1,4 @@
+/** Unit test for badges.ts: badges from a person’s own records. */
 import { badgesFor } from './badges';
 
 const none = { workLogs: 0, auditRuns: 0, focusByDay: {}, checkinWeeks: 0, ideasTakenUp: 0 };

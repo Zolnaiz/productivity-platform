@@ -1,3 +1,6 @@
+/**
+ * Improvement idea shapes.
+ */
 export type IdeaStatus = 'submitted' | 'approved' | 'declined' | 'done';
 
 export interface Idea {

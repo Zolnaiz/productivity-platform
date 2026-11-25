@@ -1,3 +1,8 @@
+/**
+ * LEGACY, NOT RUN. The questionnaire-era schema of the original template. database.module.ts and data-source.ts
+ * load only *Runtime* and *Operations* migrations, so this file is history only; the live schema starts at
+ * 1781260500000. Never edit a migration that has run - add a new one.
+ */
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateInitialTables1700000000000 implements MigrationInterface {

@@ -1,3 +1,6 @@
+/**
+ * /projects - projects with progress, budget and their tasks; create, edit, delete.
+ */
 import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

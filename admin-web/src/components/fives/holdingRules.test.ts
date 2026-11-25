@@ -1,3 +1,4 @@
+/** Unit test for holdingRules.ts: isHeld. */
 import { describe, expect, it } from 'vitest';
 import { heldItems, holdDatesFor, HOLD_PERIOD_DAYS, isHeld } from './holdingRules';
 import { FiveSRedTag, FiveSZone } from '../../types/fiveS.types';

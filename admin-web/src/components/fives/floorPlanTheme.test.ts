@@ -1,3 +1,4 @@
+/** Unit test for floorPlanTheme.ts: the plan at night. */
 import { describe, expect, it } from 'vitest';
 import { canvasColours, strokeInk, tint } from './floorPlanTheme';
 

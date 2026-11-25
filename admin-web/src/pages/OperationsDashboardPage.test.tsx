@@ -1,3 +1,4 @@
+/** Unit test for OperationsDashboardPage.tsx: OperationsDashboardPage. */
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,7 +17,7 @@ vi.mock('../services/operations.service', () => ({
   },
 }));
 
-vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1' } }) }));
+vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1' }, hasPermission: () => false }) }));
 
 vi.mock('../services/action.service', () => ({
   actionService: {

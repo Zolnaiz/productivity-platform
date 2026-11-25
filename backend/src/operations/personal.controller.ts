@@ -1,3 +1,6 @@
+/**
+ * Personal productivity routes: focus (pomodoro) sessions and earned badges.
+ */
 import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../shared/decorators/permissions.decorator';

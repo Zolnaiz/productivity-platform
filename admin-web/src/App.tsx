@@ -13,6 +13,7 @@ import Loading from "./components/common/Loading";
 // Every page but the first two a visitor sees is its own chunk, loaded
 // when it is first opened.
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const ZonePage = lazy(() => import("./pages/ZonePage"));
 const OperationsDashboardPage = lazy(() => import("./pages/OperationsDashboardPage"));
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
@@ -42,6 +43,7 @@ const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const AccountPage = lazy(() => import("./pages/AccountPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
+const UsabilityPage = lazy(() => import("./pages/UsabilityPage"));
 const HelpPage = lazy(() => import("./pages/HelpPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
@@ -70,6 +72,7 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
               <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
@@ -131,6 +134,7 @@ function App() {
                 <Route path="account" element={<AccountPage />} />
                 <Route path="help" element={<HelpPage />} />
                 <Route path="feedback" element={<FeedbackPage />} />
+                <Route path="usability" element={<UsabilityPage />} />
                 <Route
                   path="organizations"
                   element={

@@ -21,7 +21,7 @@ node -e "console.log(require('crypto').randomBytes(36).toString('base64url'))"
 | `VITE_API_URL` | yes | Normally `/api`. It is built into the web bundle, so changing it means rebuilding `admin-web`. The web app keeps its session in a `SameSite=Strict` cookie, so the API must be on the same site as the web app (the `/api` proxy does this); on another site, people would be signed out every hour. |
 | `CORS_ORIGINS` | yes | The origin the web app is served from. It only matters when the app and the API are on different hostnames. |
 | `APP_BASE_URL` | for email links | For example `https://app.example.com`. Invitation and password-reset emails carry links built from it. Without it, the email contains only a bare code. |
-| `MAIL_TRANSPORT` | no | `log` (the default) only logs the recipient and subject and sends nothing. `smtp` sends real email. |
+| `MAIL_TRANSPORT` | no | `log` (the default) only logs the recipient and subject and sends nothing. `smtp` sends real email. With `log`, a member who forgot their password gets no email: an administrator opens **Members**, presses **Reset link** on that member’s row, and hands the one-time link over in person. The link expires after one hour and works once. |
 | `MAIL_FROM`, `SMTP_HOST` | when `smtp` | If either is missing, the API refuses to start with `MAIL_TRANSPORT=smtp`. |
 | `SMTP_PORT`, `SMTP_SECURE` | no | Port 587 upgrades the connection to TLS. Port 465 uses TLS from the start. `SMTP_SECURE` overrides the choice. |
 | `SMTP_USER`, `SMTP_PASSWORD` | no | Leave both empty for an unauthenticated relay on your own network. |

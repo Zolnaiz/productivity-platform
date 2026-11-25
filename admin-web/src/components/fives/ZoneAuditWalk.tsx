@@ -1,3 +1,6 @@
+/**
+ * Runs a 5S audit for one zone question by question, with the standard's photos beside each question.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { operationsService } from '../../services/operations.service';

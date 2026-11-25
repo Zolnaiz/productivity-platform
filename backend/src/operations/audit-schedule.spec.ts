@@ -1,3 +1,4 @@
+/** Unit test for audit-schedule.ts: toCalendarDay. */
 import { todayIn } from './task-completion';
 import {
   auditDueDate,

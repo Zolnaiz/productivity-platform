@@ -1,3 +1,6 @@
+/**
+ * Common columns of every entity: UUID id, created and updated timestamps.
+ */
 import { PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude } from 'class-transformer';

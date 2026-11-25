@@ -1,3 +1,4 @@
+/** Unit test for ideas.service.ts: the idea box. */
 import { IdeaStatus } from './entities/idea.entity';
 import { TaskSource } from './entities/task.entity';
 import { IdeasService } from './ideas.service';

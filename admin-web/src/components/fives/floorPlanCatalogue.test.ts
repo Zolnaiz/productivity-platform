@@ -1,3 +1,4 @@
+/** Unit test for floorPlanCatalogue.ts: the object catalogue. */
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_METRES_PER_UNIT, toMetres } from './floorPlanScale';
 import { catalogue, catalogueItem, sizeForType, sizeInUnits } from './floorPlanCatalogue';

@@ -1,3 +1,6 @@
+/**
+ * Light/dark theme: follows the system unless the user picks one; remembered in localStorage.
+ */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';

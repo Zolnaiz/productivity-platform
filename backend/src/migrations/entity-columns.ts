@@ -48,6 +48,8 @@ export const liveTables = [
   'monthly_report_closes',
   'ideas',
   'weekly_checkins',
+  'sus_rounds',
+  'sus_responses',
   'monthly_summaries',
   'gemba_walks',
   'feedback_messages',

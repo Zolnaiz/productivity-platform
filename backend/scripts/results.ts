@@ -13,13 +13,20 @@
 import { execSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 const root = join(__dirname, '../..');
 const backend = join(root, 'backend');
 const web = join(root, 'admin-web');
 const mobile = join(root, 'mobile-flutter');
-const scratch = mkdtempSync(join(tmpdir(), 'results-'));
+// Forward slashes throughout. Every command below goes through bash, which
+// reads the backslashes of a Windows path as escapes and drops them: the
+// report was written somewhere else, and the suite was reported as "did not
+// start". Node and bash both accept C:/Users/... as it is.
+const posix = (path: string) => path.replace(/\\/g, '/');
+const scratch = posix(mkdtempSync(join(tmpdir(), 'results-')));
+/** A test file as the tables name it: relative to the repository, with `/`. */
+const fromRoot = (path: string) => posix(relative(root, path));
 
 interface Case {
   name: string;
@@ -43,14 +50,14 @@ const run = (command: string, cwd: string, env: Record<string, string> = {}) => 
 };
 
 const jestSuite = (label: string, command: string, cwd: string, env: Record<string, string> = {}): Suite => {
-  const out = join(scratch, `${label.replace(/\W+/g, '-')}.json`);
-  run(`${command} --json --outputFile=${out}`, cwd, env);
+  const out = `${scratch}/${label.replace(/\W+/g, '-')}.json`;
+  run(`${command} --json --outputFile="${out}"`, cwd, env);
   if (!existsSync(out)) return { label, command, ran: false, reason: 'the suite did not start', passed: 0, failed: 0, skipped: 0, cases: [] };
   const report = JSON.parse(readFileSync(out, 'utf-8'));
   const cases: Case[] = report.testResults.flatMap((file: any) =>
     file.assertionResults.map((test: any) => ({
       name: [...test.ancestorTitles, test.title].join(' › '),
-      file: file.name.replace(`${root}/`, ''),
+      file: fromRoot(file.name),
       status: test.status === 'passed' ? 'passed' : test.status === 'failed' ? 'failed' : 'skipped',
     })),
   );
@@ -68,8 +75,8 @@ const jestSuite = (label: string, command: string, cwd: string, env: Record<stri
 };
 
 const vitestSuite = (): Suite => {
-  const out = join(scratch, 'vitest.json');
-  run(`npx vitest run --reporter=json --outputFile=${out}`, web);
+  const out = `${scratch}/vitest.json`;
+  run(`npx vitest run --reporter=json --outputFile="${out}"`, web);
   if (!existsSync(out)) return { label: 'Web (vitest)', command: 'npx vitest run', ran: false, reason: 'did not start', passed: 0, failed: 0, skipped: 0, cases: [] };
   const report = JSON.parse(readFileSync(out, 'utf-8'));
   return {
@@ -101,7 +108,7 @@ const flutterSuite = (): Suite => {
     } catch {
       continue;
     }
-    if (event.type === 'suite') suites.set(event.suite.id, String(event.suite.path ?? '').replace(`${root}/`, ''));
+    if (event.type === 'suite') suites.set(event.suite.id, fromRoot(String(event.suite.path ?? '')));
     if (event.type === 'testStart' && !event.test.name.startsWith('loading ')) {
       names.set(event.test.id, { name: event.test.name, file: suites.get(event.test.suiteID) ?? '' });
     }
@@ -288,8 +295,11 @@ push(
   `| Үйл ажиллагааны тохирох байдал | 22 UC-ийн хүлээн авах тест; K1–K6-ийн хүснэгтэн unit тест | ${useCases.ran ? `${ucPassed}/22 UC pass` : 'UC ажиллуулаагүй'} |`,
   `| Гүйцэтгэлийн үр ашиг | 6 endpoint-ийн p50/p95, 10k бүртгэл дээрх алгоритм | ${bench ? `хамгийн удаан p95 = ${Math.max(...bench.endpoints.map((e: any) => e.p95))} мс (NFR-06 босго 2000 мс)` : 'хэмжээгүй'} |`,
   `| Аюулгүй байдал | Эрхийн матриц (доор); нууц үг сэргээлтийн халдлагын тохиолдол | ${refusals.filter((c) => c.status === 'passed').length}/${refusals.length} татгалзах тест pass; сэргээлт: ${resetAbuse.filter((c) => c.status === 'passed').length}/${resetAbuse.length} pass |`,
-  '| Ашиглахад хялбар байдал | SUS асуулга бодит хэрэглэгч шаарддаг | Хэмжээгүй (не измерено) — пилот дээр SUS авах шаардлагатай; хүртээмжийн автомат шалгалт (axe, Flutter accessibility) suite-д багтсан |',
-  `| Найдвартай байдал | Офлайн outbox, дахин илгээлт | ${mobileSuite.ran ? `${outbox.filter((c) => c.status === 'passed').length}/${outbox.length} pass` : 'ажиллуулаагүй'}; бодит сүлжээний тасалдлын туршилт хэмжээгүй |`,
+  '| Ашиглахад хялбар байдал | SUS асуулга бодит хэрэглэгч шаарддаг | SUS асуулга системд бэлэн (вэб, гар утас; `/sus`), оноо хараахан хэмжээгүй — пилотын төгсгөлд нэг үе нээж авна; хүртээмжийн автомат шалгалт (axe, Flutter accessibility) suite-д багтсан |',
+  // The drop test needs a running server, so this run skips it; CI's "Live
+  // API" job runs it against one. Said here so the row does not claim more
+  // than the counts beside it show.
+  `| Найдвартай байдал | Офлайн outbox, дахин илгээлт; жинхэнэ сервертэй TCP холболт тасалдах | ${mobileSuite.ran ? `${outbox.filter((c) => c.status === 'passed').length}/${outbox.length} pass` : 'ажиллуулаагүй'}; тасалдлын тест (\`network_drop_live_test.dart\`) CI-ийн Live API ажилд; бодит утас, Wi-Fi дээр хэмжээгүй |`,
   `| Засвар үйлчилгээ | Тестийн тоо, lint | ${suites.filter((s) => s.ran).reduce((sum, s) => sum + s.passed, 0)} тест; lint backend ${lint.backend}, web ${lint.web} |`,
   `| Нийцтэй байдал | Web (Chromium e2e), Android/iOS Flutter client, нэг API | ${e2e.ran ? `e2e ${e2e.passed} passed, ${e2e.failed} failed` : 'e2e энэ ажиллагаанд ороогүй'}; бусад хөтөч, бодит төхөөрөмж дээр хэмжээгүй |`,
   '',

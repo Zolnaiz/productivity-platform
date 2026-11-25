@@ -14,6 +14,7 @@ import { peopleService } from '../services/people.service';
 import { Department } from '../types/people.types';
 import {
   IssuedInvitation,
+  IssuedPasswordReset,
   MemberRole,
   PendingInvitation,
   TeamUser,
@@ -50,6 +51,9 @@ const TeamUsersPage: React.FC = () => {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [issued, setIssued] = useState<IssuedInvitation | null>(null);
   const [copied, setCopied] = useState(false);
+  // A reset link just issued, with whose it is: shown once, like an invitation.
+  const [resetIssued, setResetIssued] = useState<{ name: string; reset: IssuedPasswordReset } | null>(null);
+  const [resetCopied, setResetCopied] = useState(false);
   const [draft, setDraft] = useState<{ email: string; role: MemberRole }>({ email: '', role: 'user' });
   /*
     The departments somebody can be moved between. Without this column a
@@ -135,6 +139,34 @@ const TeamUsersPage: React.FC = () => {
     }
   };
 
+  // Mail is not set up on every server; this is how somebody who forgot their
+  // password gets back in. The server refuses what this person may not do.
+  const issueReset = async (member: TeamUser) => {
+    setError(null);
+    try {
+      const reset = await peopleService.issuePasswordReset(member.id);
+      setResetIssued({ name: memberName(member), reset });
+      setResetCopied(false);
+    } catch (resetError) {
+      setError(apiErrorMessage(resetError, t));
+    }
+  };
+
+  // The server's link when it knows its public address, else this page's own.
+  const resetLinkOf = (reset: IssuedPasswordReset) =>
+    reset.link ?? `${window.location.origin}/reset-password/${reset.token}`;
+
+  const copyResetLink = async () => {
+    if (!resetIssued) return;
+    try {
+      await navigator.clipboard.writeText(resetLinkOf(resetIssued.reset));
+      setResetCopied(true);
+    } catch {
+      // Clipboard access can be refused; the link is on screen to read.
+      setResetCopied(false);
+    }
+  };
+
   const copyToken = async () => {
     if (!issued) return;
 
@@ -187,6 +219,29 @@ const TeamUsersPage: React.FC = () => {
               {copied ? t('users.copied') : t('users.copy')}
             </Button>
             <Button variant="ghost" size="sm" type="button" onClick={() => setIssued(null)}>
+              {t('common.close')}
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {resetIssued && (
+        <Card title={t('users.resetIssued')}>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {t('users.resetIssuedHelp', {
+              name: resetIssued.name,
+              // 24-hour, as Mongolia writes it, whatever the browser's locale.
+              time: new Date(resetIssued.reset.expiresAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+            })}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <code className="flex-1 break-all rounded-md bg-gray-100 px-3 py-2 font-mono text-xs dark:bg-gray-900">
+              {resetLinkOf(resetIssued.reset)}
+            </code>
+            <Button variant="outline" size="sm" icon={Copy} type="button" onClick={copyResetLink}>
+              {resetCopied ? t('users.copied') : t('users.copy')}
+            </Button>
+            <Button variant="ghost" size="sm" type="button" onClick={() => setResetIssued(null)}>
               {t('common.close')}
             </Button>
           </div>
@@ -311,13 +366,27 @@ const TeamUsersPage: React.FC = () => {
               className: 'py-3 text-right',
               render: (member) =>
                 may('users:update') ? (
-                  <button
-                    className="text-sm text-blue-600"
-                    onClick={() => act(() => peopleService.setMemberActive(member.id, !member.isActive))}
-                    type="button"
-                  >
-                    {member.isActive ? t('users.deactivate') : t('users.activate')}
-                  </button>
+                  <div className="flex flex-wrap justify-end gap-3">
+                    {/* Only for an active member whose role this person could grant:
+                        the rule the server applies (UsersService.issuePasswordResetLink). */}
+                    {member.isActive && grantable.includes(member.role) && (
+                      <button
+                        className="text-sm text-blue-600"
+                        aria-label={t('users.resetLinkFor', { name: memberName(member) })}
+                        onClick={() => issueReset(member)}
+                        type="button"
+                      >
+                        {t('users.resetLink')}
+                      </button>
+                    )}
+                    <button
+                      className="text-sm text-blue-600"
+                      onClick={() => act(() => peopleService.setMemberActive(member.id, !member.isActive))}
+                      type="button"
+                    >
+                      {member.isActive ? t('users.deactivate') : t('users.activate')}
+                    </button>
+                  </div>
                 ) : null,
             },
           ]}

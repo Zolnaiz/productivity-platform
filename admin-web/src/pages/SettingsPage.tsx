@@ -1,3 +1,6 @@
+/**
+ * /settings - organisation settings: time zone, language, month-close day, attachment store check.
+ */
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { applyWorkspaceLanguage, changeLanguage } from '../i18n';

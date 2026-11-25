@@ -1,3 +1,6 @@
+/**
+ * /work-logs - daily work logs and time entries.
+ */
 import React, { useEffect, useRef, useState } from 'react';
 import { ClipboardList, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

@@ -1,3 +1,5 @@
+// A task as the API returns it, with JSON (de)serialisation.
+
 class Task {
   const Task({
     required this.id,

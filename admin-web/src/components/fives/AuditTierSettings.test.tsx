@@ -1,3 +1,4 @@
+/** Unit test for AuditTierSettings.tsx: the layers an organization audits in. */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import AuditTierSettings from './AuditTierSettings';

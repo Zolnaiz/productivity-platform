@@ -1,3 +1,6 @@
+/**
+ * A single headline number with label and optional trend, used on dashboards.
+ */
 import React from 'react';
 import Card from '../common/Card';
 

@@ -36,7 +36,19 @@ export default [
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      // `const { secret: _secret, ...rest } = value` is how this code leaves a
+      // field out of an object: the named ones are dropped on purpose, so a
+      // sibling of a rest element is not an unused variable.
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', ignoreRestSiblings: true }],
+      // Correctness rules carried over from the old .eslintrc.js, which
+      // ESLint 9 never read. `== null` stays allowed: it means "null or
+      // undefined", as TypeORM's IsNull() does. `curly` was not carried over:
+      // a one-line `if (...) throw ...` without braces is this code's style.
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
+      'no-duplicate-imports': 'error',
+      'no-unused-expressions': 'error',
+      'no-var': 'error',
+      'prefer-const': 'error',
       '@typescript-eslint/no-empty-object-type': 'off',
     },
   },

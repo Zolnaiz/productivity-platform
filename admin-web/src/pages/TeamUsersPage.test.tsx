@@ -1,3 +1,4 @@
+/** Unit test for TeamUsersPage.tsx: TeamUsersPage. */
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,6 +15,7 @@ const people = vi.hoisted(() => ({
   changeMemberRole: vi.fn(),
   invite: vi.fn(),
   revokeInvitation: vi.fn(),
+  issuePasswordReset: vi.fn(),
 }));
 
 vi.mock('../services/people.service', () => ({ peopleService: people }));
@@ -74,6 +76,52 @@ describe('TeamUsersPage', () => {
     // admin may grant.
     await waitFor(() => expect(people.invite).toHaveBeenCalledWith('new@example.com', 'user'));
     expect(await screen.findByText('the-only-copy')).toBeTruthy();
+  });
+
+  // With no mail on the server, the reset link the email would carry is
+  // handed over by an administrator instead.
+  it('issues a reset link for a member and shows it once to hand over', async () => {
+    people.issuePasswordReset.mockResolvedValue({
+      token: 'reset-token',
+      expiresAt: '2026-11-13T05:00:00.000Z',
+      link: 'https://pilot.example.com/reset-password/reset-token',
+    });
+    render(<TeamUsersPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Password reset link for Bat Dorj' }));
+
+    await waitFor(() => expect(people.issuePasswordReset).toHaveBeenCalledWith('u1'));
+    expect(await screen.findByText('https://pilot.example.com/reset-password/reset-token')).toBeTruthy();
+    expect(screen.getByText(/Give this link to Bat Dorj/)).toBeTruthy();
+  });
+
+  it('builds the link on this page’s address when the server has none', async () => {
+    people.issuePasswordReset.mockResolvedValue({ token: 'reset-token', expiresAt: '2026-11-13T05:00:00.000Z', link: null });
+    render(<TeamUsersPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Password reset link for Bat Dorj' }));
+
+    expect(await screen.findByText(`${window.location.origin}/reset-password/reset-token`)).toBeTruthy();
+  });
+
+  it('offers no reset link for an inactive member or one above the reader', async () => {
+    people.getMembers.mockResolvedValue([
+      member({ id: 'gone', firstName: 'Gone', isActive: false }),
+      member({ id: 'boss', firstName: 'Boss', role: 'organization_admin' }),
+    ]);
+    render(<TeamUsersPage />);
+
+    await screen.findByText('Gone Dorj');
+    expect(screen.queryByRole('button', { name: /Password reset link/ })).toBeNull();
+  });
+
+  it('says why when the server refuses a reset link', async () => {
+    people.issuePasswordReset.mockRejectedValue({ response: { data: { errorCode: 'ACCESS_DENIED' } } });
+    render(<TeamUsersPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Password reset link for Bat Dorj' }));
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
   });
 
   it('offers only the roles the signed-in person may grant', async () => {

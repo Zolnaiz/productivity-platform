@@ -1,3 +1,4 @@
+/** Unit test for monthlyDepartments.ts: how a department is doing. */
 import { describe, expect, it } from 'vitest';
 import { summariseDepartments } from './monthlyDepartments';
 import { MonthlyPerson } from '../../types/operations.types';

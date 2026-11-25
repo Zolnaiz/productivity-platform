@@ -1,3 +1,4 @@
+/** Unit test for localDay.ts: the day as the person at the screen counts it. */
 import { describe, expect, it } from 'vitest';
 import { daysFromToday, localDay } from './localDay';
 

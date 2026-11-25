@@ -1,3 +1,4 @@
+/** Unit test for StandardPhoto.tsx: the standard photograph. */
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StandardPhoto from './StandardPhoto';

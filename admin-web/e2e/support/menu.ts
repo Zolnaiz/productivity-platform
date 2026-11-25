@@ -1,3 +1,4 @@
+/** End-to-end browser test (Playwright) for menu.ts. */
 import type { Page } from '@playwright/test';
 
 const hrefs = (anchors: Element[]) => [

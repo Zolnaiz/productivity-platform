@@ -1,3 +1,7 @@
+/**
+ * Ideas: anyone submits, a reviewer accepts or rejects; an accepted idea becomes a task and the author is
+ * notified (NotificationsService).
+ */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';

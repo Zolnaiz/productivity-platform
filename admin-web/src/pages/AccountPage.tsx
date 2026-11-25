@@ -3,13 +3,18 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import Input from '../components/common/Input';
 import { useAuth } from '../contexts/AuthContext';
 import { changeLanguage } from '../i18n';
 import { apiErrorMessage } from '../i18n/apiError';
 import { authService } from '../services/auth.service';
 
-/** UC-07: a person's own name, phone, language and password. */
+/**
+ * UC-07: a person's own name, phone, language and password, and (FR-21) the
+ * request to have the account deleted. The phone offers the same request in
+ * its account menu; the privacy policy (/privacy) points to both.
+ */
 const AccountPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, refreshUser } = useAuth();
@@ -23,6 +28,9 @@ const AccountPage: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmingDeletion, setConfirmingDeletion] = useState(false);
+  const [requestingDeletion, setRequestingDeletion] = useState(false);
+  const [deletionError, setDeletionError] = useState<string | null>(null);
 
   const saveDetails = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -52,6 +60,24 @@ const AccountPage: React.FC = () => {
       toast.success(t('account.passwordChanged'));
     } catch (error) {
       setPasswordError(apiErrorMessage(error, t));
+    }
+  };
+
+  // Sent only after the confirmation, and said back differently when no
+  // administrator could be told, so nobody waits on a request nobody received.
+  const requestDeletion = async () => {
+    setDeletionError(null);
+    setRequestingDeletion(true);
+    try {
+      const { administratorsTold } = await authService.requestAccountDeletion();
+      setConfirmingDeletion(false);
+      if (administratorsTold > 0) toast.success(t('account.deletionSent'));
+      else setDeletionError(t('account.deletionNobody'));
+    } catch (error) {
+      setConfirmingDeletion(false);
+      setDeletionError(apiErrorMessage(error, t));
+    } finally {
+      setRequestingDeletion(false);
     }
   };
 
@@ -117,6 +143,33 @@ const AccountPage: React.FC = () => {
           <Button type="submit">{t('account.changePassword')}</Button>
         </form>
       </Card>
+
+      <Card>
+        <div className="space-y-4">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t('account.deletion')}</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{t('account.deletionExplain')}</p>
+          {deletionError && (
+            <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+              {deletionError}
+            </p>
+          )}
+          <Button type="button" variant="danger" onClick={() => setConfirmingDeletion(true)}>
+            {t('account.deletionRequest')}
+          </Button>
+        </div>
+      </Card>
+
+      <ConfirmDialog
+        isOpen={confirmingDeletion}
+        title={t('account.deletion')}
+        message={t('account.deletionExplain')}
+        confirmLabel={t('account.deletionSend')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        loading={requestingDeletion}
+        onConfirm={requestDeletion}
+        onCancel={() => setConfirmingDeletion(false)}
+      />
     </div>
   );
 };

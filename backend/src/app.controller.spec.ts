@@ -1,3 +1,4 @@
+/** Unit test for app.controller.ts: AppController metrics. */
 import { NotFoundException } from '@nestjs/common';
 import { AppController } from './app.controller';
 

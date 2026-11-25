@@ -1,3 +1,6 @@
+/**
+ * /notes - personal notes.
+ */
 import React, { useEffect, useState } from 'react';
 import { Plus, StickyNote } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

@@ -1,3 +1,10 @@
+<#
+.SYNOPSIS
+  End-to-end smoke on this machine: starts the development PostgreSQL (Docker), runs migrations and the
+  seed, starts the API if it is not up, waits for /api/health and runs `npm run smoke:api`.
+.EXAMPLE
+  powershell -File scripts/runtime-smoke.ps1 [-KeepBackendRunning]
+#>
 param(
   [switch]$KeepBackendRunning
 )

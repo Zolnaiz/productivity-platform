@@ -1,3 +1,4 @@
+/** Unit test for admin.service.ts: adminService. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const get = vi.fn();

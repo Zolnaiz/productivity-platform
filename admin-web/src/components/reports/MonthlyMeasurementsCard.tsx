@@ -1,3 +1,6 @@
+/**
+ * Monthly report card: K1-K6 for the chosen month with their definitions.
+ */
 import { useTranslation } from 'react-i18next';
 import type { MonthlyMeasurements } from '../../types/operations.types';
 import Card from '../common/Card';

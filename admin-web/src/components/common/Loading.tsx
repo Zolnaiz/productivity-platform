@@ -1,3 +1,6 @@
+/**
+ * Spinner with an accessible label.
+ */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 

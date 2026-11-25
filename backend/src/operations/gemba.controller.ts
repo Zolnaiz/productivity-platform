@@ -1,3 +1,6 @@
+/**
+ * Gemba walks: record a walk and read this week's walks against the weekly target.
+ */
 import { BadRequestException, Body, Controller, Get, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../shared/decorators/permissions.decorator';

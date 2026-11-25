@@ -1,3 +1,6 @@
+/**
+ * /notifications - the user's notifications and the actions waiting for them.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';

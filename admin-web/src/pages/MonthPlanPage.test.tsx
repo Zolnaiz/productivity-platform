@@ -1,3 +1,4 @@
+/** Unit test for MonthPlanPage.tsx: the monthly plan page. */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MonthPlanPage from './MonthPlanPage';

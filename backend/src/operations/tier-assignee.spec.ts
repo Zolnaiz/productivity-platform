@@ -1,3 +1,4 @@
+/** Unit test for tier-assignee.ts: who a layered audit lands on. */
 import { assigneeForTier, coversTier } from './tier-assignee';
 
 const tier = (role?: string) => ({ role });

@@ -8,7 +8,7 @@
 |---|---|
 | `latex/` | Дипломын бичвэр (MUST-Thesis загвар). Overleaf-ийн төсөлтэй ижил. `main.tex`-ээс эхэлнэ. |
 | `latex/Figures/` | Бүх зураг, диаграм — скриптээр үүсгэсэн ба дэлгэцийн зургууд. Бичвэр, илтгэл хоёулаа эндээс авна. |
-| `scripts/` | Диаграм (`make_figures.py`, `make_uml.py`), туршилт ба хэмжилтийн график (`make_charts.py`), судалгаа ба SUS асуулгын хавсралт, маягт, үр дүн (`make_survey.py`), илтгэл (`build_slides.py`, `build_slides2.py`, нийтлэг загвар `slides_kit.py`), даалгаврын маягт (`fill_task_form.py`). |
+| `scripts/` | Диаграм (`make_figures.py`, `make_uml.py`), туршилт ба хэмжилтийн график (`make_charts.py`), судалгаа ба SUS асуулгын хавсралт, маягт, үр дүн (`make_survey.py`), илтгэл (`build_slides.py`, `build_slides2.py`, `build_slides3.py`, нийтлэг загвар `slides_kit.py`), даалгаврын маягт (`fill_task_form.py`). |
 | `output/` | Гаралт: `Uzleg1_iltgel.pptx/.pdf`, `Uzleg2_iltgel.pptx/.pdf`, `Diplom_daalgavar.docx/.pdf`. Git-д ордоггүй. |
 | `Uzleg2_beltgel.md` | II үзлэгийн бэлтгэл: одоогийн төлөв, үзлэгээс өмнө хийх ажил, демо, гарч болох асуулт. |
 | `materials/` | Сургуулийн материал: журам А/55, үзлэгийн хуваарь, LaTeX загвар, даалгаврын маягт, жишээ диплом, жишээ илтгэл. Git-д ордоггүй. |

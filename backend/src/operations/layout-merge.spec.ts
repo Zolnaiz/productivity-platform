@@ -1,3 +1,4 @@
+/** Unit test for layout-merge.ts: saving a plan the floor has written to meanwhile. */
 import { mergeFloorFacts } from './layout-merge';
 
 const opened = new Date('2026-09-28T02:00:00.000Z');

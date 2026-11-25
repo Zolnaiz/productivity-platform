@@ -1,3 +1,4 @@
+/** Unit test for redTagPins.ts: nextPinSpot. */
 import { describe, expect, it } from 'vitest';
 import { nextPinSpot, pinPosition, PIN_RADIUS } from './floorPlanRules';
 import { FiveSRedTag, FiveSZone } from '../../types/fiveS.types';

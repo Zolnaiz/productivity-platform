@@ -1,3 +1,6 @@
+/**
+ * Fixes waiting for verification: a supervisor confirms (or reopens) a corrected red tag.
+ */
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Button from '../common/Button';

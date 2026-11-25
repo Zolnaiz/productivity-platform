@@ -1,3 +1,10 @@
+<#
+.SYNOPSIS
+  Local verification before a push: backend tests, migration check, lint and build, then the web's tests,
+  lint and build; npm audit and the Docker config unless skipped; Playwright and Flutter on request.
+.EXAMPLE
+  powershell -File scripts/verify.ps1 [-SkipAudit] [-SkipDockerConfig] [-IncludeE2E] [-IncludeMobile]
+#>
 param(
   [switch]$SkipAudit,
   [switch]$SkipDockerConfig,

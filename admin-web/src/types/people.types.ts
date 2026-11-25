@@ -49,6 +49,18 @@ export interface IssuedInvitation {
 }
 
 /**
+ * A password reset link an administrator hands to a member, for when mail
+ * cannot carry it (POST /users/:id/password-reset). Shown once; it works once
+ * and lapses at `expiresAt`.
+ */
+export interface IssuedPasswordReset {
+  token: string;
+  expiresAt: string;
+  /** On the server's public address; null when none is configured. */
+  link: string | null;
+}
+
+/**
  * A part of the organization that owns people and 5S areas.
  *
  * `manager` used to be a typed-in name and `memberCount` a number somebody

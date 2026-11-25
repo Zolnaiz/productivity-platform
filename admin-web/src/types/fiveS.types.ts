@@ -1,3 +1,6 @@
+/**
+ * 5S shapes: zones, red tags, floor-plan objects, walls, routes, audit tiers, plan versions.
+ */
 export type FiveSStage = 'sort' | 'set_in_order' | 'shine' | 'standardize' | 'sustain';
 
 export type FloorPlanObjectType =

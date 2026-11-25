@@ -6,6 +6,7 @@ import '../providers/inbox_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/work_log_provider.dart';
 import '../utils/phase_one_strings.dart';
+import 'sus_screen.dart';
 import 'tasks_screen.dart';
 
 /// The first thing on the phone: what is due today, whether today's work is
@@ -99,6 +100,8 @@ class _TodayScreenState extends State<TodayScreen> {
               onTap: widget.onOpenInbox,
             ),
           ),
+          // Only while the usability questionnaire is open and not yet answered.
+          SusReminderCard(api: tasks.api),
           const SizedBox(height: 8),
           Text('${strings.text('todayDue')} (${due.length})', style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),

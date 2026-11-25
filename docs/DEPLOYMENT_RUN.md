@@ -10,7 +10,7 @@ Read that section before you start. Two of the failures are silent — they leav
 you with a stack that looks healthy and is not.
 
 You need Docker with Compose v2. Nothing else: the images build Node and nginx
-themselves. The host-side steps (seed, smoke) additionally need Node 20 and a
+themselves. The host-side steps (seed, smoke) additionally need Node 22 and a
 checkout of this repository.
 
 ---
@@ -84,7 +84,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml build
  Image agent-...-backend Built
 ```
 
-Roughly four minutes cold, two images: the NestJS API on Node 20 and the
+Roughly four minutes cold, two images: the NestJS API on Node 22 and the
 admin-web bundle behind nginx 1.27.
 
 ## 3. Start

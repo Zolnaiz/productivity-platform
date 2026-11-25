@@ -1,3 +1,4 @@
+/** Unit test for AuditLogPage.tsx: the record of who changed what. */
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AuditLogPage from './AuditLogPage';

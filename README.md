@@ -12,6 +12,7 @@ Productivity Platform is a web-based operations and productivity management syst
 - A morning reminder for everyone of their work due and late, and for managers of the team's late and unowned work, in the inbox and by email
 - 5S, safety, quality, compliance, risk, and operational excellence audit templates
 - Assessment forms and responses
+- The usability questionnaire (SUS, the thesis's K7) on the web and the phone: an administrator opens a round, everybody is reminded on the home page, and the results are totals only, from three respondents up
 - Expenses and reporting
 - Admin, organization, department, user, settings, and audit-log areas
 - Demo workspace for frontend exploration
@@ -22,10 +23,14 @@ Productivity Platform is a web-based operations and productivity management syst
 ```text
 admin-web/        React + TypeScript admin web app
 backend/          NestJS API for operations data
-docs/             Product, setup, and verification docs
+docs/             Architecture, status, decisions, results, deployment; docs/diploma = the thesis
 mobile-flutter/   Flutter employee app for Android
-scripts/          Repository-level helper scripts
+scripts/          Repository-level helper scripts (verification, backups, public tunnel)
 ```
+
+New here? Read [docs/README.md](docs/README.md) (the map of every document) and then
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (how the parts fit, how a request travels, the main algorithms).
+Every source file opens with a comment saying what it is for and what it connects to.
 
 ## Quick Verification
 
@@ -65,7 +70,7 @@ This creates a disposable Docker PostgreSQL on port 55433, builds the current
 API on port 3300, and tests the browser on port 3301. It runs migrations, seed,
 API writes and the live browser tests, then stops its processes and removes
 only its test database. Existing databases and servers are not reused. See
-[Verification](docs/VERIFY.md) for options and [Execution Plan](docs/PRODUCT_EXECUTION_PLAN.md)
+[Verification](docs/VERIFY.md) for options and [Execution Plan](docs/archive/PRODUCT_EXECUTION_PLAN.md)
 for current development priorities.
 
 ## Frontend
@@ -112,8 +117,8 @@ For PostgreSQL-backed local smoke testing, see:
 - [Backup And Restore](docs/POSTGRES_BACKUP_RESTORE.md) — the database and the attachment bytes, which do not travel together
 - [Architecture Decisions](docs/DECISIONS.md)
 - [UI Guidelines](docs/UI_GUIDELINES.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Product Execution Plan](docs/PRODUCT_EXECUTION_PLAN.md)
+- [Roadmap](docs/archive/ROADMAP.md)
+- [Product Execution Plan](docs/archive/PRODUCT_EXECUTION_PLAN.md)
 
 ## Mobile
 
@@ -192,7 +197,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 - Every migration is applied to a real PostgreSQL on each verification run and the resulting schema is inspected: every live table present, every mapped column present, the schema writable, and the partial unique index behind one-task-per-finding actually refusing a second. PGlite runs PostgreSQL in process, so this needs no Docker, daemon or virtualisation.
 - Production requires `JWT_SECRET`.
 - Production rejects known weak JWT and refresh-token secrets.
-- The web app keeps its refresh token in an HttpOnly, `SameSite=Strict` cookie limited to `/api/auth` (`Secure` in production), never in browser storage, so a script on the page can carry off at most the one-hour access token. The phone app keeps its tokens in the device's secure storage. Logging out removes the cookie. A password change or reset ends every other session: each refresh token carries the account's token version, and both move it on.
+- The web app keeps its refresh token in an HttpOnly, `SameSite=Strict` cookie limited to `/api/auth` (`Secure` in production), never in browser storage. The access token is held in the page's memory only, never in `localStorage` or `sessionStorage`; a reload or a new tab gets a fresh one from the cookie. So a script on the page finds no token to carry off. The phone app keeps its tokens in the device's secure storage. Logging out removes the cookie. A password change or reset ends every other session: each refresh token carries the account's token version, and both move it on.
 - Production rejects `DB_SYNCHRONIZE=true`.
 - Swagger is disabled in production unless `ENABLE_SWAGGER=true`.
 - Public operations access is disabled by default.
@@ -332,12 +337,16 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile c
 
 ## Current Verification Status
 
-As of 2026-10-22, on branch `feat/next-improvements`. The numbers below come from [docs/RESULTS.md](docs/RESULTS.md), which `npm run results` (in `backend`) generates from each suite's own output:
+Where the whole project stands - each area as done / total, what is left in
+priority order, and how to keep it maintained - is in
+[docs/STATUS.md](docs/STATUS.md) (in Mongolian).
 
-- Backend: **1,038 unit and HTTP tests passing**, plus **52 use-case acceptance tests** (UC-01 … UC-22, each with a main flow and a refused or alternative flow) on a real PostgreSQL 16 (`npm run test:uc`). Lint and build are clean. Migrations run up, down and up again against PostgreSQL 16, and `npm run migration:check` passes.
-- Frontend: **1,095 tests passing**. Lint and production build pass.
+As of 2026-11-25. The numbers below come from [docs/RESULTS.md](docs/RESULTS.md), which `npm run results` (in `backend`) generates from each suite's own output:
+
+- Backend: **1,105 unit and HTTP tests passing**, plus **55 use-case acceptance tests** (UC-01 … UC-22, each with a main flow and a refused or alternative flow) and **3 for the SUS questionnaire (K7)** on a real PostgreSQL 16 (`npm run test:uc`). Lint and build are clean. Migrations run up, down and up again against PostgreSQL 16, and `npm run migration:check` passes.
+- Frontend: **1,133 tests passing**. Lint and production build pass.
 - Browser: **40 Playwright checks passing**: 18 in demo mode and 22 against a live API.
-- Mobile: **135 tests passing**, with one environment-gated live test skipped. `flutter analyze` is clean.
+- Mobile: **143 tests passing**, with six live-server tests skipped here; CI's "Live API" job runs them against a real server, including four that cut the connection before a request and as its answer comes back, and count what the server saved. `flutter analyze` is clean.
 - Performance: on 50 users and 10,000 records, every measured endpoint has p95 under 200 ms (NFR-06 allows 2 s). Before a fix in this branch, the monthly report's p95 was 1.75 s. Both measurements are in RESULTS.md.
 - Measures K1–K6: see [docs/measurements.md](docs/measurements.md). Usability (SUS) has **not** been measured; it needs real users in the pilot.
 - Deployment in short: [docs/DEPLOY.md](docs/DEPLOY.md).

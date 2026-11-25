@@ -1,3 +1,4 @@
+/** Unit test for monthly-people.ts: what each person did this month. */
 import { PersonRecords, projectProgressPercent, summarisePeople } from './monthly-people';
 
 const records = (over: Partial<PersonRecords> = {}): PersonRecords => ({

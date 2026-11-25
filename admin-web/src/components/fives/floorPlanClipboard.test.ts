@@ -1,3 +1,4 @@
+/** Unit test for floorPlanClipboard.ts: copying an area. */
 import { describe, expect, it } from 'vitest';
 import { FiveSZone } from '../../types/fiveS.types';
 import { copyName, duplicateZones, nextZoneCode } from './floorPlanClipboard';
