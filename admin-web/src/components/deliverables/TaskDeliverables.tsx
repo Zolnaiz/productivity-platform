@@ -19,8 +19,8 @@ interface TaskDeliverablesProps {
   canReview: boolean;
   /** tasks:create - may handle any task's files */
   canManage: boolean;
-  /** After an approval, which also finishes the task. */
-  onReviewed?: () => void;
+  /** After every step, with the new review state; approval also finishes the task. */
+  onStatusChange?: (status: ReviewStatus) => void;
 }
 
 /** What may be uploaded; the server checks the bytes regardless. */
@@ -36,7 +36,7 @@ const statusStyle: Record<ReviewStatus, string> = {
 const sizeLabel = (bytes: number) =>
   bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
-const TaskDeliverables = ({ taskId, assigneeId, currentUserId, canReview, canManage, onReviewed }: TaskDeliverablesProps) => {
+const TaskDeliverables = ({ taskId, assigneeId, currentUserId, canReview, canManage, onStatusChange }: TaskDeliverablesProps) => {
   const { t } = useTranslation();
   const [state, setState] = useState<Deliverables | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +60,9 @@ const TaskDeliverables = ({ taskId, assigneeId, currentUserId, canReview, canMan
     setBusy(true);
     setError(null);
     try {
-      setState(await action());
+      const next = await action();
+      setState(next);
+      onStatusChange?.(next.review.status);
       after?.();
     } catch (stepError) {
       setError(apiErrorMessage(stepError, t));
@@ -175,7 +177,7 @@ const TaskDeliverables = ({ taskId, assigneeId, currentUserId, canReview, canMan
               type="button"
               size="sm"
               disabled={busy}
-              onClick={() => void step(() => deliverablesService.approve(taskId), onReviewed)}
+              onClick={() => void step(() => deliverablesService.approve(taskId))}
             >
               {t('deliverables.approve')}
             </Button>

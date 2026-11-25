@@ -58,6 +58,10 @@ export interface WorkTask extends RaisedTitle {
   completedAt?: string | null;
   /** Why the area fell short, for a fix an audit raised. */
   rootCause?: string | null;
+  /** Review of the task's work documents (deliverables.service): null when none was asked for. */
+  reviewStatus?: 'submitted' | 'approved' | 'returned' | null;
+  reviewNote?: string | null;
+  submittedAt?: string | null;
 }
 
 export interface WorkLog {

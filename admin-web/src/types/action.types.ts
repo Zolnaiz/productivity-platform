@@ -8,7 +8,7 @@
  */
 export interface ActionItem {
   id: string;
-  type: 'overdue' | 'task' | 'project' | 'audit' | 'assessment' | 'expense';
+  type: 'overdue' | 'task' | 'project' | 'audit' | 'assessment' | 'expense' | 'review';
   title: string;
   titleKey?: string;
   titleParams?: Record<string, string | number>;

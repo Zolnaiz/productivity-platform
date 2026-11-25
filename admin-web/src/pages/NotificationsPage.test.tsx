@@ -11,6 +11,11 @@ const serviceMocks = vi.hoisted(() => ({
   markAllRead: vi.fn(),
 }));
 
+// A manager, who may review documents; the review items themselves are tested in action.service.test.ts.
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'u1' }, hasPermission: () => true }),
+}));
+
 vi.mock('../services/action.service', () => ({
   actionService: { getActionItems: serviceMocks.getActionItems },
 }));

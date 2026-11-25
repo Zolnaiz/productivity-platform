@@ -59,12 +59,12 @@ describe('TaskDeliverables', () => {
     service.list.mockResolvedValue(state('submitted'));
     service.approve.mockResolvedValue(state('approved'));
     const onReviewed = vi.fn();
-    render(<TaskDeliverables taskId="t1" {...asReviewer()} onReviewed={onReviewed} />);
+    render(<TaskDeliverables taskId="t1" {...asReviewer()} onStatusChange={onReviewed} />);
     await screen.findByText('diagram-v2.pdf');
     const approve = screen.getAllByRole('button').find((button) => /^(Approve|Батлах)$/.test(button.textContent ?? ''));
     await userEvent.click(approve!);
     expect(service.approve).toHaveBeenCalledWith('t1');
-    await waitFor(() => expect(onReviewed).toHaveBeenCalled());
+    await waitFor(() => expect(onReviewed).toHaveBeenCalledWith('approved'));
   });
 
   it('needs a reason of three characters or more before sending back', async () => {

@@ -12,6 +12,10 @@ const mocks = vi.hoisted(() => ({
   getMembers: vi.fn(),
 }));
 
+// A manager; the workload card has its own test (TeamWorkload.test.tsx) and here only needs no network.
+vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ hasPermission: () => true }) }));
+vi.mock('../services/workload.service', () => ({ workloadService: { team: vi.fn().mockResolvedValue([]) } }));
+
 vi.mock('../services/operations.service', () => ({
   operationsService: {
     getProjects: mocks.getProjects,

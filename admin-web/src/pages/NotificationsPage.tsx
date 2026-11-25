@@ -9,6 +9,7 @@ import { actionText } from '../components/common/actionText';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { actionService } from '../services/action.service';
+import { useAuth } from '../contexts/AuthContext';
 import { Notification, notificationService } from '../services/notification.service';
 import { ActionItem } from '../types/action.types';
 
@@ -19,6 +20,7 @@ const typeStyles: Record<ActionItem['type'], string> = {
   expense: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-900',
   project: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-900',
   task: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700',
+  review: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-200 dark:border-indigo-900',
 };
 
 const priorityStyles: Record<ActionItem['priority'], string> = {
@@ -29,6 +31,7 @@ const priorityStyles: Record<ActionItem['priority'], string> = {
 
 const NotificationsPage: React.FC = () => {
   const { t } = useTranslation();
+  const { user, hasPermission } = useAuth();
   const [items, setItems] = useState<ActionItem[]>([]);
   /**
    * What has been delivered, as opposed to what the browser works out.
@@ -40,10 +43,11 @@ const NotificationsPage: React.FC = () => {
    */
   const [delivered, setDelivered] = useState<Notification[]>([]);
 
+  const canReview = hasPermission('deliverables:review');
   useEffect(() => {
-    actionService.getActionItems().then(setItems);
+    actionService.getActionItems({ id: user?.id, canReview }).then(setItems);
     notificationService.list().then(setDelivered).catch(() => setDelivered([]));
-  }, []);
+  }, [user?.id, canReview]);
 
   const unread = delivered.filter((item) => !item.readAt);
 

@@ -263,6 +263,11 @@ const en = {
     loadFailed: 'Could not load dashboard data.',
   },
   tasks: {
+    reviewBadge: {
+      submitted: 'Under review',
+      returned: 'Returned',
+      approved: 'Approved',
+    },
     title: 'Tasks',
     subtitle: 'Drag a card to its next stage, or open it to change who it is for.',
     newTask: 'New task',
@@ -611,6 +616,9 @@ const en = {
     },
   },
   actions: {
+    documentsToReview: 'Documents to review',
+    documentsReturned: 'Your documents were returned',
+    sentOn: 'Sent {{date}}',
     status: {
       draft: 'Draft',
       in_progress: 'In progress',
@@ -1351,6 +1359,14 @@ const en = {
     removeFile: 'Delete {{name}}',
   },
   workload: {
+    teamTitle: 'Workload this week',
+    teamSubtitle: 'Open work due within 7 days against a 40-hour week',
+    barLabel: '{{percent}}% of a week',
+    row: '{{hours}} h · {{percent}}% · {{open}} open',
+    late_one: '· {{count}} late',
+    late_other: '· {{count}} late',
+    overHint: '{{count}} over a week. Room for more: {{names}}.',
+    balancedHint: 'Nobody is over a week of work.',
     title: 'Load this week, with this task',
     after: '{{percent}}% · {{open}} open',
     hasWarnings: 'Check before assigning',

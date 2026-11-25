@@ -39,6 +39,13 @@ const priorityDot: Record<string, string> = {
   low: 'bg-gray-400',
 };
 
+/** The work-documents review, on the card, so waiting and returned work stands out on the board. */
+const reviewBadge: Record<'submitted' | 'approved' | 'returned', string> = {
+  submitted: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200',
+  returned: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
+  approved: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
+};
+
 const emptyDraft = {
   title: '',
   description: '',
@@ -584,6 +591,14 @@ const TasksPage: React.FC = () => {
                         </div>
                       )}
                       {project && <div className="mt-1 truncate text-xs text-blue-700 dark:text-blue-300">{project}</div>}
+                      {task.reviewStatus && (
+                        <span
+                          className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${reviewBadge[task.reviewStatus]}`}
+                          data-testid="card-review-status"
+                        >
+                          {t(`tasks.reviewBadge.${task.reviewStatus}`)}
+                        </span>
+                      )}
                       <div className="mt-2 flex items-center justify-between gap-2 text-xs">
                         {owner ? (
                           <span className="truncate text-gray-700 dark:text-gray-300">{owner}</span>
@@ -736,10 +751,18 @@ const TasksPage: React.FC = () => {
               currentUserId={user?.id}
               canReview={hasPermission('deliverables:review')}
               canManage={canAssign}
-              // Approval finishes the task on the server; the board shows it at once.
-              onReviewed={() =>
+              // The card's badge follows each step; approval also finishes the task on the server.
+              onStatusChange={(reviewStatus) =>
                 setTasks((current) =>
-                  current.map((item) => (item.id === openTask.id ? { ...item, status: 'done' } : item)),
+                  current.map((item) =>
+                    item.id === openTask.id
+                      ? {
+                          ...item,
+                          reviewStatus: reviewStatus === 'none' ? null : reviewStatus,
+                          status: reviewStatus === 'approved' ? 'done' : item.status,
+                        }
+                      : item,
+                  ),
                 )
               }
             />

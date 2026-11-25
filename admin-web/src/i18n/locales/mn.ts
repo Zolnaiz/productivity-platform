@@ -263,6 +263,11 @@ const mn: Translations<typeof en> = {
     loadFailed: 'Хяналтын самбарын мэдээллийг ачаалж чадсангүй.',
   },
   tasks: {
+    reviewBadge: {
+      submitted: 'Хянагдаж байна',
+      returned: 'Буцаагдсан',
+      approved: 'Батлагдсан',
+    },
     title: 'Ажлууд',
     subtitle: 'Картыг дараагийн шат руу чирнэ үү, эсвэл нээж хариуцагчийг өөрчилнө үү.',
     newTask: 'Шинэ ажил',
@@ -609,6 +614,9 @@ const mn: Translations<typeof en> = {
     },
   },
   actions: {
+    documentsToReview: 'Хянах баримт',
+    documentsReturned: 'Таны баримтыг буцаасан',
+    sentOn: '{{date}}-нд илгээсэн',
     status: {
       draft: 'Ноорог',
       in_progress: 'Хийгдэж байна',
@@ -1346,6 +1354,14 @@ const mn: Translations<typeof en> = {
     removeFile: '{{name}} устгах',
   },
   workload: {
+    teamTitle: 'Энэ 7 хоногийн ачаалал',
+    teamSubtitle: '7 хоногт дуусах нээлттэй ажил, 40 цагийн 7 хоногтой харьцуулсан',
+    barLabel: '7 хоногийн {{percent}}%',
+    row: '{{hours}} ц · {{percent}}% · {{open}} нээлттэй',
+    late_one: '· {{count}} хоцорсон',
+    late_other: '· {{count}} хоцорсон',
+    overHint: '{{count}} хүн 7 хоногийн ажлаас хэтэрсэн. Сул: {{names}}.',
+    balancedHint: '7 хоногийн ажлаас хэтэрсэн хүн алга.',
     title: 'Энэ ажлыг нэмбэл 7 хоногийн ачаалал',
     after: '{{percent}}% · {{open}} нээлттэй',
     hasWarnings: 'Оноохоос өмнө шалгаарай',

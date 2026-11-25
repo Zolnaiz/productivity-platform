@@ -28,7 +28,7 @@ const greetingKey = (hour: number) => (hour < 12 ? 'morning' : hour < 18 ? 'afte
 
 const OperationsDashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   // The organization's totals answer a manager's question. Somebody on the
   // floor opens this page to see their own day, and the figures only push it
   // down the screen.
@@ -40,6 +40,8 @@ const OperationsDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const userId = user?.id;
+  const canReview = hasPermission('deliverables:review');
   useEffect(() => {
     let active = true;
 
@@ -47,7 +49,7 @@ const OperationsDashboardPage: React.FC = () => {
       try {
         const [summaryData, actionItems] = await Promise.all([
           operationsService.getSummary(),
-          actionService.getActionItems(),
+          actionService.getActionItems({ id: userId, canReview }),
         ]);
 
         if (!active) return;
@@ -65,7 +67,9 @@ const OperationsDashboardPage: React.FC = () => {
     return () => {
       active = false;
     };
-  }, []);
+    // t is stable; reloading on a language change is not wanted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, canReview]);
 
   const highPriorityActions = actions.filter((item) => item.priority === 'high');
 
