@@ -209,7 +209,10 @@ $url = Wait-Until {
 Write-Host $url
 
 Step '5. .env.production'
-$lines = Get-Content $envFile | ForEach-Object {
+# Read as UTF-8, the encoding it is written in below. Windows PowerShell 5.1 reads a file without a BOM as
+# the ANSI code page, so every run turned each non-ASCII character of the comments into two or three, and the
+# watchdog's repeated runs grew five comment lines to 1.6 GB each (2026-11-25) until compose hung reading it.
+$lines = Get-Content -Encoding UTF8 $envFile | ForEach-Object {
   if ($_ -match '^APP_BASE_URL=') { "APP_BASE_URL=$url" }
   elseif ($_ -match '^CORS_ORIGINS=') { "CORS_ORIGINS=http://localhost:3101,$url" }
   else { $_ }

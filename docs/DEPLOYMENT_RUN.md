@@ -463,3 +463,18 @@ found at the worst possible moment.
   while the backup container writes gzipped plain SQL. Both restore paths are
   correct for their own format; step 9 has the one that matches the container.
 - The `monitoring` and `cache` profiles were not exercised on this run.
+
+## 2026-11-25: `.env.production` grew to 8.2 GB
+
+`docker compose build` and `up` hung with no output while `docker build` worked. Every compose command
+reads `.env.production`, which had grown to 8.2 GB: five comment lines of 1.6 GB each.
+`scripts/start-public.ps1` rewrites the file when the tunnel address changes. It read the file with
+`Get-Content`, which Windows PowerShell 5.1 decodes as the ANSI code page, and wrote it back as UTF-8.
+So every run turned each non-ASCII character in the comments (a dash, an arrow) into two or three. The
+watchdog runs the script repeatedly, and the growth compounded.
+
+- Fix: the script reads with `-Encoding UTF8`, the encoding it writes.
+- Repair: the damaged file was renamed to `.env.production.broken-20261125`. The five comment lines were
+  restored from `.env.production.example`, and every setting line was checked byte for byte against the
+  original (identical). The file is 3.6 KB again.
+- Check after a tunnel restart: `ls -l .env.production` should stay a few KB.
