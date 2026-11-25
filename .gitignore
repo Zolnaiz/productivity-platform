@@ -193,3 +193,6 @@ docs/diploma/latex/**/*.aux
 docs/diploma/latex/main.*
 !docs/diploma/latex/main.tex
 docs/diploma/latex/*.txt
+
+# Damaged copies of the production env file kept during a repair (they hold secrets).
+.env.production.broken-*
