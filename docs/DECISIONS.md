@@ -8,6 +8,27 @@ Newest first.
 
 ---
 
+## 2026-11-25 — Workload is counted in hours against a week, and it warns rather than blocks
+
+**Decision.** A person's load is the remaining hours (estimate less logged, 4 h for an unestimated task) of their
+open work that is late, due within 7 days, or started without a date, divided by a 40-hour week. Before work is
+assigned, `GET /workload/preview` returns each candidate's load with the new task added, quietest first, and
+three warnings: over a week, already 3 or more unfinished tasks, late work. The web shows them under the
+assignee field; a warned choice needs a second click ("Assign anyway"). The rule is in
+`backend/src/operations/workload.ts`; the browser has a mirror only for the demo workspace.
+
+**Why.** The owner asked for a check against giving one person too much, or more while earlier work is
+unfinished. The progress board counted tasks, and three one-hour tasks are not three two-day ones. An
+unestimated task counted as nothing would make never estimating the way to look free.
+
+**Consequences.** Seeing everyone's load (`workload:read`) is a manager's permission: staff see their own
+tasks, not a ranking of colleagues. Capacity is 40 hours for everybody until calendars and leave exist (M3).
+
+**Rules out.** Refusing an assignment on load alone, until the approval matrix (M1) can say who may override.
+Counting the backlog or finished work as load.
+
+---
+
 ## 2026-11-25 — Every file explains itself; code nothing uses is deleted, not kept
 
 **Decision.** Every source and test file in `backend/src`, `backend/scripts`, `admin-web/src`, `admin-web/e2e`,

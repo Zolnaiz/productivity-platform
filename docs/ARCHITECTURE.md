@@ -123,6 +123,7 @@ main.dart ─► app_router.dart ─► screens/*_screen.dart ─► providers/*
 | Month close | `operations/report-archive.service.ts`, `organization-clock.ts` | On the close day the previous month's report is frozen; later edits cannot change a reported month. |
 | Floor-plan merge | `operations/layout-merge.ts` | Saving the plan keeps what the floor wrote meanwhile: later dates win, closed tags stay closed, unseen new tags are kept. |
 | Idempotency | `shared/idempotency/` | (user, key) is unique; the first answer is stored and replayed; a key reused for another request is refused. |
+| Workload (M12) | `operations/workload.ts` (+ web mirror `components/workload/workload.ts`) | Remaining hours of open work due within 7 days against a 40-hour week; before assigning, each candidate's load with the task added and warnings (over a week, 3+ unfinished, late work). Advises, never blocks. |
 | SUS (K7) | `operations/sus.ts` | Odd items score answer − 1, even items 5 − answer, sum × 2.5; totals only, and only from three respondents. |
 
 ## 6. Tests

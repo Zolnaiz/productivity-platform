@@ -148,6 +148,9 @@ const manager = [
   // Checking that a finished 5S fix was done properly, before the area is
   // audited again.
   'fixes:signoff',
+  // How loaded each person is before giving them more (M12). Whoever assigns work needs to see it; the
+  // people themselves see their own tasks, not a ranking of colleagues.
+  'workload:read',
 ];
 
 const admin = [

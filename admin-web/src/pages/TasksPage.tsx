@@ -2,6 +2,8 @@
  * /tasks - the task board: filter, create, assign, move through statuses; shows where each task came from.
  */
 import React, { useEffect, useMemo, useState } from 'react';
+import AssigneeLoad from '../components/workload/AssigneeLoad';
+import { LoadWarning } from '../components/workload/workload';
 import { Check, Columns3, List, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -82,6 +84,9 @@ const TasksPage: React.FC = () => {
   const [pendingDelete, setPendingDelete] = useState<WorkTask | null>(null);
   const [tasks, setTasks] = useState<WorkTask[]>([]);
   const [members, setMembers] = useState<TeamUser[]>([]);
+  // Workload of the person chosen in the new-task form (M12), and whether the manager has seen it.
+  const [loadWarnings, setLoadWarnings] = useState<LoadWarning[]>([]);
+  const [loadAcknowledged, setLoadAcknowledged] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   // Somebody who is given work opens on theirs; somebody who gives it out,
   // on everybody's.
@@ -247,6 +252,12 @@ const TasksPage: React.FC = () => {
 
   const handleCreate = (event: React.FormEvent) => {
     event.preventDefault();
+    // A warned assignment takes a second click: the warning is advice, the manager decides.
+    if (draft.assigneeId && loadWarnings.length && !loadAcknowledged) {
+      setLoadAcknowledged(true);
+      return;
+    }
+    setLoadAcknowledged(false);
     const fields = draft;
     setDraft({ ...emptyDraft, projectId: projectFilter });
     setCreateOpen(false);
@@ -431,7 +442,10 @@ const TasksPage: React.FC = () => {
             <Select
               label={t('tasks.assignee')}
               value={draft.assigneeId}
-              onChange={(event) => setDraft((current) => ({ ...current, assigneeId: event.target.value }))}
+              onChange={(event) => {
+                setLoadAcknowledged(false);
+                setDraft((current) => ({ ...current, assigneeId: event.target.value }));
+              }}
             >
               <option value="">{t('tasks.nobodyYet')}</option>
               {members.map((member) => (
@@ -478,11 +492,27 @@ const TasksPage: React.FC = () => {
             value={draft.estimatedHours}
             onChange={(event) => setDraft((current) => ({ ...current, estimatedHours: event.target.value }))}
           />
+          {canAssign && (
+            <AssigneeLoad
+              members={members}
+              nameOf={memberName}
+              selectedId={draft.assigneeId}
+              dueDate={draft.dueDate}
+              estimatedHours={Number(draft.estimatedHours || 0)}
+              onPick={(userId) => {
+                setLoadAcknowledged(false);
+                setDraft((current) => ({ ...current, assigneeId: userId }));
+              }}
+              onWarnings={setLoadWarnings}
+            />
+          )}
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" type="button" onClick={() => setCreateOpen(false)}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit">{t('tasks.addTask')}</Button>
+            <Button type="submit" variant={loadAcknowledged ? 'danger' : 'primary'}>
+              {loadAcknowledged ? t('tasks.assignAnyway') : t('tasks.addTask')}
+            </Button>
           </div>
         </form>
       </Modal>

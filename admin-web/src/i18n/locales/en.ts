@@ -272,6 +272,7 @@ const en = {
     deleteMessage: '"{{title}}" is taken off the board and out of the reports. Do it for a task raised by mistake.',
     deleteFailed: 'The task could not be deleted. Try again.',
     addTask: 'Add task',
+    assignAnyway: 'Assign anyway',
     taskTitle: 'Task title',
     dueDate: 'Due date',
     estimatedHours: 'Estimated hours',
@@ -1324,6 +1325,19 @@ const en = {
       role_invalid: 'Unknown role',
       role_not_allowed: 'You cannot grant this role',
       email_taken: 'Already registered',
+    },
+  },
+  workload: {
+    title: 'Load this week, with this task',
+    after: '{{percent}}% · {{open}} open',
+    hasWarnings: 'Check before assigning',
+    showAll: 'Show all {{count}}',
+    showFewer: 'Show fewer',
+    warningTitle: 'Before giving this to {{name}}:',
+    warnings: {
+      over_capacity: 'It takes them to {{percent}}% of a week ({{hours}} h due within 7 days).',
+      many_open: 'They already have {{open}} unfinished tasks.',
+      has_overdue: 'They have {{overdue}} late task(s) already.',
     },
   },
   usability: {

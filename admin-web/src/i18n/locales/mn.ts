@@ -272,6 +272,7 @@ const mn: Translations<typeof en> = {
     deleteMessage: '"{{title}}" самбар болон тайлангаас хасагдана. Алдаатай үүсгэсэн ажилд л ашиглана уу.',
     deleteFailed: 'Ажлыг устгаж чадсангүй. Дахин оролдоно уу.',
     addTask: 'Ажил нэмэх',
+    assignAnyway: 'Тэгсэн ч оноох',
     taskTitle: 'Ажлын нэр',
     dueDate: 'Дуусах огноо',
     estimatedHours: 'Төлөвлөсөн цаг',
@@ -1319,6 +1320,19 @@ const mn: Translations<typeof en> = {
       role_invalid: 'Эрх буруу',
       role_not_allowed: 'Энэ эрхийг та олгох боломжгүй',
       email_taken: 'Аль хэдийн бүртгэлтэй',
+    },
+  },
+  workload: {
+    title: 'Энэ ажлыг нэмбэл 7 хоногийн ачаалал',
+    after: '{{percent}}% · {{open}} нээлттэй',
+    hasWarnings: 'Оноохоос өмнө шалгаарай',
+    showAll: 'Бүгдийг харах ({{count}})',
+    showFewer: 'Цөөнийг харах',
+    warningTitle: '{{name}}-д өгөхөөс өмнө:',
+    warnings: {
+      over_capacity: 'Ачаалал нь 7 хоногийн {{percent}}% болно (7 хоногт дуусах {{hours}} цаг).',
+      many_open: 'Аль хэдийн {{open}} дуусаагүй ажилтай.',
+      has_overdue: '{{overdue}} хоцорсон ажилтай.',
     },
   },
   usability: {

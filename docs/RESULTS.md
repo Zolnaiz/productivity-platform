@@ -1,20 +1,20 @@
 # Тестийн болон хэмжилтийн үр дүн
 
-> `npm run results` (backend)-ээр автоматаар үүсгэв. Гараар бүү засаарай. Commit `67057e0`, 2026-11-25T08:40:04.062Z.
+> `npm run results` (backend)-ээр автоматаар үүсгэв. Гараар бүү засаарай. Commit `a9553c7`, 2026-11-25T09:55:53.358Z.
 
 ## 1. Suite бүрийн нийлбэр
 
 | Suite | Команд | Passed | Failed | Skipped | Тайлбар |
 |---|---|---:|---:|---:|---|
-| Backend unit + HTTP (jest) | `npx jest` | 1105 | 0 | 0 |  |
-| Use-case acceptance (jest + supertest + PostgreSQL) | `npx jest --config ./test/jest-uc.json --runInBand` | 58 | 0 | 0 |  |
-| Web (vitest) | `cd admin-web && npx vitest run` | 1133 | 0 | 0 |  |
+| Backend unit + HTTP (jest) | `npx jest` | 1119 | 0 | 0 |  |
+| Use-case acceptance (jest + supertest + PostgreSQL) | `npx jest --config ./test/jest-uc.json --runInBand` | 60 | 0 | 0 |  |
+| Web (vitest) | `cd admin-web && npx vitest run` | 1140 | 0 | 0 |  |
 | Mobile (flutter test) | `cd mobile-flutter && flutter test` | 143 | 0 | 6 |  |
 | Browser e2e (Playwright, demo + live API) | `cd admin-web && npx playwright test` | 40 | 0 | 0 |  |
 
-Нийт ажилласан тест: **2479 passed**, **0 failed**.
+Нийт ажилласан тест: **2502 passed**, **0 failed**.
 
-Lint: backend — clean, web — clean.
+Lint: backend — clean, web — errors.
 
 ## 2. Use case-ийн хүлээн авах тест (UC → тест → үр дүн)
 
@@ -114,10 +114,10 @@ Lint: backend — clean, web — clean.
 |---|---|---|
 | Үйл ажиллагааны тохирох байдал | 22 UC-ийн хүлээн авах тест; K1–K6-ийн хүснэгтэн unit тест | 22/22 UC pass |
 | Гүйцэтгэлийн үр ашиг | 6 endpoint-ийн p50/p95, 10k бүртгэл дээрх алгоритм | хамгийн удаан p95 = 196.85 мс (NFR-06 босго 2000 мс) |
-| Аюулгүй байдал | Эрхийн матриц (доор); нууц үг сэргээлтийн халдлагын тохиолдол | 17/17 татгалзах тест pass; сэргээлт: 13/13 pass |
+| Аюулгүй байдал | Эрхийн матриц (доор); нууц үг сэргээлтийн халдлагын тохиолдол | 18/18 татгалзах тест pass; сэргээлт: 13/13 pass |
 | Ашиглахад хялбар байдал | SUS асуулга бодит хэрэглэгч шаарддаг | SUS асуулга системд бэлэн (вэб, гар утас; `/sus`), оноо хараахан хэмжээгүй — пилотын төгсгөлд нэг үе нээж авна; хүртээмжийн автомат шалгалт (axe, Flutter accessibility) suite-д багтсан |
 | Найдвартай байдал | Офлайн outbox, дахин илгээлт; жинхэнэ сервертэй TCP холболт тасалдах | 17/17 pass; тасалдлын тест (`network_drop_live_test.dart`) CI-ийн Live API ажилд; бодит утас, Wi-Fi дээр хэмжээгүй |
-| Засвар үйлчилгээ | Тестийн тоо, lint | 2479 тест; lint backend clean, web clean |
+| Засвар үйлчилгээ | Тестийн тоо, lint | 2502 тест; lint backend clean, web errors |
 | Нийцтэй байдал | Web (Chromium e2e), Android/iOS Flutter client, нэг API | e2e 40 passed, 0 failed; бусад хөтөч, бодит төхөөрөмж дээр хэмжээгүй |
 
 ### Эрхийн матриц (UC тестийн татгалзсан урсгалаас)
@@ -141,6 +141,7 @@ Lint: backend — clean, web — clean.
 | UC-20 Аудитын шалгах хуудас боловсруулах (build an audit checklist) › refused: an employee cannot create a checklist | refused as expected |
 | UC-21 Үйл ажиллагааны түүх шалгах (inspect the activity history) › refused: a manager or employee cannot read it | refused as expected |
 | K7 Хэрэглэхэд хялбар байдлын асуулга (SUS questionnaire, the measure K7) › refused: an employee can answer but cannot open a round or read the totals | refused as expected |
+| M12 Ажлын ачаалал (workload before assigning work) › refused: an employee cannot see a ranking of colleagues’ load | refused as expected |
 
 ### Нууц үг сэргээлтийн халдлагын тохиолдол
 

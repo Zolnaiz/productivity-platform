@@ -664,3 +664,40 @@ describe('K7 Хэрэглэхэд хялбар байдлын асуулга (SU
     expect((await team.employee.get('/sus/rounds')).status).toBe(403);
   });
 });
+
+/**
+ * Workload (PLAN_V2 M12): not one of the thesis's 22 use cases but part of assigning work (UC-09), checked
+ * here because the hours come from the database: estimates, logged hours and statuses as they are stored.
+ */
+describe('M12 Ажлын ачаалал (workload before assigning work)', () => {
+  it('main: the manager sees the employee over a week of work, and a warning before giving them more', async () => {
+    for (const hours of [20, 24]) {
+      const created = await team.manager.post('/tasks', {
+        title: `Workload ${hours}h`, assigneeId: team.employeeId, dueDate: today(), estimatedHours: hours, status: 'todo',
+      });
+      expect(created.status).toBe(201);
+    }
+
+    const board = data(await team.manager.get('/workload'));
+    const employee = board.people.find((person: any) => person.userId === team.employeeId);
+    expect(employee.hours).toBeGreaterThanOrEqual(44);
+    expect(employee.level).toBe('over');
+
+    const preview = await team.manager.get(
+      `/workload/preview?assigneeIds=${team.employeeId},${team.managerId}&dueDate=${today()}&estimatedHours=8`,
+    );
+    expect(preview.status).toBe(200);
+    const candidates = data(preview).candidates;
+    expect(candidates.map((c: any) => c.userId).sort()).toEqual([team.employeeId, team.managerId].sort());
+    const mine = candidates.find((c: any) => c.userId === team.employeeId);
+    expect(mine.after.hours).toBeCloseTo(employee.hours + 8, 1);
+    expect(mine.warnings).toContain('over_capacity');
+    // Quietest first: the manager carries less than the employee.
+    expect(candidates[0].userId).toBe(team.managerId);
+  });
+
+  it('refused: an employee cannot see a ranking of colleagues’ load', async () => {
+    expect((await team.employee.get('/workload')).status).toBe(403);
+    expect((await team.employee.get('/workload/preview')).status).toBe(403);
+  });
+});
