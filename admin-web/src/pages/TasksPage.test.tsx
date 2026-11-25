@@ -40,6 +40,19 @@ vi.mock('../services/people.service', () => ({
   peopleService: { getMembers: mocks.getMembers },
 }));
 
+// The workload panel and the documents section have their own tests; here they only need not reach a network.
+vi.mock('../services/workload.service', () => ({
+  workloadService: { preview: vi.fn().mockResolvedValue([]) },
+}));
+vi.mock('../services/deliverables.service', () => ({
+  deliverablesService: {
+    list: vi.fn().mockResolvedValue({
+      review: { status: 'none', note: null, reviewedBy: null, reviewedAt: null, submittedAt: null },
+      files: [],
+    }),
+  },
+}));
+
 /** Opens a task's details, where its status, owner and delete are. */
 const openDetails = async (title: string) => fireEvent.click(await screen.findByRole('button', { name: title }));
 

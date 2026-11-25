@@ -3,6 +3,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import AssigneeLoad from '../components/workload/AssigneeLoad';
+import TaskDeliverables from '../components/deliverables/TaskDeliverables';
 import { LoadWarning } from '../components/workload/workload';
 import { Check, Columns3, List, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -728,6 +729,20 @@ const TasksPage: React.FC = () => {
                 </dd>
               </div>
             </dl>
+            <TaskDeliverables
+              key={openTask.id}
+              taskId={openTask.id}
+              assigneeId={openTask.assigneeId}
+              currentUserId={user?.id}
+              canReview={hasPermission('deliverables:review')}
+              canManage={canAssign}
+              // Approval finishes the task on the server; the board shows it at once.
+              onReviewed={() =>
+                setTasks((current) =>
+                  current.map((item) => (item.id === openTask.id ? { ...item, status: 'done' } : item)),
+                )
+              }
+            />
             {canDelete && (
               <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
                 <button

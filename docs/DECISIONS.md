@@ -8,6 +8,27 @@ Newest first.
 
 ---
 
+## 2026-11-25 — A task's documents are versions under review; approval locks them and finishes the task
+
+**Decision.** A task's work documents are attachments owned by the task (`work_task`, kind `deliverable`),
+reached only through `/tasks/:id/deliverables`. Uploads never replace: each is a version. The review is a state
+on the task: none → submitted → approved, or returned with a reason (3+ characters) and submitted again. While
+submitted and after approval the files cannot change. Nobody approves or returns their own work. Approval sets
+the task done through the ordinary task update. PDF, images and Office documents are accepted, by their bytes;
+macro-enabled Office files are refused.
+
+**Why.** The owner asked that the documents of physical or office work be uploaded, that a lead can download
+and check them, and that the lead's confirmation matters. A reviewer must approve exactly what they read, so the
+files freeze during review. A replaced file would lose what was reviewed before, so versions are kept.
+
+**Consequences.** The general `/attachments` routes refuse `work_task` files, so the lock cannot be bypassed.
+The migration check's parser now reads files with several entities (it had filed `sus_responses`' columns under
+`sus_rounds` and failed).
+
+**Rules out.** Self-approval. Editing a submitted or approved document. Overwriting a version.
+
+---
+
 ## 2026-11-25 — Workload is counted in hours against a week, and it warns rather than blocks
 
 **Decision.** A person's load is the remaining hours (estimate less logged, 4 h for an unestimated task) of their

@@ -701,3 +701,76 @@ describe('M12 Ажлын ачаалал (workload before assigning work)', () =>
     expect((await team.employee.get('/workload/preview')).status).toBe(403);
   });
 });
+
+/**
+ * Work documents and their review (PLAN_V2 M2): part of UC-01/UC-09 (completing assigned work and tracking
+ * it), checked on PostgreSQL because the lock and the review state are stored there and the files go through
+ * the real attachment store.
+ */
+describe('M2 Ажлын баримт ба батлах (task documents: submit, return, approve)', () => {
+  const pdf = (text: string) => Buffer.from(`%PDF-1.7\n${text}\n%%EOF\n`);
+
+  it('main: the employee submits, the manager returns with a reason, a new version is approved and the task is done', async () => {
+    const task = data(
+      await team.manager.post('/tasks', { title: 'Wiring diagram', assigneeId: team.employeeId, dueDate: today() }),
+    );
+    const path = `/tasks/${task.id}/deliverables`;
+
+    expect((await team.employee.upload(path, pdf('v1'), 'diagram.pdf')).status).toBe(201);
+    const managerInboxBefore = data<any[]>(await team.manager.get('/notifications')).length;
+    const submitted = await team.employee.post(`${path}/submit`);
+    expect(submitted.status).toBe(201);
+    expect(data(submitted).review.status).toBe('submitted');
+    expect(data<any[]>(await team.manager.get('/notifications')).length).toBeGreaterThan(managerInboxBefore);
+
+    // Frozen while it is being read.
+    expect((await team.employee.upload(path, pdf('sneaky'), 'late.pdf')).status).toBe(409);
+
+    const returned = await team.manager.post(`${path}/return`, { note: 'Label the breakers' });
+    expect(returned.status).toBe(201);
+    expect(data(returned).review).toMatchObject({ status: 'returned', note: 'Label the breakers' });
+
+    expect((await team.employee.upload(path, pdf('v2'), 'diagram-v2.pdf')).status).toBe(201);
+    const listed = data(await team.employee.get(path));
+    expect(listed.files.map((f: any) => [f.fileName, f.version])).toEqual([
+      ['diagram-v2.pdf', 2],
+      ['diagram.pdf', 1],
+    ]);
+    // Both versions can be downloaded.
+    expect((await team.manager.get(`/attachments/${listed.files[1].id}/file`)).status).toBe(200);
+
+    expect((await team.employee.post(`${path}/submit`)).status).toBe(201);
+    const approved = await team.manager.post(`${path}/approve`);
+    expect(approved.status).toBe(201);
+    expect(data(approved).review.status).toBe('approved');
+    const tasks = data<any[]>(await team.manager.get('/tasks'));
+    expect(tasks.find((t) => t.id === task.id).status).toBe('done');
+
+    // Approved documents are locked for everybody.
+    expect((await team.manager.upload(path, pdf('v3'), 'v3.pdf')).status).toBe(409);
+    expect((await team.manager.del(`${path}/${listed.files[0].id}`)).status).toBe(409);
+  });
+
+  it('refused: no review of one’s own work, no review by an employee, no return without a reason, no back door', async () => {
+    const own = data(await team.manager.post('/tasks', { title: 'Own report', assigneeId: team.managerId }));
+    await team.manager.upload(`/tasks/${own.id}/deliverables`, pdf('mine'), 'mine.pdf');
+    await team.manager.post(`/tasks/${own.id}/deliverables/submit`);
+    expect((await team.manager.post(`/tasks/${own.id}/deliverables/approve`)).status).toBe(403);
+
+    const theirs = data(await team.manager.post('/tasks', { title: 'Shelf photos', assigneeId: team.employeeId }));
+    const path = `/tasks/${theirs.id}/deliverables`;
+    expect((await team.employee.post(`${path}/submit`)).status).toBe(409); // nothing to review yet
+    await team.employee.upload(path, pdf('photos'), 'photos.pdf');
+    await team.employee.post(`${path}/submit`);
+    expect((await team.employee.post(`${path}/approve`)).status).toBe(403);
+    expect((await team.manager.post(`${path}/return`, { note: '' })).status).toBe(400);
+
+    // The general attachments route cannot add to or remove from a task's documents.
+    const backDoor = await team.employee.upload('/attachments', pdf('x'), 'x.pdf', {
+      ownerType: 'work_task', ownerId: theirs.id, kind: 'deliverable',
+    });
+    expect(backDoor.status).toBe(403);
+    const file = data(await team.employee.get(path)).files[0];
+    expect((await team.manager.del(`/attachments/${file.id}`)).status).toBe(403);
+  });
+});

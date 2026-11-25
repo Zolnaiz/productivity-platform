@@ -32,6 +32,8 @@ import { NotesController } from './notes.controller';
 import { NotesService } from './notes.service';
 import { AccountController } from './account.controller';
 import { GembaService } from './gemba.service';
+import { DeliverablesController } from './deliverables.controller';
+import { DeliverablesService } from './deliverables.service';
 import { WorkloadController } from './workload.controller';
 import { WorkloadService } from './workload.service';
 import { MonthlySummaryService } from './monthly-summary.service';
@@ -106,7 +108,7 @@ import { NotificationsService } from './notifications.service';
       Notification,
     ]),
   ],
-  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController, IdeasController, CheckinsController, SusController, GembaController, AccountController, FeedbackController, NotesController, PersonalController, WorkloadController],
+  controllers: [OperationsController, AttachmentsController, NotificationsController, ReportsController, IdeasController, CheckinsController, SusController, GembaController, AccountController, FeedbackController, NotesController, PersonalController, WorkloadController, DeliverablesController],
   providers: [
     OperationsService,
     IdeasService,
@@ -115,6 +117,7 @@ import { NotificationsService } from './notifications.service';
     MonthlySummaryService,
     GembaService,
     WorkloadService,
+    DeliverablesService,
     FeedbackService,
     NotesService,
     PersonalService,

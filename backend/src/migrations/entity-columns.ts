@@ -89,7 +89,13 @@ const entityDirectories = [
 export const mappedColumns = (): MappedColumn[] => {
   const sources = entityDirectories.flatMap((dir) => readAll(dir, /\.entity\.ts$/));
 
-  return sources.flatMap((source) => {
+  // A file may declare more than one entity (sus.entity.ts has two), so each `@Entity` starts its own slice;
+  // reading the whole file as one entity filed the second table's columns under the first.
+  const entities = sources.flatMap((source) =>
+    source.split(/(?=@Entity\()/).filter((slice) => slice.startsWith('@Entity(')),
+  );
+
+  return entities.flatMap((source) => {
     const table = source.match(/@Entity\('([a-z_]+)'\)/)?.[1];
 
     if (!table || !liveTables.includes(table)) return [];

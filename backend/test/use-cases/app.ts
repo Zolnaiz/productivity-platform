@@ -52,6 +52,12 @@ export const clientFor = (app: INestApplication, token?: string) => {
     patch: (path: string, body?: object) => auth(request(server).patch(`/api${path}`)).send(body ?? {}),
     put: (path: string, body?: object) => auth(request(server).put(`/api${path}`)).send(body ?? {}),
     del: (path: string) => auth(request(server).delete(`/api${path}`)),
+    /** A multipart upload of one file as `file`, with optional text fields. */
+    upload: (path: string, bytes: Buffer, fileName: string, fields: Record<string, string> = {}) => {
+      const req = auth(request(server).post(`/api${path}`)).attach('file', bytes, fileName);
+      Object.entries(fields).forEach(([name, value]) => req.field(name, value));
+      return req;
+    },
   };
 };
 

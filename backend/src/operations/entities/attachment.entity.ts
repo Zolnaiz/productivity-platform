@@ -16,6 +16,8 @@ export enum AttachmentOwner {
   IMPROVEMENT = 'five_s_improvement',
   WORK_LOG = 'work_log',
   IDEA = 'idea',
+  /** A task's work documents (deliverables.ts): added and removed only through /tasks/:id/deliverables. */
+  WORK_TASK = 'work_task',
 }
 
 /**
@@ -30,6 +32,8 @@ export enum AttachmentKind {
   AFTER = 'after',
   EVIDENCE = 'evidence',
   STANDARD = 'standard',
+  /** A document or photograph a task produced, kept in versions and reviewed (deliverables.ts). */
+  DELIVERABLE = 'deliverable',
 }
 
 @Entity('attachments')

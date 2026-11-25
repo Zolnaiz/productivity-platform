@@ -343,8 +343,8 @@ priority order, and how to keep it maintained - is in
 
 As of 2026-11-25. The numbers below come from [docs/RESULTS.md](docs/RESULTS.md), which `npm run results` (in `backend`) generates from each suite's own output:
 
-- Backend: **1,119 unit and HTTP tests passing**, plus **55 use-case acceptance tests** (UC-01 … UC-22, each with a main flow and a refused or alternative flow) and **3 for the SUS questionnaire (K7)** and **2 for workload (M12)** on a real PostgreSQL 16 (`npm run test:uc`). Lint and build are clean. Migrations run up, down and up again against PostgreSQL 16, and `npm run migration:check` passes.
-- Frontend: **1,140 tests passing**. Lint and production build pass.
+- Backend: **1,134 unit and HTTP tests passing**, plus **55 use-case acceptance tests** (UC-01 … UC-22, each with a main flow and a refused or alternative flow) and **3 for the SUS questionnaire (K7)** **2 for workload (M12)** and **2 for task documents (M2)** on a real PostgreSQL 16 (`npm run test:uc`). Lint and build are clean. Migrations run up, down and up again against PostgreSQL 16, and `npm run migration:check` passes.
+- Frontend: **1,145 tests passing**. Lint and production build pass.
 - Browser: **40 Playwright checks passing**: 18 in demo mode and 22 against a live API.
 - Mobile: **143 tests passing**, with six live-server tests skipped here; CI's "Live API" job runs them against a real server, including four that cut the connection before a request and as its answer comes back, and count what the server saved. `flutter analyze` is clean.
 - Performance: on 50 users and 10,000 records, every measured endpoint has p95 under 200 ms (NFR-06 allows 2 s). Before a fix in this branch, the monthly report's p95 was 1.75 s. Both measurements are in RESULTS.md.

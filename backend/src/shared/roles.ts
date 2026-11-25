@@ -118,6 +118,8 @@ const user = [
   'ideas:create',
   // One's own week: what got done, what is next, what is in the way.
   'checkins:write',
+  // Adding documents to one's own task and sending them for review (deliverables.ts checks it is theirs).
+  'deliverables:create',
 ];
 
 const manager = [
@@ -151,6 +153,8 @@ const manager = [
   // How loaded each person is before giving them more (M12). Whoever assigns work needs to see it; the
   // people themselves see their own tasks, not a ranking of colleagues.
   'workload:read',
+  // Approving or returning another person's work documents; never one's own (deliverables.ts).
+  'deliverables:review',
 ];
 
 const admin = [
