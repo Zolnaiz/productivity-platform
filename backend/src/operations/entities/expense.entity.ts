@@ -1,3 +1,6 @@
+/**
+ * An expense claim with category and approval status.
+ */
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
 import { numericColumn } from '../../shared/entities/numeric-column';

@@ -1,3 +1,4 @@
+/** Unit test for five-s-guidelines.ts: the 5S register. */
 import { OperationsService } from './operations.service';
 
 const createRepository = () => ({

@@ -1,3 +1,5 @@
+# Development PostgreSQL only, for `npm run db:up` / `db:down` / `db:logs` in backend/.
+
 services:
   postgres:
     image: postgres:15-alpine

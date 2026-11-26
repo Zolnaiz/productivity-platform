@@ -1,3 +1,4 @@
+/** Unit test for fiveSGuideline.service.ts: the registers a 5S programme keeps. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiMocks = vi.hoisted(() => ({

@@ -1,3 +1,6 @@
+/**
+ * A questionnaire template (survey or self-assessment) with its questions.
+ */
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
 

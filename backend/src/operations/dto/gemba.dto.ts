@@ -1,3 +1,6 @@
+/**
+ * Body of a gemba walk with its observations and follow-ups.
+ */
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsOptional, IsString, Matches, MaxLength, MinLength, ValidateNested } from 'class-validator';
 

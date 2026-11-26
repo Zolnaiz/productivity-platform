@@ -1,3 +1,4 @@
+/** Unit test for zoneLink.ts: where a zone label points. */
 import { describe, expect, it } from 'vitest';
 import { qrPath, zonePath, zoneUrl } from './zoneLink';
 

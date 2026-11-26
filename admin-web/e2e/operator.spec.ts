@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { everyMenuPage } from './support/menu';
+import { apiHeaders, firstZone } from './support/session';
 
 /**
  * The application as somebody on the floor sees it.
@@ -71,13 +72,10 @@ test('an operator writes up their day and walks an area’s checklist', async ({
   expect((await logged).status()).toBe(201);
 
   // An area checked, from its page, as the QR code on its label opens it.
-  const { planId, zoneId } = await page.evaluate(async (api) => {
-    const res = await fetch(`${api}/five-s-layouts`, {
-      headers: { authorization: `Bearer ${localStorage.getItem('token')}` },
-    });
-    const plan = (await res.json()).data[0];
-    return { planId: plan.id as string, zoneId: plan.zones[0].id as string };
-  }, process.env.E2E_API_URL || 'http://localhost:3000/api');
+  const { planId, zoneId } = await firstZone(
+    page,
+    await apiHeaders(page, process.env.E2E_OPERATOR_EMAIL || 'operator@example.com', process.env.E2E_PASSWORD || 'Password123'),
+  );
   await page.goto(`/zone/${planId}/${zoneId}`);
   await page.getByTestId('zone-audit').click();
   await expect(page.getByTestId('zone-audit-submit')).toBeVisible();

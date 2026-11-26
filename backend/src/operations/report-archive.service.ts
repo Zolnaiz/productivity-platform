@@ -1,3 +1,7 @@
+/**
+ * Month close: freezes a month's report (headlineFigures, K1-K6, weekly measurements, summary) so later edits
+ * cannot change what was reported, and lists closed months.
+ */
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
@@ -8,6 +12,7 @@ import { Organization } from '../organizations/entities/organization.entity';
 import { OperationsService } from './operations.service';
 import { buildMonthlyReport, MonthlyReport, MonthRecords, selectMonthRecords } from './monthly-report';
 import { combineMonths, monthsBetween, PeriodMonth } from './period-report';
+import { buildWeeklyMeasurements, isCalendarDay, MAX_WEEKS, weeksBetween } from './weekly-measurements';
 import { dayIn, organizationTimeZone } from './task-completion';
 import { CLOSE_AFTER_DAY, clockFrom, OrganizationClock } from './organization-clock';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
@@ -104,6 +109,22 @@ export class ReportArchiveService {
    * the year agrees with every monthly report that was signed off. The live
    * tables are read once for all the open months, not once per month.
    */
+  /**
+   * The pilot's weekly table: K1-K6 for every Monday-to-Sunday week from
+   * `from` to `to` (YYYY-MM-DD), on the organization's calendar, as the reader
+   * may see them (weekly-measurements.ts). Always counted from the live
+   * records: unlike a month, a week is never closed.
+   */
+  async weeklyMeasurements(user: CurrentUser, from: string, to: string) {
+    if (!isCalendarDay(from) || !isCalendarDay(to) || from > to || weeksBetween(from, to).length > MAX_WEEKS) {
+      throw apiError(ErrorCode.ValidationFailed, 'from, to');
+    }
+    const { timeZone } = await this.clockOf(user?.organizationId);
+    const records = await this.operations.organizationRecords(user);
+
+    return buildWeeklyMeasurements(records, from, to, { id: user?.id, ownOnly: user?.role === 'user' }, timeZone);
+  }
+
   async periodReport(user: CurrentUser, from: string, to: string) {
     const periods = monthsBetween(from, to);
     if (!periods.length) {

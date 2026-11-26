@@ -1,3 +1,4 @@
+/** Unit test for history.ts: the organization’s history. */
 import { describe, expect, it } from 'vitest';
 import { historyEvents } from './history';
 

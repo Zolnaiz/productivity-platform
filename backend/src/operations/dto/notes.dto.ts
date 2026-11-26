@@ -1,3 +1,6 @@
+/**
+ * Body of a new personal note.
+ */
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateNoteDto {

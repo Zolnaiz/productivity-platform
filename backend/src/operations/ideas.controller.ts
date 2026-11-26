@@ -1,3 +1,6 @@
+/**
+ * Improvement ideas (kaizen): submit, list, review (accept/reject).
+ */
 import { Body, Controller, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../shared/decorators/permissions.decorator';

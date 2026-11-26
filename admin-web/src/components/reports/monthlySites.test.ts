@@ -1,3 +1,4 @@
+/** Unit test for monthlySites.ts: how each building is doing. */
 import { describe, expect, it } from 'vitest';
 import { summariseSites } from './monthlySites';
 import { FiveSLayoutPlan } from '../../types/fiveS.types';

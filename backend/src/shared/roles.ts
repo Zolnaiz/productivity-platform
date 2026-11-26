@@ -82,6 +82,10 @@ const viewer = [
   'notes:own',
   // Their own focus sessions and the badges their own records earn.
   'personal:own',
+  // Saying how usable the system is (SUS, measure K7). Everybody who uses it
+  // is asked, the viewer included: an answer from only those who can change
+  // things would measure the wrong people.
+  'sus:answer',
 ];
 
 const user = [
@@ -114,6 +118,8 @@ const user = [
   'ideas:create',
   // One's own week: what got done, what is next, what is in the way.
   'checkins:write',
+  // Adding documents to one's own task and sending them for review (deliverables.ts checks it is theirs).
+  'deliverables:create',
 ];
 
 const manager = [
@@ -144,6 +150,11 @@ const manager = [
   // Checking that a finished 5S fix was done properly, before the area is
   // audited again.
   'fixes:signoff',
+  // How loaded each person is before giving them more (M12). Whoever assigns work needs to see it; the
+  // people themselves see their own tasks, not a ranking of colleagues.
+  'workload:read',
+  // Approving or returning another person's work documents; never one's own (deliverables.ts).
+  'deliverables:review',
 ];
 
 const admin = [
@@ -175,6 +186,9 @@ const admin = [
   'attachments:check',
   // Reading what members have reported about the product.
   'feedback:read',
+  // Opening and closing a round of the SUS questionnaire, and reading what it
+  // comes to - totals only, never one person's answers.
+  'sus:manage',
 ];
 
 const organizationAdmin = [...admin, 'organization:update', 'auditlog:read'];

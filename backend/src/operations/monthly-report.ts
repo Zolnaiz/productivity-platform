@@ -7,10 +7,9 @@ import { AssessmentResponse } from './entities/assessment-response.entity';
 import { ExpenseItem } from './entities/expense.entity';
 import { DailyGoal } from './entities/daily-goal.entity';
 import { projectProgressPercent, summarisePeople, sumRecordedHours } from './monthly-people';
-import { completionMonth, doneByEndOf, monthOf, organizationTimeZone, plannedMonth } from './task-completion';
+import { completionMonth, dayIn, doneByEndOf, monthOf, organizationTimeZone, plannedMonth } from './task-completion';
 import { WeeklyCheckin } from './entities/weekly-checkin.entity';
 import { lastDayOf, monthlyMeasurements } from './monthly-measurements';
-import { dayIn } from './task-completion';
 
 /**
  * One month of an organization's records, as the monthly report reads them.
@@ -57,6 +56,18 @@ export interface ReportMember {
 
 /** The roles asked to write a weekly check-in: those who do the work and those who run it. */
 const CHECKIN_ROLES = new Set(['user', 'manager']);
+
+/**
+ * Who K6 expects a weekly check-in from: the reader alone in an employee's
+ * view, the team's active workers and managers in a manager's. Undefined for a
+ * snapshot saved before members were recorded, which makes K6 "no data". One
+ * rule for the monthly report and the pilot's weekly table.
+ */
+export const expectedCheckinWriters = (members: ReportMember[] | undefined, viewer: ReportViewer) => {
+  if (!members) return undefined;
+  if (viewer.ownOnly) return viewer.id ? [viewer.id] : [];
+  return members.filter((member) => member.isActive !== false && CHECKIN_ROLES.has(member.role ?? '')).map((member) => member.id);
+};
 
 export interface OrganizationRecords {
   projects: Project[];
@@ -229,15 +240,7 @@ export const buildMonthlyReport = (
         workLogs: monthlyWorkLogs,
         lateCandidates: records.lateCandidates?.filter(mine((task) => task.assigneeId)),
         weeklyCheckins: records.weeklyCheckins?.filter(mine((checkin) => checkin.userId)),
-        checkinPeople: records.members
-          ? ownOnly
-            ? viewer.id
-              ? [viewer.id]
-              : []
-            : records.members
-                .filter((member) => member.isActive !== false && CHECKIN_ROLES.has(member.role ?? ''))
-                .map((member) => member.id)
-          : undefined,
+        checkinPeople: expectedCheckinWriters(records.members, viewer),
       },
       month,
       reportingTimeZone,

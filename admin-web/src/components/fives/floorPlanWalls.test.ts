@@ -1,3 +1,4 @@
+/** Unit test for floorPlanWalls.ts: meeting an existing corner. */
 import { describe, expect, it } from 'vitest';
 import {
   Corner,

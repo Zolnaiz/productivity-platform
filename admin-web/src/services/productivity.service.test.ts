@@ -1,4 +1,6 @@
+/** Unit test for productivity.service.ts: productivityService demo storage. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { signInWithToken } from '../test/session';
 
 const apiMocks = vi.hoisted(() => ({
   get: vi.fn(),
@@ -29,7 +31,7 @@ describe('productivityService demo storage', () => {
   });
 
   it('keeps notes on the server once signed in, moving this browser’s own notes up once', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     localStorage.setItem('productivity-demo-notes', JSON.stringify([{ id: 'local-1', title: 'Written offline', content: 'keep me', tag: 'work', createdAt: '2026-10-01' }]));
     apiMocks.post.mockResolvedValue({ id: 'server-1' });
     apiMocks.get.mockResolvedValue([{ id: 'server-1', title: 'Written offline', content: 'keep me', tag: 'work', createdAt: '2026-10-01T03:00:00Z' }]);
@@ -44,7 +46,7 @@ describe('productivityService demo storage', () => {
   });
 
   it('reads focus sessions and badges from the server when signed in, and saves sessions there', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.get.mockImplementation(async (url: string) =>
       url === '/badges'
         ? [{ id: 'firstWorkLog', earned: false, current: 0, target: 1 }]
@@ -60,7 +62,7 @@ describe('productivityService demo storage', () => {
   });
 
   it('creates and deletes notes through the API when signed in', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.post.mockResolvedValue({ id: 'n9', title: 'New', content: 'x', tag: '', createdAt: '2026-10-22T00:00:00Z' });
     const { productivityService } = await import('./productivity.service');
 
@@ -95,7 +97,7 @@ describe('productivityService demo storage', () => {
   });
 
   it('uses backend daily goals when a real token succeeds', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.get.mockResolvedValueOnce([
       {
         id: 'server-goal',
@@ -114,7 +116,7 @@ describe('productivityService demo storage', () => {
   });
 
   it('passes a date filter to the backend daily goals endpoint', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.get.mockResolvedValueOnce([]);
     const { productivityService } = await import('./productivity.service');
 
@@ -124,7 +126,7 @@ describe('productivityService demo storage', () => {
   });
 
   it('strips client scope from real backend daily goal create payloads', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.post.mockResolvedValueOnce({
       id: 'server-goal',
       title: 'Server goal',
@@ -153,7 +155,7 @@ describe('productivityService demo storage', () => {
   });
 
   it('updates real backend daily goals through the API', async () => {
-    localStorage.setItem('token', 'real-token');
+    await signInWithToken();
     apiMocks.patch.mockResolvedValueOnce({
       id: 'server-goal',
       title: 'Server goal',

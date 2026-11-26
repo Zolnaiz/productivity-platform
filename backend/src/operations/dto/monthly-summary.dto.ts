@@ -1,3 +1,6 @@
+/**
+ * Bodies for drafting and saving the monthly summary.
+ */
 import { IsBoolean, IsIn, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 
 const MONTH = /^\d{4}-\d{2}$/;

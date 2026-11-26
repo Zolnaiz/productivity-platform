@@ -1,4 +1,4 @@
-import { get, getStoredAccessToken, isDemoMode, patch, shouldUseDemoFallback } from './api';
+import { get, getAccessToken, isDemoMode, patch, shouldUseDemoFallback } from './api';
 
 /**
  * What somebody has been told.
@@ -104,7 +104,7 @@ const writeDemo = (notifications: Notification[]) => {
   return notifications;
 };
 
-const hasRealAccessToken = () => Boolean(getStoredAccessToken()) && !isDemoMode();
+const hasRealAccessToken = () => Boolean(getAccessToken()) && !isDemoMode();
 
 const fallback = async <T>(request: () => Promise<T>, demoData: () => T): Promise<T> => {
   if (!hasRealAccessToken()) return demoData();

@@ -25,7 +25,26 @@ The records behind K2, K4 and K6 come back in `measurements.evidence`. The repor
 | K6 | `checkinRate` | % (1 decimal) | person-weeks with a weekly check-in | expected people × weeks in the month that started on or before the reference day | check-ins by people who are not expected, or for weeks outside the month | nobody is expected, no week has started yet, or the report predates K6 |
 | — | `workLinkage` | % | work logs linked to a project or a task | all work logs this month | — | no work logs |
 
-K5 (time spent preparing the monthly report) and K7 (SUS) are not computed from system records. The thesis measures them by observation and a questionnaire.
+K5 (time spent preparing the monthly report) is not computed from system records; the thesis measures it by observation.
+
+K7 (SUS) is collected by the system's own questionnaire, the ten statements of Appendix B, on the web (`/usability`) and the phone (a card on Today):
+
+- An administrator opens a round, named for what it measures ("End of pilot"); one round is open at a time, enforced by the database. Everybody is reminded on the home page until they answer, and may change their answers while the round is open.
+- A person's score is Brooke's: odd statements count `answer − 1`, even ones `5 − answer`, the sum × 2.5, so 0–100 in steps of 2.5 (`backend/src/operations/sus.ts`, `susScore`). It is computed from the stored answers, never stored itself.
+- A round's result (`summarizeSus`) is the mean against the benchmark of 68, the median, the sample standard deviation, the lowest and highest score, how many scored 68 or more, the scores in bands of ten, and the average answer to each statement. The response rate is respondents over the organization's active members.
+- Below three respondents the scores are not shown at all: with one or two answers in, an average is somebody's own score. Nobody is shown anyone's individual answers.
+
+## Week by week, for the pilot
+
+The thesis measures the pilot every week (two weeks' baseline, then the trial). One month gives one number, so the same six measures are also counted for each Monday-to-Sunday week:
+
+- `GET /operations/weekly-measurements?from=YYYY-MM-DD&to=YYYY-MM-DD` (`backend/src/operations/weekly-measurements.ts`), at most 26 weeks. The first week starts on the Monday on or before `from`.
+- Each week is counted by `monthlyMeasurements` itself, over that week's records, so a week's K1 follows exactly the rule above, only over seven days. K2 and K6 are "as of" the week's Sunday.
+- A week that has not begun is left out. The week still running is counted as of today and marked `complete: false` ("so far" on the page).
+- Who sees what follows the monthly report: an employee their own records, a manager the team's.
+- On the web it is the "K1–K6 week by week" card on the monthly report page, with a CSV that has one row per week and measure, the value and the counts behind it.
+
+A week is never closed: it is always counted from the live records, unlike a closed month.
 
 ## Decisions where the thesis left room (please confirm)
 

@@ -1,3 +1,4 @@
+/** Unit test for monthHistory.ts: a month version’s figures. */
 import { describe, expect, it } from 'vitest';
 import type { TFunction } from 'i18next';
 import { changed, figureValue, headlineFigures } from './monthHistory';

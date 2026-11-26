@@ -11,6 +11,9 @@ export const RAISED_WORDING: Record<MailLanguage, Record<string, string>> = {
   en: {
     'raised.deletionRequested': 'Account deletion requested: {{name}}',
     'raised.ideaApproved': 'Your idea was taken up: {{title}}',
+    'raised.deliverableSubmitted': 'Documents to review: {{title}}',
+    'raised.deliverableApproved': 'Your documents were approved: {{title}}',
+    'raised.deliverableReturned': 'Your documents were returned: {{title}}',
     'raised.ideaDeclined': 'Your idea was not taken up: {{title}}',
     'raised.ideaDone': 'Your idea is in place: {{title}}',
     'raised.tierAuditDue': '{{layer}} 5S audit due: {{place}}',
@@ -35,6 +38,9 @@ export const RAISED_WORDING: Record<MailLanguage, Record<string, string>> = {
   mn: {
     'raised.deletionRequested': 'Бүртгэл устгах хүсэлт ирлээ: {{name}}',
     'raised.ideaApproved': 'Таны санааг хэрэгжүүлэхээр шийдлээ: {{title}}',
+    'raised.deliverableSubmitted': 'Хянах баримт ирлээ: {{title}}',
+    'raised.deliverableApproved': 'Таны баримт батлагдлаа: {{title}}',
+    'raised.deliverableReturned': 'Таны баримтыг буцаалаа: {{title}}',
     'raised.ideaDeclined': 'Таны санааг одоохондоо хэрэгжүүлэхгүй: {{title}}',
     'raised.ideaDone': 'Таны санаа хэрэгжлээ: {{title}}',
     'raised.tierAuditDue': '{{layer}}-ын 5S аудитын хугацаа болсон: {{place}}',

@@ -1,3 +1,4 @@
+/** Unit test for layout-versions.ts: what the plan looked like on a given day. */
 import { OperationsService } from './operations.service';
 
 const createRepository = () => ({

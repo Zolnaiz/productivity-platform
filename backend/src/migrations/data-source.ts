@@ -1,3 +1,7 @@
+/**
+ * TypeORM DataSource for the migration CLI (npm run migration:*), read from the same environment variables as
+ * the app.
+ */
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';

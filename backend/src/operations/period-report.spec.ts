@@ -1,3 +1,4 @@
+/** Unit test for period-report.ts: the months a period covers. */
 import { monthsBetween } from './period-report';
 import { ReportArchiveService } from './report-archive.service';
 import { selectMonthRecords } from './monthly-report';

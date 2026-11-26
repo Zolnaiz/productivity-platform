@@ -1,3 +1,7 @@
+/**
+ * Horizontal bar chart with a table toggle (the same numbers as an accessible table). Colours come from
+ * palette.ts and follow the light/dark theme.
+ */
 import React, { useState } from 'react';
 import { Table2, BarChart3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

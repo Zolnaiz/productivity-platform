@@ -1,3 +1,6 @@
+/**
+ * Report routes: monthly report and summary, weekly measurements (K1-K6 per week), period report, month close.
+ */
 import { BadRequestException, Body, Controller, Get, Param, Post, Put, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
@@ -51,6 +54,16 @@ export class ReportsController {
   @RequirePermission('reports:read')
   monthlyReport(@Request() req, @Query('month') month?: string) {
     return this.archive.monthlyReport(req.user, month);
+  }
+
+  /**
+   * K1-K6 week by week, for the pilot's before-and-after comparison: `from`
+   * and `to` are days, YYYY-MM-DD, at most 26 weeks apart.
+   */
+  @Get('operations/weekly-measurements')
+  @RequirePermission('reports:read')
+  weeklyMeasurements(@Request() req, @Query('from') from: string, @Query('to') to: string) {
+    return this.archive.weeklyMeasurements(req.user, from, to);
   }
 
   /** A half-year or a year: `from` and `to` are months, YYYY-MM, at most twelve apart. */

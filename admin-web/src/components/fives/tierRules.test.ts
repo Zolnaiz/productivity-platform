@@ -1,3 +1,4 @@
+/** Unit test for tierRules.ts: readAuditTiers. */
 import { describe, expect, it } from 'vitest';
 import {
   defaultAuditTiers,

@@ -1,3 +1,6 @@
+/**
+ * Timeline of a zone: audits, scores and red tags over time.
+ */
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { auditBandFor, auditBandText } from '../charts/palette';

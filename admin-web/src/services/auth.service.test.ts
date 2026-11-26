@@ -1,3 +1,4 @@
+/** Unit test for auth.service.ts: authService backend contract normalization. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiMocks = vi.hoisted(() => ({

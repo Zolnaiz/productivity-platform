@@ -1,3 +1,4 @@
+/** Unit test for projectProgress.ts: how far along a project is. */
 import { describe, expect, it } from 'vitest';
 import { Project, TimeEntry, WorkLog, WorkTask } from '../../types/operations.types';
 import { isProjectLate, progressOf, summariseProject } from './projectProgress';

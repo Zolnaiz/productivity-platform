@@ -1,3 +1,6 @@
+/**
+ * The checklist a 5S audit uses: categories and questions.
+ */
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
 

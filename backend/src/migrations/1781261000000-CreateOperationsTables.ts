@@ -1,3 +1,6 @@
+/**
+ * Core operations schema: projects, tasks, work logs, time entries, 5S zones and audits.
+ */
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateOperationsTables1781261000000 implements MigrationInterface {

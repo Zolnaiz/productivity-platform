@@ -1,3 +1,4 @@
+/** Unit test for gemba.service.ts: gemba walks. */
 import { TaskSource } from './entities/task.entity';
 import { DEFAULT_WALKS_PER_WEEK, GembaService } from './gemba.service';
 

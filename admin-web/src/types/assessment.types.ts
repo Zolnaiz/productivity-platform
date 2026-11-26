@@ -1,3 +1,6 @@
+/**
+ * Assessment (questionnaire) shapes as the API returns them.
+ */
 export type AssessmentType = 'survey' | 'inspection' | 'quality' | 'safety' | 'feedback';
 export type AssessmentStatus = 'draft' | 'published' | 'archived';
 export type ResponseStatus = 'in_progress' | 'submitted' | 'reviewed' | 'rejected';

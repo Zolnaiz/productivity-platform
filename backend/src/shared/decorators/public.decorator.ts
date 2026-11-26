@@ -1,3 +1,6 @@
+/**
+ * @Public(): lets a route through JwtAuthGuard without a token.
+ */
 import { SetMetadata } from '@nestjs/common';
 
 export const IS_PUBLIC_KEY = 'isPublic';

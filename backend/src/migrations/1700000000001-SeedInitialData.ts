@@ -1,3 +1,7 @@
+/**
+ * LEGACY, NOT RUN. Demo rows for the questionnaire-era schema (see 1700000000000). History only; demo data now
+ * comes from scripts/seed-operations.ts.
+ */
 import { MigrationInterface, QueryRunner } from "typeorm";
 import * as bcrypt from 'bcrypt';
 

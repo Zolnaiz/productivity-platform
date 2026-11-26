@@ -1,7 +1,10 @@
+/** Unit test for users.service.ts: UsersService. */
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
 import { UserRole } from '../shared/constants';
+import { hashInvitationToken } from '../auth/invitation-token';
+import { PASSWORD_RESET_TTL_MS } from '../auth/password-reset-mail';
 
 const user = {
   id: 'user-1',
@@ -17,6 +20,7 @@ describe('UsersService', () => {
   let repository: {
     findOne: jest.Mock;
     save: jest.Mock;
+    update: jest.Mock;
     createQueryBuilder: jest.Mock;
     find: jest.Mock;
   };
@@ -38,6 +42,7 @@ describe('UsersService', () => {
       find: jest.fn(),
       findOne: jest.fn(),
       save: jest.fn(),
+      update: jest.fn(),
       createQueryBuilder: jest.fn(() => query),
     };
     service = new UsersService(repository as any);
@@ -240,6 +245,72 @@ describe('UsersService', () => {
 
       await expect(service.changeRole('peer-1', UserRole.USER, orgAdmin)).rejects.toBeInstanceOf(ForbiddenException);
       expect(repository.save).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Mail is not set up on the pilot server, so a forgotten password could only
+   * be reset by an administrator handing over the link the mail would carry.
+   */
+  describe('a reset link an administrator hands over', () => {
+    const orgAdmin = { id: 'admin-1', role: UserRole.ORGANIZATION_ADMIN, organizationId: 'org-1' };
+
+    it('stores only the hash of a one-hour token and returns the token once', async () => {
+      repository.findOne.mockResolvedValue({ ...user, organizationId: 'org-1' });
+      const before = Date.now();
+
+      const { token, expiresAt } = await service.issuePasswordResetLink('user-1', orgAdmin);
+
+      const [id, stored] = repository.update.mock.calls[0];
+      expect(id).toBe('user-1');
+      expect(stored.resetPasswordToken).toBe(hashInvitationToken(token));
+      expect(stored.resetPasswordToken).not.toBe(token);
+      expect(expiresAt.getTime() - before).toBeGreaterThanOrEqual(PASSWORD_RESET_TTL_MS - 1000);
+      expect(expiresAt.getTime() - before).toBeLessThanOrEqual(PASSWORD_RESET_TTL_MS + 1000);
+    });
+
+    it('gives the link the reset mail would carry, on the configured public address', async () => {
+      const configured = new UsersService(repository as any, { get: () => 'https://pilot.example.com/' } as any);
+      repository.findOne.mockResolvedValue({ ...user, organizationId: 'org-1' });
+
+      const { token, link } = await configured.issuePasswordResetLink('user-1', orgAdmin);
+
+      expect(link).toBe(`https://pilot.example.com/reset-password/${token}`);
+    });
+
+    it('gives no link when no public address is configured', async () => {
+      repository.findOne.mockResolvedValue({ ...user, organizationId: 'org-1' });
+
+      expect((await service.issuePasswordResetLink('user-1', orgAdmin)).link).toBeNull();
+    });
+
+    it('gives a different token every time', async () => {
+      repository.findOne.mockResolvedValue({ ...user, organizationId: 'org-1' });
+
+      const first = await service.issuePasswordResetLink('user-1', orgAdmin);
+      const second = await service.issuePasswordResetLink('user-1', orgAdmin);
+
+      expect(first.token).not.toBe(second.token);
+    });
+
+    it.each([
+      ['the caller themselves', { ...user, id: 'admin-1', role: UserRole.ORGANIZATION_ADMIN, organizationId: 'org-1' }, 'VALIDATION_FAILED'],
+      ['somebody at the caller’s level', { ...user, id: 'peer-1', role: UserRole.ORGANIZATION_ADMIN, organizationId: 'org-1' }, 'ACCESS_DENIED'],
+      ['an account that is not active', { ...user, isActive: false, organizationId: 'org-1' }, 'AUTH_ACCOUNT_INACTIVE'],
+    ])('refuses %s', async (_case, target, errorCode) => {
+      repository.findOne.mockResolvedValue(target);
+
+      await expect(service.issuePasswordResetLink(target.id, orgAdmin)).rejects.toMatchObject({
+        response: { errorCode },
+      });
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses a member of another organization', async () => {
+      repository.findOne.mockResolvedValue({ ...user, organizationId: 'org-2' });
+
+      await expect(service.issuePasswordResetLink('user-1', orgAdmin)).rejects.toBeInstanceOf(ForbiddenException);
+      expect(repository.update).not.toHaveBeenCalled();
     });
   });
 

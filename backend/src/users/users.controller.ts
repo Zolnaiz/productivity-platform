@@ -123,6 +123,17 @@ export class UsersController {
     return this.usersService.deactivate(id, req.user);
   }
 
+  /**
+   * A reset link for a member, to hand over when mail cannot carry it (see
+   * UsersService.issuePasswordResetLink). The token is in this answer once.
+   */
+  @Post(':id/password-reset')
+  @RequirePermission('users:update')
+  @ApiOperation({ summary: 'Issue a password reset link to hand to a member' })
+  issuePasswordReset(@Param('id') id: string, @Request() req) {
+    return this.usersService.issuePasswordResetLink(id, req.user);
+  }
+
   @Get(':id/permissions')
   @ApiOperation({ summary: 'What a member is allowed to do' })
   getPermissions(@Param('id') id: string, @Request() req) {

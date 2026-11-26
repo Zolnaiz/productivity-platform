@@ -1,3 +1,6 @@
+/**
+ * Stores and lists feedback messages for one organisation.
+ */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';

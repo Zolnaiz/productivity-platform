@@ -1,11 +1,23 @@
+/**
+ * Collects the actions waiting for the user (tasks, reviews, approvals) from the other services into one list.
+ */
 import { assessmentService } from './assessment.service';
 import { financeService } from './finance.service';
 import { operationsService } from './operations.service';
 import { ActionItem } from '../types/action.types';
 import { localDay } from '../components/progress/progressBoard';
 
+/** Who is looking: their own returned documents, and (for a reviewer) other people's waiting for review. */
+export interface ActionViewer {
+  id?: string;
+  canReview?: boolean;
+}
+
+/** Documents waiting longer than this are urgent: the author cannot finish until somebody decides. */
+const REVIEW_URGENT_DAYS = 2;
+
 export const actionService = {
-  getActionItems: async (): Promise<ActionItem[]> => {
+  getActionItems: async (viewer: ActionViewer = {}): Promise<ActionItem[]> => {
     const [projects, tasks, auditRuns, responses, expenses] = await Promise.all([
       operationsService.getProjects(),
       operationsService.getTasks(),
@@ -17,7 +29,43 @@ export const actionService = {
     // is still yesterday, and nothing due today would read as overdue.
     const today = localDay(new Date());
 
+    const waitingDays = (since?: string | null) =>
+      since ? Math.floor((Date.now() - Date.parse(since)) / (24 * 60 * 60 * 1000)) : 0;
+
     return [
+      // Work documents sent for review, for whoever may decide - never one's own (the server refuses it too).
+      ...(viewer.canReview
+        ? tasks.filter((task) => task.reviewStatus === 'submitted' && task.assigneeId !== viewer.id)
+        : []
+      ).map<ActionItem>((task) => ({
+        id: `review-${task.id}`,
+        type: 'review',
+        title: 'Documents to review',
+        titleKey: 'actions.documentsToReview',
+        message: task.title,
+        messageKey: task.titleKey,
+        messageParams: task.titleParams,
+        meta: task.submittedAt ? `Sent ${task.submittedAt.slice(0, 10)}` : '',
+        metaKey: task.submittedAt ? 'actions.sentOn' : undefined,
+        metaParams: task.submittedAt ? { date: task.submittedAt.slice(0, 10) } : undefined,
+        path: '/tasks',
+        priority: waitingDays(task.submittedAt) >= REVIEW_URGENT_DAYS ? 'high' : 'medium',
+      })),
+      // One's own documents sent back: the reason is the thing to read.
+      ...tasks
+        .filter((task) => task.reviewStatus === 'returned' && viewer.id && task.assigneeId === viewer.id)
+        .map<ActionItem>((task) => ({
+          id: `returned-${task.id}`,
+          type: 'review',
+          title: 'Documents returned',
+          titleKey: 'actions.documentsReturned',
+          message: task.title,
+          messageKey: task.titleKey,
+          messageParams: task.titleParams,
+          meta: task.reviewNote ?? '',
+          path: '/tasks',
+          priority: 'high',
+        })),
       ...tasks
         .filter((task) => task.status !== 'done')
         .map<ActionItem>((task) => {

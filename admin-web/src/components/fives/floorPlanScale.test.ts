@@ -1,3 +1,4 @@
+/** Unit test for floorPlanScale.ts: the default scale. */
 import { describe, expect, it } from 'vitest';
 import { CANVAS_HEIGHT, CANVAS_WIDTH, GRID_SIZE } from './floorPlanGeometry';
 import {

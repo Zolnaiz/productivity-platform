@@ -238,6 +238,37 @@ describe('UC-07 Хувийн бүртгэлээ удирдах (manage own accou
     expect(data(unknown).message).toMatch(/If this email is registered/);
     expect((await team.anonymous.post('/auth/reset-password', { token: 'forged', password: 'Whatever123' })).status).toBe(400);
   });
+
+  // The pilot server sends no mail: the reset link the email would carry is
+  // handed over by an administrator instead. A member of its own, so a new
+  // password here signs nobody else out of the tests that follow.
+  it('alternative: with no mail, an administrator hands over a reset link that works once', async () => {
+    const email = `forgot.${Date.now()}@uc.test`;
+    const { token: invitation } = data(await team.owner.post('/auth/invitations', { email, role: 'user' }));
+    await team.anonymous.post(`/auth/invitations/token/${invitation}/accept`, { firstName: 'Forgot', lastName: 'Test', password: 'Password123' });
+    const memberId = data(await team.anonymous.post('/auth/login', { email, password: 'Password123' })).user.id;
+
+    const issued = await team.owner.post(`/users/${memberId}/password-reset`, {});
+    expect(issued.status).toBe(201);
+    const { token } = data(issued);
+    expect(token).toEqual(expect.any(String));
+
+    expect((await team.anonymous.post('/auth/reset-password', { token, password: 'HandedOver123' })).status).toBeLessThan(300);
+    expect((await team.anonymous.post('/auth/login', { email, password: 'HandedOver123' })).status).toBe(200);
+    expect((await team.anonymous.post('/auth/login', { email, password: 'Password123' })).status).not.toBe(200);
+    // Once only.
+    expect((await team.anonymous.post('/auth/reset-password', { token, password: 'AgainAgain123' })).status).toBe(400);
+  });
+
+  it('refused: an employee cannot issue a reset link, and nobody issues one for themselves', async () => {
+    const manager = data(await team.manager.get('/auth/me'));
+    expect((await team.employee.post(`/users/${manager.id}/password-reset`, {})).status).toBe(403);
+
+    const owner = data(await team.owner.get('/auth/me'));
+    const self = await team.owner.post(`/users/${owner.id}/password-reset`, {});
+    expect(self.status).toBe(400);
+    expect(errorCode(self)).toBe('VALIDATION_FAILED');
+  });
 });
 
 describe('UC-08 5S аудит хийх (run a 5S audit) «include» create and notify a task', () => {
@@ -549,5 +580,197 @@ describe('UC-22 Сануулга илгээх, аудит товлох (send rem
     const { DailyReminderService } = await import('../../src/operations/daily-reminder.service');
     const evening = new Date(`${today()}T13:00:00Z`);
     expect(await app.get(DailyReminderService).remind(evening)).toBe(0);
+  });
+});
+
+/**
+ * The SUS questionnaire is how K7 (Chapter 1) is measured rather than a use
+ * case of its own, so it has no UC number; it is here because two of its
+ * rules live in PostgreSQL and only a real database can show them holding.
+ */
+describe('K7 Хэрэглэхэд хялбар байдлын асуулга (SUS questionnaire, the measure K7)', () => {
+  const best = [5, 1, 5, 1, 5, 1, 5, 1, 5, 1]; // 100
+  const good = [4, 2, 4, 2, 4, 2, 4, 2, 4, 2]; // 75
+  const neutral = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]; // 50
+
+  // Each test starts with no open round, whatever one before it left behind:
+  // a failure in one must not show up as a second, unrelated one.
+  beforeEach(async () => {
+    for (const round of data(await team.owner.get('/sus/rounds'))) {
+      if (!round.closedAt) await team.owner.post(`/sus/rounds/${round.id}/close`);
+    }
+  });
+
+  it('main: an administrator opens a round, all three answer, and the totals come back; a closed round takes no more', async () => {
+    const opened = await team.owner.post('/sus/rounds', { title: 'End of pilot' });
+    expect(opened.status).toBe(201);
+    const roundId = data(opened).id;
+
+    const before = data(await team.employee.get('/sus/current'));
+    expect(before.round.id).toBe(roundId);
+    expect(before.mine).toBeNull();
+
+    const answer = (client: typeof team.owner, answers: number[]) =>
+      client.put(`/sus/rounds/${roundId}/answers/mine`, { answers });
+    expect((await answer(team.owner, best)).status).toBe(200);
+    expect((await answer(team.manager, good)).status).toBe(200);
+    expect((await answer(team.employee, good)).status).toBe(200);
+    // Changed their mind while the round was open: still one response.
+    expect(data(await answer(team.employee, neutral)).score).toBe(50);
+    expect(data(await team.employee.get('/sus/current')).mine).toMatchObject({ answers: neutral, score: 50 });
+
+    const results = data(await team.owner.get(`/sus/rounds/${roundId}/results`));
+    // Members are the organization's active accounts now, which other use
+    // cases in this suite add to; the rate is three of however many there are.
+    const { members } = results.summary;
+    expect(members).toBeGreaterThanOrEqual(3);
+    expect(results.summary).toMatchObject({ respondents: 3, responseRate: Math.round((3 / members) * 1000) / 10 });
+    expect(results.summary.figures).toMatchObject({ mean: 75, median: 75, atOrAboveBenchmark: 2 });
+
+    expect((await team.owner.post(`/sus/rounds/${roundId}/close`)).status).toBe(201);
+    const late = await answer(team.manager, neutral);
+    expect(late.status).toBe(409);
+    expect(errorCode(late)).toBe('SURVEY_ROUND_CLOSED');
+    expect(data(await team.employee.get('/sus/current')).round).toBeNull();
+  });
+
+  it('alternative: the database keeps one open round and ten answers of 1-5, whatever the code in front of it does', async () => {
+    const opened = await team.owner.post('/sus/rounds', { title: 'Baseline' });
+    expect(opened.status).toBe(201);
+    const second = await team.owner.post('/sus/rounds', { title: 'Another' });
+    expect(second.status).toBe(409);
+    expect(errorCode(second)).toBe('SURVEY_ROUND_OPEN');
+    expect((await team.employee.put(`/sus/rounds/${data(opened).id}/answers/mine`, { answers: [3, 3, 3] })).status).toBe(400);
+    expect((await team.employee.put(`/sus/rounds/${data(opened).id}/answers/mine`, { answers: [6, 3, 3, 3, 3, 3, 3, 3, 3, 3] })).status).toBe(400);
+
+    // Past the service, straight at the tables.
+    const { DataSource } = await import('typeorm');
+    const db = app.get(DataSource);
+    const [{ organization_id: organizationId }] = await db.query(`SELECT organization_id FROM sus_rounds WHERE id = $1`, [data(opened).id]);
+    await expect(
+      db.query(`INSERT INTO sus_rounds (organization_id, title, opened_by) VALUES ($1, 'Raced in', 'x')`, [organizationId]),
+    ).rejects.toMatchObject({ code: '23505' });
+    await expect(
+      db.query(`INSERT INTO sus_responses (organization_id, round_id, user_id, answers) VALUES ($1, $2, 'x', '{3,3,3}')`, [
+        organizationId,
+        data(opened).id,
+      ]),
+    ).rejects.toMatchObject({ code: '23514' });
+    expect((await team.owner.post(`/sus/rounds/${data(opened).id}/close`)).status).toBe(201);
+  });
+
+  it('refused: an employee can answer but cannot open a round or read the totals', async () => {
+    expect((await team.employee.post('/sus/rounds', { title: 'Mine' })).status).toBe(403);
+    expect((await team.employee.get('/sus/rounds')).status).toBe(403);
+  });
+});
+
+/**
+ * Workload (PLAN_V2 M12): not one of the thesis's 22 use cases but part of assigning work (UC-09), checked
+ * here because the hours come from the database: estimates, logged hours and statuses as they are stored.
+ */
+describe('M12 Ажлын ачаалал (workload before assigning work)', () => {
+  it('main: the manager sees the employee over a week of work, and a warning before giving them more', async () => {
+    for (const hours of [20, 24]) {
+      const created = await team.manager.post('/tasks', {
+        title: `Workload ${hours}h`, assigneeId: team.employeeId, dueDate: today(), estimatedHours: hours, status: 'todo',
+      });
+      expect(created.status).toBe(201);
+    }
+
+    const board = data(await team.manager.get('/workload'));
+    const employee = board.people.find((person: any) => person.userId === team.employeeId);
+    expect(employee.hours).toBeGreaterThanOrEqual(44);
+    expect(employee.level).toBe('over');
+
+    const preview = await team.manager.get(
+      `/workload/preview?assigneeIds=${team.employeeId},${team.managerId}&dueDate=${today()}&estimatedHours=8`,
+    );
+    expect(preview.status).toBe(200);
+    const candidates = data(preview).candidates;
+    expect(candidates.map((c: any) => c.userId).sort()).toEqual([team.employeeId, team.managerId].sort());
+    const mine = candidates.find((c: any) => c.userId === team.employeeId);
+    expect(mine.after.hours).toBeCloseTo(employee.hours + 8, 1);
+    expect(mine.warnings).toContain('over_capacity');
+    // Quietest first: the manager carries less than the employee.
+    expect(candidates[0].userId).toBe(team.managerId);
+  });
+
+  it('refused: an employee cannot see a ranking of colleagues’ load', async () => {
+    expect((await team.employee.get('/workload')).status).toBe(403);
+    expect((await team.employee.get('/workload/preview')).status).toBe(403);
+  });
+});
+
+/**
+ * Work documents and their review (PLAN_V2 M2): part of UC-01/UC-09 (completing assigned work and tracking
+ * it), checked on PostgreSQL because the lock and the review state are stored there and the files go through
+ * the real attachment store.
+ */
+describe('M2 Ажлын баримт ба батлах (task documents: submit, return, approve)', () => {
+  const pdf = (text: string) => Buffer.from(`%PDF-1.7\n${text}\n%%EOF\n`);
+
+  it('main: the employee submits, the manager returns with a reason, a new version is approved and the task is done', async () => {
+    const task = data(
+      await team.manager.post('/tasks', { title: 'Wiring diagram', assigneeId: team.employeeId, dueDate: today() }),
+    );
+    const path = `/tasks/${task.id}/deliverables`;
+
+    expect((await team.employee.upload(path, pdf('v1'), 'diagram.pdf')).status).toBe(201);
+    const managerInboxBefore = data<any[]>(await team.manager.get('/notifications')).length;
+    const submitted = await team.employee.post(`${path}/submit`);
+    expect(submitted.status).toBe(201);
+    expect(data(submitted).review.status).toBe('submitted');
+    expect(data<any[]>(await team.manager.get('/notifications')).length).toBeGreaterThan(managerInboxBefore);
+
+    // Frozen while it is being read.
+    expect((await team.employee.upload(path, pdf('sneaky'), 'late.pdf')).status).toBe(409);
+
+    const returned = await team.manager.post(`${path}/return`, { note: 'Label the breakers' });
+    expect(returned.status).toBe(201);
+    expect(data(returned).review).toMatchObject({ status: 'returned', note: 'Label the breakers' });
+
+    expect((await team.employee.upload(path, pdf('v2'), 'diagram-v2.pdf')).status).toBe(201);
+    const listed = data(await team.employee.get(path));
+    expect(listed.files.map((f: any) => [f.fileName, f.version])).toEqual([
+      ['diagram-v2.pdf', 2],
+      ['diagram.pdf', 1],
+    ]);
+    // Both versions can be downloaded.
+    expect((await team.manager.get(`/attachments/${listed.files[1].id}/file`)).status).toBe(200);
+
+    expect((await team.employee.post(`${path}/submit`)).status).toBe(201);
+    const approved = await team.manager.post(`${path}/approve`);
+    expect(approved.status).toBe(201);
+    expect(data(approved).review.status).toBe('approved');
+    const tasks = data<any[]>(await team.manager.get('/tasks'));
+    expect(tasks.find((t) => t.id === task.id).status).toBe('done');
+
+    // Approved documents are locked for everybody.
+    expect((await team.manager.upload(path, pdf('v3'), 'v3.pdf')).status).toBe(409);
+    expect((await team.manager.del(`${path}/${listed.files[0].id}`)).status).toBe(409);
+  });
+
+  it('refused: no review of one’s own work, no review by an employee, no return without a reason, no back door', async () => {
+    const own = data(await team.manager.post('/tasks', { title: 'Own report', assigneeId: team.managerId }));
+    await team.manager.upload(`/tasks/${own.id}/deliverables`, pdf('mine'), 'mine.pdf');
+    await team.manager.post(`/tasks/${own.id}/deliverables/submit`);
+    expect((await team.manager.post(`/tasks/${own.id}/deliverables/approve`)).status).toBe(403);
+
+    const theirs = data(await team.manager.post('/tasks', { title: 'Shelf photos', assigneeId: team.employeeId }));
+    const path = `/tasks/${theirs.id}/deliverables`;
+    expect((await team.employee.post(`${path}/submit`)).status).toBe(409); // nothing to review yet
+    await team.employee.upload(path, pdf('photos'), 'photos.pdf');
+    await team.employee.post(`${path}/submit`);
+    expect((await team.employee.post(`${path}/approve`)).status).toBe(403);
+    expect((await team.manager.post(`${path}/return`, { note: '' })).status).toBe(400);
+
+    // The general attachments route cannot add to or remove from a task's documents.
+    const backDoor = await team.employee.upload('/attachments', pdf('x'), 'x.pdf', {
+      ownerType: 'work_task', ownerId: theirs.id, kind: 'deliverable',
+    });
+    expect(backDoor.status).toBe(403);
+    const file = data(await team.employee.get(path)).files[0];
+    expect((await team.manager.del(`/attachments/${file.id}`)).status).toBe(403);
   });
 });

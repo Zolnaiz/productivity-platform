@@ -1,3 +1,4 @@
+/** Unit test for MyDayCard.tsx: my day. */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

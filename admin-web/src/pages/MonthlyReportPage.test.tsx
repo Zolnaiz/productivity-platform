@@ -1,3 +1,4 @@
+/** Unit test for MonthlyReportPage.tsx: MonthlyReportPage. */
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MonthlyReportPage from './MonthlyReportPage';
@@ -10,6 +11,7 @@ const serviceMocks = vi.hoisted(() => ({
   closeMonth: vi.fn(),
   reopenMonth: vi.fn(),
   getMonthHistory: vi.fn(),
+  getWeeklyMeasurements: vi.fn(),
   getOwnPermissions: vi.fn(),
 }));
 
@@ -19,6 +21,7 @@ vi.mock('../services/operations.service', () => ({
     closeMonth: serviceMocks.closeMonth,
     reopenMonth: serviceMocks.reopenMonth,
     getMonthHistory: serviceMocks.getMonthHistory,
+    getWeeklyMeasurements: serviceMocks.getWeeklyMeasurements,
   },
 }));
 
@@ -123,6 +126,9 @@ describe('MonthlyReportPage', () => {
   beforeEach(() => {
     serviceMocks.getMonthHistory.mockReset();
     serviceMocks.getMonthHistory.mockResolvedValue({ period: '2026-06', versions: [], current: null });
+    // The weekly table under the month (WeeklyMeasurementsCard) asks on its own.
+    serviceMocks.getWeeklyMeasurements.mockReset();
+    serviceMocks.getWeeklyMeasurements.mockResolvedValue({ from: '2026-05-25', to: '2026-07-05', timeZone: 'Asia/Ulaanbaatar', weeks: [] });
     serviceMocks.getMonthlyReport.mockReset();
     serviceMocks.getMembers.mockReset();
     serviceMocks.getMembers.mockResolvedValue([]);

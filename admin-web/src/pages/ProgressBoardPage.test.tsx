@@ -1,3 +1,4 @@
+/** Unit test for ProgressBoardPage.tsx: the progress board. */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ProgressBoardPage, { REFRESH_MS } from './ProgressBoardPage';
@@ -10,6 +11,10 @@ const mocks = vi.hoisted(() => ({
   updateTask: vi.fn(),
   getMembers: vi.fn(),
 }));
+
+// A manager; the workload card has its own test (TeamWorkload.test.tsx) and here only needs no network.
+vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ hasPermission: () => true }) }));
+vi.mock('../services/workload.service', () => ({ workloadService: { team: vi.fn().mockResolvedValue([]) } }));
 
 vi.mock('../services/operations.service', () => ({
   operationsService: {

@@ -1,3 +1,6 @@
+/**
+ * / - public landing page with links to sign in and register.
+ */
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +32,9 @@ const LandingPage: React.FC = () => {
             {t('landing.viewDashboard')}
           </Link>
         </div>
+        <Link to="/privacy" className="mt-10 text-sm text-gray-400 hover:text-white hover:underline">
+          {t('landing.privacy')}
+        </Link>
       </section>
     </main>
   );

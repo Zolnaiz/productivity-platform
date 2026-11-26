@@ -1,3 +1,6 @@
+/**
+ * Editor for one zone's 5S standard: what 'good' looks like, with reference photos.
+ */
 import React, { useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

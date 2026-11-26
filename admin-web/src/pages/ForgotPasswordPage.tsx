@@ -1,3 +1,6 @@
+/**
+ * /forgot-password - asks for an e-mail and requests a reset link.
+ */
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';

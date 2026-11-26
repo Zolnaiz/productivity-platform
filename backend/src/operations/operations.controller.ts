@@ -1,3 +1,7 @@
+/**
+ * Main operations routes: summary, projects, tasks, work logs, time entries, 5S (zones, red tags, layouts,
+ * guidelines), audits and departments. Every route names its permission; all work goes to OperationsService.
+ */
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OperationsService } from './operations.service';

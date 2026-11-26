@@ -1,3 +1,7 @@
+/**
+ * Stores and lists audit-log entries for one organisation. Used by AuditLogInterceptor (write) and
+ * AuditLogController (read); retention is enforced separately by audit-retention.service.
+ */
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';

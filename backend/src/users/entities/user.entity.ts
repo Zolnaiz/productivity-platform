@@ -1,3 +1,6 @@
+/**
+ * A person's account: credentials, role, status, department and profile fields.
+ */
 import {
   Entity,
   Column,

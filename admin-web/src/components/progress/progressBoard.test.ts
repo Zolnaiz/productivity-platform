@@ -1,3 +1,4 @@
+/** Unit test for progressBoard.ts: late work. */
 import { describe, expect, it } from 'vitest';
 import { buildProgressBoard, BoardTask } from './progressBoard';
 import { Project, TimeEntry, WorkLog } from '../../types/operations.types';

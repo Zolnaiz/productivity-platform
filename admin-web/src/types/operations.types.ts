@@ -1,3 +1,6 @@
+/**
+ * Operations shapes: projects, tasks, work logs, audits, report figures.
+ */
 import type { DailyGoal } from './productivity.types';
 
 export interface Project {
@@ -55,6 +58,10 @@ export interface WorkTask extends RaisedTitle {
   completedAt?: string | null;
   /** Why the area fell short, for a fix an audit raised. */
   rootCause?: string | null;
+  /** Review of the task's work documents (deliverables.service): null when none was asked for. */
+  reviewStatus?: 'submitted' | 'approved' | 'returned' | null;
+  reviewNote?: string | null;
+  submittedAt?: string | null;
 }
 
 export interface WorkLog {
@@ -254,6 +261,27 @@ export interface MonthlyMeasurements {
     fixClosureDays: MeasurementEvidence[];
     checkinMissing: Array<{ userId: string; week: string }>;
   };
+}
+
+/**
+ * One row of the pilot's weekly table: a Monday-to-Sunday week and K1–K6
+ * counted over it by the monthly report's own rules
+ * (GET /operations/weekly-measurements, backend weekly-measurements.ts).
+ */
+export interface WeekMeasurements {
+  from: string;
+  to: string;
+  /** False for the week still running, which is counted as of today. */
+  complete: boolean;
+  measurements: Omit<MonthlyMeasurements, 'version' | 'evidence'>;
+}
+
+export interface WeeklyMeasurements {
+  from: string;
+  to: string;
+  timeZone: string;
+  /** Only the weeks that have begun; none after today. */
+  weeks: WeekMeasurements[];
 }
 
 export interface OperationsMonthlyReport {

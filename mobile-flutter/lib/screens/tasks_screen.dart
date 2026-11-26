@@ -1,3 +1,5 @@
+// The user's tasks grouped by status, with the account menu.
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -7,6 +9,7 @@ import '../providers/auth_provider.dart';
 import '../providers/task_provider.dart';
 import '../services/api_service.dart';
 import '../utils/phase_one_strings.dart';
+import 'deliverables_sheet.dart';
 import 'profile_screen.dart';
 
 class TasksScreen extends StatefulWidget {
@@ -155,6 +158,29 @@ class _TaskCard extends StatelessWidget {
                     if (value != null) _changeStatus(context, task, value);
                   },
                 ))
+              ]),
+              // The task's documents: a photo of the finished work, sent for review.
+              Row(children: [
+                TextButton.icon(
+                  key: Key('docs-${task.id}'),
+                  onPressed: () {
+                    final tasks = context.read<TaskProvider>();
+                    showDeliverablesSheet(context,
+                        api: tasks.api,
+                        taskId: task.id,
+                        onStatus: (status) =>
+                            tasks.setReviewStatus(task.id, status));
+                  },
+                  icon: const Icon(Icons.attach_file),
+                  label: Text(strings.text('docs')),
+                ),
+                if (task.reviewStatus != null && task.reviewStatus != 'none')
+                  Text(strings.text('docs.status.${task.reviewStatus}'),
+                      key: Key('review-${task.id}'),
+                      style: TextStyle(
+                          color: task.reviewStatus == 'returned'
+                              ? Colors.amber.shade900
+                              : Theme.of(context).colorScheme.primary)),
               ]),
             ])),
       );

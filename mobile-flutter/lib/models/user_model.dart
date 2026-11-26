@@ -1,3 +1,5 @@
+// The signed-in user as the API returns it, with JSON (de)serialisation.
+
 import 'dart:convert';
 
 class User {

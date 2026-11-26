@@ -1,3 +1,6 @@
+/**
+ * @RequirePermission('area:action'): the permission PermissionsGuard checks against roles.ts.
+ */
 import { SetMetadata } from '@nestjs/common';
 
 export const PERMISSION_KEY = 'permission';

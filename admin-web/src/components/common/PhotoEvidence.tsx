@@ -1,3 +1,6 @@
+/**
+ * Photos attached to a record (red tag, idea, fix): upload, preview, delete. Talks to attachment.service.
+ */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

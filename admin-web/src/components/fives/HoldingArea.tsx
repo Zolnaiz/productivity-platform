@@ -1,3 +1,6 @@
+/**
+ * Red-tag holding area of a zone: items waiting for a decision and how long they have waited (holdingRules).
+ */
 import React from 'react';
 import { Archive } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

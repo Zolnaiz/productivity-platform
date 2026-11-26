@@ -1,3 +1,6 @@
+/**
+ * API client for 5S guideline registers; in the demo workspace answers from demoGuidelineContent.
+ */
 import {
   FiveSGuidelineContent,
   FiveSGuidelineState,

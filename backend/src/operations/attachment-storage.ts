@@ -15,6 +15,25 @@ const allowedTypes: Record<string, string> = {
   'image/webp': '.webp',
   'image/heic': '.heic',
   'application/pdf': '.pdf',
+  // Office documents, for a task's work documents (deliverables.ts). Macro-enabled files are refused below.
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+};
+
+/**
+ * An Office Open XML file is a zip whose part names say what it is: `word/`, `xl/` or `ppt/`. A zip with none
+ * of them is not accepted (any zip could carry anything), and one with a VBA project is a macro-enabled file
+ * renamed, which is refused rather than stored: downloads are served as attachments, but a macro is code.
+ */
+const officeTypeOf = (buffer: Buffer): string | null => {
+  if (!buffer.subarray(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04]))) return null;
+  const names = buffer.toString('latin1');
+  if (!names.includes('[Content_Types].xml') || names.includes('vbaProject.bin')) return null;
+  if (names.includes('word/')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  if (names.includes('xl/')) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  if (names.includes('ppt/')) return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+  return null;
 };
 
 /** Phone photos are routinely 5-8 MB; a 5S board rarely needs more than this. */
@@ -47,7 +66,7 @@ const signatures: Array<{ mimeType: string; test: (buffer: Buffer) => boolean }>
 export const sniffMimeType = (buffer: Buffer): string | null => {
   if (buffer.length < 12) return null;
 
-  return signatures.find((signature) => signature.test(buffer))?.mimeType ?? null;
+  return signatures.find((signature) => signature.test(buffer))?.mimeType ?? officeTypeOf(buffer);
 };
 
 /** A storage key that cannot escape the upload directory. */

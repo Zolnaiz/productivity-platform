@@ -1,3 +1,7 @@
+/**
+ * /auth routes: register, login, refresh (HttpOnly cookie or body token), logout, profile, change and reset
+ * password. Thin: validation is in the DTOs, the rules are in AuthService.
+ */
 import {
   Controller,
   Post,

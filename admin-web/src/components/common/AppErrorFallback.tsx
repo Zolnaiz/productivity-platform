@@ -1,3 +1,7 @@
+/**
+ * Shown by the top-level error boundary when a page crashes: a message and a reload button instead of a blank
+ * screen.
+ */
 import React from 'react';
 import { FallbackProps } from 'react-error-boundary';
 import { useTranslation } from 'react-i18next';

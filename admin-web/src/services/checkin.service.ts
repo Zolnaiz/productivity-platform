@@ -1,3 +1,6 @@
+/**
+ * API client for weekly check-ins, plus week helpers (mondayOf, addDays).
+ */
 import { get, isDemoMode, put } from './api';
 
 export interface WeeklyCheckin {

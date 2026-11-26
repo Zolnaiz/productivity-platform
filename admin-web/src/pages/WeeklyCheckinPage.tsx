@@ -1,3 +1,6 @@
+/**
+ * /weekly - the user's weekly check-in (K6) and the team's progress board.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ChevronLeft, ChevronRight, ListChecks } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

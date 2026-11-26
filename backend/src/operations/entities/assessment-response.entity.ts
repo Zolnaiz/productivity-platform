@@ -1,3 +1,6 @@
+/**
+ * One person's answers to an assessment (questionnaire) template.
+ */
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
 

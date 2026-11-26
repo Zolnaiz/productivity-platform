@@ -1,3 +1,6 @@
+/**
+ * The organisation's 5S floor plan: zones, objects, walls, routes and background, stored as JSON columns.
+ */
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
 

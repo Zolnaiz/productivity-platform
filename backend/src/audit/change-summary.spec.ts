@@ -1,3 +1,4 @@
+/** Unit test for change-summary.ts: what a request asked to change. */
 import { MAX_FIELDS, MAX_VALUE_LENGTH, isSecretField, summariseChange, summariseValue } from './change-summary';
 
 describe('what a request asked to change', () => {

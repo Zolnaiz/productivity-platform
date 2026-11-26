@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../services/api_service.dart';
+import '../services/read_cache.dart';
 
 /// Something the person was told: work given to them, or the morning's
 /// reminder of what is due and late.
@@ -69,8 +70,14 @@ class InboxItem {
 /// them — but only a browser could read it, and the people most in need of
 /// being told are the ones on the floor without one.
 class InboxProvider extends ChangeNotifier {
-  InboxProvider(this._api);
+  InboxProvider(this._api, {this.cache});
   final ApiService _api;
+
+  /// Where the messages are kept for when the phone is offline.
+  final ReadCache? cache;
+
+  /// When the messages on screen were read, while showing the kept copy.
+  DateTime? offlineSince;
 
   List<InboxItem> items = [];
   bool loading = false;
@@ -92,10 +99,13 @@ class InboxProvider extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      items = (await _api.getNotifications())
+      final (read, savedAt) =
+          await readThrough(cache, 'notifications', _api.getNotifications);
+      items = read
           .cast<Map>()
           .map((item) => InboxItem.fromJson(item.cast<String, dynamic>()))
           .toList();
+      offlineSince = savedAt;
     } catch (e) {
       error = e;
     } finally {

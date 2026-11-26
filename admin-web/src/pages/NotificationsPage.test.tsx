@@ -1,3 +1,4 @@
+/** Unit test for NotificationsPage.tsx: NotificationsPage. */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +9,11 @@ const serviceMocks = vi.hoisted(() => ({
   list: vi.fn(),
   markRead: vi.fn(),
   markAllRead: vi.fn(),
+}));
+
+// A manager, who may review documents; the review items themselves are tested in action.service.test.ts.
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'u1' }, hasPermission: () => true }),
 }));
 
 vi.mock('../services/action.service', () => ({

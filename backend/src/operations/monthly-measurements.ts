@@ -70,17 +70,39 @@ export const lastDayOf = (month: string) => {
   return new Date(Date.UTC(year, monthIndex, 0)).toISOString().slice(0, 10);
 };
 
-/** The Mondays (YYYY-MM-DD) that fall in the month and have started by the reference day. */
-export const weeksOf = (month: string, referenceDay: string) => {
+/**
+ * The stretch of days the measures are counted over, both ends included,
+ * YYYY-MM-DD. The monthly report counts a month; the pilot's weekly table
+ * (weekly-measurements.ts) counts one Monday-to-Sunday week at a time with the
+ * same rules, so the two can never disagree about what K1-K6 mean.
+ */
+export interface Period {
+  from: string;
+  to: string;
+}
+
+/** A month, YYYY-MM, as the days it covers. */
+export const periodOfMonth = (month: string): Period => ({ from: `${month}-01`, to: lastDayOf(month) });
+
+/** A month (YYYY-MM) or a period, as a period: the functions below take either. */
+const asPeriod = (span: string | Period): Period => (typeof span === 'string' ? periodOfMonth(span) : span);
+
+const within = (day: string, period: Period) => day >= period.from && day <= period.to;
+
+/** The Mondays (YYYY-MM-DD) that fall in the period and have started by the reference day. */
+export const mondaysIn = (span: string | Period, referenceDay: string) => {
+  const { from, to } = asPeriod(span);
   const weeks: string[] = [];
-  const last = lastDayOf(month);
-  for (let day = new Date(`${month}-01T00:00:00Z`); ; day = new Date(day.getTime() + DAY_MS)) {
+  for (let day = new Date(`${from}T00:00:00Z`); ; day = new Date(day.getTime() + DAY_MS)) {
     const iso = day.toISOString().slice(0, 10);
-    if (iso > last || iso > referenceDay) break;
+    if (iso > to || iso > referenceDay) break;
     if (day.getUTCDay() === 1) weeks.push(iso);
   }
   return weeks;
 };
+
+/** The Mondays that fall in the month and have started by the reference day. */
+export const weeksOf = (month: string, referenceDay: string) => mondaysIn(month, referenceDay);
 
 /** A moment with a time, as an instant; a bare date is midnight UTC. Undefined when unusable. */
 const instant = (value: Moment): number | undefined => {
@@ -118,20 +140,26 @@ const calendarDay = (value: Date | string | null | undefined, timeZone: string):
 
 const hasLink = (id: string | undefined) => typeof id === 'string' && id.trim().length > 0;
 
-/** Count evidence already selected for a month; do not derive a productivity score from hours. */
+/**
+ * Count evidence already selected for a month, or for any period - a pilot
+ * week; do not derive a productivity score from hours. The records must
+ * already be the period's (selectMonthRecords, selectWeekRecords): K3 and the
+ * work linkage are counted from them as they are.
+ */
 export const monthlyMeasurements = (
   records: MeasurementRecords,
-  month: string,
+  span: string | Period,
   timeZone: string,
-  /** "As of" day for K2 and K6: the month's last day, or today while the month is running. */
-  referenceDay: string = lastDayOf(month),
+  /** "As of" day for K2 and K6: the period's last day, or today while it is running. */
+  referenceDay: string = asPeriod(span).to,
 ) => {
+  const period = asPeriod(span);
   let onTime = 0;
   let datedCompletions = 0;
   for (const task of records.completedTasks) {
     const completed = calendarDay(task.completedAt, timeZone);
     const due = calendarDay(task.dueDate, timeZone);
-    if (!completed || !due || completed.slice(0, 7) !== month) continue;
+    if (!completed || !due || !within(completed, period)) continue;
     datedCompletions += 1;
     if (completed <= due) onTime += 1;
   }
@@ -150,8 +178,8 @@ export const monthlyMeasurements = (
 
   const linkedLogs = records.workLogs.filter((log) => hasLink(log.projectId) || hasLink(log.taskId)).length;
   const late = lateWork(records.lateCandidates, referenceDay, timeZone);
-  const fixes = fixClosure(records.completedTasks, month, timeZone);
-  const checkins = checkinRate(records.weeklyCheckins, records.checkinPeople, month, referenceDay);
+  const fixes = fixClosure(records.completedTasks, period, timeZone);
+  const checkins = checkinRate(records.weeklyCheckins, records.checkinPeople, period, referenceDay);
 
   return {
     version: 2 as const,
@@ -216,18 +244,19 @@ export const lateWork = (candidates: MeasuredTask[] | undefined, referenceDay: s
 };
 
 /**
- * K4: tasks raised by an audit (source audit_run) and completed in the month.
- * value = mean (completedAt - createdAt) in days, one decimal. Those whose moments
- * are missing, invalid or out of order are excluded.
+ * K4: tasks raised by an audit (source audit_run) and completed in the month
+ * (or period). value = mean (completedAt - createdAt) in days, one decimal.
+ * Those whose moments are missing, invalid or out of order are excluded.
  */
-export const fixClosure = (completed: MeasuredTask[], month: string, timeZone: string) => {
+export const fixClosure = (completed: MeasuredTask[], span: string | Period, timeZone: string) => {
+  const period = asPeriod(span);
   let totalDays = 0;
   let excluded = 0;
   const evidence: MeasurementEvidence[] = [];
   for (const task of completed) {
     if (task.sourceType !== 'audit_run') continue;
     const finished = calendarDay(task.completedAt, timeZone);
-    if (finished && finished.slice(0, 7) !== month) continue;
+    if (finished && !within(finished, period)) continue;
     const start = instant(task.createdAt);
     const end = instant(task.completedAt);
     if (!finished || start === undefined || end === undefined || end < start) {
@@ -243,19 +272,20 @@ export const fixClosure = (completed: MeasuredTask[], month: string, timeZone: s
 
 /**
  * K6: person-weeks with a check-in / person-weeks expected × 100. The weeks are the
- * Mondays in the month that have started by the reference day; the people are those
- * expected to write one. Check-ins from anyone else, or for another week, are excluded.
+ * Mondays in the month (or period) that have started by the reference day; the people
+ * are those expected to write one. Check-ins from anyone else, or for another week,
+ * are excluded.
  */
 export const checkinRate = (
   checkins: Array<{ userId?: string; week?: string }> | undefined,
   people: string[] | undefined,
-  month: string,
+  span: string | Period,
   referenceDay: string,
 ) => {
   if (!checkins || !people) {
     return { measurement: { value: null, numerator: 0, denominator: 0, excluded: 0 }, missing: [] as Array<{ userId: string; week: string }> };
   }
-  const weeks = weeksOf(month, referenceDay);
+  const weeks = mondaysIn(span, referenceDay);
   const expected = new Set(people);
   const written = new Set<string>();
   let excluded = 0;

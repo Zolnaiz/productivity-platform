@@ -179,3 +179,20 @@ bin/
 # repository, not part of it, and committing one would commit the repository
 # into itself.
 .claude/worktrees/
+
+# The address scripts/start-public.ps1 last opened the system at; it changes on every start.
+public-url.txt
+
+# Local only, never committed: the course spreadsheet and this PC's start-up scripts.
+docs/diploma/Tekhnologi_shiidel.xlsx
+scripts/start-dev.cmd
+scripts/start-dev.ps1
+
+# LaTeX build output (docs/diploma/output/Diplom.pdf is the copy that is kept).
+docs/diploma/latex/**/*.aux
+docs/diploma/latex/main.*
+!docs/diploma/latex/main.tex
+docs/diploma/latex/*.txt
+
+# Damaged copies of the production env file kept during a repair (they hold secrets).
+.env.production.broken-*

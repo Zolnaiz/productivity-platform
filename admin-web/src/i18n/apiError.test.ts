@@ -1,3 +1,4 @@
+/** Unit test for apiError.ts: errorCodeOf. */
 import { describe, expect, it } from 'vitest';
 import type { TFunction } from 'i18next';
 import i18n from './index';

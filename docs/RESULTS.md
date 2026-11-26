@@ -1,20 +1,20 @@
 # Тестийн болон хэмжилтийн үр дүн
 
-> `npm run results` (backend)-ээр автоматаар үүсгэв. Гараар бүү засаарай. Commit `6646550`, 2026-10-22T17:19:50.887Z.
+> `npm run results` (backend)-ээр автоматаар үүсгэв. Гараар бүү засаарай. Commit `5b914ca`, 2026-11-26T04:06:23.372Z.
 
 ## 1. Suite бүрийн нийлбэр
 
 | Suite | Команд | Passed | Failed | Skipped | Тайлбар |
 |---|---|---:|---:|---:|---|
-| Backend unit + HTTP (jest) | `npx jest` | 1038 | 0 | 0 |  |
-| Use-case acceptance (jest + supertest + PostgreSQL) | `npx jest --config ./test/jest-uc.json --runInBand` | 52 | 0 | 0 |  |
-| Web (vitest) | `cd admin-web && npx vitest run` | 1095 | 0 | 0 |  |
-| Mobile (flutter test) | `cd mobile-flutter && flutter test` | 135 | 0 | 1 |  |
+| Backend unit + HTTP (jest) | `npx jest` | 1134 | 0 | 0 |  |
+| Use-case acceptance (jest + supertest + PostgreSQL) | `npx jest --config ./test/jest-uc.json --runInBand` | 62 | 0 | 0 |  |
+| Web (vitest) | `cd admin-web && npx vitest run` | 1151 | 0 | 0 |  |
+| Mobile (flutter test) | `cd mobile-flutter && flutter test` | 146 | 0 | 6 |  |
 | Browser e2e (Playwright, demo + live API) | `cd admin-web && npx playwright test` | 40 | 0 | 0 |  |
 
-Нийт ажилласан тест: **2360 passed**, **0 failed**.
+Нийт ажилласан тест: **2533 passed**, **0 failed**.
 
-Lint: backend — clean, web — clean.
+Lint: backend — clean, web — errors.
 
 ## 2. Use case-ийн хүлээн авах тест (UC → тест → үр дүн)
 
@@ -28,8 +28,8 @@ Lint: backend — clean, web — clean.
 | UC-04 | Сарын тайлангаа өөрийн бүртгэлээс бэлтгэх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the monthly report counts the employee’s own logs and measurements<br>✓ refused: an employee cannot draft the team’s monthly summary | pass |
 | UC-05 | Улаан шошгоор дутагдал бүртгэх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: a red tag on a zone is recorded with a follow-up task<br>✓ alternative: a red tag on a zone that does not exist is refused | pass |
 | UC-06 | Сайжруулалтын санаа гаргах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the idea is saved as submitted<br>✓ alternative: an idea with a too-short title is refused | pass |
-| UC-07 | Хувийн бүртгэлээ удирдах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: edit own phone, change password with the current one, sign in with the new one<br>✓ main: keeps personal notes on the server and deletes own records; another person’s is not found<br>✓ main: focus sessions are kept on the server and badges come from the person’s own records<br>✓ main: a browser keeps its session in an HttpOnly cookie that no script can read<br>✓ alternative: a password change ends every other session, and keeps the one that made it<br>✓ refused: a wrong current password, and a forgot-password answer that reveals nothing | pass |
-| UC-08 | 5S аудит хийх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: an audit on a zone is scored; a follow-up task is created and assigned<br>✓ refused: an audit against a template that does not exist | pass |
+| UC-07 | Хувийн бүртгэлээ удирдах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: edit own phone, change password with the current one, sign in with the new one<br>✓ main: keeps personal notes on the server and deletes own records; another person’s is not found<br>✓ main: focus sessions are kept on the server and badges come from the person’s own records<br>✓ main: a browser keeps its session in an HttpOnly cookie that no script can read<br>✓ alternative: a password change ends every other session, and keeps the one that made it<br>✓ refused: a wrong current password, and a forgot-password answer that reveals nothing<br>✓ alternative: with no mail, an administrator hands over a reset link that works once<br>✓ refused: an employee cannot issue a reset link, and nobody issues one for themselves | pass |
+| UC-08 | 5S аудит хийх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: an audit on a zone is scored; a follow-up task is created and assigned<br>✓ alternative: a score the answers do not earn is not kept<br>✓ refused: an audit against a template that does not exist | pass |
 | UC-09 | Төсөл үүсгэж, ажил оноож хянах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the manager creates a project and a task; the assignee is notified<br>✓ refused: an employee cannot create a project | pass |
 | UC-10 | Сарын төлөвлөгөө гаргах | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: tasks are planned for next month with owners and dates<br>✓ refused: an employee cannot plan work for others | pass |
 | UC-11 | Өглөөний хурал хөтлөх | `backend/test/use-cases/use-cases.uc-spec.ts` | ✓ main: the manager reads the team’s week and open work for the huddle board<br>✓ alternative: a week that is not a date is refused | pass |
@@ -88,7 +88,7 @@ Lint: backend — clean, web — clean.
 
 ### Офлайн outbox-ийн дахин илгээлт (Flutter)
 
-`mobile-flutter/test/outbox_test.dart`: 11/11 passed.
+`mobile-flutter/test/outbox_test.dart`: 17/17 passed.
 
 - ✓ keeps an audit walked with no signal, and sends it when the signal is back
 - ✓ survives the app being closed
@@ -97,8 +97,14 @@ Lint: backend — clean, web — clean.
 - ✓ keeps a day written up offline on today’s list, hours counted
 - ✓ project and task links survive an offline write, restart and replay
 - ✓ a write-up whose answer timed out is kept, and sent again under the same key
+- ✓ an idea, an audit and a red tag whose answers were lost keep the key they were first sent with
 - ✓ keeps a change whose first copy is still being saved
 - ✓ every kept change carries a key of its own
+- ✓ a change kept on a shared phone waits for the person who made it
+- ✓ sends one person’s changes without touching another’s, in order
+- ✓ remembers whose a change is across the app being closed
+- ✓ a change kept before owners were recorded still goes out
+- ✓ signing in stamps what is kept with that person
 - ✓ without an outbox, an offline change fails as before
 - ✓ says what is waiting on every tab, and sends it on request
 
@@ -108,10 +114,10 @@ Lint: backend — clean, web — clean.
 |---|---|---|
 | Үйл ажиллагааны тохирох байдал | 22 UC-ийн хүлээн авах тест; K1–K6-ийн хүснэгтэн unit тест | 22/22 UC pass |
 | Гүйцэтгэлийн үр ашиг | 6 endpoint-ийн p50/p95, 10k бүртгэл дээрх алгоритм | хамгийн удаан p95 = 196.85 мс (NFR-06 босго 2000 мс) |
-| Аюулгүй байдал | Эрхийн матриц (доор); нууц үг сэргээлтийн халдлагын тохиолдол | 15/15 татгалзах тест pass; сэргээлт: 13/13 pass |
-| Ашиглахад хялбар байдал | SUS асуулга бодит хэрэглэгч шаарддаг | Хэмжээгүй (не измерено) — пилот дээр SUS авах шаардлагатай; хүртээмжийн автомат шалгалт (axe, Flutter accessibility) suite-д багтсан |
-| Найдвартай байдал | Офлайн outbox, дахин илгээлт | 11/11 pass; бодит сүлжээний тасалдлын туршилт хэмжээгүй |
-| Засвар үйлчилгээ | Тестийн тоо, lint | 2360 тест; lint backend clean, web clean |
+| Аюулгүй байдал | Эрхийн матриц (доор); нууц үг сэргээлтийн халдлагын тохиолдол | 19/19 татгалзах тест pass; сэргээлт: 13/13 pass |
+| Ашиглахад хялбар байдал | SUS асуулга бодит хэрэглэгч шаарддаг | SUS асуулга системд бэлэн (вэб, гар утас; `/sus`), оноо хараахан хэмжээгүй — пилотын төгсгөлд нэг үе нээж авна; хүртээмжийн автомат шалгалт (axe, Flutter accessibility) suite-д багтсан |
+| Найдвартай байдал | Офлайн outbox, дахин илгээлт; жинхэнэ сервертэй TCP холболт тасалдах | 17/17 pass; тасалдлын тест (`network_drop_live_test.dart`) CI-ийн Live API ажилд; бодит утас, Wi-Fi дээр хэмжээгүй |
+| Засвар үйлчилгээ | Тестийн тоо, lint | 2533 тест; lint backend clean, web errors |
 | Нийцтэй байдал | Web (Chromium e2e), Android/iOS Flutter client, нэг API | e2e 40 passed, 0 failed; бусад хөтөч, бодит төхөөрөмж дээр хэмжээгүй |
 
 ### Эрхийн матриц (UC тестийн татгалзсан урсгалаас)
@@ -122,6 +128,7 @@ Lint: backend — clean, web — clean.
 | UC-03 Долоо хоногийн тайлан бичих (write the weekly check-in) › refused: an employee cannot read the team’s check-ins | refused as expected |
 | UC-04 Сарын тайлангаа өөрийн бүртгэлээс бэлтгэх (prepare own monthly report) › refused: an employee cannot draft the team’s monthly summary | refused as expected |
 | UC-07 Хувийн бүртгэлээ удирдах (manage own account) › refused: a wrong current password, and a forgot-password answer that reveals nothing | refused as expected |
+| UC-07 Хувийн бүртгэлээ удирдах (manage own account) › refused: an employee cannot issue a reset link, and nobody issues one for themselves | refused as expected |
 | UC-08 5S аудит хийх (run a 5S audit) «include» create and notify a task › refused: an audit against a template that does not exist | refused as expected |
 | UC-09 Төсөл үүсгэж, ажил оноож хянах (create a project, assign and track) «include» notify › refused: an employee cannot create a project | refused as expected |
 | UC-10 Сарын төлөвлөгөө гаргах (plan the month) › refused: an employee cannot plan work for others | refused as expected |
@@ -133,6 +140,9 @@ Lint: backend — clean, web — clean.
 | UC-19 5S талбай, стандарт тохируулах (set up 5S areas and standards) › refused: an employee cannot create a 5S plan | refused as expected |
 | UC-20 Аудитын шалгах хуудас боловсруулах (build an audit checklist) › refused: an employee cannot create a checklist | refused as expected |
 | UC-21 Үйл ажиллагааны түүх шалгах (inspect the activity history) › refused: a manager or employee cannot read it | refused as expected |
+| K7 Хэрэглэхэд хялбар байдлын асуулга (SUS questionnaire, the measure K7) › refused: an employee can answer but cannot open a round or read the totals | refused as expected |
+| M12 Ажлын ачаалал (workload before assigning work) › refused: an employee cannot see a ranking of colleagues’ load | refused as expected |
+| M2 Ажлын баримт ба батлах (task documents: submit, return, approve) › refused: no review of one’s own work, no review by an employee, no return without a reason, no back door | refused as expected |
 
 ### Нууц үг сэргээлтийн халдлагын тохиолдол
 

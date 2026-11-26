@@ -1,3 +1,6 @@
+/**
+ * /analytics - productivity, project progress, task completion, assessment scores and department workload.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

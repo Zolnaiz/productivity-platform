@@ -1,4 +1,10 @@
+/**
+ * /tasks - the task board: filter, create, assign, move through statuses; shows where each task came from.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
+import AssigneeLoad from '../components/workload/AssigneeLoad';
+import TaskDeliverables from '../components/deliverables/TaskDeliverables';
+import { LoadWarning } from '../components/workload/workload';
 import { Check, Columns3, List, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -31,6 +37,13 @@ const priorityDot: Record<string, string> = {
   high: 'bg-red-500',
   medium: 'bg-amber-500',
   low: 'bg-gray-400',
+};
+
+/** The work-documents review, on the card, so waiting and returned work stands out on the board. */
+const reviewBadge: Record<'submitted' | 'approved' | 'returned', string> = {
+  submitted: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200',
+  returned: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
+  approved: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
 };
 
 const emptyDraft = {
@@ -79,6 +92,9 @@ const TasksPage: React.FC = () => {
   const [pendingDelete, setPendingDelete] = useState<WorkTask | null>(null);
   const [tasks, setTasks] = useState<WorkTask[]>([]);
   const [members, setMembers] = useState<TeamUser[]>([]);
+  // Workload of the person chosen in the new-task form (M12), and whether the manager has seen it.
+  const [loadWarnings, setLoadWarnings] = useState<LoadWarning[]>([]);
+  const [loadAcknowledged, setLoadAcknowledged] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   // Somebody who is given work opens on theirs; somebody who gives it out,
   // on everybody's.
@@ -244,6 +260,12 @@ const TasksPage: React.FC = () => {
 
   const handleCreate = (event: React.FormEvent) => {
     event.preventDefault();
+    // A warned assignment takes a second click: the warning is advice, the manager decides.
+    if (draft.assigneeId && loadWarnings.length && !loadAcknowledged) {
+      setLoadAcknowledged(true);
+      return;
+    }
+    setLoadAcknowledged(false);
     const fields = draft;
     setDraft({ ...emptyDraft, projectId: projectFilter });
     setCreateOpen(false);
@@ -428,7 +450,10 @@ const TasksPage: React.FC = () => {
             <Select
               label={t('tasks.assignee')}
               value={draft.assigneeId}
-              onChange={(event) => setDraft((current) => ({ ...current, assigneeId: event.target.value }))}
+              onChange={(event) => {
+                setLoadAcknowledged(false);
+                setDraft((current) => ({ ...current, assigneeId: event.target.value }));
+              }}
             >
               <option value="">{t('tasks.nobodyYet')}</option>
               {members.map((member) => (
@@ -475,11 +500,27 @@ const TasksPage: React.FC = () => {
             value={draft.estimatedHours}
             onChange={(event) => setDraft((current) => ({ ...current, estimatedHours: event.target.value }))}
           />
+          {canAssign && (
+            <AssigneeLoad
+              members={members}
+              nameOf={memberName}
+              selectedId={draft.assigneeId}
+              dueDate={draft.dueDate}
+              estimatedHours={Number(draft.estimatedHours || 0)}
+              onPick={(userId) => {
+                setLoadAcknowledged(false);
+                setDraft((current) => ({ ...current, assigneeId: userId }));
+              }}
+              onWarnings={setLoadWarnings}
+            />
+          )}
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" type="button" onClick={() => setCreateOpen(false)}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit">{t('tasks.addTask')}</Button>
+            <Button type="submit" variant={loadAcknowledged ? 'danger' : 'primary'}>
+              {loadAcknowledged ? t('tasks.assignAnyway') : t('tasks.addTask')}
+            </Button>
           </div>
         </form>
       </Modal>
@@ -550,6 +591,14 @@ const TasksPage: React.FC = () => {
                         </div>
                       )}
                       {project && <div className="mt-1 truncate text-xs text-blue-700 dark:text-blue-300">{project}</div>}
+                      {task.reviewStatus && (
+                        <span
+                          className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${reviewBadge[task.reviewStatus]}`}
+                          data-testid="card-review-status"
+                        >
+                          {t(`tasks.reviewBadge.${task.reviewStatus}`)}
+                        </span>
+                      )}
                       <div className="mt-2 flex items-center justify-between gap-2 text-xs">
                         {owner ? (
                           <span className="truncate text-gray-700 dark:text-gray-300">{owner}</span>
@@ -695,6 +744,28 @@ const TasksPage: React.FC = () => {
                 </dd>
               </div>
             </dl>
+            <TaskDeliverables
+              key={openTask.id}
+              taskId={openTask.id}
+              assigneeId={openTask.assigneeId}
+              currentUserId={user?.id}
+              canReview={hasPermission('deliverables:review')}
+              canManage={canAssign}
+              // The card's badge follows each step; approval also finishes the task on the server.
+              onStatusChange={(reviewStatus) =>
+                setTasks((current) =>
+                  current.map((item) =>
+                    item.id === openTask.id
+                      ? {
+                          ...item,
+                          reviewStatus: reviewStatus === 'none' ? null : reviewStatus,
+                          status: reviewStatus === 'approved' ? 'done' : item.status,
+                        }
+                      : item,
+                  ),
+                )
+              }
+            />
             {canDelete && (
               <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
                 <button

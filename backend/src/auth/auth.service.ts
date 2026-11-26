@@ -1,3 +1,7 @@
+/**
+ * Sign-up, sign-in and token lifecycle. Issues short-lived access tokens and refresh tokens (separate secret), hashes
+ * passwords, handles forgot/reset-password mails, and creates the first organisation and owner on registration.
+ */
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';

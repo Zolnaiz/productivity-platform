@@ -1,3 +1,4 @@
+/** Unit test for huddle.ts: the morning huddle. */
 import { describe, expect, it } from 'vitest';
 import { huddleFigures, HuddleInput } from './huddle';
 

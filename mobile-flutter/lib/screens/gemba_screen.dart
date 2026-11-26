@@ -64,13 +64,17 @@ class _GembaWalkScreenState extends State<GembaWalkScreen> {
       'followUps': followUps,
     };
     setState(() => _saving = true);
+    // The same key on the first try and in the outbox, so a walk whose answer
+    // was lost is recorded once, with its follow-up tasks raised once.
+    final key = newIdempotencyKey();
     try {
-      await widget.api.recordGembaWalk(body);
+      await widget.api.recordGembaWalk(body, idempotencyKey: key);
       messenger.showSnackBar(SnackBar(content: Text(strings.text('gembaSaved'))));
       navigator.pop();
     } catch (e) {
-      if (widget.outbox != null && neverSent(e)) {
-        await widget.outbox!.keep(method: 'POST', path: '/gemba', kind: 'gemba', data: body);
+      if (widget.outbox != null && unanswered(e)) {
+        await widget.outbox!
+            .keep(method: 'POST', path: '/gemba', kind: 'gemba', data: body, key: key);
         messenger.showSnackBar(SnackBar(content: Text(strings.text('keptNow'))));
         navigator.pop();
       } else {

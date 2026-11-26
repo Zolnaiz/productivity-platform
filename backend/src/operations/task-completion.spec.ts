@@ -1,3 +1,4 @@
+/** Unit test for task-completion.ts: when a task was finished. */
 import { completionMonth, doneByEndOf, stampCompletion, withoutCompletionDate } from './task-completion';
 
 describe('when a task was finished', () => {

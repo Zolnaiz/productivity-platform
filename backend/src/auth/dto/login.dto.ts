@@ -1,3 +1,6 @@
+/**
+ * Body of POST /auth/login.
+ */
 import { IsEmail, IsString, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 

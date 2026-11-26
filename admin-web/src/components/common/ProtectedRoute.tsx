@@ -1,3 +1,6 @@
+/**
+ * Route wrapper: sends signed-out visitors to /login and hides pages the user's permission does not allow.
+ */
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';

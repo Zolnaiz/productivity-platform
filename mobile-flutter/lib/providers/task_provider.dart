@@ -1,13 +1,24 @@
+// The user's tasks: loads them (falling back to the read cache offline) and keeps status changes in the outbox
+// when there is no network.
+
 import 'package:flutter/foundation.dart';
 
 import '../models/task_model.dart';
 import '../services/api_service.dart';
 import '../services/outbox.dart';
+import '../services/read_cache.dart';
 
 class TaskProvider extends ChangeNotifier {
-  TaskProvider(this._api, {this.outbox});
+  TaskProvider(this._api, {this.outbox, this.cache});
   final ApiService _api;
   final Outbox? outbox;
+
+  /// Where the list is kept for when the phone is offline.
+  final ReadCache? cache;
+
+  /// When the list on screen was read, while the phone cannot reach the
+  /// server and shows the copy it kept; null when it is fresh.
+  DateTime? offlineSince;
 
   /// The connection this screen's work goes through, for the account actions beside it.
   ApiService get api => _api;
@@ -23,20 +34,36 @@ class TaskProvider extends ChangeNotifier {
     }
   }
 
+  /// The review state of one task's documents, after a step taken on its sheet,
+  /// so the card shows it without reloading the list.
+  void setReviewStatus(String taskId, String? reviewStatus) {
+    tasks = [
+      for (final task in tasks)
+        task.id == taskId
+            ? task.copyWith(reviewStatus: reviewStatus ?? 'none')
+            : task
+    ];
+    notifyListeners();
+  }
+
   Future<void> load({required String? assigneeId}) async {
     loading = true;
     error = null;
     notifyListeners();
     try {
-      final organizationTasks =
-          (await _api.getTasks()).map(Task.fromJson).toList();
       // The API scopes this endpoint to an organization, so keep other people's
-      // work out of an operator's list on a phone they may share on shift.
-      tasks = assigneeId == null
-          ? []
-          : organizationTasks
-              .where((task) => task.assigneeId == assigneeId)
-              .toList();
+      // work out of an operator's list - and out of what the phone keeps -
+      // on a phone they may share on shift.
+      final (mine, savedAt) = await readThrough(cache, 'tasks', () async {
+        if (assigneeId == null) return [];
+        return (await _api.getTasks())
+            .where((task) => task['assigneeId'] == assigneeId)
+            .toList();
+      });
+      tasks = [
+        for (final task in mine) Task.fromJson(Map<String, dynamic>.from(task as Map))
+      ];
+      offlineSince = savedAt;
     } catch (e) {
       error = e;
     } finally {
@@ -60,8 +87,10 @@ class TaskProvider extends ChangeNotifier {
       ];
       error = null;
     } catch (e) {
-      if (outbox != null && neverSent(e)) {
+      if (outbox != null && unanswered(e)) {
         // Moved on screen and kept: it goes to the server with the network.
+        // It sets a status rather than adding a record, so a copy arriving
+        // after one the server already saved changes nothing.
         await outbox!.keep(
             method: 'PATCH',
             path: '/tasks/${task.id}',

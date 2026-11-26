@@ -1,3 +1,4 @@
+/** Unit test for FiveSZoneTable.tsx: 5S area table. */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';

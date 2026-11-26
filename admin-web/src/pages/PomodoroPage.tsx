@@ -1,3 +1,6 @@
+/**
+ * /pomodoro - focus timer; finished sessions are saved.
+ */
 import React, { useEffect, useState } from 'react';
 import { Timer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

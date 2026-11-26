@@ -1,7 +1,19 @@
+/**
+ * Who is signed in. Holds the user, signs in/out, restores the session on reload through the refresh cookie
+ * (the access token itself lives only in memory, services/api.ts) and exposes hasPermission.
+ */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, LoginCredentials } from '../types/user.types';
 import { authService } from '../services/auth.service';
-import { clearStoredAuth, isDemoEnabled } from '../services/api';
+import {
+  clearSession,
+  forgetStoredCredentials,
+  isDemoEnabled,
+  isDemoMode,
+  refreshSession,
+  startDemoSession,
+  startSession,
+} from '../services/api';
 import { useNotification } from './NotificationContext';
 import { useTranslation } from 'react-i18next';
 import { apiErrorMessage } from '../i18n/apiError';
@@ -24,6 +36,12 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/**
+ * What `token` holds in the demo workspace, so the app counts somebody as
+ * signed in. It is never sent anywhere: the demo has no server session.
+ */
+const DEMO_TOKEN = 'demo-token';
 
 /**
  * What the server says this person may do.
@@ -51,6 +69,11 @@ const fetchPermissions = async (): Promise<string[]> => {
 
 
 
+/**
+ * The profile kept from the last sign-in in this browser. Not a credential:
+ * it says somebody was signed in here, so a reload knows to ask the refresh
+ * cookie for a session, and it fills the screen while that answer comes.
+ */
 const readStoredUser = (): User | null => {
   const savedUser = localStorage.getItem('user');
   if (!savedUser) return null;
@@ -58,10 +81,13 @@ const readStoredUser = (): User | null => {
   try {
     return JSON.parse(savedUser) as User;
   } catch {
-    clearStoredAuth();
+    clearSession();
     return null;
   }
 };
+
+/** A browser from before 2026-11, signed in with its token in storage. */
+const hadStoredToken = () => Boolean(localStorage.getItem('token') || localStorage.getItem('refreshToken'));
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -84,52 +110,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { addNotification } = useNotification();
   const { t } = useTranslation();
 
-  // Анхны ачаалал - хадгалсан өгөгдлийг шалгах
+  // A page load: the token is not kept anywhere a reload can find it, so a
+  // session is restored from the refresh cookie, or there is none.
   useEffect(() => {
-    const initializeAuth = async () => {
+    const restoreSession = async () => {
+      const savedUser = readStoredUser();
+
+      // The demo workspace never had a server session to restore.
+      if (isDemoMode() && savedUser) {
+        setToken(DEMO_TOKEN);
+        setUser(savedUser);
+        return;
+      }
+
+      // Nobody signed in in this browser: no request to make.
+      if (!savedUser && !hadStoredToken()) {
+        clearSession();
+        return;
+      }
+
       try {
-        const savedToken = localStorage.getItem('token');
-        const savedUser = readStoredUser();
-        
-        if (savedToken && savedUser) {
-          setToken(savedToken);
-          setUser(savedUser);
+        const freshToken = await refreshSession();
+        // On the cookie now: what an earlier version left in storage goes.
+        forgetStoredCredentials();
+        setToken(freshToken);
+        if (savedUser) setUser(savedUser);
 
-          if (savedToken === 'demo-token') {
-            if (!isDemoEnabled()) {
-              clearStoredAuth();
-              setToken(null);
-              setUser(null);
-              setIsLoading(false);
-              return;
-            }
-
-            setIsLoading(false);
-            return;
-          }
-          
-          // Token баталгаажуулах
-          try {
-            const userData = await authService.getMe();
-            const withPermissions = { ...userData, permissions: await fetchPermissions() };
-            setUser(withPermissions);
-            localStorage.setItem('user', JSON.stringify(withPermissions));
-          } catch (error) {
-            console.warn('Token validation failed:', error);
-            // Token хүчингүй болвол цэвэрлэх
-            clearStoredAuth();
-            setToken(null);
-            setUser(null);
-          }
-        }
+        const userData = await authService.getMe();
+        const withPermissions = { ...userData, permissions: await fetchPermissions() };
+        setUser(withPermissions);
+        localStorage.setItem('user', JSON.stringify(withPermissions));
       } catch (error) {
-        console.error('Auth initialization error:', error);
-      } finally {
-        setIsLoading(false);
+        // The cookie expired, was revoked by a password change, or the
+        // account was closed: signed out, and the sign-in page says so.
+        console.warn('Session could not be restored:', error);
+        clearSession();
+        setToken(null);
+        setUser(null);
       }
     };
 
-    initializeAuth();
+    restoreSession().finally(() => setIsLoading(false));
   }, []);
 
   // Нэвтрэх функц
@@ -137,17 +158,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const response = await authService.login(credentials);
-      
-      setToken(response.token);
-      localStorage.setItem('token', response.token);
 
-      // After the token is stored, so the request for it is authenticated.
+      // In memory only; the refresh token is in the HttpOnly cookie the
+      // server just set. Copies an earlier version left in storage go, and
+      // so does anything remembered for a previous sign-in.
+      startSession(response.token);
+      setToken(response.token);
+
+      // After the token is set, so the request for it is authenticated.
       const signedIn = { ...response.user, permissions: await fetchPermissions() };
       setUser(signedIn);
       localStorage.setItem('user', JSON.stringify(signedIn));
-      // The refresh token is in an HttpOnly cookie now; a copy left in
-      // storage from before is one a script could read.
-      localStorage.removeItem('refreshToken');
       
       addNotification({
         type: 'success',
@@ -205,11 +226,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    const demoToken = 'demo-token';
-
-    setToken(demoToken);
+    startDemoSession();
+    setToken(DEMO_TOKEN);
     setUser(demoUser);
-    localStorage.setItem('token', demoToken);
     localStorage.setItem('user', JSON.stringify(demoUser));
 
     addNotification({
@@ -228,8 +247,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setToken(null);
       setUser(null);
-      clearStoredAuth();
-      
+      clearSession();
+
       addNotification({
         type: 'info',
         title: t('auth.signedOut'),

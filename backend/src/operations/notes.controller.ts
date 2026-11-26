@@ -1,3 +1,6 @@
+/**
+ * Personal notes of the signed-in user: list, create, delete.
+ */
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../shared/decorators/permissions.decorator';

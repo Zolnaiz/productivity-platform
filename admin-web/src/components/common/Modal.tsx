@@ -1,3 +1,6 @@
+/**
+ * Dialog with focus trap, Escape to close and scroll lock; the base of ConfirmDialog and the form pop-ups.
+ */
 import React, { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

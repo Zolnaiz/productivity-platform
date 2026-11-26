@@ -1,3 +1,7 @@
+/**
+ * i18next setup for Mongolian (default) and English: the chosen language is remembered, and an organisation's
+ * language applies to new users (applyWorkspaceLanguage).
+ */
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import en from './locales/en';

@@ -1,3 +1,4 @@
+/** Unit test for audit-log.interceptor.ts: describing what a route did. */
 import { Logger } from '@nestjs/common';
 import { of } from 'rxjs';
 import { AuditLogInterceptor, describeRoute, severityFor } from './audit-log.interceptor';

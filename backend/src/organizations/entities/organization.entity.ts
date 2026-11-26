@@ -1,3 +1,6 @@
+/**
+ * An organisation (tenant). Every operations row belongs to exactly one.
+ */
 import {
   Entity,
   Column,

@@ -1,3 +1,4 @@
+/** Unit test for ZonePage.tsx: the page a zone label opens. */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

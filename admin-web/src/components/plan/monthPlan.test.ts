@@ -1,3 +1,4 @@
+/** Unit test for monthPlan.ts: a month’s plan. */
 import { describe, expect, it } from 'vitest';
 import { buildMonthPlan, nextMonth } from './monthPlan';
 import { WorkTask } from '../../types/operations.types';

@@ -1,3 +1,8 @@
+# CI for pull requests and pushes to main. Jobs: backend (tests, lint, migration check, build, audit),
+# frontend (tests, lint, build, audit), browser (Playwright in demo mode), mobile (analyze, tests, release
+# APK), live-api (a real server: API smoke, use cases, live web and mobile suites) and docker-config (the
+# production compose file against .env.production.example).
+
 name: CI
 
 on:
@@ -19,7 +24,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -59,7 +64,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: admin-web/package-lock.json
 
@@ -104,7 +109,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: admin-web/package-lock.json
 
@@ -211,7 +216,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -266,11 +271,19 @@ jobs:
           flutter-version: 3.47.2
           cache: true
 
+      # Every call the phone makes, through the phone's own client, so a request
+      # whose shape has drifted from the API fails here and not on a phone.
+      # LIVE_WRITES adds the password change and the deletion request, which
+      # belong on this throwaway database only. The network-drop test cuts the
+      # line between the phone's code and this server - before a request and
+      # as its answer comes back - and counts what the server saved. One file
+      # at a time: both sign in as the same account, and the first changes its
+      # password (and back), which ends the other's sessions mid-test.
       - name: Mobile client against the real server
         working-directory: mobile-flutter
         run: |
           flutter pub get
-          flutter test test/phase_one_live_backend_test.dart --dart-define=API_BASE_URL=http://127.0.0.1:3000/api
+          flutter test --concurrency=1 test/phase_one_live_backend_test.dart test/network_drop_live_test.dart --dart-define=API_BASE_URL=http://127.0.0.1:3000/api --dart-define=LIVE_WRITES=true
 
       - name: Server log on failure
         if: failure()

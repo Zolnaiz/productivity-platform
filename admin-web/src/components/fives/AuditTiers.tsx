@@ -1,3 +1,6 @@
+/**
+ * Shows which audit tier (who audits a zone, how often) applies to a zone, per tierRules.
+ */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { auditBandFor, auditBandText } from '../charts/palette';

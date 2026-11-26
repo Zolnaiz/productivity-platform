@@ -1,3 +1,6 @@
+/**
+ * Joi schema for the environment: the app refuses to start with a missing or malformed variable.
+ */
 import * as Joi from 'joi';
 
 const weakSecrets = [

@@ -1,3 +1,4 @@
+/** Unit test for floorPlanPlacement.ts: putting something against a wall. */
 import { describe, expect, it } from 'vitest';
 import { Corner, Wall } from './floorPlanWalls';
 import { WALL_SNAP, dropSpot, placeAgainstWall } from './floorPlanPlacement';

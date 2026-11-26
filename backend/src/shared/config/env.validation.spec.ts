@@ -1,3 +1,4 @@
+/** Unit test for env.validation.ts: envValidationSchema. */
 import { envValidationSchema } from './env.validation';
 
 describe('envValidationSchema', () => {

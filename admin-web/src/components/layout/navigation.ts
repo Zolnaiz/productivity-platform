@@ -134,6 +134,7 @@ export const sections: NavSection[] = [
     pages: [
       { path: '/help', labelKey: 'nav.help' },
       { path: '/feedback', labelKey: 'nav.feedback' },
+      { path: '/usability', labelKey: 'nav.usability' },
     ],
   },
   {

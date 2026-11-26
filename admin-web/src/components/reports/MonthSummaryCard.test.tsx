@@ -1,3 +1,4 @@
+/** Unit test for MonthSummaryCard.tsx: the month in words. */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MonthSummaryCard from './MonthSummaryCard';

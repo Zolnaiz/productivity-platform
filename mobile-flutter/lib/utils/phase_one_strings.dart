@@ -1,3 +1,6 @@
+// All user-visible text of the mobile app (Mongolian and English) and the Mongolian Material/Cupertino
+// localisation delegates.
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -71,6 +74,15 @@ class PhaseOneStrings {
   String todayAllTasks(int open) =>
       mn ? 'Бүх ажил ($open нээлттэй)' : 'All tasks ($open open)';
 
+  /// After answering the questionnaire: what the ten answers come to.
+  String susThanks(num score) {
+    final shown = score == score.roundToDouble() ? score.toInt().toString() : '$score';
+    return mn ? 'Баярлалаа. Таны хариулт 100-аас $shown оноо.' : 'Thank you. Your answers come to $shown out of 100.';
+  }
+
+  /// What a screen reader says for one of the five answers to a statement.
+  String susChoice(int item, int value) => mn ? 'S$item өгүүлбэрт $value' : '$value for statement S$item';
+
   String hoursValue(double hours) {
     final shown =
         hours == hours.roundToDouble() ? hours.toInt().toString() : '$hours';
@@ -132,6 +144,11 @@ class PhaseOneStrings {
       ? 'Утсанд $count зүйл хадгалагдсан. Сүлжээ ормогц илгээнэ.'
       : '$count kept on this phone, sent when the network is back.';
 
+  /// Said while a tab shows what it read earlier because the phone is offline.
+  String readOffline(DateTime at, DateTime now) => mn
+      ? 'Сүлжээгүй. ${sentAt(at, now)}-д уншсан мэдээллийг харуулж байна.'
+      : 'Offline. Showing what was read ${sentAt(at, now).toLowerCase()}.';
+
   String keptRefused(int count) => mn
       ? 'Хадгалсан $count зүйлийг сервер хүлээж авсангүй.'
       : 'The server did not take $count kept change${count == 1 ? '' : 's'}.';
@@ -153,6 +170,9 @@ class PhaseOneStrings {
 const _raisedMn = {
   'raised.deletionRequested': 'Бүртгэл устгах хүсэлт ирлээ: {{name}}',
   'raised.ideaApproved': 'Таны санааг хэрэгжүүлэхээр шийдлээ: {{title}}',
+  'raised.deliverableSubmitted': 'Хянах баримт ирлээ: {{title}}',
+  'raised.deliverableApproved': 'Таны баримт батлагдлаа: {{title}}',
+  'raised.deliverableReturned': 'Таны баримтыг буцаалаа: {{title}}',
   'raised.ideaDeclined': 'Таны санааг одоохондоо хэрэгжүүлэхгүй: {{title}}',
   'raised.ideaDone': 'Таны санаа хэрэгжлээ: {{title}}',
   'raised.tierAuditDue': '{{layer}}-ын 5S аудитын хугацаа болсон: {{place}}',
@@ -181,6 +201,9 @@ const _raisedMn = {
 const _raisedEn = {
   'raised.deletionRequested': 'Account deletion requested: {{name}}',
   'raised.ideaApproved': 'Your idea was taken up: {{title}}',
+  'raised.deliverableSubmitted': 'Documents to review: {{title}}',
+  'raised.deliverableApproved': 'Your documents were approved: {{title}}',
+  'raised.deliverableReturned': 'Your documents were returned: {{title}}',
   'raised.ideaDeclined': 'Your idea was not taken up: {{title}}',
   'raised.ideaDone': 'Your idea is in place: {{title}}',
   'raised.tierAuditDue': '{{layer}} 5S audit due: {{place}}',
@@ -252,6 +275,18 @@ const _en = {
   'sendNow': 'Send now',
   'markDone': 'Mark done',
   'reopen': 'Open again',
+  'docs': 'Documents',
+  'docs.title': 'Work documents',
+  'docs.empty': 'No documents yet. Take a photo of the finished work.',
+  'docs.photo': 'Take a photo',
+  'docs.submit': 'Send for review',
+  'docs.waiting': 'Sent for review. The files cannot change until it is decided.',
+  'docs.locked': 'Approved. The documents are locked.',
+  'docs.returned': 'Returned for changes:',
+  'docs.status.none': 'Not sent',
+  'docs.status.submitted': 'Under review',
+  'docs.status.approved': 'Approved',
+  'docs.status.returned': 'Returned',
   'group.late': 'Late',
   'group.today': 'Due today',
   'group.week': 'This week',
@@ -305,9 +340,33 @@ const _en = {
   'labelUnknown': 'This label names an area that is not on your organization’s plans.',
   'cameraUnavailable': 'The camera could not be opened. Allow it in the phone’s settings.',
   'keptNow': 'No network. Kept on this phone to send later.',
+  'susTitle': 'Usability questionnaire',
+  'susReminder': 'The usability questionnaire is open: ten statements, about two minutes.',
+  'susAnswer': 'Answer',
+  'susScaleHint': 'For each statement, choose from 1 (strongly disagree) to 5 (strongly agree).',
+  'susDisagree': 'Strongly disagree',
+  'susAgree': 'Strongly agree',
+  'susAnswerAll': 'Answer all ten statements to send.',
+  'susSend': 'Send answers',
+  'sus.s1': 'I think that I would like to use this system frequently.',
+  'sus.s2': 'I found the system unnecessarily complex.',
+  'sus.s3': 'I thought the system was easy to use.',
+  'sus.s4': 'I think that I would need the support of a technical person to be able to use this system.',
+  'sus.s5': 'I found the various functions in this system were well integrated.',
+  'sus.s6': 'I thought there was too much inconsistency in this system.',
+  'sus.s7': 'I would imagine that most people would learn to use this system very quickly.',
+  'sus.s8': 'I found the system very cumbersome to use.',
+  'sus.s9': 'I felt very confident using the system.',
+  'sus.s10': 'I needed to learn a lot of things before I could get going with this system.',
   'signIn': 'Sign in',
   'appName': 'Бүтээмж',
   'signInHint': 'Sign in with your organization account',
+  'server': 'Server',
+  'serverChange': 'Change',
+  'serverAddress': 'Your organization’s server',
+  'serverAddressHint': 'The address your organization gave you, e.g. work.example.com',
+  'serverUse': 'Use',
+  'serverUnreachable': 'No Productivity Platform server answered at this address. Check it and the network, and try again.',
   'logout': 'Sign out',
   'todayTitle': 'Today',
   'todayScan': 'Check an area by QR',
@@ -345,6 +404,10 @@ const _en = {
   'review': 'In review',
   'done': 'Done',
   'error.AUTH_INVALID_CREDENTIALS': 'Email or password is incorrect.',
+  'error.DELIVERABLE_LOCKED': 'These documents are under review or approved and cannot be changed.',
+  'error.DELIVERABLE_STATE': 'That step does not apply to the documents now. Reload and try again.',
+  'error.DELIVERABLE_NO_FILES': 'Add at least one document before sending it for review.',
+  'error.SELF_REVIEW': 'Nobody approves or returns their own work.',
   'error.AUTH_ACCOUNT_INACTIVE':
       'This account has been deactivated. Contact your workspace admin.',
   'error.AUTH_EMAIL_TAKEN':
@@ -424,6 +487,18 @@ const _mn = {
   'sendNow': 'Одоо илгээх',
   'markDone': 'Дууссан болгох',
   'reopen': 'Дахин нээх',
+  'docs': 'Баримт',
+  'docs.title': 'Ажлын баримт',
+  'docs.empty': 'Баримт алга. Хийсэн ажлынхаа зургийг авна уу.',
+  'docs.photo': 'Зураг авах',
+  'docs.submit': 'Хянуулахаар илгээх',
+  'docs.waiting': 'Хянуулахаар илгээсэн. Шийдэх хүртэл файлыг өөрчлөх боломжгүй.',
+  'docs.locked': 'Батлагдсан. Баримт түгжигдсэн.',
+  'docs.returned': 'Засуулахаар буцаасан:',
+  'docs.status.none': 'Илгээгээгүй',
+  'docs.status.submitted': 'Хянагдаж байна',
+  'docs.status.approved': 'Батлагдсан',
+  'docs.status.returned': 'Буцаагдсан',
   'group.late': 'Хоцорсон',
   'group.today': 'Өнөөдөр дуусах',
   'group.week': 'Энэ долоо хоногт',
@@ -477,9 +552,33 @@ const _mn = {
   'labelUnknown': 'Энэ шошгоны талбай танай байгууллагын зураг дээр алга.',
   'cameraUnavailable': 'Камер нээгдсэнгүй. Утасны тохиргооноос зөвшөөрнө үү.',
   'keptNow': 'Сүлжээ алга. Утсанд хадгаллаа, дараа нь илгээнэ.',
+  'susTitle': 'Хэрэглэхэд хялбар байдлын асуулга',
+  'susReminder': 'Хэрэглэхэд хялбар байдлын асуулга нээлттэй байна: арван өгүүлбэр, 2 минут орчим.',
+  'susAnswer': 'Хариулах',
+  'susScaleHint': 'Өгүүлбэр бүрт 1 (огт санал нийлэхгүй)-ээс 5 (бүрэн санал нийлнэ) хүртэл сонгоно уу.',
+  'susDisagree': 'Огт санал нийлэхгүй',
+  'susAgree': 'Бүрэн санал нийлнэ',
+  'susAnswerAll': 'Илгээхийн тулд арван өгүүлбэрт бүгдэд нь хариулна уу.',
+  'susSend': 'Хариулт илгээх',
+  'sus.s1': 'Би энэ системийг байнга ашиглах хүсэлтэй байна гэж бодож байна.',
+  'sus.s2': 'Систем шаардлагагүй төвөгтэй санагдсан.',
+  'sus.s3': 'Системийг ашиглахад хялбар гэж бодсон.',
+  'sus.s4': 'Энэ системийг ашиглахын тулд техникийн хүний тусламж хэрэгтэй болно гэж бодож байна.',
+  'sus.s5': 'Системийн янз бүрийн боломжууд хоорондоо сайн уялдсан санагдсан.',
+  'sus.s6': 'Системд нэг мөр бус, зөрүүтэй зүйл хэт олон байна гэж бодсон.',
+  'sus.s7': 'Ихэнх хүн энэ системийг маш хурдан сурна гэж бодож байна.',
+  'sus.s8': 'Системийг ашиглахад их төвөгтэй, болхи санагдсан.',
+  'sus.s9': 'Системийг ашиглахдаа өөртөө итгэлтэй байсан.',
+  'sus.s10': 'Энэ системийг ашиглаж эхлэхээс өмнө их зүйл сурах шаардлагатай байсан.',
   'signIn': 'Нэвтрэх',
   'appName': 'Бүтээмж',
   'signInHint': 'Байгууллагынхаа бүртгэлээр нэвтэрнэ үү',
+  'server': 'Сервер',
+  'serverChange': 'Солих',
+  'serverAddress': 'Байгууллагын сервер',
+  'serverAddressHint': 'Байгууллагаас өгсөн хаяг, жишээ нь work.example.com',
+  'serverUse': 'Ашиглах',
+  'serverUnreachable': 'Энэ хаяг дээр платформын сервер хариу өгсөнгүй. Хаяг болон сүлжээгээ шалгаад дахин оролдоно уу.',
   'logout': 'Гарах',
   'todayTitle': 'Өнөөдөр',
   'todayScan': 'QR-аар 5S аудит хийх',
@@ -517,6 +616,10 @@ const _mn = {
   'review': 'Хянаж байна',
   'done': 'Дууссан',
   'error.AUTH_INVALID_CREDENTIALS': 'И-мэйл эсвэл нууц үг буруу байна.',
+  'error.DELIVERABLE_LOCKED': 'Баримт хянагдаж эсвэл батлагдсан тул өөрчлөх боломжгүй.',
+  'error.DELIVERABLE_STATE': 'Баримтын одоогийн төлөвт энэ алхам хамаарахгүй. Шинэчлээд дахин оролдоно уу.',
+  'error.DELIVERABLE_NO_FILES': 'Хянуулахаас өмнө дор хаяж нэг баримт нэмнэ үү.',
+  'error.SELF_REVIEW': 'Өөрийн ажлыг өөрөө батлах, буцаах боломжгүй.',
   'error.AUTH_ACCOUNT_INACTIVE':
       'Энэ бүртгэлийг идэвхгүй болгосон байна. Байгууллагынхаа админтай холбогдоно уу.',
   'error.AUTH_EMAIL_TAKEN':

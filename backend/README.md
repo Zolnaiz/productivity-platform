@@ -1,88 +1,50 @@
-# Questionnaire Management System
+# Backend API
 
-Асуулга, зардлын менежментийн цогц систем
+NestJS 11 + TypeORM + PostgreSQL. The only part of the system that writes to the database: every rule
+(permissions, scores, K1–K7, month close) is decided here. How it is organised is in
+[../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) §2; every file in `src/` starts with a comment saying what it
+is for.
 
-## Онцлогууд
+## Run it locally
 
-### Backend (NestJS + TypeORM + PostgreSQL)
-- **Нэвтрэх систем**: JWT, RBAC (Super Admin, Admin, Manager, User, Viewer)
-- **Байгууллагын менежмент**: Олон байгууллага дэмжих архитектур
-- **Асуулгын модуль**: Олон төрлийн асуулга, онооны систем, статистик
-- **Зардлын модуль**: Ангилал, статус, хавсралт файлтай зардлын менежмент
-- **Тайлангийн модуль**: PDF, Excel экспорт, дэлгэрэнгүй шинжилгээ
-- **Хариултын менежмент**: Хэрэглэгчийн хариултыг бүртгэх, шинжлэх
-
-### Mobile (Flutter)
-- **Крос платформ**: iOS, Android, Web дэмжих
-- **Оффлайн горим**: Оффлайн ажиллагаа, синк хийх
-- **Пуш мэдэгдэл**: Асуулга, зардлын мэдэгдэл
-- **Хэрэглэгчийн интерфэйс**: Material Design 3
-
-### Admin Web (React + TypeScript + Tailwind)
-- **Удирдлагын самбар**: Статистик, график, KPI
-- **Хэрэглэгчийн удирдлага**: Хэрэглэгч, эрх, байгууллага
-- **Контент менежмент**: Асуулга, хариулт, зардал, тайлан
-- **Тохиргоо**: Системийн тохиргоо, загвар
-
-## Технологийн стек
-
-### Backend
-- **Үндсэн**: NestJS 10, TypeScript 5
-- **Өгөгдлийн сан**: PostgreSQL 15, TypeORM 0.3
-- **Нэвтрэх**: JWT, Passport, bcrypt
-- **API**: RESTful, Swagger документаци
-- **Файл**: Multer, хавсралт менежмент
-- **Кэш**: Redis 7
-- **Баталгаажуулалт**: class-validator, class-transformer
-- **Тайлан**: PDF/Excel экспорт
-
-### Mobile
-- **Үндсэн**: Flutter 3, Dart 3
-- **State Management**: Provider, Riverpod
-- **API холболт**: Dio, Retrofit
-- **Локал хадгалалт**: Hive, Shared Preferences
-- **Зураг**: Cached Network Image
-- **График**: Charts, Fl_Chart
-- **Пуш мэдэгдэл**: Firebase Cloud Messaging
-
-### Admin Web
-- **Үндсэн**: React 18, TypeScript 5
-- **State Management**: Context API, Zustand
-- **Стиль**: Tailwind CSS 3, Material UI
-- **API холболт**: Axios, React Query
-- **Хэлбэр**: React Hook Form, Zod
-- **Хүснэгт**: TanStack Table
-- **График**: Recharts, Chart.js
-- **Маршрут**: React Router 6
-
-## Суулгац, ажиллуулалт
-
-### Шаардлага
-- Node.js 18+
-- Docker & Docker Compose
-- PostgreSQL 15
-- Redis 7
-- Flutter 3+
-- React 18+
-
-### Development орчин
 ```bash
-# 1. Хранилиг клондох
-git clone <repository-url>
-cd productivity-platform
-
-# 2. Backend суулгах
-cd backend
-cp .env.example .env
+cp .env.example .env          # then set JWT_SECRET, JWT_REFRESH_SECRET, DB_*
 npm install
-npm run start:dev
+npm run db:up                 # PostgreSQL in Docker (docker-compose.db.yml)
+npm run migration:run
+npm run seed                  # optional: demo organisation, people, 5S zones
+npm run start:dev             # http://localhost:3000/api
+```
 
-# 3. Mobile суулгах
-cd ../mobile-flutter
-flutter pub get
-flutter run
+Details, including PostgreSQL without Docker: [../docs/BACKEND_DEV_SETUP.md](../docs/BACKEND_DEV_SETUP.md).
 
-# 4. Admin web суулгах
-cd ../admin-web
-npm install
-npm run dev
+## Commands
+
+| Command | Does |
+|---|---|
+| `npm run start:dev` | API with reload on change |
+| `npm run build`, `npm run start:prod` | Compile to `dist/` and run it |
+| `npm run lint:check` | ESLint without fixing |
+| `npm test` | Unit and HTTP tests (`src/**/*.spec.ts`) |
+| `npm run test:cov` | The same with coverage |
+| `npm run test:uc` | Use-case acceptance tests on a real PostgreSQL (`test/use-cases/`) |
+| `npm run migration:run` / `migration:revert` | Apply / undo the last migration |
+| `npm run migration:generate -- src/migrations/<Timestamp>-<Name>` | New migration from entity changes; name it `*Operations*` or `*Runtime*` or it will not run |
+| `npm run migration:check` | Fails when entities and migrations disagree |
+| `npm run seed` | Demo data (`scripts/seed-operations.ts`) |
+| `npm run bench` | Performance benchmark into `docs/benchmark-results.json` |
+| `npm run results` | Runs every suite and writes `docs/RESULTS.md` |
+| `npm run token:smoke`, `npm run smoke:api` | Smoke test against a running API |
+| `npm run attachments:check` | Compares attachment rows with the stored files (read-only) |
+| `npm run db:up` / `db:down` / `db:logs` | Development PostgreSQL in Docker |
+
+## Adding a feature
+
+1. Entity in `src/operations/entities/`, then a migration (`*Operations*` in its name).
+2. Pure rules in a plain `src/operations/<name>.ts` with a `<name>.spec.ts` beside it.
+3. Service for database work, controller for routes; each route declares its permission
+   (`@RequirePermission('area:action')`), and the permission is added to the roles in `src/shared/roles.ts`.
+4. Errors as `apiError(ErrorCode.X)`, with the code added to `src/shared/errors/api-error.ts` and translated
+   in both clients.
+5. A use case in `test/use-cases/` when the feature is a user-visible flow.
+6. A line in `docs/DECISIONS.md` if you chose between alternatives.

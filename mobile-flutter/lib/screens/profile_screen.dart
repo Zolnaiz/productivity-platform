@@ -47,7 +47,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _first.text = (data['firstName'] as String?) ?? '';
         _last.text = (data['lastName'] as String?) ?? '';
-        _phone.text = (data['phone'] as String?) ?? '';
+        // /auth/me names it phoneNumber (AuthService.toAuthUser), while the
+        // profile update takes `phone`. Read as `phone`, the field came up
+        // empty, and saving any other change then erased the number.
+        _phone.text =
+            (data['phoneNumber'] as String?) ?? (data['phone'] as String?) ?? '';
         _language = (data['language'] as String?) == 'en' ? 'en' : 'mn';
         _loaded = true;
       });

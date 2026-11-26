@@ -1,3 +1,6 @@
+/**
+ * /reset-password/:token - set a new password from a one-time reset link.
+ */
 import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';

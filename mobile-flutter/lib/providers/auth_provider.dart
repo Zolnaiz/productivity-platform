@@ -1,3 +1,7 @@
+// Sign-in state: signs in/out and restores the session at start-up. When the signed-in person changes, the read
+// cache is emptied (one person's view only); the outbox is kept, because each change waits for the person who
+// made it.
+
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -6,13 +10,34 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/organization_model.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
+import '../services/outbox.dart';
+import '../services/read_cache.dart';
 
 class AuthProvider with ChangeNotifier {
-  AuthProvider({ApiService? apiService})
-      : _apiService = apiService ?? ApiService() {
+  AuthProvider({ApiService? apiService, ReadCache? readCache, Outbox? outbox})
+      : _apiService = apiService ?? ApiService(),
+        _readCache = readCache ?? ReadCache(),
+        _outbox = outbox {
+    // Every change to who is signed in - session read back, sign-in,
+    // sign-out, expiry - ends in notifyListeners, so listening
+    // to itself tells the outbox about each of them, and about any added
+    // later, without every one of those having to remember to.
+    addListener(_tellOutboxWhoIsSignedIn);
     _prefsFuture.then(_loadUserFromStorage);
   }
   final ApiService _apiService;
+
+  /// What the tabs kept for offline reading: one person's view, emptied
+  /// whenever who is signed in changes.
+  final ReadCache _readCache;
+
+  /// Changes made offline and not yet sent. Unlike the read cache they are
+  /// not emptied on sign-out - that would lose an audit walked with no
+  /// signal - but each belongs to whoever made it and waits for them.
+  final Outbox? _outbox;
+
+  void _tellOutboxWhoIsSignedIn() =>
+      _outbox?.signedIn(_isAuthenticated ? _user?.id : null);
   final Future<SharedPreferences> _prefsFuture =
       SharedPreferences.getInstance();
 
@@ -70,6 +95,8 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final result = await _apiService.login(email, password);
+      // Whatever an earlier session left for offline reading is not this one's.
+      await _readCache.clear();
 
       _user = User.fromJson(result['user'] as Map<String, dynamic>);
       _organization = result['user']['organization'] != null
@@ -105,49 +132,25 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> register({
-    required String email,
-    required String password,
-    required String fullName,
-    required String organizationCode,
-    String? organizationName,
-  }) async {
-    _isLoading = true;
-    _error = null;
+  /// The API this phone signs in to, shown on the sign-in screen.
+  String get serverAddress => _apiService.serverAddress;
+
+  /// Switches to another organization's server before signing in; see
+  /// [ApiService.useServer], which checks it and throws [ServerUnreachable]
+  /// when nothing answers there.
+  ///
+  /// Changes waiting in the outbox stay where they are. Each carries the id
+  /// of the person who made it, issued by the server they made it on, so a
+  /// person signing in to another server cannot send them there.
+  Future<void> useServer(String address) async {
+    await _apiService.useServer(address);
     notifyListeners();
-
-    try {
-      debugPrint('Attempting registration for: $email');
-      final result = await _apiService.register(
-        email,
-        password,
-        fullName,
-        organizationCode,
-      );
-
-      _user = User.fromJson(result['user'] as Map<String, dynamic>);
-      _organization = result['user']['organization'] != null
-          ? Organization.fromJson(
-              result['user']['organization'] as Map<String, dynamic>,
-            )
-          : null;
-      _isAuthenticated = true;
-
-      final prefs = await _prefsFuture;
-      await prefs.setString('user', json.encode(result['user']));
-      debugPrint('Registration successful for: ${_user?.email}');
-
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      debugPrint('Registration error: $_error');
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
   }
+
+  // There is no sign-up on the phone. An organization is created on the web
+  // (/register) and its people join through an invitation accepted on the
+  // web; the phone only signs them in. A sign-up here would also make Play
+  // require account deletion inside the app.
 
   Future<void> logout() async {
     try {
@@ -163,6 +166,7 @@ class AuthProvider with ChangeNotifier {
 
       final prefs = await _prefsFuture;
       await prefs.remove('user');
+      await _readCache.clear();
       debugPrint('User logged out successfully');
 
       notifyListeners();
@@ -176,98 +180,22 @@ class AuthProvider with ChangeNotifier {
     _error = 'error.AUTH_SESSION_EXPIRED';
     final prefs = await _prefsFuture;
     await prefs.remove('user');
+    await _readCache.clear();
     notifyListeners();
   }
 
-  Future<void> refreshUser() async {
-    try {
-      debugPrint('Refreshing user data');
-      final userData = await _apiService.getCurrentUser();
-      _user = User.fromJson(userData);
+  // No refreshUser either. One stood here that nothing called, and it signed
+  // the person out on any failure - an offline phone included, in an app
+  // built to keep working offline. The phone reads only the id and role of
+  // the signed-in person, which a profile edit does not change; a session
+  // the server has ended is handled by expireSession.
 
-      if (userData['organization'] != null) {
-        _organization = Organization.fromJson(
-          userData['organization'] as Map<String, dynamic>,
-        );
-      }
-
-      final prefs = await _prefsFuture;
-      await prefs.setString('user', json.encode(userData));
-      debugPrint('User data refreshed');
-
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error refreshing user: $e');
-      // If refresh fails, logout the user
-      await logout();
-    }
-  }
-
-  Future<bool> updateProfile(Map<String, dynamic> data) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      debugPrint('Updating profile for: ${_user?.email}');
-      // TODO: Implement profile update API call
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      if (data.containsKey('fullName')) {
-        _user = _user?.copyWith(fullName: data['fullName']);
-      }
-      if (data.containsKey('firstName') || data.containsKey('lastName')) {
-        final firstName = data['firstName'] ?? _user?.firstName ?? '';
-        final lastName = data['lastName'] ?? _user?.lastName ?? '';
-        _user = _user?.copyWith(fullName: '$firstName $lastName'.trim());
-      }
-
-      if (data.containsKey('phoneNumber') || data.containsKey('phone')) {
-        _user = _user?.copyWith(
-          phoneNumber: data['phoneNumber'] ?? data['phone'],
-        );
-      }
-
-      final prefs = await _prefsFuture;
-      await prefs.setString('user', json.encode(_user?.toJson()));
-      debugPrint('Profile updated successfully');
-
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      debugPrint('Profile update error: $_error');
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<void> changePassword({
-    required String currentPassword,
-    required String newPassword,
-  }) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      debugPrint('Changing password for: ${_user?.email}');
-      // TODO: Implement password change API call
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      debugPrint('Password changed successfully');
-
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _error = e.toString();
-      debugPrint('Password change error: $_error');
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
+  // Profile and password changes are not made here. The profile screen
+  // (screens/profile_screen.dart) sends them straight to the server through
+  // ApiService.updateProfile and ApiService.changePassword, and ApiService
+  // keeps the new tokens a password change answers with. Stand-ins that only
+  // waited and reported success used to sit here; nothing called them, and a
+  // password "changed" that way would have stayed the old one.
 
   void clearError() {
     _error = null;

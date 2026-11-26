@@ -1,3 +1,6 @@
+/**
+ * /reports - the monthly report: K1-K6, weekly measurements, history, written summary and month close.
+ */
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';
@@ -16,6 +19,7 @@ import { localDay, localMonth } from '../utils/localDay';
 import { scrollArea } from '../components/common/scrollArea';
 import MonthSummaryCard from '../components/reports/MonthSummaryCard';
 import MonthlyMeasurementsCard from '../components/reports/MonthlyMeasurementsCard';
+import WeeklyMeasurementsCard from '../components/reports/WeeklyMeasurementsCard';
 import MonthHistoryCard from '../components/reports/MonthHistoryCard';
 import Modal from '../components/common/Modal';
 import Textarea from '../components/common/Textarea';
@@ -488,6 +492,8 @@ const MonthlyReportPage: React.FC = () => {
               return member ? memberName(member) : userId;
             }}
           />
+
+          <WeeklyMeasurementsCard />
 
           <MonthHistoryCard
             month={selectedMonth}

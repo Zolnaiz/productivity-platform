@@ -1,3 +1,4 @@
+/** Unit test for setup.ts. */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';

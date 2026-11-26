@@ -1,3 +1,6 @@
+/**
+ * API client for assessment templates and responses.
+ */
 import { AssessmentResponse, AssessmentTemplate } from '../types/assessment.types';
 import { get, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
 import { localDay } from '../utils/localDay';

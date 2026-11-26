@@ -1,3 +1,6 @@
+/**
+ * The app's button: variants (primary, secondary, danger, ghost), sizes and a loading state.
+ */
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
 

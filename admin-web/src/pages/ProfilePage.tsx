@@ -1,3 +1,6 @@
+/**
+ * /profile - the user's productivity summary: completed work, tracked time, assessment results.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckSquare, ClipboardList, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

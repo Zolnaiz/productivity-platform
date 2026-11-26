@@ -1,3 +1,6 @@
+/**
+ * /audit - the organisation's change history (who changed what), for administrators.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

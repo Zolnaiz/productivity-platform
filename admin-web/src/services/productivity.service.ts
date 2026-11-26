@@ -1,5 +1,8 @@
+/**
+ * API client for notes, daily goals, focus sessions and badges.
+ */
 import { Badge, DailyGoal, FocusSession, Note } from '../types/productivity.types';
-import { del, get, getStoredAccessToken, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
+import { del, get, getAccessToken, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
 import { localDay } from '../utils/localDay';
 
 type ProductivityKey = 'notes' | 'goals' | 'focusSessions' | 'badges';
@@ -80,7 +83,7 @@ const unwrap = <T>(response: ApiEnvelope<T>): T => {
   return response as T;
 };
 
-const hasRealAccessToken = () => Boolean(getStoredAccessToken()) && !isDemoMode();
+const hasRealAccessToken = () => Boolean(getAccessToken()) && !isDemoMode();
 
 const resolveDemoData = <T>(demoData: T | (() => T)): T =>
   typeof demoData === 'function' ? (demoData as () => T)() : demoData;

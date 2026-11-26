@@ -1,3 +1,6 @@
+/**
+ * /feedback - send feedback to administrators; administrators read and mark it.
+ */
 import React, { useCallback, useEffect, useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

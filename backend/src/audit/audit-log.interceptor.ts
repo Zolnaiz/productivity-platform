@@ -1,3 +1,7 @@
+/**
+ * Global interceptor that records every successful write (POST/PUT/PATCH/DELETE) as an audit-log entry: who, which
+ * route (describeRoute), how serious (severityFor) and what changed (change-summary). Reads are never logged.
+ */
 import { CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';

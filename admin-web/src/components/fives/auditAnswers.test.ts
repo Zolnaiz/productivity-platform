@@ -1,3 +1,4 @@
+/** Unit test for auditAnswers.ts: what a walk of a checklist is worth. */
 import { describe, expect, it } from 'vitest';
 import { answersForRun, scoreAnswers } from './auditAnswers';
 

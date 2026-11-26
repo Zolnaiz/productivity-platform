@@ -1,3 +1,4 @@
+/** Unit test for setupSteps.ts: getting started. */
 import { describe, expect, it } from 'vitest';
 import { setupSteps } from './setupSteps';
 

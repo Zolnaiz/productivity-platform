@@ -1,3 +1,7 @@
+/**
+ * Text input with label, hint and error. fieldSizeClass/inputFieldClass are reused by Select and Textarea so
+ * all fields look the same.
+ */
 import React, { forwardRef, useId } from 'react';
 import { LucideIcon } from 'lucide-react';
 

@@ -1,3 +1,4 @@
+/** Unit test for floorPlanOpenings.ts: how wide an opening is. */
 import { describe, expect, it } from 'vitest';
 import { Corner, Wall, distance } from './floorPlanWalls';
 import { DEFAULT_METRES_PER_UNIT, toMetres } from './floorPlanScale';

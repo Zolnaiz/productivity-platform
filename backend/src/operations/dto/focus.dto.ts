@@ -1,3 +1,6 @@
+/**
+ * Body of a finished focus session.
+ */
 import { IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
 
 export class CreateFocusSessionDto {

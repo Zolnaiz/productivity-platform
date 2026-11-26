@@ -8,7 +8,33 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const isDemoEnabled = () => import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
 
-export const isDemoMode = () => isDemoEnabled() && localStorage.getItem('token') === 'demo-token';
+/**
+ * The demo workspace is a setting of this browser, not a credential: nothing
+ * it unlocks reaches a server. So it, unlike a real session, is kept in
+ * storage and survives a reload.
+ */
+const DEMO_SESSION_KEY = 'demoSession';
+
+export const isDemoMode = () => isDemoEnabled() && localStorage.getItem(DEMO_SESSION_KEY) === 'true';
+
+export const startDemoSession = () => localStorage.setItem(DEMO_SESSION_KEY, 'true');
+
+/**
+ * The access token, held in this module's memory and nowhere else.
+ *
+ * Browser storage is readable by any script that runs on the page, so a token
+ * kept there could be carried off by one cross-site-scripting slip and used
+ * until it expired. Memory goes with the tab. A reload or a new tab starts
+ * without one and gets a fresh one from the refresh cookie ([refreshSession]),
+ * which is HttpOnly - no script can read that either.
+ */
+let accessToken: string | null = null;
+
+export const getAccessToken = () => accessToken;
+
+export const setAccessToken = (token: string | null) => {
+  accessToken = token;
+};
 
 /**
  * Whether a failed request may be answered from the demo data instead.
@@ -22,21 +48,43 @@ export const shouldUseDemoFallback = (error?: unknown) =>
   isDemoMode() ||
   (import.meta.env.DEV && !(error as { response?: unknown } | undefined)?.response);
 
-export const clearStoredAuth = () => {
+/**
+ * Credentials that versions before 2026-11 kept in storage, where a script
+ * could read them. Removed wherever a session starts or ends.
+ */
+export const forgetStoredCredentials = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('refreshToken');
-  localStorage.removeItem('user');
 };
 
-export const getStoredAccessToken = () => {
-  const token = localStorage.getItem('token');
-
-  if (token === 'demo-token' && !isDemoEnabled()) {
-    clearStoredAuth();
-    return null;
+/**
+ * `sessionStorage` holds what belongs to one sign-in - never a credential -
+ * such as a refusal not worth asking again (people.service). It outlives a
+ * reload of the page, as the sign-in does, and is emptied whenever a session
+ * starts or ends, so nothing from one person's session reaches the next.
+ */
+const forgetSessionMemos = () => {
+  try {
+    sessionStorage.clear();
+  } catch {
+    // Storage blocked: there was nothing kept to forget.
   }
+};
 
-  return token;
+/** A sign-in begins: its token in memory, nothing left from before. */
+export const startSession = (token: string) => {
+  accessToken = token;
+  forgetStoredCredentials();
+  forgetSessionMemos();
+};
+
+/** Signs this tab out: the token in memory, the demo flag, the profile kept for the next load. */
+export const clearSession = () => {
+  accessToken = null;
+  localStorage.removeItem(DEMO_SESSION_KEY);
+  localStorage.removeItem('user');
+  forgetStoredCredentials();
+  forgetSessionMemos();
 };
 
 export const unwrapApiResponse = <T>(response: T | { data: T }): T => {
@@ -98,34 +146,45 @@ const api = axios.create({
   timeout: 30000,
 });
 
+/** The refresh under way, which every caller that needs one waits for. */
+let refreshing: Promise<string> | null = null;
+
 /**
- * A new access token, from the HttpOnly refresh cookie.
+ * A new access token, from the HttpOnly refresh cookie, kept in memory.
+ *
+ * Called when a page loads with a session to restore, and when a request is
+ * refused because the token has expired. Several requests refused at once -
+ * a page that loads four lists - share one refresh rather than each starting
+ * their own.
  *
  * A browser signed in before the cookie existed still holds its refresh token
  * in storage: it is sent once, the server answers with the cookie, and the
  * stored copy is removed.
  */
-export const refreshSession = async (): Promise<string> => {
-  const legacy = localStorage.getItem('refreshToken');
-  const response = await axios.post(`${API_BASE_URL}/auth/refresh`, legacy ? { refreshToken: legacy } : {}, {
-    headers: SESSION_COOKIE_HEADER,
-    withCredentials: true,
-  });
-  const { token } = normalizeTokenResponse(response.data);
+export const refreshSession = (): Promise<string> =>
+  (refreshing ??= (async () => {
+    const legacy = localStorage.getItem('refreshToken');
+    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, legacy ? { refreshToken: legacy } : {}, {
+      headers: SESSION_COOKIE_HEADER,
+      withCredentials: true,
+    });
+    const { token } = normalizeTokenResponse(response.data);
 
-  if (!token) {
-    throw new Error('Refresh response did not include an access token');
-  }
+    if (!token) {
+      throw new Error('Refresh response did not include an access token');
+    }
 
-  localStorage.setItem('token', token);
-  localStorage.removeItem('refreshToken');
-  return token;
-};
+    accessToken = token;
+    forgetStoredCredentials();
+    return token;
+  })().finally(() => {
+    refreshing = null;
+  }));
 
 // Request интерсептор
 api.interceptors.request.use(
   (config) => {
-    const token = getStoredAccessToken();
+    const token = accessToken;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -169,7 +228,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         // Refresh token бас хүчингүй бол нэвтрэх хуудас руу шилжих
-        clearStoredAuth();
+        clearSession();
         
         window.location.href = '/login';
         return Promise.reject(refreshError);

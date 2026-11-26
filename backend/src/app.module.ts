@@ -1,3 +1,7 @@
+/**
+ * Root Nest module. Wires configuration (env.validation), the database, the feature modules (auth, organizations,
+ * users, operations, audit) and the global interceptors: audit log, idempotency, metrics.
+ */
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';

@@ -1,3 +1,4 @@
+/** Unit test for finance.service.ts: financeService demo storage. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('./api', async () => {

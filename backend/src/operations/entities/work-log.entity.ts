@@ -1,3 +1,6 @@
+/**
+ * A person's daily work log (what was done, hours).
+ */
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
 import { numericColumn } from '../../shared/entities/numeric-column';

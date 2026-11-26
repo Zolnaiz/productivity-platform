@@ -1,3 +1,7 @@
+/**
+ * Authentication module: JWT strategy, AuthService, invitations. Users and organisations services are provided
+ * here too because registration creates both in one step.
+ */
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -7,7 +11,6 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { PermissionsGuard } from '../shared/guards/permissions.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { LocalStrategy } from './strategies/local.strategy';
 import { DatabaseModule } from '../shared/database/database.module';
 import { User } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
@@ -34,7 +37,7 @@ import { InvitationsService } from './invitations.service';
     }),
   ],
   controllers: [AuthController, InvitationsController],
-  providers: [PermissionsGuard, AuthService, InvitationsService, UsersService, OrganizationsService, LocalStrategy, JwtStrategy],
+  providers: [PermissionsGuard, AuthService, InvitationsService, UsersService, OrganizationsService, JwtStrategy],
   exports: [AuthService, InvitationsService],
 })
 export class AuthModule {}

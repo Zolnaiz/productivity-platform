@@ -1,3 +1,4 @@
+/** Unit test for monthly-report.ts: what a month says was finished. */
 import { buildMonthlyReport, selectMonthRecords, OrganizationRecords } from './monthly-report';
 
 const organization = (over: Partial<Record<keyof OrganizationRecords, unknown[]>> = {}) =>

@@ -1,3 +1,6 @@
+/**
+ * /organizations - the organisation's profile (industry, contact, size), for administrators.
+ */
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Button from '../components/common/Button';

@@ -1,3 +1,4 @@
+/** Unit test for departments.ts: departments. */
 import { OperationsService } from './operations.service';
 
 const createRepository = () => ({

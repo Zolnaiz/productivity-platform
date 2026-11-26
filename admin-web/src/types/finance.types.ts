@@ -1,3 +1,6 @@
+/**
+ * Expense shape as the API returns it.
+ */
 export interface ExpenseItem {
   id: string;
   projectId?: string;

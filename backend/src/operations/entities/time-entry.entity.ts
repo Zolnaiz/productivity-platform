@@ -1,3 +1,6 @@
+/**
+ * Hours a person spent on a task or project.
+ */
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
 import { numericColumn } from '../../shared/entities/numeric-column';

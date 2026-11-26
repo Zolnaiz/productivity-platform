@@ -231,6 +231,9 @@ describe('password reset over HTTP', () => {
     mailer.send = original;
   });
 
+  // Seven requests one after another through the whole HTTP stack. Jest's
+  // default 5 s held on a quiet machine and ran out under coverage with other
+  // suites running beside it (11.17), so the budget is set for the work.
   it('rate-limits forgot-password per client', async () => {
     const statuses = [];
     for (let i = 0; i < 7; i += 1) {
@@ -238,7 +241,7 @@ describe('password reset over HTTP', () => {
     }
     expect(statuses.slice(0, 5)).toEqual([201, 201, 201, 201, 201]);
     expect(statuses.slice(5)).toEqual([429, 429]);
-  });
+  }, 20_000);
 
   it('sends the Mongolian template by default and the English one for an English user', () => {
     const mn = passwordResetMail('mn', 'TOKEN', 'https://app.test/');

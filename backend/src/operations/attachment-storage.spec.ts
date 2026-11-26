@@ -1,3 +1,4 @@
+/** Unit test for attachment-storage.ts: sniffMimeType. */
 import {
   buildStorageKey,
   isAllowedMimeType,
@@ -38,6 +39,27 @@ describe('sniffMimeType', () => {
 
   it('rejects a file too short to identify', () => {
     expect(sniffMimeType(Buffer.from([0xff, 0xd8]))).toBeNull();
+  });
+
+  // A zip's local headers carry the part names, which is all the check reads.
+  const zip = (...names: string[]) =>
+    Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.alloc(26), ...names.map((n) => Buffer.from(n))]);
+
+  it('accepts Word, Excel and PowerPoint documents by their part names', () => {
+    expect(sniffMimeType(zip('[Content_Types].xml', 'word/document.xml'))).toBe(
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    );
+    expect(sniffMimeType(zip('[Content_Types].xml', 'xl/workbook.xml'))).toBe(
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    expect(sniffMimeType(zip('[Content_Types].xml', 'ppt/presentation.xml'))).toBe(
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    );
+  });
+
+  it('refuses a macro-enabled document and a zip that is not an Office file', () => {
+    expect(sniffMimeType(zip('[Content_Types].xml', 'word/document.xml', 'word/vbaProject.bin'))).toBeNull();
+    expect(sniffMimeType(zip('payload/run.exe'))).toBeNull();
   });
 });
 

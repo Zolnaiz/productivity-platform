@@ -69,6 +69,21 @@ export const monthOf = (value?: Date | string | null, timeZone = organizationTim
   return dayIn(timeZone, moment).slice(0, 7);
 };
 
+/**
+ * YYYY-MM-DD for a date, by the same rule as monthOf: a plain date is read as
+ * written, a moment is placed on the organization's calendar first. Undefined
+ * when there is nothing usable. What the pilot's weekly table places records by.
+ */
+export const dayOf = (value?: Date | string | null, timeZone = organizationTimeZone()): string | undefined => {
+  if (!value) return undefined;
+  if (typeof value === 'string' && dateOnly.test(value)) return value;
+
+  const moment = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(moment.getTime())) return undefined;
+
+  return dayIn(timeZone, moment);
+};
+
 /** The month a task was planned for: when it is due, or when it was raised. */
 export const plannedMonth = (task: CompletableTask, timeZone?: string) =>
   monthOf(task.dueDate || task.createdAt, timeZone);

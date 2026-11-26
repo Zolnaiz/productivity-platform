@@ -1,7 +1,11 @@
+/**
+ * API client for the floor plan, zones, red tags and plan versions; in the demo workspace keeps the plan in
+ * demoPlanStore.
+ */
 import { FiveSLayoutPlan, FiveSRedTag, FiveSZone, FloorPlanObject, FloorPlanObjectType } from '../types/fiveS.types';
 import { withSyncedRedTags } from '../components/fives/floorPlanRules';
 import { pruneOpenings } from '../components/fives/floorPlanOpenings';
-import { del, get, getStoredAccessToken, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
+import { del, get, getAccessToken, isDemoMode, patch, post, shouldUseDemoFallback } from './api';
 import { readDemoPlans, replaceDemoPlan, writeDemoPlans } from './demoPlanStore';
 import { FiveSLayoutVersion } from '../types/fiveS.types';
 
@@ -326,7 +330,7 @@ const unwrap = <T>(response: ApiEnvelope<T>): T => {
   return response as T;
 };
 
-const hasRealAccessToken = () => Boolean(getStoredAccessToken()) && !isDemoMode();
+const hasRealAccessToken = () => Boolean(getAccessToken()) && !isDemoMode();
 
 const resolveDemoData = <T>(demoData: T | (() => T)): T =>
   typeof demoData === 'function' ? (demoData as () => T)() : demoData;

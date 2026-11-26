@@ -59,16 +59,35 @@ read it, and the error it gives — `input file does not appear to be a valid
 archive` — reads like a corrupted backup rather than the wrong tool. That is
 the worst possible sentence to meet during a restore.
 
-Restore the container's output with `psql`:
+It keeps them in `backups/` at the top of the repository: `daily/`, `weekly/`
+and `monthly/` (7, 4 and 6 kept), and `last/` with every run's own file and a
+`-latest` link to the newest.
+
+Restore one with `psql`, inside the database container. Copy the file in, then
+create the scratch database and load it there:
 
 ```powershell
-docker compose --env-file .env.production -f docker-compose.prod.yml `
-  exec -T postgres createdb -U $env:DB_USERNAME productivity_restore_check
+docker compose --env-file .env.production -f docker-compose.prod.yml -p productivity-prod `
+  cp .\backups\last\productivity_prod-YYYYMMDD-HHMMSS.sql.gz postgres:/tmp/restore.sql.gz
 
-Get-Content ".\backups\daily\productivity_prod-YYYYMMDD-HHMMSS.sql.gz" -AsByteStream `
-  | docker compose --env-file .env.production -f docker-compose.prod.yml `
-      exec -T postgres sh -c 'gunzip | psql -U $POSTGRES_USER -d productivity_restore_check'
+docker compose --env-file .env.production -f docker-compose.prod.yml -p productivity-prod `
+  exec -T postgres sh -c 'createdb -U "$POSTGRES_USER" productivity_restore_check && gunzip -c /tmp/restore.sql.gz | psql -q -U "$POSTGRES_USER" -d productivity_restore_check -v ON_ERROR_STOP=1'
 ```
+
+The same two commands work in Git Bash with `MSYS_NO_PATHCONV=1` in front,
+so that `/tmp/...` is not turned into a Windows path. Three things in the
+commands this page used to give stopped a restore before it began, and each is
+easy to bring back by "simplifying":
+
+- **`-p productivity-prod`.** The stack runs as that compose project. Without
+  it, compose looks for a project named after the folder and answers
+  `service "postgres" is not running`.
+- **`$POSTGRES_USER`, read inside the container.** `$env:DB_USERNAME` is in
+  `.env.production`, not in the shell, so it was empty.
+- **No bytes through PowerShell.** `Get-Content -AsByteStream` exists only in
+  PowerShell 7; Windows PowerShell 5.1, the one Windows comes with, refuses it,
+  and its pipeline would turn the gzip bytes into text even if it did not.
+  `cp` hands the file over untouched.
 
 The hand-taken dumps at the top of this page stay custom-format, and
 `pg_restore` is still the right tool for those. Which file you are holding
@@ -81,14 +100,17 @@ Where the bytes live depends on `ATTACHMENT_STORE`, and so does how they are
 backed up.
 
 **`local` (the default).** The production compose file keeps them on the
-`attachments_prod` volume. Copy it out with a throwaway container, which needs
-no knowledge of where Docker actually stores volumes:
+`productivity-prod_attachments_prod` volume (the compose project's name, then
+the volume's). With the `backup` profile on, the `attachments-backup` service
+copies it every day at 03:30 to `backups/attachments/attachments-YYYYMMDD.tar.gz`
+and keeps seven days (`scripts/backup-attachments.sh`). To take one now, with
+a throwaway container that needs no knowledge of where Docker stores volumes:
 
 ```powershell
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 docker run --rm `
-  -v productivity-platform_attachments_prod:/data:ro `
-  -v "${PWD}\backups:/backup" `
+  -v productivity-prod_attachments_prod:/data:ro `
+  -v "${PWD}\backups\attachments:/backup" `
   alpine tar czf "/backup/attachments-$stamp.tar.gz" -C /data .
 ```
 
@@ -96,9 +118,9 @@ Restore the same way, into the volume:
 
 ```powershell
 docker run --rm `
-  -v productivity-platform_attachments_prod:/data `
-  -v "${PWD}\backups:/backup" `
-  alpine sh -c "tar xzf /backup/attachments-YYYYMMDD-HHMMSS.tar.gz -C /data"
+  -v productivity-prod_attachments_prod:/data `
+  -v "${PWD}\backups\attachments:/backup" `
+  alpine sh -c "tar xzf /backup/attachments-YYYYMMDD.tar.gz -C /data"
 ```
 
 **`s3`.** The bucket is the backup boundary. Turn on versioning so a delete is
@@ -144,3 +166,19 @@ you which.
 - Encrypt backups at rest if they contain employee or financial data.
 - Test restore regularly; an untested backup is only a hope with a filename.
 - Never commit backup files into git. Keep local backups under an ignored `backups/` directory.
+
+## Last restore drill: 2026-11-12
+
+Run on the production machine with the commands on this page, into scratch
+databases only. The live database was never written to.
+
+| What | How it was checked | Result |
+|---|---|---|
+| Production dump, `backup` service | restored into `productivity_restore_check`; exact row count of every table compared with the live database | 30 tables, identical; all 45 migrations present |
+| A dump holding data | the same image (`postgres-backup-local:15`) pointed at a seeded and smoke-tested scratch database (159 rows); restored the same way | identical row counts and an identical checksum of every table's contents |
+| The application on the restored data | backend started on the restored database; sign-in, monthly report, weekly K1–K6 and the task list | all answered 200 with the restored records |
+| Attached files | 3 files (a 2 MB binary, a PDF, a name with a space) archived by `scripts/backup-attachments.sh` and restored with the command above into a fresh volume | identical MD5 for every file |
+
+The drill also found this page's old restore commands could not run here (the
+three points under "The backup container writes a different format"). Run it
+again after a schema change, and before the system holds data that matters.

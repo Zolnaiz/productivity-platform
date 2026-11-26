@@ -1,3 +1,7 @@
+/**
+ * GET /audit-log for administrators (audit:read): the organisation's change history, filtered and paged by
+ * ListAuditLogQueryDto. Entries are written by AuditLogInterceptor, never through this controller.
+ */
 import { Controller, Get, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditLogService } from './audit-log.service';

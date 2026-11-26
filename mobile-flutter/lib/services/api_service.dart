@@ -7,6 +7,42 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
+/// No Productivity Platform API answered at an address someone typed in:
+/// nothing there, something else there, or not an address at all.
+class ServerUnreachable implements Exception {
+  const ServerUnreachable();
+}
+
+/// Turns what someone types for a server into the API's base address.
+///
+/// `company.example.com`, `https://company.example.com/` and
+/// `https://company.example.com/api` all become
+/// `https://company.example.com/api`. A scheme that is typed is kept, so a
+/// development backend at `http://10.0.2.2:3000` still works. Query and
+/// fragment are dropped. Null when there is no host to go to.
+String? normalizeServerAddress(String input) {
+  var text = input.trim();
+  if (text.isEmpty) return null;
+  if (!text.contains('://')) text = 'https://$text';
+  final uri = Uri.tryParse(text);
+  if (uri == null ||
+      uri.host.isEmpty ||
+      (uri.scheme != 'https' && uri.scheme != 'http')) {
+    return null;
+  }
+  var path = uri.path;
+  while (path.endsWith('/')) {
+    path = path.substring(0, path.length - 1);
+  }
+  if (!path.endsWith('/api')) path = '$path/api';
+  return Uri(
+    scheme: uri.scheme,
+    host: uri.host,
+    port: uri.hasPort ? uri.port : null,
+    path: path,
+  ).toString();
+}
+
 abstract interface class TokenStore {
   Future<String?> read(String key);
   Future<void> write(String key, String value);
@@ -44,9 +80,60 @@ class ApiService {
   final Connectivity _connectivity = Connectivity();
   Future<bool>? _refreshInFlight;
 
-  String get baseUrl => const String.fromEnvironment('API_BASE_URL').isNotEmpty
-      ? const String.fromEnvironment('API_BASE_URL')
-      : dotenv.get('API_BASE_URL', fallback: 'http://10.0.2.2:3000/api');
+  /// Where the address chosen on the sign-in screen is kept between launches.
+  static const _serverKey = 'server_url';
+
+  /// The server this build was made for: `--dart-define=API_BASE_URL`, else
+  /// `.env`, else the Android emulator's view of a backend on the computer.
+  /// Used until someone picks another server on the sign-in screen.
+  String get builtInBaseUrl =>
+      const String.fromEnvironment('API_BASE_URL').isNotEmpty
+          ? const String.fromEnvironment('API_BASE_URL')
+          : dotenv.get('API_BASE_URL', fallback: 'http://10.0.2.2:3000/api');
+
+  /// The API every request goes to now, for the sign-in screen to show.
+  String get serverAddress => _dio.options.baseUrl;
+
+  /// Points the app at another organization's server.
+  ///
+  /// Each organization runs the platform on its own server, while the store
+  /// has one app; and a server reached through a quick tunnel changes its
+  /// address whenever the tunnel restarts. So the address is something the
+  /// person can set, instead of one fixed into the build.
+  ///
+  /// The address is accepted only if a Productivity Platform API answers its
+  /// `/health` with "ok". That check goes out on a bare client with no
+  /// interceptors, so no token is ever sent to an address someone typed.
+  /// Tokens and the stored user are dropped: a session belongs to the server
+  /// that issued it. Returns the address as kept, or throws
+  /// [ServerUnreachable].
+  Future<String> useServer(String input) async {
+    final address = normalizeServerAddress(input);
+    if (address == null) throw const ServerUnreachable();
+
+    final probe = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+    ))
+      ..httpClientAdapter = _dio.httpClientAdapter;
+    try {
+      final body = (await probe.get('$address/health')).data;
+      // The API wraps every answer in {success, data}; /health's data is
+      // {status: "ok", ...}.
+      final health = body is Map ? (body['data'] ?? body) : null;
+      if (health is! Map || health['status'] != 'ok') {
+        throw const ServerUnreachable();
+      }
+    } on DioException {
+      throw const ServerUnreachable();
+    }
+
+    _dio.options.baseUrl = address;
+    _prefs = await SharedPreferences.getInstance();
+    await _prefs.setString(_serverKey, address);
+    await _clearAuth();
+    return address;
+  }
 
   bool get isDebug => kDebugMode;
 
@@ -64,7 +151,7 @@ class ApiService {
 
     _dio = client ??
         Dio(BaseOptions(
-          baseUrl: baseUrl,
+          baseUrl: builtInBaseUrl,
           connectTimeout: const Duration(seconds: 30),
           receiveTimeout: const Duration(seconds: 30),
           sendTimeout: const Duration(seconds: 30),
@@ -74,6 +161,10 @@ class ApiService {
             'X-Requested-With': 'XMLHttpRequest',
           },
         ));
+
+    // A server picked on the sign-in screen wins over the built-in one.
+    final chosenServer = _prefs.getString(_serverKey);
+    if (chosenServer != null) _dio.options.baseUrl = chosenServer;
 
     // Add request interceptor
     _dio.interceptors.add(InterceptorsWrapper(
@@ -319,47 +410,21 @@ class ApiService {
     return (response.data as List).cast<Map<String, dynamic>>();
   }
 
+  /// The header that has the server write a POST once, however many times
+  /// it arrives (the server's IdempotencyInterceptor). Every write the outbox
+  /// can keep sends one from its first try, so the copy sent after a lost
+  /// answer is recognised as the same write.
+  static Options? _once(String? idempotencyKey) => idempotencyKey == null
+      ? null
+      : Options(headers: {'Idempotency-Key': idempotencyKey});
+
   /// Records a day's work and the time it took, as one act: the server saves
   /// the note and its clock entry together, so the hours are counted once.
   Future<Map<String, dynamic>> createDailyWorkLog(Map<String, dynamic> entry,
       {String? idempotencyKey}) async {
     final response = await _dio.post('/work-logs/daily',
-        data: entry,
-        options: Options(headers: {
-          if (idempotencyKey != null) 'Idempotency-Key': idempotencyKey
-        }));
+        data: entry, options: _once(idempotencyKey));
     return (response.data as Map).cast<String, dynamic>();
-  }
-
-  Future<Map<String, dynamic>> register(
-    String email,
-    String password,
-    String fullName,
-    String organizationCode,
-  ) async {
-    try {
-      final response = await _dio.post('/auth/register', data: {
-        'email': email,
-        'password': password,
-        'fullName': fullName,
-        'organizationCode': organizationCode,
-      });
-
-      final data = response.data;
-
-      await _writeToken('access_token', data['access_token'] as String);
-
-      await _writeToken('refresh_token', data['refresh_token'] as String);
-
-      await _prefs.setString('user', json.encode(data['user']));
-
-      if (isDebug) debugPrint('✅ Registration successful');
-
-      return data;
-    } catch (e) {
-      if (isDebug) debugPrint('❌ Registration failed: $e');
-      rethrow;
-    }
   }
 
   Future<void> logout() async {
@@ -436,9 +501,12 @@ class ApiService {
   /// Tags something in an area as not belonging there. Its own route, so the
   /// person who finds the clutter can say so without editing the plan.
   Future<Map<String, dynamic>> addRedTag(
-      String planId, String zoneId, Map<String, dynamic> redTag) async {
-    final response = await _dio
-        .post('/five-s-layouts/$planId/zones/$zoneId/red-tags', data: redTag);
+      String planId, String zoneId, Map<String, dynamic> redTag,
+      {String? idempotencyKey}) async {
+    final response = await _dio.post(
+        '/five-s-layouts/$planId/zones/$zoneId/red-tags',
+        data: redTag,
+        options: _once(idempotencyKey));
     return (response.data as Map).cast<String, dynamic>();
   }
 
@@ -474,11 +542,36 @@ class ApiService {
     return (response.data as Map).cast<String, dynamic>();
   }
 
-  /// Records that an area was cleaned today; the server dates it.
-  Future<Map<String, dynamic>> markZoneCleaned(
-      String planId, String zoneId) async {
+  /// A task's work documents and their review (backend operations/deliverables.ts):
+  /// `{review: {status, note, ...}, files: [... newest version first]}`.
+  Future<Map<String, dynamic>> getDeliverables(String taskId) async {
+    final response = await _dio.get('/tasks/$taskId/deliverables');
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
+  /// Adds a document or photo to the person's own task. Refused while the
+  /// documents are under review or approved (DELIVERABLE_LOCKED).
+  Future<Map<String, dynamic>> uploadDeliverable(
+      String taskId, List<int> bytes, String fileName) async {
+    final form = FormData.fromMap(
+        {'file': MultipartFile.fromBytes(bytes, filename: fileName)});
     final response =
-        await _dio.post('/five-s-layouts/$planId/zones/$zoneId/cleaned');
+        await _dio.post('/tasks/$taskId/deliverables', data: form);
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
+  /// Sends the task's documents to be reviewed.
+  Future<Map<String, dynamic>> submitDeliverables(String taskId) async {
+    final response = await _dio.post('/tasks/$taskId/deliverables/submit');
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
+  /// Records that an area was cleaned today; the server dates it.
+  Future<Map<String, dynamic>> markZoneCleaned(String planId, String zoneId,
+      {String? idempotencyKey}) async {
+    final response = await _dio.post(
+        '/five-s-layouts/$planId/zones/$zoneId/cleaned',
+        options: _once(idempotencyKey));
     return (response.data as Map).cast<String, dynamic>();
   }
 
@@ -503,14 +596,30 @@ class ApiService {
     return (response.data as Map).cast<String, dynamic>();
   }
 
+  /// The open usability questionnaire (SUS, measure K7), if any, and my
+  /// answers to it: `{round: {id, title} | null, mine: {answers, score} | null}`.
+  Future<Map<String, dynamic>> getCurrentSus() async {
+    final response = await _dio.get('/sus/current');
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
+  /// My ten answers (1-5 each) to a round. Sent again, they replace the last,
+  /// so a copy sent after a lost answer changes nothing.
+  Future<Map<String, dynamic>> answerSus(String roundId, List<int> answers) async {
+    final response = await _dio.put('/sus/rounds/$roundId/answers/mine', data: {'answers': answers});
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
   /// Asks the organization's administrators to delete my account.
   Future<void> requestAccountDeletion() async {
     await _dio.post('/account/deletion-request');
   }
 
   /// Records a gemba walk; its follow-ups become tasks on the server.
-  Future<Map<String, dynamic>> recordGembaWalk(Map<String, dynamic> walk) async {
-    final response = await _dio.post('/gemba', data: walk);
+  Future<Map<String, dynamic>> recordGembaWalk(Map<String, dynamic> walk,
+      {String? idempotencyKey}) async {
+    final response =
+        await _dio.post('/gemba', data: walk, options: _once(idempotencyKey));
     return (response.data as Map).cast<String, dynamic>();
   }
 
@@ -524,8 +633,10 @@ class ApiService {
   }
 
   /// Puts an idea in the box.
-  Future<Map<String, dynamic>> createIdea(Map<String, dynamic> idea) async {
-    final response = await _dio.post('/ideas', data: idea);
+  Future<Map<String, dynamic>> createIdea(Map<String, dynamic> idea,
+      {String? idempotencyKey}) async {
+    final response =
+        await _dio.post('/ideas', data: idea, options: _once(idempotencyKey));
     return (response.data as Map).cast<String, dynamic>();
   }
 
@@ -544,8 +655,10 @@ class ApiService {
 
   /// Records a walked checklist. The server moves the area's score and raises
   /// the follow-up work a failing walk calls for.
-  Future<Map<String, dynamic>> createAuditRun(Map<String, dynamic> run) async {
-    final response = await _dio.post('/audit-runs', data: run);
+  Future<Map<String, dynamic>> createAuditRun(Map<String, dynamic> run,
+      {String? idempotencyKey}) async {
+    final response = await _dio.post('/audit-runs',
+        data: run, options: _once(idempotencyKey));
     return (response.data as Map).cast<String, dynamic>();
   }
 

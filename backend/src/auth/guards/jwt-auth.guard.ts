@@ -1,3 +1,6 @@
+/**
+ * Requires a valid access token on every route except those marked @Public().
+ */
 import { Injectable, ExecutionContext } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';

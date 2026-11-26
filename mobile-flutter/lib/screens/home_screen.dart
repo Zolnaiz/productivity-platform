@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../providers/five_s_provider.dart';
+import '../providers/idea_provider.dart';
 import '../providers/inbox_provider.dart';
 import '../providers/task_provider.dart';
+import '../providers/work_log_provider.dart';
 import '../services/outbox.dart';
 import '../utils/phase_one_strings.dart';
 import 'five_s_screen.dart';
@@ -47,14 +50,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() => _tab = tab);
   }
 
+  /// The outbox's signal that the network is back and its send is done.
+  ValueNotifier<int>? _reconnected;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Read once the tree is built: the outbox is provided above this screen.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final outbox = mounted ? _outbox : null;
+      if (outbox == null) return;
+      _reconnected = outbox.reconnected..addListener(_refresh);
+    });
   }
 
   @override
   void dispose() {
+    _reconnected?.removeListener(_refresh);
     WidgetsBinding.instance.removeObserver(this);
     _scanRequests.dispose();
     super.dispose();
@@ -70,14 +83,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _refresh();
   }
 
-  /// What was kept on the phone goes first, so the lists read back include it.
+  /// On coming back to the front and on the network's return. What was kept
+  /// on the phone goes first, so the lists read back include it. The inbox
+  /// and the tasks are always read again; any other tab still showing what
+  /// it read offline is too, which is what takes the offline banner down.
   Future<void> _refresh() async {
+    if (!mounted) return;
     final inbox = context.read<InboxProvider>();
     final tasks = context.read<TaskProvider>();
     final userId = context.read<AuthProvider>().user?.id;
+    final stale = _reloadsForOfflineTabs();
     await _sendKept();
     inbox.load();
     tasks.load(assigneeId: userId);
+    for (final load in stale) {
+      load();
+    }
+  }
+
+  /// How to read again each tab, besides tasks and inbox, that is showing a
+  /// copy read offline. Each provider is optional, as in [_offlineSince].
+  List<Future<void> Function()> _reloadsForOfflineTabs() {
+    final loads = <Future<void> Function()>[];
+    void add<T extends ChangeNotifier>(
+        DateTime? Function(T provider) since, Future<void> Function(T provider) load) {
+      try {
+        final provider = context.read<T>();
+        if (since(provider) != null) loads.add(() => load(provider));
+      } catch (_) {}
+    }
+
+    add<WorkLogProvider>((p) => p.offlineSince, (p) => p.load());
+    add<FiveSProvider>((p) => p.offlineSince, (p) => p.load());
+    add<IdeaProvider>((p) => p.offlineSince, (p) => p.load());
+    return loads;
   }
 
   Future<void> _sendKept() async {
@@ -93,6 +132,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// The earliest time a tab is showing a kept copy from, or null when
+  /// every tab is fresh. Each provider is optional, as the outbox is.
+  DateTime? _offlineSince() {
+    final times = <DateTime?>[];
+    void add<T extends ChangeNotifier>(DateTime? Function(T provider) since) {
+      try {
+        times.add(since(context.watch<T>()));
+      } catch (_) {}
+    }
+
+    add<TaskProvider>((provider) => provider.offlineSince);
+    add<WorkLogProvider>((provider) => provider.offlineSince);
+    add<FiveSProvider>((provider) => provider.offlineSince);
+    add<IdeaProvider>((provider) => provider.offlineSince);
+    add<InboxProvider>((provider) => provider.offlineSince);
+    final kept = times.whereType<DateTime>().toList()..sort();
+    return kept.isEmpty ? null : kept.first;
+  }
+
   // Optional, so a screen tested without one still draws.
   Outbox? get _outbox {
     try {
@@ -105,9 +163,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final strings = PhaseOneStrings(Localizations.localeOf(context));
-    final kept = _outbox == null ? 0 : context.watch<Outbox>().pending.length;
+    // The signed-in person's own: changes another person left on a shared
+    // phone are theirs to send, and counting them here would offer a "Send
+    // now" that sends nothing.
+    final kept =
+        _outbox == null ? 0 : context.watch<Outbox>().ownPending.length;
+    final readAt = _offlineSince();
     return Scaffold(
       body: Column(children: [
+        // Said while any tab shows what it read earlier, with when: a list
+        // read yesterday is not to be taken for what stands now.
+        if (readAt != null)
+          Material(
+            key: const Key('offline-banner'),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: Row(children: [
+                  const Icon(Icons.wifi_off),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(strings.readOffline(readAt, DateTime.now()))),
+                ]),
+              ),
+            ),
+          ),
         // Said at the top of every tab while anything is waiting: somebody
         // who walked an audit in the basement should not have to wonder
         // whether it counted.
@@ -117,6 +198,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             color: Theme.of(context).colorScheme.tertiaryContainer,
             child: SafeArea(
               bottom: false,
+              // The offline notice above already keeps clear of the status bar.
+              top: readAt == null,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
                 child: Row(children: [

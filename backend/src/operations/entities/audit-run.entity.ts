@@ -1,3 +1,6 @@
+/**
+ * One 5S audit of a zone: answers, score (audit-score.ts) and who ran it.
+ */
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../shared/entities/base.entity';
 import { numericColumn } from '../../shared/entities/numeric-column';

@@ -1,3 +1,4 @@
+/** Unit test for notifications.service.ts: telling somebody. */
 import { NotificationsService } from './notifications.service';
 
 const repositoryMock = () => ({

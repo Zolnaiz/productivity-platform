@@ -1,3 +1,9 @@
+<#
+.SYNOPSIS
+  Mobile verification: flutter pub get, flutter analyze and flutter test (tests can be skipped).
+.EXAMPLE
+  powershell -File scripts/mobile-verify.ps1 [-SkipTests]
+#>
 param(
   [switch]$SkipTests
 )

@@ -1,3 +1,7 @@
+/**
+ * Idempotency-Key support: stores the first answer to a keyed write so a retry (mobile outbox) gets the same
+ * answer instead of a duplicate.
+ */
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { IdempotencyKey } from './idempotency-key.entity';

@@ -1,3 +1,6 @@
+/**
+ * Titled panel used by every page; shows a Loading spinner while its content loads.
+ */
 import React from 'react';
 import Loading from './Loading';
 

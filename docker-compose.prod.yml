@@ -1,3 +1,7 @@
+# Production stack (docs/DEPLOY.md): PostgreSQL, API, web (nginx). Optional profiles: backup (database and
+# attachments), cache (Redis, unused by the app today), monitoring (Prometheus, Grafana). Secrets come from
+# .env.production, which is never committed; CI validates this file against .env.production.example.
+
 services:
   postgres:
     image: postgres:15-alpine
@@ -154,7 +158,10 @@ services:
       - productivity-network-prod
 
   backup:
-    image: prodrigestivill/postgres-backup-local:latest
+    # Tagged with the database's major version, as the postgres service above:
+    # its pg_dump then matches the server, and a new release of the image
+    # cannot change the dump format under a running deployment as :latest could.
+    image: prodrigestivill/postgres-backup-local:15
     container_name: productivity-backup-prod
     restart: unless-stopped
     profiles: ["backup"]
@@ -172,6 +179,27 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - productivity-network-prod
+
+  # The dump above holds the rows but not the attached files, which live in
+  # the attachments_prod volume; this copies them once a day, same profile, so
+  # turning on backups covers both. See scripts/backup-attachments.sh.
+  attachments-backup:
+    image: alpine:3.20
+    container_name: productivity-attachments-backup-prod
+    restart: unless-stopped
+    profiles: ["backup"]
+    environment:
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-7}
+      SCHEDULE: ${ATTACHMENTS_BACKUP_SCHEDULE:-30 3 * * *}
+    # busybox crond reads /etc/crontabs/root; the schedule comes from the
+    # environment so it can be changed in .env.production.
+    command: ["sh", "-c", "echo \"$$SCHEDULE sh /usr/local/bin/backup-attachments.sh\" > /etc/crontabs/root && exec crond -f -l 8"]
+    volumes:
+      - attachments_prod:/data:ro
+      - ./backups:/backups
+      - ./scripts/backup-attachments.sh:/usr/local/bin/backup-attachments.sh:ro
     networks:
       - productivity-network-prod
 

@@ -1,3 +1,7 @@
+/**
+ * npm run attachments:check - compares attachment rows with the files in the store and reports missing or
+ * orphaned files. Read-only.
+ */
 import 'reflect-metadata';
 import { config } from 'dotenv';
 import { DataSource } from 'typeorm';

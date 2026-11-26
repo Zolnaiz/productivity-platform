@@ -1,3 +1,6 @@
+/**
+ * Bodies for submitting and reviewing an idea.
+ */
 import { IsDateString, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { IdeaStatus } from '../entities/idea.entity';
 

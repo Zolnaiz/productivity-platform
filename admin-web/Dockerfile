@@ -1,4 +1,5 @@
-FROM node:20-alpine AS builder
+# Node 22 LTS, as the backend image and CI: Node 20 left support in April 2026.
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 

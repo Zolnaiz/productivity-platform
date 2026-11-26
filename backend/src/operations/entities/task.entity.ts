@@ -144,4 +144,24 @@ export class WorkTask extends BaseEntity {
 
   @Column({ type: 'timestamptz', name: 'fix_signed_off_at', nullable: true })
   fixSignedOffAt?: Date | null;
+
+  /**
+   * Review of the task's work documents (deliverables.ts): null (none), submitted, approved or returned.
+   * Written only through /tasks/:id/deliverables, never by a task edit.
+   */
+  @Column({ type: 'varchar', length: 20, name: 'review_status', nullable: true })
+  reviewStatus?: string | null;
+
+  /** Why the documents were returned, shown to the author; cleared when they are approved. */
+  @Column({ type: 'text', name: 'review_note', nullable: true })
+  reviewNote?: string | null;
+
+  @Column({ name: 'reviewed_by', nullable: true })
+  reviewedBy?: string | null;
+
+  @Column({ type: 'timestamptz', name: 'reviewed_at', nullable: true })
+  reviewedAt?: Date | null;
+
+  @Column({ type: 'timestamptz', name: 'submitted_at', nullable: true })
+  submittedAt?: Date | null;
 }

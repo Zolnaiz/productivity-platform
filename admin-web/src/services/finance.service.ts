@@ -1,3 +1,6 @@
+/**
+ * API client for expenses.
+ */
 import { ExpenseItem } from '../types/finance.types';
 import { get, isDemoMode, localId, patch, post, shouldUseDemoFallback } from './api';
 

@@ -1,3 +1,4 @@
+/** Unit test for mailer.ts: the mailer a deployment runs. */
 import { Logger } from '@nestjs/common';
 import { createMailer, LoggingMailer, SmtpMailer } from './mailer';
 

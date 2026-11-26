@@ -1,3 +1,6 @@
+/**
+ * /goals - today's personal goals: add, tick off, review past days.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, CheckCircle2, Circle, Plus, Target } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

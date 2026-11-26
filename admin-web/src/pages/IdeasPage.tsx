@@ -1,3 +1,6 @@
+/**
+ * /ideas - improvement ideas: submit with photos, review, and follow an accepted idea to its task.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Lightbulb, Trophy, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

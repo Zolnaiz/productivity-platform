@@ -1,3 +1,4 @@
+/** Unit test for improvement-verification.ts: PDCA check: verifying audit-raised fixes. */
 import { verifyImprovements } from './improvement-verification';
 
 const failing = { id: 'r1', zoneId: 'z1', status: 'submitted', score: 60, createdAt: '2026-03-01T03:00:00Z' };

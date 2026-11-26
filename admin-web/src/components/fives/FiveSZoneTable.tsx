@@ -1,3 +1,6 @@
+/**
+ * Table view of all 5S zones with owner, stage and last audit; the alternative to the floor plan.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ImagePlus, Plus, Trash2 } from 'lucide-react';

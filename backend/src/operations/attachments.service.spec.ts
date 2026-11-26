@@ -1,3 +1,4 @@
+/** Unit test for attachments.service.ts: attachment uploads. */
 import { mkdtemp, readdir, readFile, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

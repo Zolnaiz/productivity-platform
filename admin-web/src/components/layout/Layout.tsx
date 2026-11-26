@@ -1,3 +1,6 @@
+/**
+ * Signed-in page frame: Sidebar, Header, section tabs, the routed page and Footer.
+ */
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';

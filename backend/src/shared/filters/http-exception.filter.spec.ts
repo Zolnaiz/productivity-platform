@@ -1,3 +1,4 @@
+/** Unit test for http-exception.filter.ts: HttpExceptionFilter. */
 import { ArgumentsHost, BadRequestException, Logger } from '@nestjs/common';
 import { HttpExceptionFilter } from './http-exception.filter';
 import { apiError, ErrorCode } from '../errors/api-error';

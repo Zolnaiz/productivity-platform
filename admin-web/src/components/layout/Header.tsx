@@ -1,3 +1,7 @@
+/**
+ * Top bar: page title, notification bell (counts from operations/assessment/finance services), language and
+ * theme toggles, account menu.
+ */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, Search } from 'lucide-react';

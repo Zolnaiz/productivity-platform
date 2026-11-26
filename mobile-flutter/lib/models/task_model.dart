@@ -1,3 +1,5 @@
+// A task as the API returns it, with JSON (de)serialisation.
+
 class Task {
   const Task({
     required this.id,
@@ -12,6 +14,8 @@ class Task {
     this.dueDate,
     this.assigneeId,
     this.projectId,
+    this.reviewStatus,
+    this.reviewNote,
   });
 
   final String id;
@@ -29,6 +33,13 @@ class Task {
   final String? assigneeId;
   final String? projectId;
 
+  /// Review of the task's documents: null (none asked for), submitted, approved or returned
+  /// (backend operations/deliverables.ts). Set only by the server.
+  final String? reviewStatus;
+
+  /// Why the documents came back, when they did.
+  final String? reviewNote;
+
   factory Task.fromJson(Map<String, dynamic> json) => Task(
         id: json['id'] as String,
         title: json['title'] as String? ?? '',
@@ -45,6 +56,8 @@ class Task {
         dueDate: DateTime.tryParse(json['dueDate'] as String? ?? ''),
         assigneeId: json['assigneeId'] as String?,
         projectId: json['projectId'] as String?,
+        reviewStatus: json['reviewStatus'] as String?,
+        reviewNote: json['reviewNote'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -60,9 +73,11 @@ class Task {
         'dueDate': dueDate?.toIso8601String(),
         'assigneeId': assigneeId,
         'projectId': projectId,
+        'reviewStatus': reviewStatus,
+        'reviewNote': reviewNote,
       };
 
-  Task copyWith({String? status}) => Task(
+  Task copyWith({String? status, String? reviewStatus}) => Task(
         id: id,
         title: title,
         titleKey: titleKey,
@@ -75,5 +90,7 @@ class Task {
         dueDate: dueDate,
         assigneeId: assigneeId,
         projectId: projectId,
+        reviewStatus: reviewStatus ?? this.reviewStatus,
+        reviewNote: reviewNote,
       );
 }

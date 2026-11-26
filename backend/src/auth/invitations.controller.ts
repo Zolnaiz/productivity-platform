@@ -1,3 +1,7 @@
+/**
+ * /auth/invitations: administrators invite people (one or a CSV import) and revoke invitations; the public
+ * token routes let an invitee look up and accept an invitation, which creates their account.
+ */
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { InvitationsService } from './invitations.service';

@@ -1,3 +1,7 @@
+/**
+ * Passport JWT strategy: verifies the bearer token's signature and expiry, then loads the user and refuses
+ * unknown or inactive accounts. The result becomes request.user.
+ */
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';

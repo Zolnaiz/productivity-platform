@@ -1,3 +1,4 @@
+/** Unit test for report-archive.service.ts: a month that has been closed. */
 import { clockFrom, previousMonth, ReportArchiveService } from './report-archive.service';
 import { ReportsController } from './reports.controller';
 import { selectMonthRecords } from './monthly-report';
@@ -321,6 +322,57 @@ describe('the report routes', () => {
     expect(archive.closeMonth).toHaveBeenCalledWith(manager, '2026-06');
     expect(archive.reopenMonth).toHaveBeenCalledWith(manager, '2026-06', 'Late entries');
     expect(archive.monthHistory).toHaveBeenCalledWith(manager, '2026-06');
+  });
+});
+
+/** The pilot's weekly table: refused for a range it cannot count, counted live otherwise. */
+describe('the weekly measurements', () => {
+  const empty = {
+    projects: [],
+    tasks: [],
+    workLogs: [],
+    timeEntries: [],
+    auditRuns: [],
+    assessmentResponses: [],
+    expenses: [],
+    dailyGoals: [],
+    weeklyCheckins: [],
+    members: [],
+  };
+
+  it.each([
+    ['a day that does not exist', '2026-02-30', '2026-03-10'],
+    ['a month instead of a day', '2026-10', '2026-11'],
+    ['an end before the start', '2026-10-20', '2026-10-05'],
+    ['more than 26 weeks', '2026-01-05', '2026-12-31'],
+  ])('refuses %s without reading the records', async (_case, from, to) => {
+    const { service, operations } = createService();
+
+    await expect(service.weeklyMeasurements(manager, from, to)).rejects.toMatchObject({
+      response: { errorCode: 'VALIDATION_FAILED' },
+    });
+    expect(operations.organizationRecords).not.toHaveBeenCalled();
+  });
+
+  it('counts the weeks on the organization’s calendar from the live records', async () => {
+    const { service, operations, organizations } = createService();
+    organizations.findOne.mockResolvedValue({ id: 'org-1', settings: { timeZone: 'Asia/Ulaanbaatar' } });
+    operations.organizationRecords.mockResolvedValue(empty);
+
+    const result = await service.weeklyMeasurements(manager, '2026-10-05', '2026-10-18');
+
+    expect(operations.organizationRecords).toHaveBeenCalledWith(manager);
+    expect(result.timeZone).toBe('Asia/Ulaanbaatar');
+    expect(result.weeks.map((week) => week.from)).toEqual(['2026-10-05', '2026-10-12']);
+  });
+
+  it('is reached through its route with the caller and the days', () => {
+    const archive = { weeklyMeasurements: jest.fn() };
+    const controller = new ReportsController(archive as never, {} as never);
+
+    controller.weeklyMeasurements({ user: manager }, '2026-10-05', '2026-10-18');
+
+    expect(archive.weeklyMeasurements).toHaveBeenCalledWith(manager, '2026-10-05', '2026-10-18');
   });
 });
 

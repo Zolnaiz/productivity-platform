@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/five_s_model.dart';
 import '../services/api_service.dart';
 import '../services/outbox.dart';
+import '../services/read_cache.dart';
 
 /// The 5S walk on the phone: the areas to check and the checklists to check
 /// them against.
@@ -11,12 +12,19 @@ import '../services/outbox.dart';
 /// phone, not at a desk. Until this, the check could be walked only in a
 /// browser, so it was walked from memory afterwards or not at all.
 class FiveSProvider extends ChangeNotifier {
-  FiveSProvider(this._api, {this.outbox});
+  FiveSProvider(this._api, {this.outbox, this.cache});
   final ApiService _api;
 
   /// Where a change goes when the phone is offline. Without one, an
   /// offline change fails as any other would.
   final Outbox? outbox;
+
+  /// Where the areas and checklists are kept, so an area can still be found
+  /// and walked where there is no signal - which is where most of them are.
+  final ReadCache? cache;
+
+  /// When the areas on screen were read, while showing the kept copy.
+  DateTime? offlineSince;
 
   /// The connection this screen's work goes through, for the screens it opens.
   ApiService get api => _api;
@@ -44,15 +52,22 @@ class FiveSProvider extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      final results =
-          await Future.wait([_api.getFiveSPlans(), _api.getAuditTemplates()]);
-      plans = results[0].map(FiveSPlan.fromJson).toList();
+      final results = await Future.wait([
+        readThrough(cache, 'fiveSPlans', _api.getFiveSPlans),
+        readThrough(cache, 'auditTemplates', _api.getAuditTemplates),
+      ]);
+      Map<String, dynamic> json(dynamic item) => Map<String, dynamic>.from(item as Map);
+      plans = results[0].$1.map((item) => FiveSPlan.fromJson(json(item))).toList();
       // Only the 5S checklists that are in use: a retired checklist is kept
       // for the runs made against it, not for new ones.
       templates = results[1]
-          .map(AuditTemplate.fromJson)
+          .$1
+          .map((item) => AuditTemplate.fromJson(json(item)))
           .where((template) => template.isActive && template.category == '5s')
           .toList();
+      // The older of the two, if either is a kept copy.
+      final saved = [results[0].$2, results[1].$2].whereType<DateTime>().toList()..sort();
+      offlineSince = saved.isEmpty ? null : saved.first;
     } catch (e) {
       error = e;
     } finally {
@@ -121,7 +136,7 @@ class FiveSProvider extends ChangeNotifier {
       'title': title,
       if (disposition.isNotEmpty) 'disposition': disposition,
     };
-    return _write(() => _api.addRedTag(plan.id, zone.id, body),
+    return _write((key) => _api.addRedTag(plan.id, zone.id, body, idempotencyKey: key),
         kind: 'redTag',
         path: '/five-s-layouts/${plan.id}/zones/${zone.id}/red-tags',
         data: body);
@@ -129,13 +144,14 @@ class FiveSProvider extends ChangeNotifier {
 
   /// Records that an area was cleaned today. Returns whether it was saved.
   Future<bool> markCleaned(FiveSPlan plan, FiveSZone zone) =>
-      _write(() => _api.markZoneCleaned(plan.id, zone.id),
+      _write((key) => _api.markZoneCleaned(plan.id, zone.id, idempotencyKey: key),
           kind: 'cleaned',
           path: '/five-s-layouts/${plan.id}/zones/${zone.id}/cleaned');
 
   /// Sends one change, then reads the plans again rather than guess at what
-  /// the server made of it.
-  Future<bool> _write(Future<Object?> Function() send,
+  /// the server made of it. [send] is given the change's key, which it sends
+  /// on the first try and the outbox keeps for every try after.
+  Future<bool> _write(Future<Object?> Function(String key) send,
       {required String kind,
       required String path,
       Map<String, dynamic>? data}) async {
@@ -143,14 +159,16 @@ class FiveSProvider extends ChangeNotifier {
     error = null;
     lastKept = false;
     notifyListeners();
+    final key = newIdempotencyKey();
     try {
-      await send();
+      await send(key);
       saving = false;
       await load();
       return true;
     } catch (e) {
-      if (outbox != null && neverSent(e)) {
-        await outbox!.keep(method: 'POST', path: path, kind: kind, data: data);
+      if (outbox != null && unanswered(e)) {
+        await outbox!
+            .keep(method: 'POST', path: path, kind: kind, data: data, key: key);
         lastKept = true;
         return true;
       }
@@ -185,8 +203,11 @@ class FiveSProvider extends ChangeNotifier {
       'status': 'submitted',
       'answers': answersForRun(template, answers),
     };
+    // A walk is recorded once however often it is sent: a second run would
+    // move the area's score again and raise its follow-up work twice.
+    final key = newIdempotencyKey();
     try {
-      final run = await _api.createAuditRun(body);
+      final run = await _api.createAuditRun(body, idempotencyKey: key);
       // The area's score has moved on the server; read it back rather than
       // guess at how the server rounds and stores it.
       saving = false;
@@ -195,9 +216,9 @@ class FiveSProvider extends ChangeNotifier {
     } catch (e) {
       // Walked where there is no signal: kept, and sent once there is. No run
       // id yet, so no photographs of the shortfalls until then.
-      if (outbox != null && neverSent(e)) {
-        await outbox!
-            .keep(method: 'POST', path: '/audit-runs', kind: 'audit', data: body);
+      if (outbox != null && unanswered(e)) {
+        await outbox!.keep(
+            method: 'POST', path: '/audit-runs', kind: 'audit', data: body, key: key);
         lastKept = true;
         return (score: score, runId: '');
       }

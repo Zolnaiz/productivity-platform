@@ -1,3 +1,6 @@
+/**
+ * Optional body of POST /auth/refresh, for clients (the mobile app) that cannot use the HttpOnly cookie.
+ */
 import { IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 

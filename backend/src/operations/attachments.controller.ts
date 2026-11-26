@@ -1,4 +1,9 @@
+/**
+ * Photo evidence: upload check, download and delete of attachments (red tags, ideas, fixes). Files live in the
+ * attachment store; the database keeps only metadata. attachmentTooLarge maps the upload limit to an ApiError.
+ */
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -15,12 +20,12 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Body } from '@nestjs/common';
 import type { Response } from 'express';
 import { AttachmentsService, UploadedAttachment } from './attachments.service';
 import { OperationsAuthGuard } from './guards/operations-auth.guard';
 import { MAX_ATTACHMENT_BYTES, parseAttachmentPart, parseAttachmentTarget } from './attachment-storage';
 import { apiError, ErrorCode } from '../shared/errors/api-error';
+import { AttachmentOwner } from './entities/attachment.entity';
 import { RequirePermission } from '../shared/decorators/permissions.decorator';
 import { PermissionsGuard } from '../shared/guards/permissions.guard';
 
@@ -50,6 +55,8 @@ export class AttachmentsController {
       part: parseAttachmentPart(body.part),
     };
     const caption = typeof body.caption === 'string' ? body.caption : undefined;
+    // A task's work documents go through /tasks/:id/deliverables, which knows whether the review has locked them.
+    if (target.ownerType === AttachmentOwner.WORK_TASK) throw apiError(ErrorCode.AccessDenied);
 
     return this.attachments.upload(file, target, caption, request.user ?? {});
   }

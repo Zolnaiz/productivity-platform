@@ -1,3 +1,7 @@
+/**
+ * Builds the organisation's history timeline (closed months, finished projects, accepted ideas, zone
+ * milestones) from records it already has. Pure function; HistoryPage renders it.
+ */
 import { AUDIT_PASSING_SCORE } from '../charts/palette';
 import type { Idea } from '../../types/idea.types';
 import type { FiveSZone } from '../../types/fiveS.types';

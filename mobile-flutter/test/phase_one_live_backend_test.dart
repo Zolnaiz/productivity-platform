@@ -1,3 +1,5 @@
+// Widget/unit test.
+
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:productivity_mobile/models/project_model.dart';
 import 'package:productivity_mobile/models/task_model.dart';
 import 'package:productivity_mobile/models/work_log_model.dart';
+import 'package:productivity_mobile/providers/idea_provider.dart';
 import 'package:productivity_mobile/services/api_service.dart';
 
 class _LiveNetworkBinding extends AutomatedTestWidgetsFlutterBinding {
@@ -135,6 +138,87 @@ void main() {
     // The inbox, which answered with a 500 on a real database until its
     // timestamp columns were repaired.
     expect(await api.getNotifications(), isA<List>());
+  },
+      skip: const String.fromEnvironment('API_BASE_URL').isEmpty
+          ? 'Set API_BASE_URL to run against a live server.'
+          : false);
+
+  // The rest of what the phone says to the server, said to a real one.
+  //
+  // Unit tests answer the phone with a fake server, so a request the real
+  // server refuses passes them: the phone's sign-up sent fields the server
+  // had stopped accepting, and nothing failed. Each call here is made through
+  // the same ApiService and providers the screens use, so a request whose
+  // shape has drifted from the API fails in CI rather than on a phone.
+  //
+  // Changing the password and asking for the account to be deleted write to
+  // the database; they run only with LIVE_WRITES=true, which CI sets on its
+  // throwaway database (.github/workflows/ci.yml, job "Live API").
+  test('the sign-in check, the account and the daily screens, as the phone sends them',
+      () async {
+    const baseUrl = String.fromEnvironment('API_BASE_URL');
+    const email = String.fromEnvironment('MOBILE_TEST_EMAIL',
+        defaultValue: 'owner@example.com');
+    const password = String.fromEnvironment('MOBILE_TEST_PASSWORD',
+        defaultValue: 'Password123');
+    const writes = bool.fromEnvironment('LIVE_WRITES');
+    SharedPreferences.setMockInitialValues({});
+    dotenv.loadFromString(envString: 'APP_VERSION=1.0.0');
+
+    final client = Dio(BaseOptions(baseUrl: 'http://unused.invalid/api'));
+    addTearDown(() => client.close(force: true));
+    final tokens = _MemoryTokens();
+    final api = ApiService.forTesting(client: client, tokenStore: tokens);
+    await api.initialize(client: client);
+
+    // The sign-in screen's server check, against the real /health.
+    expect(await api.useServer(baseUrl), normalizeServerAddress(baseUrl));
+    await expectLater(api.useServer('http://127.0.0.1:9/api'),
+        throwsA(isA<ServerUnreachable>()));
+    expect(api.serverAddress, normalizeServerAddress(baseUrl));
+
+    final session = await api.login(email, password);
+    final me = await api.getCurrentUser();
+    expect(me['email'], email);
+    expect(me['id'], session['user']['id']);
+
+    // The profile screen sends `phone`, and reads it back from /auth/me as
+    // `phoneNumber`; a fake server that answered `phone` once hid that the
+    // screen showed an empty field and erased the number on save.
+    final phoneBefore = me['phoneNumber'] as String? ?? '';
+    final language = (me['language'] as String?) ?? 'mn';
+    await api.updateProfile(phone: '99001122', language: language);
+    expect((await api.getCurrentUser())['phoneNumber'], '99001122');
+    await api.updateProfile(phone: phoneBefore, language: language);
+
+    // What the daily tabs read: 5S plans and checklists, ideas, the week.
+    expect(await api.getFiveSPlans(), isA<List>());
+    expect(await api.getAuditTemplates(), isA<List>());
+    expect(await api.getIdeas(), isA<List>());
+    await api.getMyCheckin(localDay(DateTime.now()));
+
+    // An idea built by the provider the Ideas tab uses, read back.
+    final ideas = IdeaProvider(api);
+    final title = 'Live idea ${DateTime.now().toIso8601String()}';
+    final idea = await ideas.submit(title: title, benefit: 'Checked live');
+    expect(idea, isNotNull, reason: '${ideas.error}');
+    expect((await api.getIdeas()).map((item) => item['title']), contains(title));
+
+    await api.markAllNotificationsRead();
+
+    if (!writes) return;
+
+    // The password, changed and changed back. The server ends every other
+    // session and answers with new tokens, which the phone must keep: the
+    // next call has to go through without signing in again.
+    const temporary = 'Live-check-123456';
+    await api.changePassword(password, temporary);
+    expect((await api.getCurrentUser())['email'], email);
+    await api.changePassword(temporary, password);
+    expect((await api.login(email, password))['access_token'], isA<String>());
+
+    // FR-21, from the account menu.
+    await api.requestAccountDeletion();
   },
       skip: const String.fromEnvironment('API_BASE_URL').isEmpty
           ? 'Set API_BASE_URL to run against a live server.'

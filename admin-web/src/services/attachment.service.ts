@@ -1,3 +1,6 @@
+/**
+ * API client for photo attachments: upload, list, download, delete, store check.
+ */
 import { api, isDemoMode, localId, unwrapApiResponse } from './api';
 
 export type AttachmentOwner =
@@ -6,9 +9,11 @@ export type AttachmentOwner =
   | 'audit_run'
   | 'five_s_improvement'
   | 'work_log'
-  | 'idea';
+  | 'idea'
+  /** A task's work documents; changed only through deliverables.service. */
+  | 'work_task';
 
-export type AttachmentKind = 'before' | 'after' | 'evidence' | 'standard';
+export type AttachmentKind = 'before' | 'after' | 'evidence' | 'standard' | 'deliverable';
 
 export interface Attachment {
   id: string;

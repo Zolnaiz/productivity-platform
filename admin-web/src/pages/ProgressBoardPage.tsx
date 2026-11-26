@@ -9,6 +9,8 @@ import { peopleService } from '../services/people.service';
 import { buildProgressBoard, LateTask, ProgressBoard } from '../components/progress/progressBoard';
 import { TeamUser, memberName } from '../types/people.types';
 import { scrollArea } from '../components/common/scrollArea';
+import TeamWorkload from '../components/workload/TeamWorkload';
+import { useAuth } from '../contexts/AuthContext';
 
 /** How often the board asks again while somebody is looking at it. */
 export const REFRESH_MS = 60 * 1000;
@@ -42,6 +44,7 @@ const statusKey: Record<(typeof statusOrder)[number], string> = {
  */
 const ProgressBoardPage: React.FC = () => {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const [board, setBoard] = useState<ProgressBoard | null>(null);
   const [members, setMembers] = useState<TeamUser[]>([]);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
@@ -308,6 +311,8 @@ const ProgressBoardPage: React.FC = () => {
               )}
             </div>
           </Card>
+
+          {hasPermission('workload:read') && <TeamWorkload members={members} nameOf={(userId) => nameOf(userId)} />}
 
           <Card title={t('progressBoard.peopleTitle')} subtitle={t('progressBoard.peopleSubtitle')}>
             <div className={scrollArea} tabIndex={0}>

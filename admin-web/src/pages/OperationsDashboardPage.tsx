@@ -7,6 +7,7 @@ import MyDayCard from '../components/widgets/MyDayCard';
 import QuickActions from '../components/widgets/QuickActions';
 import SetupChecklist from '../components/setup/SetupChecklist';
 import WeekReminder from '../components/widgets/WeekReminder';
+import SusReminder from '../components/widgets/SusReminder';
 import { runsOthersWork } from '../components/layout/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { actionText } from '../components/common/actionText';
@@ -27,7 +28,7 @@ const greetingKey = (hour: number) => (hour < 12 ? 'morning' : hour < 18 ? 'afte
 
 const OperationsDashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   // The organization's totals answer a manager's question. Somebody on the
   // floor opens this page to see their own day, and the figures only push it
   // down the screen.
@@ -39,6 +40,8 @@ const OperationsDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const userId = user?.id;
+  const canReview = hasPermission('deliverables:review');
   useEffect(() => {
     let active = true;
 
@@ -46,7 +49,7 @@ const OperationsDashboardPage: React.FC = () => {
       try {
         const [summaryData, actionItems] = await Promise.all([
           operationsService.getSummary(),
-          actionService.getActionItems(),
+          actionService.getActionItems({ id: userId, canReview }),
         ]);
 
         if (!active) return;
@@ -64,7 +67,9 @@ const OperationsDashboardPage: React.FC = () => {
     return () => {
       active = false;
     };
-  }, []);
+    // t is stable; reloading on a language change is not wanted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, canReview]);
 
   const highPriorityActions = actions.filter((item) => item.priority === 'high');
 
@@ -91,6 +96,8 @@ const OperationsDashboardPage: React.FC = () => {
       <QuickActions />
 
       <WeekReminder />
+
+      <SusReminder />
 
       {/* Until the organization is set up, that is the first thing an administrator does. */}
       {(user?.roles || []).some((role) => role === 'admin' || role === 'super_admin') && <SetupChecklist hideWhenDone />}

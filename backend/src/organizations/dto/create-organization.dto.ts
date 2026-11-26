@@ -1,3 +1,6 @@
+/**
+ * Fields of a new organisation (used by registration).
+ */
 import { IsString, MinLength, MaxLength, IsOptional, IsBoolean, IsUrl, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 

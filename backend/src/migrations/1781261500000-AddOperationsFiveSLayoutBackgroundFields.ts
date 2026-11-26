@@ -1,3 +1,6 @@
+/**
+ * Adds the background image fields to five_s_layouts.
+ */
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddFiveSLayoutBackgroundFields1781261500000 implements MigrationInterface {

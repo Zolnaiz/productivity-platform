@@ -1,3 +1,6 @@
+/**
+ * Light/dark switch (ThemeContext).
+ */
 import React from 'react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

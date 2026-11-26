@@ -1,3 +1,6 @@
+/**
+ * Labelled multi-line field with the same look as Input.
+ */
 import React, { forwardRef, useId } from 'react';
 import { FieldSize, fieldSizeClass, inputFieldClass } from './Input';
 

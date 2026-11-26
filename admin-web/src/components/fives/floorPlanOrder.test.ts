@@ -1,3 +1,4 @@
+/** Unit test for floorPlanOrder.ts: moving one thing through the stack. */
 import { describe, expect, it } from 'vitest';
 import { canReorder, reorder } from './floorPlanOrder';
 

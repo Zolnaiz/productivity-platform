@@ -1,7 +1,10 @@
+// Sign-in screen, with a dialog to change the server address.
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart' show ServerUnreachable;
 import '../utils/phase_one_strings.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -32,6 +35,11 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text(strings.error(auth.error ?? 'error.unknown'))));
   }
 
+  Future<void> _changeServer() => showDialog<void>(
+        context: context,
+        builder: (_) => _ServerDialog(auth: context.read<AuthProvider>()),
+      );
+
   @override
   Widget build(BuildContext context) {
     final strings = PhaseOneStrings(Localizations.localeOf(context));
@@ -58,7 +66,33 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(strings.text('signInHint'),
                       style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center),
-                  const SizedBox(height: 32),
+                  // Which organization's server this signs in to. One app
+                  // from the store serves every organization, each on its
+                  // own server, so the address is shown and can be changed.
+                  Consumer<AuthProvider>(
+                      builder: (context, auth, _) => Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                    child: Text(
+                                        '${strings.text('server')}: '
+                                        '${hostOf(auth.serverAddress)}',
+                                        key: const Key('server-shown'),
+                                        overflow: TextOverflow.ellipsis,
+                                        // bodyMedium, as the line above:
+                                        // bodySmall's grey reads below the
+                                        // WCAG 4.5:1 contrast on this
+                                        // background.
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium)),
+                                TextButton(
+                                    key: const Key('change-server'),
+                                    onPressed:
+                                        auth.isLoading ? null : _changeServer,
+                                    child: Text(strings.text('serverChange'))),
+                              ])),
+                  const SizedBox(height: 24),
                   TextFormField(
                       controller: _email,
                       keyboardType: TextInputType.emailAddress,
@@ -93,5 +127,84 @@ class _LoginScreenState extends State<LoginScreen> {
                 ]),
           )),
     ))));
+  }
+}
+
+/// The part of an API address a person recognises: `company.example.com`
+/// rather than `https://company.example.com/api`.
+String hostOf(String address) => Uri.tryParse(address)?.authority ?? address;
+
+/// Asks for the organization's server and switches to it once its API
+/// answers ([AuthProvider.useServer]). It stays open with a message when
+/// nothing does, so a typo can be fixed without typing the address again.
+///
+/// A widget of its own so the text field's controller lives exactly as long
+/// as the field: a dialog keeps drawing while it closes, and a controller
+/// disposed by whoever opened it is still in use until then.
+class _ServerDialog extends StatefulWidget {
+  const _ServerDialog({required this.auth});
+
+  final AuthProvider auth;
+
+  @override
+  State<_ServerDialog> createState() => _ServerDialogState();
+}
+
+class _ServerDialogState extends State<_ServerDialog> {
+  late final _address =
+      TextEditingController(text: hostOf(widget.auth.serverAddress));
+  String? _problem;
+  bool _checking = false;
+
+  @override
+  void dispose() {
+    _address.dispose();
+    super.dispose();
+  }
+
+  Future<void> _use() async {
+    final strings = PhaseOneStrings(Localizations.localeOf(context));
+    setState(() {
+      _checking = true;
+      _problem = null;
+    });
+    try {
+      await widget.auth.useServer(_address.text);
+      if (mounted) Navigator.of(context).pop();
+    } on ServerUnreachable {
+      if (!mounted) return;
+      setState(() {
+        _checking = false;
+        _problem = strings.text('serverUnreachable');
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = PhaseOneStrings(Localizations.localeOf(context));
+    return AlertDialog(
+      title: Text(strings.text('serverAddress')),
+      content: TextField(
+        key: const Key('server-address'),
+        controller: _address,
+        autofocus: true,
+        keyboardType: TextInputType.url,
+        autocorrect: false,
+        decoration: InputDecoration(
+            hintText: strings.text('serverAddressHint'),
+            errorText: _problem,
+            errorMaxLines: 3),
+        onSubmitted: (_) => _checking ? null : _use(),
+      ),
+      actions: [
+        TextButton(
+            onPressed: _checking ? null : () => Navigator.of(context).pop(),
+            child: Text(strings.text('cancel'))),
+        FilledButton(
+            onPressed: _checking ? null : _use,
+            child: Text(strings.text('serverUse'))),
+      ],
+    );
   }
 }

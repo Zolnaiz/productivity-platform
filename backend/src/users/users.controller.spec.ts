@@ -66,6 +66,9 @@ describe('UsersController', () => {
       ['activate', 'users:update'],
       ['deactivate', 'users:update'],
       ['changeRole', 'users:update'],
+      // Handing someone a way into another account is as weighty as editing
+      // it, so it is never a manager-level capability.
+      ['issuePasswordReset', 'users:update'],
     ])('guards %s with %s', (method, permission) => {
       expect(permissionOf(method)).toBe(permission);
     });

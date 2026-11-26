@@ -1,3 +1,4 @@
+/** Unit test for audit-retention.service.ts: how long the trail is kept. */
 import { Logger } from '@nestjs/common';
 import {
   AuditRetentionService,

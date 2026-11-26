@@ -1,3 +1,6 @@
+/**
+ * Saved versions of the floor plan: list, compare and restore.
+ */
 import React, { useCallback, useEffect, useState } from 'react';
 import { History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

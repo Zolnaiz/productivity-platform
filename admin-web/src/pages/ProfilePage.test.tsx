@@ -1,3 +1,4 @@
+/** Unit test for ProfilePage.tsx: a person’s own profile. */
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ProfilePage from './ProfilePage';

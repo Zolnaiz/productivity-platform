@@ -1,3 +1,4 @@
+/** Unit test for auth.service.ts: AuthService. */
 import { ConflictException, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';

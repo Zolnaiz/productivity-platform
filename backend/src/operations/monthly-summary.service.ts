@@ -1,3 +1,7 @@
+/**
+ * The written monthly summary: drafts it from the month's facts (monthFacts) in Mongolian or English, stores the
+ * edited text, and is read by the report archive when a month is closed.
+ */
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';

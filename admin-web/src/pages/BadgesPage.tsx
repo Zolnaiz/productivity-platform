@@ -1,3 +1,6 @@
+/**
+ * /badges - the badges the user has earned and how to earn the rest.
+ */
 import React, { useEffect, useState } from 'react';
 import { Trophy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

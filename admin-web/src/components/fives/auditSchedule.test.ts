@@ -1,3 +1,4 @@
+/** Unit test for auditSchedule.ts: toCalendarDay. */
 import { describe, expect, it } from 'vitest';
 import {
   addDaysToDate,

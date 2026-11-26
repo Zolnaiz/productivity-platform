@@ -1,3 +1,7 @@
+/**
+ * Saves, reads and deletes attachments for one organisation: metadata in PostgreSQL, bytes in the attachment
+ * store (disk or object storage), each checked against size and type limits.
+ */
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
@@ -166,8 +170,15 @@ export class AttachmentsService {
     };
   }
 
-  async remove(id: string, user: CurrentUser) {
+  /**
+   * Deletes a file. A task's work documents are locked by their review, which only DeliverablesService knows,
+   * so they are removed through it (`allowWorkTask`) and never by the general route.
+   */
+  async remove(id: string, user: CurrentUser, options: { allowWorkTask?: boolean } = {}) {
     const attachment = await this.findScoped(id, user);
+    if (attachment.ownerType === AttachmentOwner.WORK_TASK && !options.allowWorkTask) {
+      throw apiError(ErrorCode.AccessDenied);
+    }
 
     await this.attachments.remove(attachment);
 
