@@ -34,6 +34,18 @@ class TaskProvider extends ChangeNotifier {
     }
   }
 
+  /// The review state of one task's documents, after a step taken on its sheet,
+  /// so the card shows it without reloading the list.
+  void setReviewStatus(String taskId, String? reviewStatus) {
+    tasks = [
+      for (final task in tasks)
+        task.id == taskId
+            ? task.copyWith(reviewStatus: reviewStatus ?? 'none')
+            : task
+    ];
+    notifyListeners();
+  }
+
   Future<void> load({required String? assigneeId}) async {
     loading = true;
     error = null;

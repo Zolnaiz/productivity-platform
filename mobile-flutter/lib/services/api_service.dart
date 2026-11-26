@@ -542,6 +542,30 @@ class ApiService {
     return (response.data as Map).cast<String, dynamic>();
   }
 
+  /// A task's work documents and their review (backend operations/deliverables.ts):
+  /// `{review: {status, note, ...}, files: [... newest version first]}`.
+  Future<Map<String, dynamic>> getDeliverables(String taskId) async {
+    final response = await _dio.get('/tasks/$taskId/deliverables');
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
+  /// Adds a document or photo to the person's own task. Refused while the
+  /// documents are under review or approved (DELIVERABLE_LOCKED).
+  Future<Map<String, dynamic>> uploadDeliverable(
+      String taskId, List<int> bytes, String fileName) async {
+    final form = FormData.fromMap(
+        {'file': MultipartFile.fromBytes(bytes, filename: fileName)});
+    final response =
+        await _dio.post('/tasks/$taskId/deliverables', data: form);
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
+  /// Sends the task's documents to be reviewed.
+  Future<Map<String, dynamic>> submitDeliverables(String taskId) async {
+    final response = await _dio.post('/tasks/$taskId/deliverables/submit');
+    return (response.data as Map).cast<String, dynamic>();
+  }
+
   /// Records that an area was cleaned today; the server dates it.
   Future<Map<String, dynamic>> markZoneCleaned(String planId, String zoneId,
       {String? idempotencyKey}) async {

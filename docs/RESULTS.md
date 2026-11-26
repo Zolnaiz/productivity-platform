@@ -1,6 +1,6 @@
 # Тестийн болон хэмжилтийн үр дүн
 
-> `npm run results` (backend)-ээр автоматаар үүсгэв. Гараар бүү засаарай. Commit `feb8009`, 2026-11-25T11:06:09.245Z.
+> `npm run results` (backend)-ээр автоматаар үүсгэв. Гараар бүү засаарай. Commit `5b914ca`, 2026-11-26T04:06:23.372Z.
 
 ## 1. Suite бүрийн нийлбэр
 
@@ -9,10 +9,10 @@
 | Backend unit + HTTP (jest) | `npx jest` | 1134 | 0 | 0 |  |
 | Use-case acceptance (jest + supertest + PostgreSQL) | `npx jest --config ./test/jest-uc.json --runInBand` | 62 | 0 | 0 |  |
 | Web (vitest) | `cd admin-web && npx vitest run` | 1151 | 0 | 0 |  |
-| Mobile (flutter test) | `cd mobile-flutter && flutter test` | 143 | 0 | 6 |  |
+| Mobile (flutter test) | `cd mobile-flutter && flutter test` | 146 | 0 | 6 |  |
 | Browser e2e (Playwright, demo + live API) | `cd admin-web && npx playwright test` | 40 | 0 | 0 |  |
 
-Нийт ажилласан тест: **2530 passed**, **0 failed**.
+Нийт ажилласан тест: **2533 passed**, **0 failed**.
 
 Lint: backend — clean, web — errors.
 
@@ -117,7 +117,7 @@ Lint: backend — clean, web — errors.
 | Аюулгүй байдал | Эрхийн матриц (доор); нууц үг сэргээлтийн халдлагын тохиолдол | 19/19 татгалзах тест pass; сэргээлт: 13/13 pass |
 | Ашиглахад хялбар байдал | SUS асуулга бодит хэрэглэгч шаарддаг | SUS асуулга системд бэлэн (вэб, гар утас; `/sus`), оноо хараахан хэмжээгүй — пилотын төгсгөлд нэг үе нээж авна; хүртээмжийн автомат шалгалт (axe, Flutter accessibility) suite-д багтсан |
 | Найдвартай байдал | Офлайн outbox, дахин илгээлт; жинхэнэ сервертэй TCP холболт тасалдах | 17/17 pass; тасалдлын тест (`network_drop_live_test.dart`) CI-ийн Live API ажилд; бодит утас, Wi-Fi дээр хэмжээгүй |
-| Засвар үйлчилгээ | Тестийн тоо, lint | 2530 тест; lint backend clean, web errors |
+| Засвар үйлчилгээ | Тестийн тоо, lint | 2533 тест; lint backend clean, web errors |
 | Нийцтэй байдал | Web (Chromium e2e), Android/iOS Flutter client, нэг API | e2e 40 passed, 0 failed; бусад хөтөч, бодит төхөөрөмж дээр хэмжээгүй |
 
 ### Эрхийн матриц (UC тестийн татгалзсан урсгалаас)
